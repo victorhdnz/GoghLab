@@ -127,7 +127,7 @@ export async function POST(request: NextRequest) {
         'Content-Type': 'application/json',
         Accept: 'application/json',
         Authorization: `Bearer ${token}`,
-        'User-Agent': 'Smart Time Prime (contato@smarttimeprime.com.br)',
+        'User-Agent': 'MV Company (contato.mvcomp4ny@gmail.com)',
       },
       body: JSON.stringify(shippingRequest),
     })
@@ -158,7 +158,7 @@ export async function POST(request: NextRequest) {
         currency: 'BRL',
         delivery_time: 0.125, // 3 horas em dias (3/24)
         delivery_range: { min: 0, max: 1 },
-        company: 'Smart Time Prime',
+        company: 'MV Company',
         is_local: true,
         description: 'Entrega em até 3 horas (pode ser mais rápido)',
       })

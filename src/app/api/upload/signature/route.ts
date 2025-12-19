@@ -12,7 +12,7 @@ cloudinary.config({
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { folder = 'smart-time-prime', resourceType = 'auto' } = body
+    const { folder = 'mv-company', resourceType = 'auto' } = body
     
     // Debug: verificar valores recebidos
     if (process.env.NODE_ENV === 'development') {

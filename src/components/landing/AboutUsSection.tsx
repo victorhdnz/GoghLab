@@ -23,8 +23,8 @@ interface AboutUsSectionProps {
 }
 
 export const AboutUsSection = ({
-  title = '🏪 SOBRE A SMART TIME PRIME',
-  description = 'A Smart Time Prime é uma loja de tecnologia localizada em Uberlândia/MG, dentro do Shopping Planalto.\n\nSomos referência em smartwatches e acessórios tecnológicos, com atendimento humano, entrega rápida e garantia total.',
+  title = '🏢 SOBRE A MV COMPANY',
+  description = 'A MV Company é uma prestadora de serviços digitais especializada em transformar a presença online de empresas.\n\nOferecemos criação de sites profissionais, gestão de tráfego pago, criação de conteúdo estratégico e gestão completa de redes sociais.',
   storeImages,
   storeImage, // Compatibilidade com versão antiga
   foundersNames,
@@ -119,7 +119,7 @@ export const AboutUsSection = ({
                   <Image
                     key={currentIndex}
                     src={images[currentIndex]}
-                    alt={`Loja Smart Time Prime - Foto ${currentIndex + 1}`}
+                    alt={`MV Company - Foto ${currentIndex + 1}`}
                     fill
                     className="object-cover"
                     priority={currentIndex === 0}
@@ -179,7 +179,7 @@ export const AboutUsSection = ({
                       >
                         <Image
                           src={image}
-                          alt={`Loja Smart Time Prime - Miniatura ${index + 1}`}
+                          alt={`MV Company - Miniatura ${index + 1}`}
                           fill
                           className="object-cover"
                           sizes="(max-width: 768px) 25vw, 25vw"

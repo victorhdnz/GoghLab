@@ -43,11 +43,11 @@ Aceitamos diversos métodos de pagamento. Ao fazer um pedido, você concorda em:
 
 ## 6. Propriedade Intelectual
 
-Todo o conteúdo deste site, incluindo textos, gráficos, logotipos, ícones, imagens, clipes de áudio e software, é propriedade da Smart Time Prime ou de seus fornecedores de conteúdo e está protegido por leis de direitos autorais e outras leis de propriedade intelectual.
+Todo o conteúdo deste site, incluindo textos, gráficos, logotipos, ícones, imagens, clipes de áudio e software, é propriedade da MV Company ou de seus fornecedores de conteúdo e está protegido por leis de direitos autorais e outras leis de propriedade intelectual.
 
 ## 7. Limitação de Responsabilidade
 
-Em nenhuma circunstância a Smart Time Prime será responsável por danos indiretos, incidentais, especiais, consequenciais ou punitivos, incluindo perda de lucros, dados, uso ou outras perdas intangíveis, resultantes do uso ou incapacidade de usar o site.
+Em nenhuma circunstância a MV Company será responsável por danos indiretos, incidentais, especiais, consequenciais ou punitivos, incluindo perda de lucros, dados, uso ou outras perdas intangíveis, resultantes do uso ou incapacidade de usar o site.
 
 ## 8. Alterações nos Termos
 

@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData()
     const file = formData.get('file') as File
-    const folder = formData.get('folder') as string || 'smart-time-prime'
+    const folder = formData.get('folder') as string || 'mv-company'
     const isBanner = formData.get('isBanner') === 'true'
     const isHighQuality = formData.get('isHighQuality') === 'true'
     const preserveTransparency = formData.get('preserveTransparency') === 'true'
@@ -94,7 +94,7 @@ export async function POST(request: NextRequest) {
     
     // Configurar opções de upload (seguindo lógica do exemplo fornecido)
     const uploadOptions: any = {
-      folder: folder || 'smart-time-prime',
+      folder: folder || 'mv-company',
       resource_type: resourceType,
       use_filename: true,
       unique_filename: true,

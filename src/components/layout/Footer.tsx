@@ -73,7 +73,7 @@ export const Footer = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-x-12 gap-y-8">
           {/* Brand */}
           <div>
-            <h3 className="text-2xl font-bold mb-4">{siteSettings?.site_name || 'Smart Time Prime'}</h3>
+            <h3 className="text-2xl font-bold mb-4">{siteSettings?.site_name || 'MV Company'}</h3>
             <p className="text-gray-400 mb-4">
               {siteSettings?.footer_text || 'Produtos de qualidade com design moderno e elegante.'}
             </p>
@@ -184,7 +184,7 @@ export const Footer = () => {
 
         <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
           <p>
-            © {currentYear} {siteSettings?.site_name || 'Smart Time Prime'}. {siteSettings?.copyright_text || 'Todos os direitos reservados.'}
+            © {currentYear} {siteSettings?.site_name || 'MV Company'}. {siteSettings?.copyright_text || 'Todos os direitos reservados.'}
           </p>
         </div>
       </div>

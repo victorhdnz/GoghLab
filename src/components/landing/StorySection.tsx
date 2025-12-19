@@ -23,7 +23,7 @@ interface StorySectionProps {
 
 export const StorySection = ({
   title = '✍️ NOSSA HISTÓRIA',
-  content = 'A Smart Time Prime nasceu em Uberlândia com o propósito de unir estilo e tecnologia no dia a dia das pessoas.\n\nHoje somos uma das lojas mais lembradas quando o assunto é smartwatch e confiança.',
+  content = 'A MV Company nasceu com o propósito de transformar negócios através de serviços digitais de alta qualidade.\n\nSomos especialistas em criação de sites, tráfego pago, criação de conteúdo e gestão de redes sociais.',
   images,
   image, // Compatibilidade com versão antiga
   foundersNames,
@@ -35,7 +35,7 @@ export const StorySection = ({
     images: true,
   },
 }: StorySectionProps) => {
-  const [siteName, setSiteName] = useState<string>('Smart Time Prime')
+  const [siteName, setSiteName] = useState<string>('MV Company')
 
   useEffect(() => {
     const loadSiteName = async () => {

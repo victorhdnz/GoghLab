@@ -756,15 +756,15 @@ function EditLandingPageContent() {
     value_package_text_color: '#000000',
     // Story
     story_title: '✍️ NOSSA HISTÓRIA',
-    story_content: 'A Smart Time Prime nasceu em Uberlândia com o propósito de unir estilo e tecnologia no dia a dia das pessoas.\n\nHoje somos uma das lojas mais lembradas quando o assunto é smartwatch e confiança.',
+    story_content: 'A MV Company nasceu com o propósito de transformar negócios através de serviços digitais de alta qualidade.\n\nSomos especialistas em criação de sites, tráfego pago, criação de conteúdo e gestão de redes sociais.',
     story_images: [],
     story_image: '',
     story_founders_names: 'Guilherme e Letícia',
     story_bg_color: '#FFFFFF',
     story_text_color: '#000000',
     // About Us
-    about_us_title: '🏪 SOBRE A SMART TIME PRIME',
-    about_us_description: 'A Smart Time Prime é uma loja de tecnologia localizada em Uberlândia/MG, dentro do Shopping Planalto.\n\nSomos referência em smartwatches e acessórios tecnológicos, com atendimento humano, entrega rápida e garantia total.',
+    about_us_title: '🏢 SOBRE A MV COMPANY',
+    about_us_description: 'A MV Company é uma prestadora de serviços digitais especializada em transformar a presença online de empresas.\n\nOferecemos criação de sites profissionais, gestão de tráfego pago, criação de conteúdo estratégico e gestão completa de redes sociais.',
     about_us_store_images: [],
     about_us_store_image: '',
     about_us_founders_image: '',
@@ -1187,7 +1187,7 @@ function EditLandingPageContent() {
       ]
     },
     about_us: {
-      label: 'Sobre a Smart Time Prime',
+      label: 'Sobre a MV Company',
       key: 'section_about_us_visible',
       elements: [
         { key: 'about_us_title_visible', label: 'Título' },
@@ -1450,15 +1450,15 @@ function EditLandingPageContent() {
           value_package_text_color: savedSettings.value_package_text_color || '#000000',
           // Story
           story_title: savedSettings.story_title || '✍️ NOSSA HISTÓRIA',
-          story_content: savedSettings.story_content || 'A Smart Time Prime nasceu em Uberlândia com o propósito de unir estilo e tecnologia no dia a dia das pessoas.\n\nHoje somos uma das lojas mais lembradas quando o assunto é smartwatch e confiança.',
+          story_content: savedSettings.story_content || 'A MV Company nasceu com o propósito de transformar negócios através de serviços digitais de alta qualidade.\n\nSomos especialistas em criação de sites, tráfego pago, criação de conteúdo e gestão de redes sociais.',
           story_images: Array.isArray(savedSettings.story_images) ? savedSettings.story_images : (savedSettings.story_image ? [savedSettings.story_image] : []),
           story_image: savedSettings.story_image || '',
           story_founders_names: savedSettings.story_founders_names || 'Guilherme e Letícia',
           story_bg_color: savedSettings.story_bg_color || '#FFFFFF',
           story_text_color: savedSettings.story_text_color || '#000000',
           // About Us
-          about_us_title: savedSettings.about_us_title || '🏪 SOBRE A SMART TIME PRIME',
-          about_us_description: savedSettings.about_us_description || 'A Smart Time Prime é uma loja de tecnologia localizada em Uberlândia/MG, dentro do Shopping Planalto.\n\nSomos referência em smartwatches e acessórios tecnológicos, com atendimento humano, entrega rápida e garantia total.',
+          about_us_title: savedSettings.about_us_title || '🏢 SOBRE A MV COMPANY',
+          about_us_description: savedSettings.about_us_description || 'A MV Company é uma prestadora de serviços digitais especializada em transformar a presença online de empresas.\n\nOferecemos criação de sites profissionais, gestão de tráfego pago, criação de conteúdo estratégico e gestão completa de redes sociais.',
           about_us_store_images: Array.isArray(savedSettings.about_us_store_images) ? savedSettings.about_us_store_images : (savedSettings.about_us_store_image ? [savedSettings.about_us_store_image] : []),
           about_us_store_image: savedSettings.about_us_store_image || '',
           about_us_founders_image: savedSettings.about_us_founders_image || '',
@@ -1974,7 +1974,7 @@ function EditLandingPageContent() {
                 onChange={(e) =>
                   setSettings({ ...settings, hero_title: e.target.value })
                 }
-                placeholder="🖤 SMART TIME PRIME — BLACK FRIDAY UBERLÂNDIA"
+                placeholder="🚀 MV COMPANY — SERVIÇOS DIGITAIS"
               />
 
               <div>
@@ -2931,7 +2931,7 @@ function EditLandingPageContent() {
                   onChange={(e) =>
                     setSettings({ ...settings, story_content: e.target.value })
                   }
-                  placeholder="A Smart Time Prime nasceu em Uberlândia..."
+                  placeholder="A MV Company nasceu com o propósito de transformar negócios..."
                   rows={6}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
                 />
@@ -3003,7 +3003,7 @@ function EditLandingPageContent() {
                 onChange={(e) =>
                   setSettings({ ...settings, about_us_title: e.target.value })
                 }
-                placeholder="🏪 SOBRE A SMART TIME PRIME"
+                placeholder="🏢 SOBRE A MV COMPANY"
               />
 
               <div>
@@ -3013,7 +3013,7 @@ function EditLandingPageContent() {
                   onChange={(e) =>
                     setSettings({ ...settings, about_us_description: e.target.value })
                   }
-                  placeholder="A Smart Time Prime é uma loja..."
+                  placeholder="A MV Company é uma prestadora de serviços digitais..."
                   rows={5}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
                 />

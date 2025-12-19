@@ -12,7 +12,7 @@ interface FeaturesSectionProps {
 }
 
 export const FeaturesSection = ({
-  title = 'Por que escolher a Smart Time Prime?',
+  title = 'Por que escolher a MV Company?',
   backgroundColor = 'transparent',
   elementVisibility = {
     title: true,

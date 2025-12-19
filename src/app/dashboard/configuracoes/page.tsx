@@ -41,8 +41,8 @@ export default function ConfiguracoesPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [config, setConfig] = useState<SiteConfig>({
-    site_name: 'Smart Time Prime',
-    site_title: 'Smart Time Prime - Relógios Premium',
+    site_name: 'MV Company',
+    site_title: 'MV Company - Serviços Digitais',
     site_logo: '',
     site_description: 'E-commerce de produtos premium',
     footer_text: 'Produtos de qualidade com design moderno e elegante.',
@@ -213,7 +213,7 @@ export default function ConfiguracoesPage() {
                 onChange={(e) =>
                   setConfig({ ...config, site_name: e.target.value })
                 }
-                placeholder="Smart Time Prime"
+                placeholder="MV Company"
               />
               <p className="text-xs text-gray-500 -mt-2">
                 Este nome aparecerá no navigation, rodapé e seção "Nossa História"
@@ -225,7 +225,7 @@ export default function ConfiguracoesPage() {
                 onChange={(e) =>
                   setConfig({ ...config, site_title: e.target.value })
                 }
-                placeholder="Smart Time Prime - Relógios Premium"
+                placeholder="MV Company - Serviços Digitais"
               />
               <p className="text-xs text-gray-500 -mt-2">
                 Este título aparecerá nos resultados de busca do Google e na aba do navegador. Recomendado: máximo de 60 caracteres.

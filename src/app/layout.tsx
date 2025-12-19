@@ -45,7 +45,7 @@ async function getSiteDescription(): Promise<string> {
   }
 
   // Descrição padrão caso não encontre no banco
-  return 'E-commerce moderno de relógios premium com design elegante e sofisticado. Smartwatches, relógios inteligentes e acessórios em Uberlândia.'
+  return 'MV Company - Prestadora de serviços digitais. Criação de sites, tráfego pago, criação de conteúdo e gestão de redes sociais.'
 }
 
 // Função para buscar nome do site do banco de dados
@@ -81,7 +81,7 @@ async function getSiteName(): Promise<string> {
   }
 
   // Nome padrão caso não encontre no banco
-  return 'Smart Time Prime'
+  return 'MV Company'
 }
 
 // Função para buscar título do site do banco de dados
@@ -131,14 +131,14 @@ async function getSiteTitle(): Promise<string | null> {
 export async function generateMetadata(): Promise<Metadata> {
   const siteDescription = await getSiteDescription()
   const siteName = await getSiteName()
-  const siteTitle = await getSiteTitle() || `${siteName} - Relógios Premium`
+  const siteTitle = await getSiteTitle() || `${siteName} - Serviços Digitais`
   const siteUrl = getSiteUrl()
 
   return {
     metadataBase: new URL(siteUrl),
     title: siteTitle,
     description: siteDescription,
-    keywords: ['relógios', 'premium', 'smart watch', 'acessórios', 'moda', 'Uberlândia', siteName],
+    keywords: ['serviços digitais', 'criação de sites', 'tráfego pago', 'marketing digital', 'gestão de redes sociais', 'MV Company', siteName],
     authors: [{ name: siteName }],
     creator: siteName,
     publisher: siteName,

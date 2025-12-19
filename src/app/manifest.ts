@@ -2,9 +2,9 @@ import { MetadataRoute } from 'next'
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'Smart Time Prime',
-    short_name: 'STP',
-    description: 'E-commerce moderno de relógios premium',
+    name: 'MV Company',
+    short_name: 'MVC',
+    description: 'Prestadora de serviços digitais - Criação de sites, tráfego pago e gestão de redes sociais',
     start_url: '/',
     display: 'standalone',
     background_color: '#ffffff',

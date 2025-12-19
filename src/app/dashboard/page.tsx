@@ -21,6 +21,7 @@ import {
   Lock,
   BookOpen,
   Wrench,
+  Star,
 } from 'lucide-react'
 import Link from 'next/link'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
@@ -310,6 +311,27 @@ function DashboardContent() {
       ],
     },
     {
+      title: 'Portfolio de Serviços',
+      description: 'Gerencie os serviços digitais da MV Company',
+      icon: Package,
+      items: [
+        {
+          title: 'Gerenciar Serviços',
+          description: 'Criar, editar e organizar serviços do portfolio',
+          href: '/dashboard/portfolio',
+          icon: Package,
+          color: 'bg-blue-500',
+        },
+        {
+          title: 'Avaliações de Clientes',
+          description: 'Gerenciar depoimentos e avaliações dos clientes',
+          href: '/dashboard/avaliacoes',
+          icon: Star,
+          color: 'bg-yellow-500',
+        },
+      ],
+    },
+    {
       title: 'Comparador de Produtos',
       description: 'Configure produtos e tópicos para o comparador público',
       icon: GitCompare,
@@ -369,7 +391,7 @@ function DashboardContent() {
           <div>
             <h1 className="text-3xl font-bold text-gray-900 mb-2">Dashboard Administrativo</h1>
             <p className="text-gray-600">
-              Olá, <span className="font-medium">Smart Time Prime</span>
+              Olá, <span className="font-medium">MV Company</span>
             </p>
           </div>
           <button

@@ -363,3 +363,97 @@ export interface ProductCatalog {
   updated_at: string
 }
 
+// ==========================================
+// TIPOS PARA MV COMPANY (Portfolio de Serviços)
+// ==========================================
+
+export interface Service {
+  id: string
+  name: string
+  slug: string
+  short_description?: string
+  full_description?: string
+  category?: string
+  tags?: string[]
+  cover_image?: string
+  images?: string[]
+  video_url?: string
+  price_range?: string
+  delivery_time?: string
+  is_featured: boolean
+  is_active: boolean
+  meta_title?: string
+  meta_description?: string
+  created_at: string
+  updated_at: string
+}
+
+export interface ServiceTestimonial {
+  id: string
+  service_id?: string
+  client_name: string
+  client_company?: string
+  client_photo?: string
+  rating?: number
+  testimonial_text: string
+  is_featured: boolean
+  is_active: boolean
+  created_at: string
+}
+
+export interface CompanyComparison {
+  id: string
+  name: string
+  slug: string
+  logo?: string
+  description?: string
+  comparison_topics: ComparisonTopic[]
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface ComparisonTopic {
+  id: string
+  name: string
+  mv_company: boolean
+  competitor: boolean
+}
+
+export interface PortfolioLayout {
+  id: string
+  name: string
+  slug: string
+  description?: string
+  custom_url?: string
+  theme_colors: Record<string, string>
+  is_active: boolean
+  is_default: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface PortfolioPage {
+  id: string
+  service_id: string
+  slug: string
+  title: string
+  content: Record<string, any>
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface PortfolioAnalytics {
+  id: string
+  layout_id?: string
+  service_id?: string
+  session_id: string
+  event_type: 'page_view' | 'click' | 'scroll' | 'time_on_page' | 'exit' | 'conversion' | 'service_view' | 'contact_click'
+  event_data: Record<string, any>
+  user_agent?: string
+  referrer?: string
+  ip_address?: string
+  created_at: string
+}
+

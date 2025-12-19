@@ -13,7 +13,7 @@ export const Header = () => {
   const router = useRouter()
   const pathname = usePathname()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const [siteName, setSiteName] = useState<string>('Smart Time Prime')
+  const [siteName, setSiteName] = useState<string>('MV Company')
   const [siteLogo, setSiteLogo] = useState<string | undefined>(undefined)
   const { products } = useProductComparison()
   const comparisonCount = products.length
@@ -37,7 +37,7 @@ export const Header = () => {
 
         if (data) {
           // Sempre atualizar o nome, mesmo se vazio (para permitir limpar)
-          setSiteName(data.site_name || 'Smart Time Prime')
+          setSiteName(data.site_name || 'MV Company')
           // Atualizar logo apenas se existir
           if (data.site_logo) {
             setSiteLogo(data.site_logo)
@@ -46,7 +46,7 @@ export const Header = () => {
           }
         } else {
           // Se não houver dados, manter o padrão
-          setSiteName('Smart Time Prime')
+          setSiteName('MV Company')
           setSiteLogo(undefined)
         }
       } catch (error) {

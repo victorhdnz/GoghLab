@@ -40,7 +40,7 @@ interface HeroSectionProps {
 }
 
 export const HeroSection = ({
-  title = '🖤 SMART TIME PRIME — BLACK FRIDAY UBERLÂNDIA',
+  title = '🚀 MV COMPANY — SERVIÇOS DIGITAIS',
   subtitle = '🚨 A BLACK FRIDAY CHEGOU!\nSmartwatch Série 11 com até 50% OFF + 4 BRINDES EXCLUSIVOS\n📦 Entrega em até 24h direto do Shopping Planalto – Uberlândia/MG',
   ctaText = '💬 QUERO MEU SÉRIE 11 AGORA!',
   ctaLink,
