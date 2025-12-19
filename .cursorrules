@@ -1,0 +1,53 @@
+# Cursor Rules para Smart Time Prime
+
+## Padrões de Código
+
+- Use TypeScript strict mode
+- Sempre defina tipos explícitos
+- Use 'use client' quando necessário (Client Components)
+- Prefer Server Components quando possível
+- Use async/await em vez de promises
+
+## Componentes
+
+- Componentes devem ser funcionais
+- Use React Hooks
+- Evite prop drilling, use Context ou Zustand
+- Mantenha componentes pequenos e focados
+- Um componente por arquivo
+
+## Estilo
+
+- Use Tailwind CSS
+- Evite CSS inline complexo
+- Use classes utilitárias do Tailwind
+- Mantenha consistência nas cores (preto, branco, dourado)
+
+## Banco de Dados
+
+- Use Supabase client helpers
+- Sempre trate erros
+- Use Row Level Security (RLS)
+- Valide inputs antes de queries
+
+## Segurança
+
+- Nunca exponha service_role_key no client
+- Use middleware para proteger rotas
+- Valide autenticação server-side
+- Sanitize user inputs
+
+## Performance
+
+- Use Next.js Image component
+- Lazy load quando apropriado
+- Minimize bundle size
+- Use React.memo quando necessário
+
+## Naming
+
+- camelCase para variáveis e funções
+- PascalCase para componentes
+- UPPER_CASE para constantes
+- kebab-case para arquivos
+
