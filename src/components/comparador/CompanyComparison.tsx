@@ -1,11 +1,11 @@
 'use client'
 
-import { CompanyComparison } from '@/types'
+import type { CompanyComparison as CompanyComparisonType } from '@/types'
 import { ComparisonTable } from './ComparisonTable'
 import Image from 'next/image'
 
 interface CompanyComparisonProps {
-  comparison: CompanyComparison
+  comparison: CompanyComparisonType
 }
 
 export function CompanyComparison({ comparison }: CompanyComparisonProps) {
