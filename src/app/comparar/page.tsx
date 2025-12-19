@@ -1,6 +1,7 @@
 import { createServerClient } from '@/lib/supabase/server'
 import { CompanyComparison } from '@/types'
 import Link from 'next/link'
+import Image from 'next/image'
 import { GitCompare, ArrowRight } from 'lucide-react'
 
 async function getComparisons(): Promise<CompanyComparison[]> {

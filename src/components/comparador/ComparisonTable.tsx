@@ -31,20 +31,9 @@ export function ComparisonTable({ comparison }: ComparisonTableProps) {
             </th>
             <th className="px-6 py-4 text-center font-semibold text-gray-900 bg-gray-50">
               <div className="flex flex-col items-center gap-2">
-                {comparison.logo ? (
-                  <div className="relative w-16 h-16 rounded-lg overflow-hidden">
-                    <Image
-                      src={comparison.logo}
-                      alt="MV Company"
-                      fill
-                      className="object-contain"
-                    />
-                  </div>
-                ) : (
-                  <div className="w-16 h-16 rounded-lg bg-gray-200 flex items-center justify-center">
-                    <span className="text-2xl">🚀</span>
-                  </div>
-                )}
+                <div className="w-16 h-16 rounded-lg bg-gray-200 flex items-center justify-center">
+                  <span className="text-2xl">🚀</span>
+                </div>
                 <span>MV Company</span>
               </div>
             </th>
