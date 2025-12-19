@@ -333,9 +333,9 @@ export const useAuth = () => {
     }
   }
 
-  // Verificar se é admin através do email
-  const isAdmin = isAdminEmail(user?.email)
-  const isEditor = isAdmin // Admin também é editor
+  // Verificar se é admin/editor através da role do profile
+  const isAdmin = profile?.role === 'admin'
+  const isEditor = profile?.role === 'admin' || profile?.role === 'editor'
 
   return {
     user,
