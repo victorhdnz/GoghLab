@@ -73,60 +73,39 @@ export const useAuth = () => {
           
           // Buscar perfil de forma assíncrona (não bloqueia o loading)
           // Isso permite que a UI seja atualizada rapidamente
-          const loadProfileAsync = async () => {
+          const loadProfileAsync = async (): Promise<void> => {
             try {
-              // Usar timeout curto para buscar profile (1 segundo)
-              // Selecionar apenas campos necessários para melhor performance
-              const profilePromise = supabase
+              // Buscar profile sem timeout para garantir que carregue
+              const { data: profile, error: profileError } = await supabase
                 .from('profiles')
                 .select('id, email, full_name, avatar_url, role, phone, created_at, updated_at')
                 .eq('id', session.user.id)
                 .single()
 
-              const profileTimeout = new Promise((_, reject) => 
-                setTimeout(() => reject(new Error('Profile timeout')), 1000)
-              )
+              if (!mounted) return
 
-              try {
-                const { data: profile, error: profileError } = await Promise.race([
-                  profilePromise,
-                  profileTimeout
-                ]) as { data: any, error: any }
-
-                if (!mounted) return
-
-                if (profileError?.code === 'PGRST116') {
-                  // Profile não existe, criar (primeiro login) - mas não bloquear
-                  ensureProfileExists(
-                    session.user.id,
-                    session.user.email || '',
-                    session.user.user_metadata
-                  ).then((newProfile) => {
-                    if (mounted) {
-                      setProfile(newProfile)
-                    }
-                  }).catch(() => {
-                    // Falhou ao criar profile - continuar sem profile
-                    if (mounted) {
-                      setProfile(null)
-                    }
-                  })
-                } else if (profileError) {
-                  if (mounted) {
-                    setProfile(null)
-                  }
-                } else {
-                  if (mounted) {
-                    setProfile(profile as AppUser || null)
-                  }
+              if (profileError?.code === 'PGRST116') {
+                // Profile não existe, criar (primeiro login)
+                const newProfile = await ensureProfileExists(
+                  session.user.id,
+                  session.user.email || '',
+                  session.user.user_metadata
+                )
+                if (mounted) {
+                  setProfile(newProfile)
                 }
-              } catch (timeoutError) {
-                // Timeout ao buscar profile - continuar sem profile
+              } else if (profileError) {
+                console.error('Erro ao buscar profile:', profileError)
                 if (mounted) {
                   setProfile(null)
                 }
+              } else {
+                if (mounted) {
+                  setProfile(profile as AppUser || null)
+                }
               }
             } catch (error: any) {
+              console.error('Erro ao buscar perfil:', error)
               // Erro ao buscar perfil - continuar sem profile
               if (mounted) {
                 setProfile(null)
@@ -134,18 +113,17 @@ export const useAuth = () => {
             }
           }
 
-          // Iniciar busca do profile em background
-          loadProfileAsync()
-          
-          // Finalizar loading imediatamente após obter a sessão
-          // O profile será carregado em background sem bloquear a UI
-          if (mounted && timeoutId) {
-            clearTimeout(timeoutId)
-            timeoutId = null
-          }
-          if (mounted) {
-            setLoading(false)
-          }
+          // Iniciar busca do profile e aguardar antes de finalizar loading
+          // Isso garante que isEditor seja calculado corretamente
+          loadProfileAsync().finally(() => {
+            if (mounted && timeoutId) {
+              clearTimeout(timeoutId)
+              timeoutId = null
+            }
+            if (mounted) {
+              setLoading(false)
+            }
+          })
         } else {
           // Não há sessão
           if (mounted && timeoutId) {

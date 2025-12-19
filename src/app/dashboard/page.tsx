@@ -22,6 +22,7 @@ import {
   BookOpen,
   Wrench,
   Star,
+  Plus,
 } from 'lucide-react'
 import Link from 'next/link'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
@@ -33,8 +34,8 @@ interface DashboardStats {
   totalVersions: number
   totalViews: number
   totalClicks: number
-  productsForComparison: number
-  supportPages: number
+  totalServices: number
+  totalComparisons: number
 }
 
 // Componente de Login
@@ -210,8 +211,8 @@ function DashboardContent() {
     totalVersions: 0,
     totalViews: 0,
     totalClicks: 0,
-    productsForComparison: 0,
-    supportPages: 0,
+    totalServices: 0,
+    totalComparisons: 0,
   })
   const [loadingData, setLoadingData] = useState(true)
   const supabase = createClient()
@@ -226,12 +227,12 @@ function DashboardContent() {
     try {
       setLoadingData(true)
 
-      const [layoutsResult, versionsResult, analyticsResult, productsResult, supportResult] = await Promise.all([
-        supabase.from('landing_layouts').select('id', { count: 'exact' }),
-        supabase.from('landing_versions').select('id', { count: 'exact' }),
-        supabase.from('landing_analytics').select('event_type').gte('created_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()),
-        supabase.from('products').select('id', { count: 'exact' }).eq('is_active', true),
-        supabase.from('product_support_pages').select('id', { count: 'exact' }),
+      const [layoutsResult, versionsResult, analyticsResult, servicesResult, comparisonsResult] = await Promise.all([
+        supabase.from('portfolio_layouts').select('id', { count: 'exact' }),
+        supabase.from('portfolio_pages').select('id', { count: 'exact' }),
+        supabase.from('portfolio_analytics').select('event_type').gte('created_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()),
+        supabase.from('services').select('id', { count: 'exact' }).eq('is_active', true),
+        supabase.from('company_comparisons').select('id', { count: 'exact' }).eq('is_active', true),
       ])
 
       const views = analyticsResult.data?.filter(a => a.event_type === 'page_view').length || 0
@@ -242,8 +243,8 @@ function DashboardContent() {
         totalVersions: versionsResult.count || 0,
         totalViews: views,
         totalClicks: clicks,
-        productsForComparison: productsResult.count || 0,
-        supportPages: supportResult.count || 0,
+        totalServices: servicesResult.count || 0,
+        totalComparisons: comparisonsResult.count || 0,
       })
     } catch (error) {
       console.error('Erro ao carregar dados do dashboard:', error)
@@ -259,24 +260,24 @@ function DashboardContent() {
 
   const statsCards = [
     {
-      title: 'Layouts',
-      value: stats.totalLayouts.toString(),
-      icon: Layers,
-      color: 'bg-indigo-500',
-      description: 'Landing pages',
+      title: 'Serviços',
+      value: stats.totalServices.toString(),
+      icon: Package,
+      color: 'bg-blue-500',
+      description: 'Serviços ativos',
     },
     {
-      title: 'Versões',
-      value: stats.totalVersions.toString(),
-      icon: Layout,
-      color: 'bg-purple-500',
-      description: 'Campanhas',
+      title: 'Comparações',
+      value: stats.totalComparisons.toString(),
+      icon: GitCompare,
+      color: 'bg-orange-500',
+      description: 'Comparações ativas',
     },
     {
       title: 'Views (30d)',
       value: stats.totalViews.toLocaleString(),
       icon: Eye,
-      color: 'bg-blue-500',
+      color: 'bg-teal-500',
       description: 'Visualizações',
     },
     {
@@ -297,7 +298,7 @@ function DashboardContent() {
         {
           title: 'Gerenciar Layouts e Versões',
           description: 'Criar, editar e visualizar todas as landing pages',
-          href: '/dashboard/layouts',
+          href: '/dashboard/landing',
           icon: Palette,
           color: 'bg-indigo-500',
         },
@@ -322,32 +323,25 @@ function DashboardContent() {
           icon: Package,
           color: 'bg-blue-500',
         },
-        {
-          title: 'Avaliações de Clientes',
-          description: 'Gerenciar depoimentos e avaliações dos clientes',
-          href: '/dashboard/avaliacoes',
-          icon: Star,
-          color: 'bg-yellow-500',
-        },
       ],
     },
     {
-      title: 'Comparador de Produtos',
-      description: 'Configure produtos e tópicos para o comparador público',
+      title: 'Comparador de Empresas',
+      description: 'Configure empresas e tópicos para o comparador público',
       icon: GitCompare,
       items: [
         {
-          title: 'Gerenciar Produtos',
-          description: 'Adicionar, editar e organizar produtos e tópicos',
-          href: '/dashboard/produtos',
-          icon: Package,
+          title: 'Gerenciar Comparações',
+          description: 'Adicionar, editar e organizar comparações de empresas',
+          href: '/dashboard/comparador',
+          icon: GitCompare,
           color: 'bg-orange-500',
         },
         {
-          title: 'Criar Links de Comparação',
-          description: 'Gerar URLs com produtos pré-selecionados',
-          href: '/dashboard/comparador',
-          icon: Link2,
+          title: 'Criar Nova Comparação',
+          description: 'Crie uma nova comparação entre a MV Company e um concorrente',
+          href: '/dashboard/comparador/novo',
+          icon: Plus,
           color: 'bg-rose-500',
         },
         {
@@ -361,23 +355,16 @@ function DashboardContent() {
       ],
     },
     {
-      title: 'Páginas Especiais',
-      description: 'Catálogos de produtos e manuais de configuração',
-      icon: BookOpen,
+      title: 'Configurações',
+      description: 'Ajustes gerais do site e sistema',
+      icon: FileText,
       items: [
         {
-          title: 'Catálogos de Produtos',
-          description: 'Criar catálogos visuais para exibir produtos',
-          href: '/dashboard/catalogos',
-          icon: Package,
-          color: 'bg-purple-500',
-        },
-        {
-          title: 'Manuais e Guias',
-          description: 'Páginas de suporte e configuração pós-compra',
-          href: '/dashboard/suporte',
-          icon: Wrench,
-          color: 'bg-cyan-500',
+          title: 'Configurações do Site',
+          description: 'Nome, logo, descrição e informações de contato',
+          href: '/dashboard/configuracoes',
+          icon: FileText,
+          color: 'bg-gray-500',
         },
       ],
     },
