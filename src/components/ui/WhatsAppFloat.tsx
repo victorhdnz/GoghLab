@@ -19,8 +19,8 @@ export const WhatsAppFloat = ({
   const [isVisible, setIsVisible] = useState(false)
   const [isHovered, setIsHovered] = useState(false)
 
-  // Ocultar no dashboard, admin e comparador
-  const shouldHide = pathname?.startsWith('/dashboard') || pathname?.startsWith('/admin') || pathname?.startsWith('/comparar')
+  // Ocultar apenas no dashboard e admin (não ocultar no comparador)
+  const shouldHide = pathname?.startsWith('/dashboard') || pathname?.startsWith('/admin')
 
   useEffect(() => {
     if (shouldHide) {

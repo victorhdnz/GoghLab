@@ -31,7 +31,7 @@ export function ComparisonFooter() {
     try {
       const { data, error } = await supabase
         .from('site_settings')
-        .select('comparison_footer')
+        .select('value')
         .eq('key', 'general')
         .maybeSingle()
 
@@ -40,8 +40,9 @@ export function ComparisonFooter() {
         return
       }
 
-      if (data?.comparison_footer) {
-        setContent(data.comparison_footer as ComparisonFooterContent)
+      const footerData = (data?.value as any)?.comparison_footer
+      if (footerData) {
+        setContent(footerData as ComparisonFooterContent)
       } else {
         // Valores padrão
         setContent({

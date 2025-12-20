@@ -6,27 +6,33 @@ import { useAuth } from '@/hooks/useAuth'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Switch } from '@/components/ui/Switch'
+import { ImageUploader } from '@/components/ui/ImageUploader'
 import { createClient } from '@/lib/supabase/client'
-import { CompanyComparison } from '@/types'
-import { Plus, Edit, Trash2, Eye, EyeOff, ArrowLeft, GitCompare, Search, Save, ChevronDown, ChevronUp } from 'lucide-react'
+import { CompanyComparison, ComparisonTopic } from '@/types'
+import { Eye, Save, ChevronDown, ChevronUp, Edit2, X, Plus } from 'lucide-react'
 import toast from 'react-hot-toast'
 import Link from 'next/link'
 import { BackButton } from '@/components/ui/BackButton'
 import Image from 'next/image'
 import { getSiteSettings, saveSiteSettings } from '@/lib/supabase/site-settings-helper'
 
+interface CompetitorCompany {
+  id: string
+  name: string
+  logo?: string
+  description?: string
+  comparison_topics: ComparisonTopic[]
+  is_active: boolean
+}
+
 export default function ComparadorDashboardPage() {
   const router = useRouter()
   const { isAuthenticated, isEditor, loading: authLoading } = useAuth()
-  const [comparisons, setComparisons] = useState<CompanyComparison[]>([])
-  const [filteredComparisons, setFilteredComparisons] = useState<CompanyComparison[]>([])
   const [loading, setLoading] = useState(true)
-  const [searchTerm, setSearchTerm] = useState('')
-  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all')
-  const [currentPage, setCurrentPage] = useState(1)
-  const itemsPerPage = 20
+  const [saving, setSaving] = useState(false)
   const [footerExpanded, setFooterExpanded] = useState(false)
   const [savingFooter, setSavingFooter] = useState(false)
+  const [editingCompany, setEditingCompany] = useState<number | null>(null)
   const [footerContent, setFooterContent] = useState({
     title: 'Pronto para trabalhar com a MV Company?',
     subtitle: 'Entre em contato e descubra como podemos transformar seu negócio',
@@ -40,6 +46,24 @@ export default function ComparadorDashboardPage() {
     instagram_url: '',
     instagram_text: 'Instagram',
   })
+  const [companies, setCompanies] = useState<CompetitorCompany[]>([
+    {
+      id: 'competitor-1',
+      name: '',
+      logo: '',
+      description: '',
+      comparison_topics: [],
+      is_active: true,
+    },
+    {
+      id: 'competitor-2',
+      name: '',
+      logo: '',
+      description: '',
+      comparison_topics: [],
+      is_active: true,
+    },
+  ])
 
   const supabase = createClient()
 
@@ -48,11 +72,51 @@ export default function ComparadorDashboardPage() {
       if (!isAuthenticated || !isEditor) {
         router.push('/dashboard')
       } else {
-        loadComparisons()
-        loadFooterContent()
+        loadData()
       }
     }
   }, [isAuthenticated, isEditor, authLoading, router])
+
+  const loadData = async () => {
+    await Promise.all([loadCompanies(), loadFooterContent()])
+  }
+
+  const loadCompanies = async () => {
+    try {
+      setLoading(true)
+      const { data, error } = await supabase
+        .from('company_comparisons')
+        .select('*')
+        .order('created_at', { ascending: true })
+        .limit(2)
+
+      if (error) throw error
+
+      const loadedCompanies = (data as CompanyComparison[] || []).slice(0, 2)
+      
+      // Garantir que sempre temos 2 empresas
+      const updatedCompanies = [...companies]
+      loadedCompanies.forEach((company, index) => {
+        if (index < 2) {
+          updatedCompanies[index] = {
+            id: company.id,
+            name: company.name,
+            logo: company.logo || '',
+            description: company.description || '',
+            comparison_topics: company.comparison_topics || [],
+            is_active: company.is_active,
+          }
+        }
+      })
+
+      setCompanies(updatedCompanies)
+    } catch (error) {
+      console.error('Erro ao carregar empresas:', error)
+      toast.error('Erro ao carregar empresas')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const loadFooterContent = async () => {
     try {
@@ -67,6 +131,98 @@ export default function ComparadorDashboardPage() {
     } catch (error) {
       console.error('Erro ao carregar rodapé:', error)
     }
+  }
+
+  const handleSaveCompany = async (index: number) => {
+    try {
+      setSaving(true)
+      const company = companies[index]
+
+      if (!company.name.trim()) {
+        toast.error('Nome da empresa é obrigatório')
+        return
+      }
+
+      // Criar slug a partir do nome
+      const slug = company.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
+
+      // Verificar se já existe uma empresa com este ID
+      const { data: existing } = await supabase
+        .from('company_comparisons')
+        .select('id')
+        .eq('id', company.id)
+        .maybeSingle()
+
+      if (existing) {
+        // Atualizar empresa existente
+        const { error } = await supabase
+          .from('company_comparisons')
+          .update({
+            name: company.name,
+            slug: slug,
+            logo: company.logo,
+            description: company.description,
+            comparison_topics: company.comparison_topics,
+            is_active: company.is_active,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', company.id)
+
+        if (error) throw error
+        toast.success('Empresa atualizada com sucesso!')
+      } else {
+        // Criar nova empresa
+        const { error } = await supabase
+          .from('company_comparisons')
+          .insert({
+            id: company.id,
+            name: company.name,
+            slug: slug,
+            logo: company.logo,
+            description: company.description,
+            comparison_topics: company.comparison_topics,
+            is_active: company.is_active,
+          })
+
+        if (error) throw error
+        toast.success('Empresa salva com sucesso!')
+      }
+
+      setEditingCompany(null)
+      loadCompanies()
+    } catch (error: any) {
+      console.error('Erro ao salvar empresa:', error)
+      toast.error(error?.message || 'Erro ao salvar empresa')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleAddTopic = (companyIndex: number) => {
+    const updatedCompanies = [...companies]
+    const newTopic: ComparisonTopic = {
+      id: `topic-${Date.now()}`,
+      name: '',
+      mv_company: true,
+      competitor: false,
+    }
+    updatedCompanies[companyIndex].comparison_topics.push(newTopic)
+    setCompanies(updatedCompanies)
+  }
+
+  const handleRemoveTopic = (companyIndex: number, topicIndex: number) => {
+    const updatedCompanies = [...companies]
+    updatedCompanies[companyIndex].comparison_topics.splice(topicIndex, 1)
+    setCompanies(updatedCompanies)
+  }
+
+  const handleUpdateTopic = (companyIndex: number, topicIndex: number, field: keyof ComparisonTopic, value: any) => {
+    const updatedCompanies = [...companies]
+    updatedCompanies[companyIndex].comparison_topics[topicIndex] = {
+      ...updatedCompanies[companyIndex].comparison_topics[topicIndex],
+      [field]: value,
+    }
+    setCompanies(updatedCompanies)
   }
 
   const handleSaveFooter = async () => {
@@ -92,114 +248,6 @@ export default function ComparadorDashboardPage() {
     }
   }
 
-  // Recarregar quando a página receber foco
-  useEffect(() => {
-    if (!isAuthenticated || !isEditor) return
-    
-    const handleFocus = () => {
-      loadComparisons()
-    }
-
-    window.addEventListener('focus', handleFocus)
-    return () => window.removeEventListener('focus', handleFocus)
-  }, [isAuthenticated, isEditor]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  const loadComparisons = async () => {
-    try {
-      setLoading(true)
-      const { data, error } = await supabase
-        .from('company_comparisons')
-        .select('*')
-        .order('created_at', { ascending: false })
-
-      if (error) throw error
-
-      setComparisons(data as CompanyComparison[] || [])
-    } catch (error) {
-      console.error('Erro ao carregar comparações:', error)
-      toast.error('Erro ao carregar comparações')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const toggleComparisonStatus = async (comparisonId: string, currentStatus: boolean) => {
-    try {
-      const { error } = await supabase
-        .from('company_comparisons')
-        .update({ is_active: !currentStatus })
-        .eq('id', comparisonId)
-
-      if (error) throw error
-
-      toast.success('Status atualizado')
-      loadComparisons()
-    } catch (error) {
-      toast.error('Erro ao atualizar status')
-    }
-  }
-
-  const deleteComparison = async (comparisonId: string) => {
-    if (!confirm('Tem certeza que deseja excluir esta comparação?')) return
-
-    try {
-      const { error } = await supabase
-        .from('company_comparisons')
-        .delete()
-        .eq('id', comparisonId)
-
-      if (error) throw error
-
-      toast.success('Comparação excluída')
-      loadComparisons()
-    } catch (error) {
-      toast.error('Erro ao excluir comparação')
-    }
-  }
-
-  // Filter comparisons
-  useEffect(() => {
-    let filtered = comparisons
-
-    // Search filter
-    if (searchTerm) {
-      filtered = filtered.filter(comparison =>
-        comparison.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        comparison.slug.toLowerCase().includes(searchTerm.toLowerCase())
-      )
-    }
-
-    // Status filter
-    if (statusFilter !== 'all') {
-      filtered = filtered.filter(comparison =>
-        statusFilter === 'active' ? comparison.is_active : !comparison.is_active
-      )
-    }
-
-    setFilteredComparisons(filtered)
-    setCurrentPage(1)
-  }, [comparisons, searchTerm, statusFilter])
-
-  // Pagination
-  const totalPages = Math.ceil(filteredComparisons.length / itemsPerPage)
-  const startIndex = (currentPage - 1) * itemsPerPage
-  const endIndex = startIndex + itemsPerPage
-  const paginatedComparisons = filteredComparisons.slice(startIndex, endIndex)
-
-  const goToPage = (page: number) => {
-    if (page >= 1 && page <= totalPages) {
-      setCurrentPage(page)
-      window.scrollTo({ top: 0, behavior: 'smooth' })
-    }
-  }
-
-  const getTopicsCount = (comparison: CompanyComparison) => {
-    if (Array.isArray(comparison.comparison_topics)) {
-      return comparison.comparison_topics.length
-    }
-    return 0
-  }
-
   if (authLoading || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -216,25 +264,13 @@ export default function ComparadorDashboardPage() {
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 mb-2">Comparador de Empresas</h1>
-            <p className="text-gray-600">Gerencie comparações entre MV Company e outras empresas</p>
+            <p className="text-gray-600">Edite as empresas concorrentes e compare com MV Company</p>
           </div>
           <div className="flex gap-3">
             <Link href="/comparar?preview=true" target="_blank">
               <Button variant="outline" className="flex items-center gap-2">
                 <Eye size={18} />
                 Ver Preview
-              </Button>
-            </Link>
-            <Link href="/comparar" target="_blank">
-              <Button variant="outline" className="flex items-center gap-2">
-                <GitCompare size={18} />
-                Ver Comparador Público
-              </Button>
-            </Link>
-            <Link href="/dashboard/comparador/novo">
-              <Button className="flex items-center gap-2">
-                <Plus size={20} />
-                Nova Comparação
               </Button>
             </Link>
           </div>
@@ -364,158 +400,195 @@ export default function ComparadorDashboardPage() {
           )}
         </div>
 
-        {/* Filters */}
-        <div className="bg-white rounded-lg shadow-sm p-4 mb-6">
-          <div className="flex flex-col sm:flex-row gap-4">
-            {/* Search */}
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-              <input
-                type="text"
-                placeholder="Buscar comparações..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
-              />
-            </div>
-
-            {/* Status Filter */}
-            <div className="flex items-center gap-2">
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value as 'all' | 'active' | 'inactive')}
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
-              >
-                <option value="all">Todos</option>
-                <option value="active">Ativos</option>
-                <option value="inactive">Inativos</option>
-              </select>
-            </div>
-          </div>
-        </div>
-
-        {/* Comparisons List */}
-        {paginatedComparisons.length === 0 ? (
-          <div className="bg-white rounded-lg shadow-sm p-12 text-center">
-            <p className="text-gray-500 text-lg mb-4">
-              {searchTerm || statusFilter !== 'all'
-                ? 'Nenhuma comparação encontrada com os filtros aplicados'
-                : 'Nenhuma comparação cadastrada ainda'}
-            </p>
-            {!searchTerm && statusFilter === 'all' && (
-              <Link href="/dashboard/comparador/novo">
-                <Button className="mt-4">
-                  <Plus size={20} className="mr-2" />
-                  Criar Primeira Comparação
-                </Button>
-              </Link>
-            )}
-          </div>
-        ) : (
-          <>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
-              {paginatedComparisons.map((comparison) => (
-                <div
-                  key={comparison.id}
-                  className="bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow"
-                >
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex-1">
-                      <h3 className="text-lg font-semibold text-gray-900 mb-1">
-                        {comparison.name}
-                      </h3>
-                      <p className="text-sm text-gray-500">/{comparison.slug}</p>
-                    </div>
-                    <button
-                      onClick={() => toggleComparisonStatus(comparison.id, comparison.is_active)}
-                      className={`p-1 rounded ${
-                        comparison.is_active
-                          ? 'text-green-600 hover:bg-green-50'
-                          : 'text-gray-400 hover:bg-gray-50'
-                      }`}
-                    >
-                      {comparison.is_active ? <Eye size={18} /> : <EyeOff size={18} />}
-                    </button>
-                  </div>
-
-                  {comparison.logo && (
-                    <div className="relative w-full h-20 mb-4 rounded-lg overflow-hidden bg-gray-100">
-                      <Image
-                        src={comparison.logo}
-                        alt={comparison.name}
-                        fill
-                        className="object-contain"
-                      />
-                    </div>
-                  )}
-
-                  {comparison.description && (
-                    <p className="text-sm text-gray-600 mb-4 line-clamp-2">
-                      {comparison.description}
-                    </p>
-                  )}
-
-                  <div className="flex items-center justify-between pt-4 border-t border-gray-200">
-                    <div className="text-xs text-gray-500">
-                      {getTopicsCount(comparison)} tópicos
-                    </div>
-                    <div className="flex gap-2">
-                      <Link href={`/dashboard/comparador/${comparison.id}`}>
-                        <button className="text-blue-600 hover:text-blue-900 p-1">
-                          <Edit size={16} />
-                        </button>
-                      </Link>
-                      <button
-                        onClick={() => deleteComparison(comparison.id)}
-                        className="text-red-600 hover:text-red-900 p-1"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="mt-6 flex items-center justify-between">
-                <div className="text-sm text-gray-700">
-                  Mostrando {startIndex + 1} a {Math.min(endIndex, filteredComparisons.length)} de {filteredComparisons.length} comparações
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => goToPage(currentPage - 1)}
-                    disabled={currentPage === 1}
-                    className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
-                  >
-                    Anterior
-                  </button>
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                    <button
-                      key={page}
-                      onClick={() => goToPage(page)}
-                      className={`px-4 py-2 border rounded-lg ${
-                        currentPage === page
-                          ? 'bg-black text-white border-black'
-                          : 'border-gray-300 hover:bg-gray-50'
-                      }`}
-                    >
-                      {page}
-                    </button>
-                  ))}
-                  <button
-                    onClick={() => goToPage(currentPage + 1)}
-                    disabled={currentPage === totalPages}
-                    className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
-                  >
-                    Próxima
-                  </button>
-                </div>
+        {/* Companies Editor - Always 3: MV Company (fixed) + 2 Competitors (editable) */}
+        <div className="space-y-6">
+          {/* MV Company - Fixed */}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 rounded-lg bg-black flex items-center justify-center text-white">
+                <span className="text-2xl">🚀</span>
               </div>
-            )}
-          </>
-        )}
+              <div>
+                <h2 className="text-xl font-bold text-gray-900">MV Company</h2>
+                <p className="text-sm text-gray-500">Empresa principal (não editável)</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Competitor Companies - Editable */}
+          {companies.map((company, index) => (
+            <div key={company.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-lg bg-gray-200 flex items-center justify-center">
+                    {company.logo ? (
+                      <Image src={company.logo} alt={company.name} width={48} height={48} className="rounded-lg object-contain" />
+                    ) : (
+                      <span className="text-2xl">🏢</span>
+                    )}
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold text-gray-900">
+                      Concorrente {index + 1}
+                    </h2>
+                    {company.name && (
+                      <p className="text-sm text-gray-500">{company.name}</p>
+                    )}
+                  </div>
+                </div>
+                <Switch
+                  label="Ativo"
+                  checked={company.is_active}
+                  onCheckedChange={(checked) => {
+                    const updated = [...companies]
+                    updated[index].is_active = checked
+                    setCompanies(updated)
+                  }}
+                />
+              </div>
+
+              {editingCompany === index ? (
+                <div className="space-y-4">
+                  <Input
+                    label="Nome da Empresa"
+                    value={company.name}
+                    onChange={(e) => {
+                      const updated = [...companies]
+                      updated[index].name = e.target.value
+                      setCompanies(updated)
+                    }}
+                    placeholder="Ex: Empresa Concorrente"
+                  />
+                  <ImageUploader
+                    label="Logo da Empresa"
+                    value={company.logo || ''}
+                    onChange={(url) => {
+                      const updated = [...companies]
+                      updated[index].logo = url
+                      setCompanies(updated)
+                    }}
+                    cropType="square"
+                    aspectRatio={1}
+                    targetSize={{ width: 200, height: 200 }}
+                  />
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Descrição</label>
+                    <textarea
+                      value={company.description || ''}
+                      onChange={(e) => {
+                        const updated = [...companies]
+                        updated[index].description = e.target.value
+                        setCompanies(updated)
+                      }}
+                      placeholder="Descrição da empresa..."
+                      rows={3}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
+                    />
+                  </div>
+
+                  {/* Topics */}
+                  <div className="border-t border-gray-200 pt-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="font-semibold">Características de Comparação</h3>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleAddTopic(index)}
+                      >
+                        <Plus size={16} className="mr-1" />
+                        Adicionar
+                      </Button>
+                    </div>
+                    <div className="space-y-3">
+                      {company.comparison_topics.map((topic, topicIndex) => (
+                        <div key={topic.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                          <Input
+                            value={topic.name}
+                            onChange={(e) => handleUpdateTopic(index, topicIndex, 'name', e.target.value)}
+                            placeholder="Nome da característica"
+                            className="flex-1"
+                          />
+                          <div className="flex items-center gap-4">
+                            <label className="flex items-center gap-2 text-sm">
+                              <input
+                                type="checkbox"
+                                checked={topic.mv_company}
+                                onChange={(e) => handleUpdateTopic(index, topicIndex, 'mv_company', e.target.checked)}
+                                className="rounded"
+                              />
+                              MV Company
+                            </label>
+                            <label className="flex items-center gap-2 text-sm">
+                              <input
+                                type="checkbox"
+                                checked={topic.competitor}
+                                onChange={(e) => handleUpdateTopic(index, topicIndex, 'competitor', e.target.checked)}
+                                className="rounded"
+                              />
+                              Concorrente
+                            </label>
+                            <button
+                              onClick={() => handleRemoveTopic(index, topicIndex)}
+                              className="text-red-600 hover:text-red-800 p-1"
+                            >
+                              <X size={18} />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                      {company.comparison_topics.length === 0 && (
+                        <p className="text-sm text-gray-500 text-center py-4">
+                          Nenhuma característica adicionada. Clique em "Adicionar" para criar uma.
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+                    <Button
+                      variant="outline"
+                      onClick={() => setEditingCompany(null)}
+                    >
+                      Cancelar
+                    </Button>
+                    <Button
+                      onClick={() => handleSaveCompany(index)}
+                      isLoading={saving}
+                    >
+                      <Save size={18} className="mr-2" />
+                      Salvar Empresa
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {company.name ? (
+                    <>
+                      <p className="text-sm text-gray-600">
+                        <strong>Tópicos:</strong> {company.comparison_topics.length}
+                      </p>
+                      <Button
+                        onClick={() => setEditingCompany(index)}
+                        className="w-full"
+                      >
+                        <Edit2 size={18} className="mr-2" />
+                        Editar Empresa
+                      </Button>
+                    </>
+                  ) : (
+                    <Button
+                      onClick={() => setEditingCompany(index)}
+                      className="w-full"
+                    >
+                      <Plus size={18} className="mr-2" />
+                      Configurar Empresa
+                    </Button>
+                  )}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   )

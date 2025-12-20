@@ -63,7 +63,7 @@ export async function saveSiteSettings({
       'site_name', 'site_title', 'site_logo', 'site_description', 'footer_text', 'copyright_text',
       'contact_email', 'contact_whatsapp', 'instagram_url', 'facebook_url',
       'address_street', 'address_city', 'address_state', 'address_zip',
-      'homepage_content', 'service_detail_layout', 'comparison_footer'
+      'homepage_content', 'service_detail_layout'
     ]
 
     // Separar fieldsToUpdate em colunas diretas e campos do value
@@ -241,7 +241,7 @@ export async function getSiteSettings(): Promise<{ data: any | null; error: any 
       // Colunas diretas importantes
       homepage_content: data.homepage_content || null,
       service_detail_layout: data.service_detail_layout || null,
-      comparison_footer: data.comparison_footer || null,
+      comparison_footer: (data.value as any)?.comparison_footer || null,
       site_name: data.site_name || null,
       site_logo: data.site_logo || null,
       contact_email: data.contact_email || null,

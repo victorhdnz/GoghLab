@@ -7,6 +7,8 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { GitCompare } from 'lucide-react'
 import { HomepageTracker } from '@/components/analytics/HomepageTracker'
+import { SocialButton } from '@/components/ui/SocialButton'
+import { FadeInSection } from '@/components/ui/FadeInSection'
 
 async function getServices(): Promise<Service[]> {
   try {
@@ -79,7 +81,8 @@ export default async function Home() {
     if (homepageContent.hero_enabled === false || sectionVisibility.hero === false) return null
     
     return (
-      <section className="relative bg-black text-white py-16 md:py-24 px-4 overflow-hidden">
+      <FadeInSection>
+        <section className="relative bg-black text-white py-16 md:py-24 px-4 overflow-hidden">
         {homepageContent.hero_background_image && (
           <div className="absolute inset-0 z-0 opacity-20">
             <Image
@@ -129,7 +132,8 @@ export default async function Home() {
     if (homepageContent.services_enabled === false || sectionVisibility.services === false) return null
     
     return (
-      <section id="servicos" className="py-16 md:py-24 px-4">
+      <FadeInSection>
+        <section id="servicos" className="py-16 md:py-24 px-4">
         <div className="container mx-auto max-w-7xl">
           {homepageContent.services_title && (
             <div className="text-center mb-12">
@@ -165,6 +169,7 @@ export default async function Home() {
           )}
         </div>
       </section>
+      </FadeInSection>
     )
   }
 
@@ -173,7 +178,8 @@ export default async function Home() {
     if (homepageContent.comparison_cta_enabled === false || sectionVisibility.comparison === false) return null
     
     return (
-      <section className="py-16 md:py-24 px-4">
+      <FadeInSection>
+        <section className="py-16 md:py-24 px-4">
         <div className="container mx-auto max-w-4xl">
           <Link href={homepageContent.comparison_cta_link || "/comparar"}>
             <div className="relative h-[300px] md:h-[400px] rounded-3xl overflow-hidden bg-gray-900 border border-gray-800 hover:border-gray-700 transition-all duration-300 group">
@@ -196,6 +202,7 @@ export default async function Home() {
           </Link>
         </div>
       </section>
+      </FadeInSection>
     )
   }
 
@@ -204,48 +211,43 @@ export default async function Home() {
     if (homepageContent.contact_enabled === false || sectionVisibility.contact === false) return null
     
     return (
-      <section className="py-16 md:py-24 px-4 bg-gray-900/50">
-        <div className="container mx-auto max-w-4xl text-center">
-          <h2 className="text-3xl md:text-5xl font-semibold text-white mb-4 tracking-tight">
-            {homepageContent.contact_title || 'Fale Conosco'}
-          </h2>
-          {homepageContent.contact_description && (
-            <p className="text-gray-400 text-lg md:text-xl mb-12 font-light max-w-2xl mx-auto">
-              {homepageContent.contact_description}
-            </p>
-          )}
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-            {homepageContent.contact_whatsapp_enabled !== false && (homepageContent.contact_whatsapp_number || siteSettings?.contact_whatsapp) && (
-              <a
-                href={`https://wa.me/${(homepageContent.contact_whatsapp_number || siteSettings?.contact_whatsapp || '').replace(/\D/g, '')}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full sm:w-auto min-w-[200px] bg-[#25D366] text-white px-8 py-4 rounded-full font-medium hover:bg-[#20BA5A] transition-all duration-200 text-center"
-              >
-                {homepageContent.contact_whatsapp_text || 'WhatsApp'}
-              </a>
+      <FadeInSection>
+        <section className="py-16 md:py-24 px-4 bg-gray-900/50">
+          <div className="container mx-auto max-w-4xl text-center">
+            <h2 className="text-3xl md:text-5xl font-semibold text-white mb-4 tracking-tight">
+              {homepageContent.contact_title || 'Fale Conosco'}
+            </h2>
+            {homepageContent.contact_description && (
+              <p className="text-gray-400 text-lg md:text-xl mb-12 font-light max-w-2xl mx-auto">
+                {homepageContent.contact_description}
+              </p>
             )}
-            {homepageContent.contact_email_enabled !== false && (homepageContent.contact_email_address || siteSettings?.contact_email) && (
-              <a
-                href={`mailto:${homepageContent.contact_email_address || siteSettings?.contact_email}`}
-                className="w-full sm:w-auto min-w-[200px] bg-white/10 backdrop-blur-md border border-white/20 text-white px-8 py-4 rounded-full font-medium hover:bg-white/20 transition-all duration-200 text-center"
-              >
-                {homepageContent.contact_email_text || 'E-mail'}
-              </a>
-            )}
-            {homepageContent.contact_instagram_enabled !== false && (homepageContent.contact_instagram_url || siteSettings?.instagram_url) && (
-              <a
-                href={homepageContent.contact_instagram_url || siteSettings?.instagram_url || '#'}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full sm:w-auto min-w-[200px] bg-[#E4405F] text-white px-8 py-4 rounded-full font-medium hover:bg-[#D32E4A] transition-all duration-200 text-center"
-              >
-                {homepageContent.contact_instagram_text || 'Instagram'}
-              </a>
-            )}
+            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+              {homepageContent.contact_whatsapp_enabled !== false && (homepageContent.contact_whatsapp_number || siteSettings?.contact_whatsapp) && (
+                <SocialButton
+                  type="whatsapp"
+                  href={`https://wa.me/${(homepageContent.contact_whatsapp_number || siteSettings?.contact_whatsapp || '').replace(/\D/g, '')}`}
+                  text={homepageContent.contact_whatsapp_text || 'WhatsApp'}
+                />
+              )}
+              {homepageContent.contact_email_enabled !== false && (homepageContent.contact_email_address || siteSettings?.contact_email) && (
+                <SocialButton
+                  type="email"
+                  href={`mailto:${homepageContent.contact_email_address || siteSettings?.contact_email}`}
+                  text={homepageContent.contact_email_text || 'E-mail'}
+                />
+              )}
+              {homepageContent.contact_instagram_enabled !== false && (homepageContent.contact_instagram_url || siteSettings?.instagram_url) && (
+                <SocialButton
+                  type="instagram"
+                  href={homepageContent.contact_instagram_url || siteSettings?.instagram_url || '#'}
+                  text={homepageContent.contact_instagram_text || 'Instagram'}
+                />
+              )}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      </FadeInSection>
     )
   }
 
