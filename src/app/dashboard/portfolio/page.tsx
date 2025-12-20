@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/Input'
 import { Modal } from '@/components/ui/Modal'
 import { createClient } from '@/lib/supabase/client'
 import { Service } from '@/types'
-import { Plus, Edit, Trash2, Eye, EyeOff, Search, Filter, Copy, Check } from 'lucide-react'
+import { Plus, Edit, Trash2, Eye, EyeOff, Search, Filter, Copy, Check, Briefcase } from 'lucide-react'
 import toast from 'react-hot-toast'
 import Link from 'next/link'
 import { BackButton } from '@/components/ui/BackButton'
@@ -126,7 +126,6 @@ export default function DashboardPortfolioPage() {
     if (searchTerm) {
       filtered = filtered.filter(service =>
         service.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        service.category?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         service.slug.toLowerCase().includes(searchTerm.toLowerCase())
       )
     }
@@ -280,9 +279,6 @@ export default function DashboardPortfolioPage() {
                         Serviço
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Categoria
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Status
                       </th>
                       <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -305,8 +301,8 @@ export default function DashboardPortfolioPage() {
                                 />
                               </div>
                             ) : (
-                              <div className="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center flex-shrink-0">
-                                <span className="text-2xl">🚀</span>
+                              <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0 border border-gray-200">
+                                <Briefcase className="text-gray-600" size={28} />
                               </div>
                             )}
                             <div>
@@ -314,9 +310,6 @@ export default function DashboardPortfolioPage() {
                               <div className="text-sm text-gray-500">/{service.slug}</div>
                             </div>
                           </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className="text-sm text-gray-900">{service.category || '-'}</span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <button

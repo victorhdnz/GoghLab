@@ -126,12 +126,17 @@ export default async function ServicePage({ params }: { params: { slug: string }
     layoutContent,
   })
 
-  // Usar layout padrão se não houver configuração
-  const content: ServiceDetailContent = layoutContent || {
+  // Usar layout padrão se não houver configuração ou se for um objeto vazio
+  const hasValidLayout = layoutContent && Object.keys(layoutContent).length > 0
+  const content: ServiceDetailContent = hasValidLayout ? layoutContent : {
     hero_enabled: true,
+    hero_title: service.name, // Usar o nome do serviço como título padrão
     benefits_enabled: true,
+    benefits_items: [],
     gifts_enabled: true,
+    gifts_items: [],
     alternate_content_enabled: true,
+    alternate_content_items: [],
     about_enabled: true,
     testimonials_enabled: true,
     cta_enabled: true,

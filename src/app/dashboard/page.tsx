@@ -15,6 +15,7 @@ import {
   Plus,
   ArrowRight,
   BarChart3,
+  Sparkles,
 } from 'lucide-react'
 import Link from 'next/link'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
@@ -286,6 +287,20 @@ function DashboardContent() {
           href: '/dashboard/analytics',
           icon: BarChart3,
           color: 'bg-green-500',
+        },
+      ],
+    },
+    {
+      title: 'Desenvolvimento',
+      description: 'Ferramentas e testes para desenvolvimento',
+      icon: Sparkles,
+      items: [
+        {
+          title: 'Testes de Efeitos',
+          description: 'Área experimental para testar bibliotecas e efeitos',
+          href: '/dashboard/testes-efeitos',
+          icon: Sparkles,
+          color: 'bg-purple-500',
         },
       ],
     },

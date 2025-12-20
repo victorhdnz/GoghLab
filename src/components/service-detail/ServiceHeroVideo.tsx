@@ -49,21 +49,19 @@ export function ServiceHeroVideo({ content, serviceName }: ServiceHeroVideoProps
       <div className="container mx-auto max-w-6xl relative z-10">
         {/* Título com destaque - Antes do vídeo */}
         <div className="text-center space-y-6 mb-12">
-          {content.hero_title && (
-            <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold leading-tight text-white">
-              {titleParts[0]}
-              {highlightWord && (
-                <>
-                  {' '}
-                  <span style={{ color: highlightColor }} className="font-extrabold drop-shadow-lg">
-                    {highlightWord}
-                  </span>
-                  {' '}
-                </>
-              )}
-              {titleParts[1]}
-            </h1>
-          )}
+          <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold leading-tight text-white">
+            {titleParts[0]}
+            {highlightWord && (
+              <>
+                {' '}
+                <span style={{ color: highlightColor }} className="font-extrabold drop-shadow-lg">
+                  {highlightWord}
+                </span>
+                {' '}
+              </>
+            )}
+            {titleParts[1]}
+          </h1>
           {content.hero_subtitle && (
             <p className="text-lg md:text-xl text-gray-300 max-w-3xl mx-auto leading-relaxed">
               {content.hero_subtitle}
