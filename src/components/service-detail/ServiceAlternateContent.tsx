@@ -22,7 +22,7 @@ export function ServiceAlternateContent({ content }: ServiceAlternateContentProp
             </div>
           </div>
         ) : (
-          content.alternate_content_items.map((item) => {
+          (content.alternate_content_items || []).map((item) => {
           const isImageLeft = item.image_position === 'left' || (item.image_position !== 'right' && item.position === 'left')
           const isImageRight = item.image_position === 'right' || (item.image_position !== 'left' && item.position === 'right')
 
