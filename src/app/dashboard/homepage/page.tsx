@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { ImageUploader } from '@/components/ui/ImageUploader'
 import { createClient } from '@/lib/supabase/client'
-import { Save, ArrowLeft } from 'lucide-react'
+import { Save, ArrowLeft, Eye } from 'lucide-react'
 import toast from 'react-hot-toast'
 import Link from 'next/link'
 import { DashboardNavigation } from '@/components/dashboard/DashboardNavigation'
@@ -132,10 +132,18 @@ export default function HomepageEditorPage() {
           backUrl="/dashboard"
           backLabel="Voltar ao Dashboard"
           actions={
-            <Button onClick={handleSave} isLoading={saving} size="lg">
-              <Save size={18} className="mr-2" />
-              Salvar Alterações
-            </Button>
+            <div className="flex gap-3">
+              <Link href="/" target="_blank">
+                <Button variant="outline" size="lg">
+                  <Eye size={18} className="mr-2" />
+                  Ver Preview
+                </Button>
+              </Link>
+              <Button onClick={handleSave} isLoading={saving} size="lg">
+                <Save size={18} className="mr-2" />
+                Salvar Alterações
+              </Button>
+            </div>
           }
         />
 

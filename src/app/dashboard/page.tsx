@@ -300,6 +300,13 @@ function DashboardContent() {
           icon: Package,
           color: 'bg-blue-500',
         },
+        {
+          title: 'Layout de Página Detalhada',
+          description: 'Edite o layout e template das páginas de detalhes dos serviços',
+          href: '/dashboard/portfolio/layout',
+          icon: Layers,
+          color: 'bg-purple-500',
+        },
       ],
     },
     {
@@ -313,13 +320,6 @@ function DashboardContent() {
           href: '/dashboard/comparador',
           icon: GitCompare,
           color: 'bg-orange-500',
-        },
-        {
-          title: 'Criar Nova Comparação',
-          description: 'Crie uma nova comparação entre a MV Company e um concorrente',
-          href: '/dashboard/comparador/novo',
-          icon: Plus,
-          color: 'bg-rose-500',
         },
         {
           title: 'Ver Comparador',
