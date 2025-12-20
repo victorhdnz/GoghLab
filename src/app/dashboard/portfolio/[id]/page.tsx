@@ -138,6 +138,10 @@ export default function EditServicePage({ params }: EditServicePageProps) {
     cta_email_address: '',
     cta_instagram_enabled: true,
     cta_instagram_url: '',
+    
+    whatsapp_float_enabled: true,
+    whatsapp_float_number: '',
+    whatsapp_float_message: '',
   })
 
   useEffect(() => {
@@ -781,7 +785,35 @@ export default function EditServicePage({ params }: EditServicePageProps) {
                     />
                   )}
                 </div>
-              </>
+                <div className="border-t border-gray-200 pt-4 mt-4">
+                  <h3 className="text-lg font-semibold mb-3">Botão Flutuante do WhatsApp</h3>
+                  <Switch
+                    label="Habilitar Botão Flutuante"
+                    checked={layoutData.whatsapp_float_enabled ?? true}
+                    onCheckedChange={(checked) => setLayoutData({ ...layoutData, whatsapp_float_enabled: checked })}
+                  />
+                  {layoutData.whatsapp_float_enabled && (
+                    <>
+                      <Input
+                        label="Número do WhatsApp (com DDD, ex: 5534984136291)"
+                        value={layoutData.whatsapp_float_number || ''}
+                        onChange={(e) => setLayoutData({ ...layoutData, whatsapp_float_number: e.target.value })}
+                        placeholder="Ex: 5534984136291"
+                      />
+                      <div>
+                        <label className="block text-sm font-medium mb-2">Mensagem Inicial</label>
+                        <textarea
+                          value={layoutData.whatsapp_float_message || ''}
+                          onChange={(e) => setLayoutData({ ...layoutData, whatsapp_float_message: e.target.value })}
+                          placeholder="Ex: Olá! Gostaria de saber mais sobre este serviço."
+                          rows={2}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                    </>
+                  )}
+                </div>
+              </> 
             )}
           </div>
         )

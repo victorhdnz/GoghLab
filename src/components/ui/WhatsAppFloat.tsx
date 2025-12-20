@@ -62,12 +62,12 @@ export const WhatsAppFloat = ({
             onHoverEnd={() => setIsHovered(false)}
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
-            className="relative w-16 h-16 bg-[#25D366] hover:bg-[#20BA5A] rounded-full shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center group"
+            className="relative w-16 h-16 bg-white hover:bg-gray-100 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center group border-2 border-gray-200"
             aria-label="Falar no WhatsApp"
           >
-            {/* Ícone do WhatsApp - Branco */}
+            {/* Ícone do WhatsApp - Verde (cor original do WhatsApp) */}
             <svg 
-              className="w-8 h-8 text-white" 
+              className="w-8 h-8 text-[#25D366]" 
               fill="currentColor" 
               viewBox="0 0 360 362"
             >
@@ -76,10 +76,10 @@ export const WhatsAppFloat = ({
 
             {/* Animação de pulso */}
             <motion.div
-              className="absolute inset-0 bg-[#25D366] rounded-full"
+              className="absolute inset-0 bg-white/20 rounded-full"
               animate={{
                 scale: [1, 1.2, 1],
-                opacity: [0.7, 0, 0.7],
+                opacity: [0.5, 0, 0.5],
               }}
               transition={{
                 duration: 2,

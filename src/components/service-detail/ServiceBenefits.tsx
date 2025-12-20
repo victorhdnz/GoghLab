@@ -12,12 +12,12 @@ export function ServiceBenefits({ content }: ServiceBenefitsProps) {
 
   const hasItems = content.benefits_items && content.benefits_items.length > 0
 
-  // Cores de destaque estratégicas
+  // Paleta de cores neutras (preto, branco, cinza) com variações sutis
   const accentColors = [
-    { bg: 'bg-orange-500/20', border: 'border-orange-500/40', text: 'text-orange-400', iconBg: 'bg-orange-500/30' },
-    { bg: 'bg-red-500/20', border: 'border-red-500/40', text: 'text-red-400', iconBg: 'bg-red-500/30' },
-    { bg: 'bg-yellow-500/20', border: 'border-yellow-500/40', text: 'text-yellow-400', iconBg: 'bg-yellow-500/30' },
-    { bg: 'bg-gray-500/20', border: 'border-gray-500/40', text: 'text-gray-300', iconBg: 'bg-gray-500/30' },
+    { bg: 'bg-gray-800/80', border: 'border-gray-700/60', text: 'text-white', iconBg: 'bg-gray-700/90' },
+    { bg: 'bg-gray-800/80', border: 'border-gray-600/50', text: 'text-white', iconBg: 'bg-gray-700/90' },
+    { bg: 'bg-gray-800/80', border: 'border-gray-700/60', text: 'text-white', iconBg: 'bg-gray-700/90' },
+    { bg: 'bg-gray-800/80', border: 'border-gray-600/50', text: 'text-white', iconBg: 'bg-gray-700/90' },
   ]
 
   return (

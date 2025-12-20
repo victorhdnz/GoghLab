@@ -51,6 +51,11 @@ export interface ServiceDetailContent {
   cta_instagram_url?: string
   cta_instagram_text?: string
 
+  // Botão Flutuante do WhatsApp
+  whatsapp_float_enabled?: boolean
+  whatsapp_float_number?: string
+  whatsapp_float_message?: string
+
   // Ordem e visibilidade
   section_order?: string[]
   section_visibility?: Record<string, boolean>
