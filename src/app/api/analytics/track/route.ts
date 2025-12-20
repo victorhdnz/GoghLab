@@ -1,10 +1,10 @@
-import { createClient } from '@/lib/supabase/server'
+import { createServerClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const supabase = createClient()
+    const supabase = createServerClient()
 
     // Validar dados obrigatórios
     if (!body.page_type || !body.session_id || !body.event_type) {
