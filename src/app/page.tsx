@@ -92,7 +92,7 @@ export default async function Home() {
         <div className="container mx-auto max-w-6xl text-center relative z-10">
           {homepageContent.hero_logo ? (
             <div className="flex justify-center mb-8">
-              <div className="relative w-32 h-32 md:w-40 md:h-40">
+              <div className="relative w-48 h-48 md:w-56 md:h-56 lg:w-64 lg:h-64">
                 <Image
                   src={homepageContent.hero_logo}
                   alt={siteSettings?.site_name || 'MV Company'}
@@ -206,9 +206,9 @@ export default async function Home() {
             </p>
           )}
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-            {siteSettings?.contact_whatsapp && homepageContent.contact_whatsapp_enabled !== false && (
+            {homepageContent.contact_whatsapp_enabled !== false && (homepageContent.contact_whatsapp_number || siteSettings?.contact_whatsapp) && (
               <a
-                href={`https://wa.me/${siteSettings.contact_whatsapp.replace(/\D/g, '')}`}
+                href={`https://wa.me/${(homepageContent.contact_whatsapp_number || siteSettings?.contact_whatsapp || '').replace(/\D/g, '')}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-full sm:w-auto min-w-[200px] bg-[#25D366] text-white px-8 py-4 rounded-full font-medium hover:bg-[#20BA5A] transition-all duration-200 text-center"
@@ -216,17 +216,17 @@ export default async function Home() {
                 {homepageContent.contact_whatsapp_text || 'WhatsApp'}
               </a>
             )}
-            {siteSettings?.contact_email && homepageContent.contact_email_enabled !== false && (
+            {homepageContent.contact_email_enabled !== false && (homepageContent.contact_email_address || siteSettings?.contact_email) && (
               <a
-                href={`mailto:${siteSettings.contact_email}`}
+                href={`mailto:${homepageContent.contact_email_address || siteSettings?.contact_email}`}
                 className="w-full sm:w-auto min-w-[200px] bg-white/10 backdrop-blur-md border border-white/20 text-white px-8 py-4 rounded-full font-medium hover:bg-white/20 transition-all duration-200 text-center"
               >
                 {homepageContent.contact_email_text || 'E-mail'}
               </a>
             )}
-            {siteSettings?.instagram_url && homepageContent.contact_instagram_enabled !== false && (
+            {homepageContent.contact_instagram_enabled !== false && (homepageContent.contact_instagram_url || siteSettings?.instagram_url) && (
               <a
-                href={siteSettings.instagram_url}
+                href={homepageContent.contact_instagram_url || siteSettings?.instagram_url || '#'}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-full sm:w-auto min-w-[200px] bg-[#E4405F] text-white px-8 py-4 rounded-full font-medium hover:bg-[#D32E4A] transition-all duration-200 text-center"

@@ -161,12 +161,20 @@ export default function ComparadorDashboardPage() {
             <h1 className="text-3xl font-bold text-gray-900 mb-2">Comparador de Empresas</h1>
             <p className="text-gray-600">Gerencie comparações entre MV Company e outras empresas</p>
           </div>
-          <Link href="/dashboard/comparador/novo">
-            <Button className="flex items-center gap-2">
-              <Plus size={20} />
-              Nova Comparação
-            </Button>
-          </Link>
+          <div className="flex gap-3">
+            <Link href="/comparar" target="_blank">
+              <Button variant="outline" className="flex items-center gap-2">
+                <Eye size={18} />
+                Ver Preview
+              </Button>
+            </Link>
+            <Link href="/dashboard/comparador/novo">
+              <Button className="flex items-center gap-2">
+                <Plus size={20} />
+                Nova Comparação
+              </Button>
+            </Link>
+          </div>
         </div>
 
         {/* Filters */}

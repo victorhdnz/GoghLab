@@ -62,8 +62,8 @@ export async function saveSiteSettings({
     const directColumnKeys = [
       'site_name', 'site_title', 'site_logo', 'site_description', 'footer_text', 'copyright_text',
       'contact_email', 'contact_whatsapp', 'instagram_url', 'facebook_url',
-      'address_street', 'address_city', 'address_state', 'address_zip', 'loading_emoji',
-      'homepage_content', 'service_detail_layout', 'loading_logo'
+      'address_street', 'address_city', 'address_state', 'address_zip',
+      'homepage_content', 'service_detail_layout'
     ]
 
     // Separar fieldsToUpdate em colunas diretas e campos do value
@@ -241,7 +241,6 @@ export async function getSiteSettings(): Promise<{ data: any | null; error: any 
       // Colunas diretas importantes
       homepage_content: data.homepage_content || null,
       service_detail_layout: data.service_detail_layout || null,
-      loading_logo: data.loading_logo || null,
       site_name: data.site_name || null,
       site_logo: data.site_logo || null,
       contact_email: data.contact_email || null,

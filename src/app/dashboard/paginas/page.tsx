@@ -8,12 +8,14 @@ import { Input } from '@/components/ui/Input'
 import { ImageUploader } from '@/components/ui/ImageUploader'
 import { Switch } from '@/components/ui/Switch'
 import { createClient } from '@/lib/supabase/client'
-import { Save, Eye, Trash2 } from 'lucide-react'
+import { Save, Eye, Trash2, Plus, Edit, Copy, Check, EyeOff } from 'lucide-react'
 import toast from 'react-hot-toast'
 import Link from 'next/link'
 import { DashboardNavigation } from '@/components/dashboard/DashboardNavigation'
 import { getSiteSettings, saveSiteSettings } from '@/lib/supabase/site-settings-helper'
 import { SectionWrapper } from '@/components/editor/section-wrapper'
+import { Service } from '@/types'
+import Image from 'next/image'
 
 interface HomepageSettings {
   hero_enabled?: boolean
@@ -69,11 +71,12 @@ const sectionLabels: Record<string, string> = {
   contact: 'Contato',
 }
 
-export default function HomepageEditorPage() {
+export default function PaginasDashboardPage() {
   const router = useRouter()
   const { isAuthenticated, isEditor, loading: authLoading } = useAuth()
   const supabase = createClient()
 
+  // Estados para Homepage
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [expandedSection, setExpandedSection] = useState<string | null>('hero')
@@ -117,11 +120,17 @@ export default function HomepageEditorPage() {
     contact_instagram_text: 'Instagram',
   })
 
+  // Estados para Serviços
+  const [services, setServices] = useState<Service[]>([])
+  const [loadingServices, setLoadingServices] = useState(true)
+  const [copiedLinkId, setCopiedLinkId] = useState<string | null>(null)
+
   useEffect(() => {
     if (!authLoading && (!isAuthenticated || !isEditor)) {
       router.push('/dashboard')
     } else if (isAuthenticated && isEditor) {
       loadSettings()
+      loadServices()
     }
   }, [isAuthenticated, isEditor, authLoading, router])
 
@@ -139,8 +148,6 @@ export default function HomepageEditorPage() {
       if (data?.homepage_content) {
         const content = data.homepage_content
         setFormData(prev => ({ ...prev, ...content }))
-        
-        // Carregar ordem e visibilidade se existirem
         if (content.section_order) {
           setSectionOrder(content.section_order)
         }
@@ -153,6 +160,28 @@ export default function HomepageEditorPage() {
       toast.error('Erro ao carregar configurações da homepage.')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const loadServices = async () => {
+    try {
+      setLoadingServices(true)
+      const { data, error } = await supabase
+        .from('services')
+        .select('*')
+        .order('created_at', { ascending: false })
+
+      if (error) {
+        console.error('Erro ao carregar serviços:', error)
+        throw error
+      }
+      
+      setServices(data as Service[] || [])
+    } catch (error) {
+      console.error('Erro ao carregar serviços:', error)
+      toast.error('Erro ao carregar serviços')
+    } finally {
+      setLoadingServices(false)
     }
   }
 
@@ -184,7 +213,6 @@ export default function HomepageEditorPage() {
     }
   }
 
-  // Funções para reordenar e visibilidade
   const moveSection = (sectionId: string, direction: 'up' | 'down') => {
     const currentIndex = sectionOrder.indexOf(sectionId)
     if (currentIndex === -1) return
@@ -205,10 +233,45 @@ export default function HomepageEditorPage() {
       ...prev,
       [section]: !prev[section]
     }))
+
+    const enabledKey = `${section}_enabled` as keyof HomepageSettings
+    setFormData(prev => ({
+      ...prev,
+      [enabledKey]: !sectionVisibility[section]
+    }))
+
     toast.success(`Seção ${sectionVisibility[section] ? 'oculta' : 'visível'}!`)
   }
 
-  // Renderizar conteúdo de cada seção
+  const copyServiceLink = async (slug: string, serviceId: string) => {
+    const url = `${window.location.origin}/portfolio/${slug}`
+    try {
+      await navigator.clipboard.writeText(url)
+      setCopiedLinkId(serviceId)
+      toast.success('Link copiado para a área de transferência!')
+      setTimeout(() => setCopiedLinkId(null), 2000)
+    } catch (error) {
+      toast.error('Erro ao copiar link')
+    }
+  }
+
+  const toggleServiceStatus = async (serviceId: string, currentStatus: boolean) => {
+    try {
+      const { error } = await supabase
+        .from('services')
+        .update({ is_active: !currentStatus })
+        .eq('id', serviceId)
+
+      if (error) throw error
+
+      toast.success('Status atualizado')
+      loadServices()
+    } catch (error) {
+      toast.error('Erro ao atualizar status')
+    }
+  }
+
+  // Renderizar conteúdo de cada seção (mesmo código do homepage/page.tsx)
   const renderSectionContent = (sectionId: string) => {
     switch (sectionId) {
       case 'hero':
@@ -216,7 +279,7 @@ export default function HomepageEditorPage() {
           <div className="space-y-4">
             <Switch
               label="Habilitar Seção Hero"
-              checked={formData.hero_enabled}
+              checked={formData.hero_enabled ?? true}
               onCheckedChange={(checked) => setFormData({ ...formData, hero_enabled: checked })}
             />
             {formData.hero_enabled && (
@@ -286,7 +349,7 @@ export default function HomepageEditorPage() {
           <div className="space-y-4">
             <Switch
               label="Habilitar Seção de Serviços"
-              checked={formData.services_enabled}
+              checked={formData.services_enabled ?? true}
               onCheckedChange={(checked) => setFormData({ ...formData, services_enabled: checked })}
             />
             {formData.services_enabled && (
@@ -308,7 +371,7 @@ export default function HomepageEditorPage() {
                   />
                 </div>
                 <p className="text-sm text-gray-500">
-                  Os serviços são gerenciados na aba "Gerenciar Serviços" do dashboard.
+                  Os serviços são gerenciados na coluna ao lado.
                 </p>
               </>
             )}
@@ -319,7 +382,7 @@ export default function HomepageEditorPage() {
           <div className="space-y-4">
             <Switch
               label="Habilitar Seção de Comparação"
-              checked={formData.comparison_cta_enabled}
+              checked={formData.comparison_cta_enabled ?? true}
               onCheckedChange={(checked) => setFormData({ ...formData, comparison_cta_enabled: checked })}
             />
             {formData.comparison_cta_enabled && (
@@ -355,7 +418,7 @@ export default function HomepageEditorPage() {
           <div className="space-y-4">
             <Switch
               label="Habilitar Seção de Contato"
-              checked={formData.contact_enabled}
+              checked={formData.contact_enabled ?? true}
               onCheckedChange={(checked) => setFormData({ ...formData, contact_enabled: checked })}
             />
             {formData.contact_enabled && (
@@ -378,13 +441,11 @@ export default function HomepageEditorPage() {
                 </div>
                 <div className="border-t border-gray-200 pt-4 mt-4">
                   <h3 className="text-lg font-semibold mb-3">Botão WhatsApp</h3>
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="text-sm font-medium">Habilitar WhatsApp</label>
-                    <Switch
-                      checked={formData.contact_whatsapp_enabled}
-                      onCheckedChange={(checked) => setFormData({ ...formData, contact_whatsapp_enabled: checked })}
-                    />
-                  </div>
+                  <Switch
+                    label="Habilitar WhatsApp"
+                    checked={formData.contact_whatsapp_enabled ?? true}
+                    onCheckedChange={(checked) => setFormData({ ...formData, contact_whatsapp_enabled: checked })}
+                  />
                   {formData.contact_whatsapp_enabled && (
                     <>
                       <Input
@@ -404,13 +465,11 @@ export default function HomepageEditorPage() {
                 </div>
                 <div className="border-t border-gray-200 pt-4 mt-4">
                   <h3 className="text-lg font-semibold mb-3">Botão E-mail</h3>
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="text-sm font-medium">Habilitar E-mail</label>
-                    <Switch
-                      checked={formData.contact_email_enabled}
-                      onCheckedChange={(checked) => setFormData({ ...formData, contact_email_enabled: checked })}
-                    />
-                  </div>
+                  <Switch
+                    label="Habilitar E-mail"
+                    checked={formData.contact_email_enabled ?? true}
+                    onCheckedChange={(checked) => setFormData({ ...formData, contact_email_enabled: checked })}
+                  />
                   {formData.contact_email_enabled && (
                     <>
                       <Input
@@ -431,13 +490,11 @@ export default function HomepageEditorPage() {
                 </div>
                 <div className="border-t border-gray-200 pt-4 mt-4">
                   <h3 className="text-lg font-semibold mb-3">Botão Instagram</h3>
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="text-sm font-medium">Habilitar Instagram</label>
-                    <Switch
-                      checked={formData.contact_instagram_enabled}
-                      onCheckedChange={(checked) => setFormData({ ...formData, contact_instagram_enabled: checked })}
-                    />
-                  </div>
+                  <Switch
+                    label="Habilitar Instagram"
+                    checked={formData.contact_instagram_enabled ?? true}
+                    onCheckedChange={(checked) => setFormData({ ...formData, contact_instagram_enabled: checked })}
+                  />
                   {formData.contact_instagram_enabled && (
                     <>
                       <Input
@@ -504,8 +561,8 @@ export default function HomepageEditorPage() {
     <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <DashboardNavigation
-          title="Editar Homepage"
-          subtitle="Personalize o conteúdo da página inicial"
+          title="Páginas e Serviços"
+          subtitle="Edite a homepage e gerencie seus serviços"
           backUrl="/dashboard"
           backLabel="Voltar ao Dashboard"
           actions={
@@ -524,15 +581,14 @@ export default function HomepageEditorPage() {
           }
         />
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-8">
-          {/* Editor Principal */}
-          <div className="lg:col-span-2">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
+          {/* Coluna Esquerda: Editor da Homepage */}
+          <div className="space-y-6">
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
               <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-bold">Seções da Homepage</h2>
+                <h2 className="text-xl font-bold">Editor da Homepage</h2>
               </div>
 
-              {/* Dica */}
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
                 <p className="text-sm text-blue-800">
                   <strong>💡 Dica:</strong> Use as setas ↑↓ para reordenar.
@@ -541,7 +597,6 @@ export default function HomepageEditorPage() {
                 </p>
               </div>
 
-              {/* Seções */}
               {sectionOrder.map((sectionId, index) => (
                 <SectionWrapper
                   key={sectionId}
@@ -562,13 +617,108 @@ export default function HomepageEditorPage() {
             </div>
           </div>
 
-          {/* Sidebar */}
-          <div className="lg:col-span-1 space-y-6">
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <h2 className="text-2xl font-bold mb-4">Prévia Rápida</h2>
-              <p className="text-gray-600 mb-4">
-                As alterações são salvas no banco de dados. Use o botão "Ver Preview" para visualizar a homepage completa.
-              </p>
+          {/* Coluna Direita: Gerenciar Serviços */}
+          <div className="space-y-6">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-xl font-bold">Gerenciar Serviços</h2>
+                <Link href="/dashboard/portfolio/novo">
+                  <Button size="sm">
+                    <Plus size={18} className="mr-2" />
+                    Novo Serviço
+                  </Button>
+                </Link>
+              </div>
+
+              {loadingServices ? (
+                <div className="text-center py-12">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-black mx-auto"></div>
+                </div>
+              ) : services.length === 0 ? (
+                <div className="text-center py-12">
+                  <p className="text-gray-500 mb-4">Nenhum serviço cadastrado ainda.</p>
+                  <Link href="/dashboard/portfolio/novo">
+                    <Button>
+                      <Plus size={18} className="mr-2" />
+                      Criar Primeiro Serviço
+                    </Button>
+                  </Link>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {services.map((service) => (
+                    <div
+                      key={service.id}
+                      className="border border-gray-200 rounded-lg p-4 hover:border-gray-300 transition-colors"
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            {service.images && service.images.length > 0 && (
+                              <div className="relative w-16 h-16 rounded-lg overflow-hidden flex-shrink-0">
+                                <Image
+                                  src={service.images[0]}
+                                  alt={service.name}
+                                  fill
+                                  className="object-cover"
+                                />
+                              </div>
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <h3 className="font-semibold text-gray-900 truncate">{service.name}</h3>
+                              <p className="text-sm text-gray-500 truncate">{service.slug}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 mt-3">
+                            <button
+                              onClick={() => toggleServiceStatus(service.id, service.is_active)}
+                              className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
+                                service.is_active
+                                  ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                              }`}
+                            >
+                              {service.is_active ? (
+                                <>
+                                  <Eye size={14} className="inline mr-1" />
+                                  Ativo
+                                </>
+                              ) : (
+                                <>
+                                  <EyeOff size={14} className="inline mr-1" />
+                                  Inativo
+                                </>
+                              )}
+                            </button>
+                            <Link href={`/dashboard/portfolio/${service.id}`}>
+                              <button className="px-3 py-1 rounded text-sm font-medium bg-blue-100 text-blue-700 hover:bg-blue-200 transition-colors">
+                                <Edit size={14} className="inline mr-1" />
+                                Editar
+                              </button>
+                            </Link>
+                            <button
+                              onClick={() => copyServiceLink(service.slug, service.id)}
+                              className="px-3 py-1 rounded text-sm font-medium bg-purple-100 text-purple-700 hover:bg-purple-200 transition-colors"
+                            >
+                              {copiedLinkId === service.id ? (
+                                <>
+                                  <Check size={14} className="inline mr-1" />
+                                  Copiado!
+                                </>
+                              ) : (
+                                <>
+                                  <Copy size={14} className="inline mr-1" />
+                                  Copiar Link
+                                </>
+                              )}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -576,3 +726,4 @@ export default function HomepageEditorPage() {
     </div>
   )
 }
+

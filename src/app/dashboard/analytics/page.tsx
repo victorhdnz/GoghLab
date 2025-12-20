@@ -5,8 +5,8 @@ import { useRouter } from 'next/navigation'
 import { useAuth } from '@/hooks/useAuth'
 import { createClient } from '@/lib/supabase/client'
 import { 
-  BarChart3, Clock, Eye, Users, MousePointer, X, 
-  RefreshCw, Calendar, ChevronDown, ChevronUp, Activity, ArrowLeft
+  BarChart3, Clock, Eye, Users, MousePointer, 
+  RefreshCw, ChevronDown, ChevronUp, Trash2
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import Link from 'next/link'
@@ -73,8 +73,8 @@ export default function AnalyticsPage() {
   const [dateRange, setDateRange] = useState<'7d' | '30d' | '90d' | 'all' | 'custom'>('30d')
   const [customStartDate, setCustomStartDate] = useState<string>('')
   const [customEndDate, setCustomEndDate] = useState<string>('')
-  const [showSessions, setShowSessions] = useState(false)
-  const [showDetails, setShowDetails] = useState(false)
+  const [showSessions, setShowSessions] = useState(true)
+  const [deleting, setDeleting] = useState(false)
 
   useEffect(() => {
     if (authLoading) return
@@ -378,6 +378,48 @@ export default function AnalyticsPage() {
     setPagePerformance(performance)
   }
 
+  // Apagar dados de analytics
+  const handleDeleteData = async () => {
+    if (!confirm('Tem certeza que deseja apagar todos os dados de analytics? Esta ação não pode ser desfeita.')) {
+      return
+    }
+
+    try {
+      setDeleting(true)
+      
+      // Se há filtros aplicados, apagar apenas os dados filtrados
+      const { startDate, endDate } = getDateFilter(dateRange)
+      
+      let query = supabase
+        .from('page_analytics')
+        .delete()
+        .gte('created_at', startDate)
+        .lte('created_at', endDate)
+
+      // Filtrar por tipo de página
+      if (pageType !== 'all') {
+        query = query.eq('page_type', pageType)
+      }
+
+      // Filtrar por página específica
+      if (selectedPageId) {
+        query = query.eq('page_id', selectedPageId)
+      }
+
+      const { error } = await query
+
+      if (error) throw error
+
+      toast.success('Dados apagados com sucesso!')
+      loadAnalytics()
+    } catch (error: any) {
+      console.error('Erro ao apagar dados:', error)
+      toast.error('Erro ao apagar dados')
+    } finally {
+      setDeleting(false)
+    }
+  }
+
   // Calcular sessões
   const calculateSessions = (data: any[]) => {
     const sessionMap = new Map<string, {
@@ -448,14 +490,24 @@ export default function AnalyticsPage() {
           backUrl="/dashboard"
           backLabel="Voltar ao Dashboard"
           actions={
-            <button
-              onClick={loadAnalytics}
-              disabled={loading}
-              className="px-6 py-2.5 bg-black text-white rounded-lg hover:bg-gray-800 flex items-center gap-2 disabled:opacity-50"
-            >
-              <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
-              Atualizar
-            </button>
+            <div className="flex gap-3">
+              <button
+                onClick={handleDeleteData}
+                disabled={deleting || loading}
+                className="px-6 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center gap-2 disabled:opacity-50"
+              >
+                <Trash2 size={18} className={deleting ? 'animate-spin' : ''} />
+                Apagar Dados
+              </button>
+              <button
+                onClick={loadAnalytics}
+                disabled={loading}
+                className="px-6 py-2.5 bg-black text-white rounded-lg hover:bg-gray-800 flex items-center gap-2 disabled:opacity-50"
+              >
+                <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
+                Atualizar
+              </button>
+            </div>
           }
         />
 
@@ -547,7 +599,7 @@ export default function AnalyticsPage() {
 
         {/* Resumo Principal - Cards */}
         {summary && (
-          <div className="grid grid-cols-2 lg:grid-cols-7 gap-4 mb-6">
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
               <div className="flex items-center justify-between mb-3">
                 <Eye className="w-7 h-7 text-blue-500" />
@@ -588,189 +640,49 @@ export default function AnalyticsPage() {
               <p className="text-sm text-gray-500">Scroll médio</p>
             </div>
 
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-              <div className="flex items-center justify-between mb-3">
-                <X className="w-7 h-7 text-red-500" />
-              </div>
-              <p className="text-2xl font-bold text-gray-900">{summary.bounceRate}%</p>
-              <p className="text-sm text-gray-500">Taxa de rejeição</p>
-            </div>
-
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-              <div className="flex items-center justify-between mb-3">
-                <Activity className="w-7 h-7 text-yellow-500" />
-              </div>
-              <p className="text-2xl font-bold text-gray-900">{summary.clickRate}%</p>
-              <p className="text-sm text-gray-500">Taxa de cliques</p>
-            </div>
-          </div>
-        )}
-
-        {/* Performance por Página */}
-        {pagePerformance.length > 0 && (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">🏆 Performance por Página</h2>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50 border-b border-gray-200">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Página</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Visualizações</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cliques</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Visitantes</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tempo Médio</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Scroll Médio</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Taxa Rejeição</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {pagePerformance.map((page) => (
-                    <tr key={page.pageId || page.pageSlug || 'homepage'} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900">{page.pageName}</div>
-                        <div className="text-xs text-gray-500">{page.pageType}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{page.views.toLocaleString()}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{page.clicks.toLocaleString()}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{page.visitors.toLocaleString()}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{page.avgTime}s</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{page.avgScroll}%</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{page.bounceRate}%</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-
-        {/* Histórico Diário */}
-        {dailyStats.length > 0 && (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">📅 Histórico Diário</h2>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50 border-b border-gray-200">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Data</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Visualizações</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cliques</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Visitantes</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tempo Médio</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Scroll Médio</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {dailyStats.map((day) => (
-                    <tr key={day.date} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        {new Date(day.date).toLocaleDateString('pt-BR')}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{day.views.toLocaleString()}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{day.clicks.toLocaleString()}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{day.visitors.toLocaleString()}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{day.avgTime}s</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{day.avgScroll}%</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
           </div>
         )}
 
         {/* Sessões Individuais */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 mb-6">
-          <button
-            onClick={() => setShowSessions(!showSessions)}
-            className="w-full p-6 flex items-center justify-between hover:bg-gray-50 transition-colors"
-          >
-            <div>
-              <h2 className="text-xl font-bold text-gray-900">👥 Acessos Individuais</h2>
-              <p className="text-sm text-gray-500">{sessions.length} sessões</p>
-            </div>
-            {showSessions ? <ChevronUp size={24} className="text-gray-400" /> : <ChevronDown size={24} className="text-gray-400" />}
-          </button>
-          {showSessions && (
-            <div className="border-t">
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-gray-50 border-b border-gray-200">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Página</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Início</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Duração</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Scroll</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cliques</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Visualizações</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {sessions.map((session) => (
-                      <tr key={session.sessionId} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{session.pageName}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {new Date(session.startTime).toLocaleString('pt-BR')}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{session.duration}s</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{session.scrollDepth}%</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{session.clicks}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{session.pageViews}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Eventos Detalhados */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-100">
-          <button
-            onClick={() => setShowDetails(!showDetails)}
-            className="w-full p-6 flex items-center justify-between hover:bg-gray-50 transition-colors"
-          >
-            <div>
-              <h2 className="text-xl font-bold text-gray-900">📋 Eventos Detalhados</h2>
-              <p className="text-sm text-gray-500">{analytics.length} eventos</p>
-            </div>
-            {showDetails ? <ChevronUp size={24} className="text-gray-400" /> : <ChevronDown size={24} className="text-gray-400" />}
-          </button>
-          {showDetails && (
-            <div className="border-t">
-              <div className="overflow-x-auto max-h-96 overflow-y-auto">
-                <table className="w-full">
-                  <thead className="bg-gray-50 border-b border-gray-200 sticky top-0">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Data/Hora</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Página</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tipo</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Dados</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {analytics.slice(0, 500).map((event) => (
-                      <tr key={event.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {new Date(event.created_at).toLocaleString('pt-BR')}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {event.page_slug || 'Homepage'}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{event.event_type}</td>
-                        <td className="px-6 py-4 text-sm text-gray-900">
-                          <pre className="text-xs bg-gray-50 p-2 rounded overflow-x-auto">
-                            {JSON.stringify(event.event_data, null, 2)}
-                          </pre>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+          <div className="p-6 border-b border-gray-200">
+            <h2 className="text-xl font-bold text-gray-900 mb-1">👥 Acessos Individuais</h2>
+            <p className="text-sm text-gray-500">{sessions.length} sessões</p>
+          </div>
+          <div className="overflow-x-auto">
+            {sessions.length === 0 ? (
+              <div className="p-12 text-center text-gray-500">
+                <p>Nenhuma sessão encontrada no período selecionado.</p>
               </div>
-            </div>
-          )}
+            ) : (
+              <table className="w-full">
+                <thead className="bg-gray-50 border-b border-gray-200">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Página</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Início</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Duração</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Scroll</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cliques</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Visualizações</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {sessions.map((session) => (
+                    <tr key={session.sessionId} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{session.pageName}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {new Date(session.startTime).toLocaleString('pt-BR')}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{session.duration}s</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{session.scrollDepth}%</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{session.clicks}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{session.pageViews}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
         </div>
       </div>
     </div>

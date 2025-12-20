@@ -241,30 +241,16 @@ function DashboardContent() {
 
   const mainSections = [
     {
-      title: 'Página Inicial',
-      description: 'Edite o conteúdo da página inicial do site',
+      title: 'Páginas',
+      description: 'Edite a homepage e gerencie seus serviços',
       icon: Layers,
       items: [
         {
-          title: 'Editar Homepage',
-          description: 'Personalize textos, imagens e seções da página inicial',
-          href: '/dashboard/homepage',
+          title: 'Homepage e Serviços',
+          description: 'Edite a homepage e gerencie serviços em um único lugar',
+          href: '/dashboard/paginas',
           icon: Palette,
           color: 'bg-indigo-500',
-        },
-      ],
-    },
-    {
-      title: 'Gerenciar Serviços',
-      description: 'Criar, editar e organizar serviços do portfolio',
-      icon: Package,
-      items: [
-        {
-          title: 'Gerenciar Serviços',
-          description: 'Criar, editar e copiar links dos serviços',
-          href: '/dashboard/portfolio',
-          icon: Package,
-          color: 'bg-blue-500',
         },
       ],
     },
@@ -279,14 +265,6 @@ function DashboardContent() {
           href: '/dashboard/comparador',
           icon: GitCompare,
           color: 'bg-orange-500',
-        },
-        {
-          title: 'Ver Comparador',
-          description: 'Abrir o comparador público',
-          href: '/comparar',
-          icon: Eye,
-          color: 'bg-gray-500',
-          external: true,
         },
       ],
     },
@@ -308,15 +286,7 @@ function DashboardContent() {
       title: 'Configurações',
       description: 'Ajustes gerais do site e sistema',
       icon: Layers,
-      items: [
-        {
-          title: 'Logo de Carregamento',
-          description: 'Configure a logo que aparece durante o carregamento das páginas',
-          href: '/dashboard/configuracoes/loading',
-          icon: Layers,
-          color: 'bg-gray-600',
-        },
-      ],
+      items: [],
     },
   ]
 
