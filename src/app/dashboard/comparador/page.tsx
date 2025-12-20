@@ -8,21 +8,38 @@ import { Input } from '@/components/ui/Input'
 import { Switch } from '@/components/ui/Switch'
 import { ImageUploader } from '@/components/ui/ImageUploader'
 import { createClient } from '@/lib/supabase/client'
-import { CompanyComparison, ComparisonTopic } from '@/types'
-import { Eye, Save, ChevronDown, ChevronUp, Edit2, X, Plus } from 'lucide-react'
+import { CompanyComparison } from '@/types'
+import { Eye, Save, ChevronDown, ChevronUp, Edit2, X, Plus, Check, ArrowUp, ArrowDown } from 'lucide-react'
 import toast from 'react-hot-toast'
 import Link from 'next/link'
 import { BackButton } from '@/components/ui/BackButton'
 import Image from 'next/image'
 import { getSiteSettings, saveSiteSettings } from '@/lib/supabase/site-settings-helper'
 
+interface GlobalTopic {
+  id: string
+  name: string
+  order: number
+}
+
+interface CompanyTopicValue {
+  topic_id: string
+  has_feature: boolean // true = check, false = X
+}
+
 interface CompetitorCompany {
   id: string
   name: string
   logo?: string
   description?: string
-  comparison_topics: ComparisonTopic[]
+  topic_values: CompanyTopicValue[] // Mapeamento de tópico -> check/X
   is_active: boolean
+}
+
+interface MVCompany {
+  name: string
+  logo?: string
+  topic_values: CompanyTopicValue[]
 }
 
 export default function ComparadorDashboardPage() {
@@ -33,6 +50,19 @@ export default function ComparadorDashboardPage() {
   const [footerExpanded, setFooterExpanded] = useState(false)
   const [savingFooter, setSavingFooter] = useState(false)
   const [editingCompany, setEditingCompany] = useState<number | null>(null)
+  const [editingMVCompany, setEditingMVCompany] = useState(false)
+  const [topicsExpanded, setTopicsExpanded] = useState(true)
+  
+  // MV Company state
+  const [mvCompany, setMvCompany] = useState<MVCompany>({
+    name: 'MV Company',
+    logo: '',
+    topic_values: [],
+  })
+
+  // Global topics
+  const [globalTopics, setGlobalTopics] = useState<GlobalTopic[]>([])
+
   const [footerContent, setFooterContent] = useState({
     title: 'Pronto para trabalhar com a MV Company?',
     subtitle: 'Entre em contato e descubra como podemos transformar seu negócio',
@@ -46,13 +76,14 @@ export default function ComparadorDashboardPage() {
     instagram_url: '',
     instagram_text: 'Instagram',
   })
+  
   const [companies, setCompanies] = useState<CompetitorCompany[]>([
     {
       id: 'competitor-1',
       name: '',
       logo: '',
       description: '',
-      comparison_topics: [],
+      topic_values: [],
       is_active: true,
     },
     {
@@ -60,7 +91,7 @@ export default function ComparadorDashboardPage() {
       name: '',
       logo: '',
       description: '',
-      comparison_topics: [],
+      topic_values: [],
       is_active: true,
     },
   ])
@@ -78,7 +109,40 @@ export default function ComparadorDashboardPage() {
   }, [isAuthenticated, isEditor, authLoading, router])
 
   const loadData = async () => {
-    await Promise.all([loadCompanies(), loadFooterContent()])
+    await Promise.all([loadGlobalTopics(), loadMVCompany(), loadCompanies(), loadFooterContent()])
+  }
+
+  const loadGlobalTopics = async () => {
+    try {
+      const { data, error } = await getSiteSettings()
+      if (error) {
+        console.error('Erro ao carregar tópicos:', error)
+        return
+      }
+      
+      if (data?.comparison_topics) {
+        const topics = data.comparison_topics as GlobalTopic[]
+        setGlobalTopics(topics.sort((a, b) => a.order - b.order))
+      }
+    } catch (error) {
+      console.error('Erro ao carregar tópicos:', error)
+    }
+  }
+
+  const loadMVCompany = async () => {
+    try {
+      const { data, error } = await getSiteSettings()
+      if (error) {
+        console.error('Erro ao carregar MV Company:', error)
+        return
+      }
+      
+      if (data?.mv_company) {
+        setMvCompany(data.mv_company as MVCompany)
+      }
+    } catch (error) {
+      console.error('Erro ao carregar MV Company:', error)
+    }
   }
 
   const loadCompanies = async () => {
@@ -94,16 +158,28 @@ export default function ComparadorDashboardPage() {
 
       const loadedCompanies = (data as CompanyComparison[] || []).slice(0, 2)
       
-      // Garantir que sempre temos 2 empresas
       const updatedCompanies = [...companies]
       loadedCompanies.forEach((company, index) => {
         if (index < 2) {
+          // Converter comparison_topics antigo para topic_values
+          const topicValues: CompanyTopicValue[] = []
+          if (company.comparison_topics && Array.isArray(company.comparison_topics)) {
+            company.comparison_topics.forEach((topic: any) => {
+              if (topic.id) {
+                topicValues.push({
+                  topic_id: topic.id,
+                  has_feature: topic.competitor || false,
+                })
+              }
+            })
+          }
+          
           updatedCompanies[index] = {
             id: company.id,
             name: company.name,
             logo: company.logo || '',
             description: company.description || '',
-            comparison_topics: company.comparison_topics || [],
+            topic_values: topicValues,
             is_active: company.is_active,
           }
         }
@@ -133,6 +209,101 @@ export default function ComparadorDashboardPage() {
     }
   }
 
+  const handleAddTopic = () => {
+    const newTopic: GlobalTopic = {
+      id: `topic-${Date.now()}`,
+      name: '',
+      order: globalTopics.length,
+    }
+    setGlobalTopics([...globalTopics, newTopic])
+  }
+
+  const handleRemoveTopic = (topicId: string) => {
+    setGlobalTopics(globalTopics.filter(t => t.id !== topicId))
+    // Remover também dos topic_values de todas as empresas
+    setMvCompany(prev => ({
+      ...prev,
+      topic_values: prev.topic_values.filter(tv => tv.topic_id !== topicId),
+    }))
+    setCompanies(prev => prev.map(company => ({
+      ...company,
+      topic_values: company.topic_values.filter(tv => tv.topic_id !== topicId),
+    })))
+  }
+
+  const handleUpdateTopic = (topicId: string, field: 'name', value: string) => {
+    setGlobalTopics(prev => prev.map(topic => 
+      topic.id === topicId ? { ...topic, [field]: value } : topic
+    ))
+  }
+
+  const handleMoveTopic = (topicId: string, direction: 'up' | 'down') => {
+    const currentIndex = globalTopics.findIndex(t => t.id === topicId)
+    if (currentIndex === -1) return
+
+    const newIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1
+    if (newIndex < 0 || newIndex >= globalTopics.length) return
+
+    const newTopics = [...globalTopics]
+    const [removed] = newTopics.splice(currentIndex, 1)
+    newTopics.splice(newIndex, 0, removed)
+    
+    // Atualizar ordem
+    const updatedTopics = newTopics.map((topic, index) => ({
+      ...topic,
+      order: index,
+    }))
+    
+    setGlobalTopics(updatedTopics)
+  }
+
+  const handleSaveTopics = async () => {
+    try {
+      setSaving(true)
+      const { success, error } = await saveSiteSettings({
+        fieldsToUpdate: {
+          comparison_topics: globalTopics,
+        },
+      })
+
+      if (!success) {
+        toast.error(error?.message || 'Erro ao salvar tópicos')
+        return
+      }
+
+      toast.success('Tópicos salvos com sucesso!')
+    } catch (error) {
+      console.error('Erro ao salvar tópicos:', error)
+      toast.error('Erro ao salvar tópicos')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleSaveMVCompany = async () => {
+    try {
+      setSaving(true)
+      const { success, error } = await saveSiteSettings({
+        fieldsToUpdate: {
+          mv_company: mvCompany,
+        },
+      })
+
+      if (!success) {
+        toast.error(error?.message || 'Erro ao salvar MV Company')
+        return
+      }
+
+      toast.success('MV Company salva com sucesso!')
+      setEditingMVCompany(false)
+    } catch (error) {
+      console.error('Erro ao salvar MV Company:', error)
+      toast.error('Erro ao salvar MV Company')
+    } finally {
+      setSaving(false)
+    }
+  }
+
   const handleSaveCompany = async (index: number) => {
     try {
       setSaving(true)
@@ -143,18 +314,26 @@ export default function ComparadorDashboardPage() {
         return
       }
 
-      // Criar slug a partir do nome
       const slug = company.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
 
-      // Verificar se já existe uma empresa com este ID
       const { data: existing } = await supabase
         .from('company_comparisons')
         .select('id')
         .eq('id', company.id)
         .maybeSingle()
 
+      // Converter topic_values de volta para comparison_topics (compatibilidade)
+      const comparison_topics = globalTopics.map(topic => {
+        const topicValue = company.topic_values.find(tv => tv.topic_id === topic.id)
+        return {
+          id: topic.id,
+          name: topic.name,
+          mv_company: mvCompany.topic_values.find(tv => tv.topic_id === topic.id)?.has_feature || false,
+          competitor: topicValue?.has_feature || false,
+        }
+      })
+
       if (existing) {
-        // Atualizar empresa existente
         const { error } = await supabase
           .from('company_comparisons')
           .update({
@@ -162,7 +341,7 @@ export default function ComparadorDashboardPage() {
             slug: slug,
             logo: company.logo,
             description: company.description,
-            comparison_topics: company.comparison_topics,
+            comparison_topics: comparison_topics,
             is_active: company.is_active,
             updated_at: new Date().toISOString(),
           })
@@ -171,7 +350,6 @@ export default function ComparadorDashboardPage() {
         if (error) throw error
         toast.success('Empresa atualizada com sucesso!')
       } else {
-        // Criar nova empresa
         const { error } = await supabase
           .from('company_comparisons')
           .insert({
@@ -180,7 +358,7 @@ export default function ComparadorDashboardPage() {
             slug: slug,
             logo: company.logo,
             description: company.description,
-            comparison_topics: company.comparison_topics,
+            comparison_topics: comparison_topics,
             is_active: company.is_active,
           })
 
@@ -198,31 +376,44 @@ export default function ComparadorDashboardPage() {
     }
   }
 
-  const handleAddTopic = (companyIndex: number) => {
-    const updatedCompanies = [...companies]
-    const newTopic: ComparisonTopic = {
-      id: `topic-${Date.now()}`,
-      name: '',
-      mv_company: true,
-      competitor: false,
+  const handleToggleTopicValue = (companyIndex: number | 'mv', topicId: string, value: boolean) => {
+    if (companyIndex === 'mv') {
+      setMvCompany(prev => {
+        const existing = prev.topic_values.find(tv => tv.topic_id === topicId)
+        if (existing) {
+          return {
+            ...prev,
+            topic_values: prev.topic_values.map(tv =>
+              tv.topic_id === topicId ? { ...tv, has_feature: value } : tv
+            ),
+          }
+        } else {
+          return {
+            ...prev,
+            topic_values: [...prev.topic_values, { topic_id: topicId, has_feature: value }],
+          }
+        }
+      })
+    } else {
+      setCompanies(prev => prev.map((company, idx) => {
+        if (idx !== companyIndex) return company
+        
+        const existing = company.topic_values.find(tv => tv.topic_id === topicId)
+        if (existing) {
+          return {
+            ...company,
+            topic_values: company.topic_values.map(tv =>
+              tv.topic_id === topicId ? { ...tv, has_feature: value } : tv
+            ),
+          }
+        } else {
+          return {
+            ...company,
+            topic_values: [...company.topic_values, { topic_id: topicId, has_feature: value }],
+          }
+        }
+      }))
     }
-    updatedCompanies[companyIndex].comparison_topics.push(newTopic)
-    setCompanies(updatedCompanies)
-  }
-
-  const handleRemoveTopic = (companyIndex: number, topicIndex: number) => {
-    const updatedCompanies = [...companies]
-    updatedCompanies[companyIndex].comparison_topics.splice(topicIndex, 1)
-    setCompanies(updatedCompanies)
-  }
-
-  const handleUpdateTopic = (companyIndex: number, topicIndex: number, field: keyof ComparisonTopic, value: any) => {
-    const updatedCompanies = [...companies]
-    updatedCompanies[companyIndex].comparison_topics[topicIndex] = {
-      ...updatedCompanies[companyIndex].comparison_topics[topicIndex],
-      [field]: value,
-    }
-    setCompanies(updatedCompanies)
   }
 
   const handleSaveFooter = async () => {
@@ -264,7 +455,7 @@ export default function ComparadorDashboardPage() {
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 mb-2">Comparador de Empresas</h1>
-            <p className="text-gray-600">Edite as empresas concorrentes e compare com MV Company</p>
+            <p className="text-gray-600">Configure empresas, tópicos e compare com MV Company</p>
           </div>
           <div className="flex gap-3">
             <Link href="/comparar?preview=true" target="_blank">
@@ -274,6 +465,88 @@ export default function ComparadorDashboardPage() {
               </Button>
             </Link>
           </div>
+        </div>
+
+        {/* Global Topics Section */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6 overflow-hidden">
+          <button
+            onClick={() => setTopicsExpanded(!topicsExpanded)}
+            className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <h2 className="text-lg font-semibold text-gray-900">Tópicos de Comparação (Globais)</h2>
+              <span className="text-sm text-gray-500">({globalTopics.length} tópicos)</span>
+            </div>
+            {topicsExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+          </button>
+
+          {topicsExpanded && (
+            <div className="p-6 border-t border-gray-200 space-y-4">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                <p className="text-sm text-blue-800">
+                  <strong>💡 Dica:</strong> Crie os tópicos de comparação aqui. Depois, configure se cada empresa (incluindo MV Company) tem check (✓) ou X (✗) em cada tópico.
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                {globalTopics.map((topic, index) => (
+                  <div key={topic.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => handleMoveTopic(topic.id, 'up')}
+                        disabled={index === 0}
+                        className="p-1 hover:bg-gray-200 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                        title="Mover para cima"
+                      >
+                        <ArrowUp size={16} />
+                      </button>
+                      <button
+                        onClick={() => handleMoveTopic(topic.id, 'down')}
+                        disabled={index === globalTopics.length - 1}
+                        className="p-1 hover:bg-gray-200 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                        title="Mover para baixo"
+                      >
+                        <ArrowDown size={16} />
+                      </button>
+                    </div>
+                    <Input
+                      value={topic.name}
+                      onChange={(e) => handleUpdateTopic(topic.id, 'name', e.target.value)}
+                      placeholder="Nome do tópico (ex: Suporte 24/7)"
+                      className="flex-1"
+                    />
+                    <button
+                      onClick={() => handleRemoveTopic(topic.id)}
+                      className="text-red-600 hover:text-red-800 p-2 hover:bg-red-50 rounded"
+                      title="Remover tópico"
+                    >
+                      <X size={18} />
+                    </button>
+                  </div>
+                ))}
+                
+                {globalTopics.length === 0 && (
+                  <p className="text-sm text-gray-500 text-center py-4">
+                    Nenhum tópico criado. Clique em "Adicionar Tópico" para criar o primeiro.
+                  </p>
+                )}
+              </div>
+
+              <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+                <Button
+                  variant="outline"
+                  onClick={handleAddTopic}
+                >
+                  <Plus size={18} className="mr-2" />
+                  Adicionar Tópico
+                </Button>
+                <Button onClick={handleSaveTopics} isLoading={saving}>
+                  <Save size={18} className="mr-2" />
+                  Salvar Tópicos
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Footer Editor */}
@@ -400,22 +673,118 @@ export default function ComparadorDashboardPage() {
           )}
         </div>
 
-        {/* Companies Editor - Always 3: MV Company (fixed) + 2 Competitors (editable) */}
+        {/* Companies Editor - MV Company + 2 Competitors */}
         <div className="space-y-6">
-          {/* MV Company - Fixed */}
+          {/* MV Company - Now Editable */}
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 rounded-lg bg-black flex items-center justify-center text-white">
-                <span className="text-2xl">🚀</span>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-lg bg-black flex items-center justify-center text-white">
+                  {mvCompany.logo ? (
+                    <Image src={mvCompany.logo} alt={mvCompany.name} width={48} height={48} className="rounded-lg object-contain" />
+                  ) : (
+                    <span className="text-2xl">🚀</span>
+                  )}
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900">MV Company</h2>
+                  <p className="text-sm text-gray-500">Empresa principal</p>
+                </div>
               </div>
-              <div>
-                <h2 className="text-xl font-bold text-gray-900">MV Company</h2>
-                <p className="text-sm text-gray-500">Empresa principal (não editável)</p>
-              </div>
+              {!editingMVCompany && (
+                <Button onClick={() => setEditingMVCompany(true)}>
+                  <Edit2 size={18} className="mr-2" />
+                  Editar MV Company
+                </Button>
+              )}
             </div>
+
+            {editingMVCompany ? (
+              <div className="space-y-4">
+                <Input
+                  label="Nome da Empresa"
+                  value={mvCompany.name}
+                  onChange={(e) => setMvCompany({ ...mvCompany, name: e.target.value })}
+                  placeholder="Ex: MV Company"
+                />
+                <div>
+                  <label className="block text-sm font-medium mb-2">Logo da Empresa</label>
+                  <ImageUploader
+                    value={mvCompany.logo || ''}
+                    onChange={(url) => setMvCompany({ ...mvCompany, logo: url })}
+                    cropType="square"
+                    aspectRatio={1}
+                    targetSize={{ width: 200, height: 200 }}
+                    placeholder="Clique para fazer upload do logo"
+                  />
+                </div>
+
+                {/* Topic Values */}
+                {globalTopics.length > 0 && (
+                  <div className="border-t border-gray-200 pt-4">
+                    <h3 className="font-semibold mb-3">Configurar Tópicos</h3>
+                    <div className="space-y-2">
+                      {globalTopics.map((topic) => {
+                        const topicValue = mvCompany.topic_values.find(tv => tv.topic_id === topic.id)
+                        const hasFeature = topicValue?.has_feature ?? false
+                        return (
+                          <div key={topic.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                            <span className="text-sm font-medium">{topic.name || 'Tópico sem nome'}</span>
+                            <div className="flex items-center gap-3">
+                              <button
+                                onClick={() => handleToggleTopicValue('mv', topic.id, true)}
+                                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                                  hasFeature
+                                    ? 'bg-green-100 text-green-800 border-2 border-green-500'
+                                    : 'bg-gray-100 text-gray-600 border-2 border-transparent hover:bg-gray-200'
+                                }`}
+                              >
+                                <Check size={16} className="inline mr-1" />
+                                Check
+                              </button>
+                              <button
+                                onClick={() => handleToggleTopicValue('mv', topic.id, false)}
+                                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                                  !hasFeature && topicValue
+                                    ? 'bg-red-100 text-red-800 border-2 border-red-500'
+                                    : 'bg-gray-100 text-gray-600 border-2 border-transparent hover:bg-gray-200'
+                                }`}
+                              >
+                                <X size={16} className="inline mr-1" />
+                                X
+                              </button>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+                  <Button
+                    variant="outline"
+                    onClick={() => setEditingMVCompany(false)}
+                  >
+                    Cancelar
+                  </Button>
+                  <Button
+                    onClick={handleSaveMVCompany}
+                    isLoading={saving}
+                  >
+                    <Save size={18} className="mr-2" />
+                    Salvar MV Company
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="text-sm text-gray-600">
+                <p><strong>Tópicos configurados:</strong> {mvCompany.topic_values.length} de {globalTopics.length}</p>
+              </div>
+            )}
           </div>
 
-          {/* Competitor Companies - Editable */}
+          {/* Competitor Companies */}
           {companies.map((company, index) => (
             <div key={company.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
               <div className="flex items-center justify-between mb-4">
@@ -489,63 +858,47 @@ export default function ComparadorDashboardPage() {
                     />
                   </div>
 
-                  {/* Topics */}
-                  <div className="border-t border-gray-200 pt-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <h3 className="font-semibold">Características de Comparação</h3>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleAddTopic(index)}
-                      >
-                        <Plus size={16} className="mr-1" />
-                        Adicionar
-                      </Button>
+                  {/* Topic Values */}
+                  {globalTopics.length > 0 && (
+                    <div className="border-t border-gray-200 pt-4">
+                      <h3 className="font-semibold mb-3">Configurar Tópicos</h3>
+                      <div className="space-y-2">
+                        {globalTopics.map((topic) => {
+                          const topicValue = company.topic_values.find(tv => tv.topic_id === topic.id)
+                          const hasFeature = topicValue?.has_feature ?? false
+                          return (
+                            <div key={topic.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                              <span className="text-sm font-medium">{topic.name || 'Tópico sem nome'}</span>
+                              <div className="flex items-center gap-3">
+                                <button
+                                  onClick={() => handleToggleTopicValue(index, topic.id, true)}
+                                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                                    hasFeature
+                                      ? 'bg-green-100 text-green-800 border-2 border-green-500'
+                                      : 'bg-gray-100 text-gray-600 border-2 border-transparent hover:bg-gray-200'
+                                  }`}
+                                >
+                                  <Check size={16} className="inline mr-1" />
+                                  Check
+                                </button>
+                                <button
+                                  onClick={() => handleToggleTopicValue(index, topic.id, false)}
+                                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                                    !hasFeature && topicValue
+                                      ? 'bg-red-100 text-red-800 border-2 border-red-500'
+                                      : 'bg-gray-100 text-gray-600 border-2 border-transparent hover:bg-gray-200'
+                                  }`}
+                                >
+                                  <X size={16} className="inline mr-1" />
+                                  X
+                                </button>
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
                     </div>
-                    <div className="space-y-3">
-                      {company.comparison_topics.map((topic, topicIndex) => (
-                        <div key={topic.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                          <Input
-                            value={topic.name}
-                            onChange={(e) => handleUpdateTopic(index, topicIndex, 'name', e.target.value)}
-                            placeholder="Nome da característica"
-                            className="flex-1"
-                          />
-                          <div className="flex items-center gap-4">
-                            <label className="flex items-center gap-2 text-sm">
-                              <input
-                                type="checkbox"
-                                checked={topic.mv_company}
-                                onChange={(e) => handleUpdateTopic(index, topicIndex, 'mv_company', e.target.checked)}
-                                className="rounded"
-                              />
-                              MV Company
-                            </label>
-                            <label className="flex items-center gap-2 text-sm">
-                              <input
-                                type="checkbox"
-                                checked={topic.competitor}
-                                onChange={(e) => handleUpdateTopic(index, topicIndex, 'competitor', e.target.checked)}
-                                className="rounded"
-                              />
-                              Concorrente
-                            </label>
-                            <button
-                              onClick={() => handleRemoveTopic(index, topicIndex)}
-                              className="text-red-600 hover:text-red-800 p-1"
-                            >
-                              <X size={18} />
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                      {company.comparison_topics.length === 0 && (
-                        <p className="text-sm text-gray-500 text-center py-4">
-                          Nenhuma característica adicionada. Clique em "Adicionar" para criar uma.
-                        </p>
-                      )}
-                    </div>
-                  </div>
+                  )}
 
                   <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
                     <Button
@@ -568,7 +921,7 @@ export default function ComparadorDashboardPage() {
                   {company.name ? (
                     <>
                       <p className="text-sm text-gray-600">
-                        <strong>Tópicos:</strong> {company.comparison_topics.length}
+                        <strong>Tópicos configurados:</strong> {company.topic_values.length} de {globalTopics.length}
                       </p>
                       <Button
                         onClick={() => setEditingCompany(index)}

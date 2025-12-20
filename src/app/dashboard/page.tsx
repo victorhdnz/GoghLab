@@ -254,17 +254,10 @@ function DashboardContent() {
         },
         {
           title: 'Gerenciar Serviços',
-          description: 'Criar, editar e organizar serviços do portfolio',
+          description: 'Criar, editar e configurar layout das páginas de serviços',
           href: '/dashboard/portfolio',
           icon: Package,
           color: 'bg-blue-500',
-        },
-        {
-          title: 'Layout de Página Detalhada',
-          description: 'Configure o layout e seções das páginas de detalhes dos serviços',
-          href: '/dashboard/portfolio/layout',
-          icon: Layers,
-          color: 'bg-purple-500',
         },
       ],
     },

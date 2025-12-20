@@ -5,30 +5,54 @@ import { createClient } from '@/lib/supabase/client'
 import { CompanyComparison } from '@/types'
 import Image from 'next/image'
 import Link from 'next/link'
-import { GitCompare } from 'lucide-react'
 import { ComparisonFooter } from '@/components/comparador/ComparisonFooter'
 import { useSearchParams } from 'next/navigation'
+import { getSiteSettings } from '@/lib/supabase/site-settings-helper'
+
+interface GlobalTopic {
+  id: string
+  name: string
+  order: number
+}
+
+interface MVCompany {
+  name: string
+  logo?: string
+  topic_values: Array<{ topic_id: string; has_feature: boolean }>
+}
 
 export default function CompararPage() {
   const supabase = createClient()
   const [companies, setCompanies] = useState<CompanyComparison[]>([])
+  const [globalTopics, setGlobalTopics] = useState<GlobalTopic[]>([])
+  const [mvCompany, setMvCompany] = useState<MVCompany | null>(null)
   const [loading, setLoading] = useState(true)
   const searchParams = useSearchParams()
   const isPreview = searchParams.get('preview') === 'true'
 
   useEffect(() => {
-    loadCompanies()
+    loadData()
   }, [])
+
+  const loadData = async () => {
+    try {
+      setLoading(true)
+      await Promise.all([loadCompanies(), loadGlobalData()])
+    } catch (error) {
+      console.error('Erro ao carregar dados:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const loadCompanies = async () => {
     try {
-      setLoading(true)
       const { data, error } = await supabase
         .from('company_comparisons')
         .select('*')
         .eq('is_active', true)
         .order('created_at', { ascending: true })
-        .limit(2) // Sempre buscar apenas 2 concorrentes
+        .limit(2)
 
       if (error) {
         console.error('Erro ao buscar empresas:', error)
@@ -38,15 +62,64 @@ export default function CompararPage() {
       setCompanies(data || [])
     } catch (error) {
       console.error('Erro ao buscar empresas:', error)
-    } finally {
-      setLoading(false)
     }
   }
 
-  // Sempre mostrar a tabela de comparação com MV Company + empresas do banco
+  const loadGlobalData = async () => {
+    try {
+      const { data, error } = await getSiteSettings()
+      if (error) {
+        console.error('Erro ao buscar configurações:', error)
+        return
+      }
+
+      if (data?.comparison_topics) {
+        const topics = data.comparison_topics as GlobalTopic[]
+        setGlobalTopics(topics.sort((a, b) => a.order - b.order))
+      }
+
+      if (data?.mv_company) {
+        setMvCompany(data.mv_company as MVCompany)
+      } else {
+        // Fallback para MV Company padrão
+        setMvCompany({
+          name: 'MV Company',
+          logo: '',
+          topic_values: [],
+        })
+      }
+    } catch (error) {
+      console.error('Erro ao buscar configurações globais:', error)
+    }
+  }
+
+  // Função auxiliar para obter valor do tópico para MV Company
+  const getMVCompanyTopicValue = (topicId: string): boolean => {
+    if (!mvCompany) return false
+    const topicValue = mvCompany.topic_values.find(tv => tv.topic_id === topicId)
+    return topicValue?.has_feature ?? false
+  }
+
+  // Função auxiliar para obter valor do tópico para empresa concorrente
+  const getCompanyTopicValue = (company: CompanyComparison, topicId: string): boolean => {
+    // Compatibilidade com estrutura antiga
+    if (company.comparison_topics && Array.isArray(company.comparison_topics)) {
+      const topic = company.comparison_topics.find((t: any) => t.id === topicId)
+      return topic?.competitor || false
+    }
+    return false
+  }
+
   return (
     <>
-      <ComparisonTable companies={companies} loading={loading} />
+      <ComparisonTable 
+        companies={companies} 
+        globalTopics={globalTopics}
+        mvCompany={mvCompany}
+        loading={loading}
+        getMVCompanyTopicValue={getMVCompanyTopicValue}
+        getCompanyTopicValue={getCompanyTopicValue}
+      />
       {!isPreview && <ComparisonFooter />}
     </>
   )
@@ -55,44 +128,30 @@ export default function CompararPage() {
 // Componente de Tabela de Comparação
 function ComparisonTable({ 
   companies,
-  loading
+  globalTopics,
+  mvCompany,
+  loading,
+  getMVCompanyTopicValue,
+  getCompanyTopicValue,
 }: { 
   companies: CompanyComparison[]
+  globalTopics: GlobalTopic[]
+  mvCompany: MVCompany | null
   loading: boolean
+  getMVCompanyTopicValue: (topicId: string) => boolean
+  getCompanyTopicValue: (company: CompanyComparison, topicId: string) => boolean
 }) {
-  // Combinar todas as características únicas de todas as empresas
-  const allTopics = new Map<string, any>()
-  
-  companies.forEach(company => {
-    if (Array.isArray(company.comparison_topics)) {
-      company.comparison_topics.forEach((topic: any) => {
-        if (!allTopics.has(topic.name)) {
-          allTopics.set(topic.name, {
-            name: topic.name,
-            mv_company: topic.mv_company || false,
-            companies: new Map(),
-          })
-        }
-        allTopics.get(topic.name)!.companies.set(company.id, topic.competitor || false)
-      })
-    }
-  })
-
-  const topics = Array.from(allTopics.values())
-
   if (loading) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-black"></div>
       </div>
     )
   }
 
-  // Sempre mostrar MV Company + concorrentes (mesmo se não houver concorrentes ainda)
-
   return (
     <div className="min-h-screen bg-white">
-      {/* Header - Estilo Apple */}
+      {/* Header */}
       <div className="bg-black text-white py-12 md:py-16 px-4 relative">
         <div className="container mx-auto max-w-7xl">
           <div className="flex items-center justify-between">
@@ -131,10 +190,20 @@ function ComparisonTable({
             <div className="font-semibold text-gray-900">Característica</div>
             {/* MV Company Column */}
             <div className="flex flex-col items-center gap-3">
-              <div className="w-20 h-20 rounded-3xl bg-black flex items-center justify-center">
-                <span className="text-3xl">🚀</span>
+              <div className="w-20 h-20 rounded-3xl bg-black flex items-center justify-center overflow-hidden">
+                {mvCompany?.logo ? (
+                  <Image
+                    src={mvCompany.logo}
+                    alt={mvCompany.name}
+                    width={80}
+                    height={80}
+                    className="object-contain p-3"
+                  />
+                ) : (
+                  <span className="text-3xl">🚀</span>
+                )}
               </div>
-              <span className="font-semibold text-gray-900 text-center">MV Company</span>
+              <span className="font-semibold text-gray-900 text-center">{mvCompany?.name || 'MV Company'}</span>
             </div>
             {/* Company Columns - Sempre 2 concorrentes */}
             {Array.from({ length: 2 }).map((_, index) => {
@@ -172,62 +241,65 @@ function ComparisonTable({
 
           {/* Topics Rows */}
           <div className="divide-y divide-gray-100">
-            {topics.length === 0 ? (
+            {globalTopics.length === 0 ? (
               <div className="p-12 text-center text-gray-500">
                 <p>Nenhuma característica disponível para comparação.</p>
-                <p className="text-sm mt-2">Adicione características nas empresas no dashboard.</p>
+                <p className="text-sm mt-2">Adicione tópicos no dashboard.</p>
               </div>
             ) : (
-              topics.map((topic, index) => (
-                <div
-                  key={index}
-                  className="grid gap-4 p-6 hover:bg-gray-50 transition-colors items-center min-w-max"
-                  style={{ gridTemplateColumns: `200px repeat(3, minmax(180px, 1fr))` }}
-                >
-                  <div className="font-medium text-gray-900">{topic.name}</div>
-                  
-                  {/* MV Company Value */}
-                  <div className="flex justify-center">
-                    {topic.mv_company ? (
-                      <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-black text-white">
-                        <span className="text-xl">✓</span>
-                      </div>
-                    ) : (
-                      <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 text-gray-400 border border-gray-200">
-                        <span className="text-xl">✗</span>
-                      </div>
-                    )}
-                  </div>
+              globalTopics.map((topic) => {
+                const mvHasFeature = getMVCompanyTopicValue(topic.id)
+                return (
+                  <div
+                    key={topic.id}
+                    className="grid gap-4 p-6 hover:bg-gray-50 transition-colors items-center min-w-max"
+                    style={{ gridTemplateColumns: `200px repeat(3, minmax(180px, 1fr))` }}
+                  >
+                    <div className="font-medium text-gray-900">{topic.name}</div>
+                    
+                    {/* MV Company Value */}
+                    <div className="flex justify-center">
+                      {mvHasFeature ? (
+                        <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-black text-white">
+                          <span className="text-xl">✓</span>
+                        </div>
+                      ) : (
+                        <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 text-gray-400 border border-gray-200">
+                          <span className="text-xl">✗</span>
+                        </div>
+                      )}
+                    </div>
 
-                  {/* Company Values - Sempre 2 concorrentes */}
-                  {Array.from({ length: 2 }).map((_, index) => {
-                    const company = companies[index]
-                    if (!company) {
-                      return (
-                        <div key={`empty-${index}`} className="flex justify-center opacity-50">
-                          <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 text-gray-400 border border-gray-200">
-                            <span className="text-xl">-</span>
+                    {/* Company Values - Sempre 2 concorrentes */}
+                    {Array.from({ length: 2 }).map((_, index) => {
+                      const company = companies[index]
+                      if (!company) {
+                        return (
+                          <div key={`empty-${index}`} className="flex justify-center opacity-50">
+                            <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 text-gray-400 border border-gray-200">
+                              <span className="text-xl">-</span>
+                            </div>
                           </div>
+                        )
+                      }
+                      const hasFeature = getCompanyTopicValue(company, topic.id)
+                      return (
+                        <div key={company.id} className="flex justify-center">
+                          {hasFeature ? (
+                            <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-black text-white">
+                              <span className="text-xl">✓</span>
+                            </div>
+                          ) : (
+                            <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 text-gray-400 border border-gray-200">
+                              <span className="text-xl">✗</span>
+                            </div>
+                          )}
                         </div>
                       )
-                    }
-                    const hasFeature = topic.companies.get(company.id) || false
-                    return (
-                      <div key={company.id} className="flex justify-center">
-                        {hasFeature ? (
-                          <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-black text-white">
-                            <span className="text-xl">✓</span>
-                          </div>
-                        ) : (
-                          <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 text-gray-400 border border-gray-200">
-                            <span className="text-xl">✗</span>
-                          </div>
-                        )}
-                      </div>
-                    )
-                  })}
-                </div>
-              ))
+                    })}
+                  </div>
+                )
+              })
             )}
           </div>
         </div>
@@ -239,10 +311,20 @@ function ComparisonTable({
             <div className="grid grid-cols-3 gap-4">
               {/* MV Company */}
               <div className="flex flex-col items-center gap-2">
-                <div className="w-16 h-16 rounded-2xl bg-black flex items-center justify-center">
-                  <span className="text-2xl">🚀</span>
+                <div className="w-16 h-16 rounded-2xl bg-black flex items-center justify-center overflow-hidden">
+                  {mvCompany?.logo ? (
+                    <Image
+                      src={mvCompany.logo}
+                      alt={mvCompany.name}
+                      width={64}
+                      height={64}
+                      className="object-contain p-2"
+                    />
+                  ) : (
+                    <span className="text-2xl">🚀</span>
+                  )}
                 </div>
-                <span className="font-semibold text-gray-900 text-center text-sm">MV Company</span>
+                <span className="font-semibold text-gray-900 text-center text-sm">{mvCompany?.name || 'MV Company'}</span>
               </div>
               
               {/* Other Companies - Sempre 2 */}
@@ -281,60 +363,63 @@ function ComparisonTable({
           </div>
 
           {/* Topics Comparison - Vertical */}
-          {topics.length === 0 ? (
+          {globalTopics.length === 0 ? (
             <div className="bg-white rounded-3xl border border-gray-200 p-8 text-center text-gray-500">
               <p>Nenhuma característica disponível para comparação.</p>
-              <p className="text-sm mt-2">Adicione características nas empresas no dashboard.</p>
+              <p className="text-sm mt-2">Adicione tópicos no dashboard.</p>
             </div>
           ) : (
             <div className="space-y-4">
-              {topics.map((topic, index) => (
-                <div key={index} className="bg-white rounded-3xl border border-gray-200 p-4">
-                  <h3 className="font-semibold text-gray-900 mb-4 text-center text-base">{topic.name}</h3>
-                  <div className="grid grid-cols-3 gap-4">
-                    {/* MV Company Value */}
-                    <div className="flex justify-center">
-                      {topic.mv_company ? (
-                        <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-black text-white">
-                          <span className="text-xl">✓</span>
-                        </div>
-                      ) : (
-                        <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 text-gray-400 border border-gray-200">
-                          <span className="text-xl">✗</span>
-                        </div>
-                      )}
-                    </div>
-                    
-                    {/* Company Values - Sempre 2 concorrentes */}
-                    {Array.from({ length: 2 }).map((_, index) => {
-                      const company = companies[index]
-                      if (!company) {
-                        return (
-                          <div key={`empty-${index}`} className="flex justify-center opacity-50">
-                            <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 text-gray-400 border border-gray-200">
-                              <span className="text-xl">-</span>
+              {globalTopics.map((topic) => {
+                const mvHasFeature = getMVCompanyTopicValue(topic.id)
+                return (
+                  <div key={topic.id} className="bg-white rounded-3xl border border-gray-200 p-4">
+                    <h3 className="font-semibold text-gray-900 mb-4 text-center text-base">{topic.name}</h3>
+                    <div className="grid grid-cols-3 gap-4">
+                      {/* MV Company Value */}
+                      <div className="flex justify-center">
+                        {mvHasFeature ? (
+                          <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-black text-white">
+                            <span className="text-xl">✓</span>
+                          </div>
+                        ) : (
+                          <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 text-gray-400 border border-gray-200">
+                            <span className="text-xl">✗</span>
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* Company Values - Sempre 2 concorrentes */}
+                      {Array.from({ length: 2 }).map((_, index) => {
+                        const company = companies[index]
+                        if (!company) {
+                          return (
+                            <div key={`empty-${index}`} className="flex justify-center opacity-50">
+                              <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 text-gray-400 border border-gray-200">
+                                <span className="text-xl">-</span>
+                              </div>
                             </div>
+                          )
+                        }
+                        const hasFeature = getCompanyTopicValue(company, topic.id)
+                        return (
+                          <div key={company.id} className="flex justify-center">
+                            {hasFeature ? (
+                              <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-black text-white">
+                                <span className="text-xl">✓</span>
+                              </div>
+                            ) : (
+                              <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 text-gray-400 border border-gray-200">
+                                <span className="text-xl">✗</span>
+                              </div>
+                            )}
                           </div>
                         )
-                      }
-                      const hasFeature = topic.companies.get(company.id) || false
-                      return (
-                        <div key={company.id} className="flex justify-center">
-                          {hasFeature ? (
-                            <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-black text-white">
-                              <span className="text-xl">✓</span>
-                            </div>
-                          ) : (
-                            <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 text-gray-400 border border-gray-200">
-                              <span className="text-xl">✗</span>
-                            </div>
-                          )}
-                        </div>
-                      )
-                    })}
+                      })}
+                    </div>
                   </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           )}
         </div>

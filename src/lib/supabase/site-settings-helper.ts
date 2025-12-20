@@ -242,6 +242,8 @@ export async function getSiteSettings(): Promise<{ data: any | null; error: any 
       homepage_content: data.homepage_content || null,
       service_detail_layout: data.service_detail_layout || null,
       comparison_footer: (data.value as any)?.comparison_footer || null,
+      comparison_topics: (data.value as any)?.comparison_topics || null,
+      mv_company: (data.value as any)?.mv_company || null,
       site_name: data.site_name || null,
       site_logo: data.site_logo || null,
       contact_email: data.contact_email || null,
