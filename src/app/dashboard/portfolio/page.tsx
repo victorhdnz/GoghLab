@@ -6,7 +6,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { Button } from '@/components/ui/Button'
 import { createClient } from '@/lib/supabase/client'
 import { Service } from '@/types'
-import { Plus, Edit, Trash2, Eye, EyeOff, Search, Filter, Star, Copy, Check } from 'lucide-react'
+import { Plus, Edit, Trash2, Eye, EyeOff, Search, Filter, Copy, Check } from 'lucide-react'
 import toast from 'react-hot-toast'
 import Link from 'next/link'
 import { BackButton } from '@/components/ui/BackButton'
@@ -231,9 +231,6 @@ export default function DashboardPortfolioPage() {
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Status
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Destaque
-                      </th>
                       <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Ações
                       </th>
@@ -288,14 +285,6 @@ export default function DashboardPortfolioPage() {
                               </>
                             )}
                           </button>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          {service.is_featured && (
-                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                              <Star size={14} className="fill-yellow-400" />
-                              Destaque
-                            </span>
-                          )}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                           <div className="flex items-center justify-end gap-2">

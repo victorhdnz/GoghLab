@@ -17,9 +17,29 @@ function getYouTubeId(url: string): string | null {
 export function ServiceHeroVideo({ content, serviceName }: ServiceHeroVideoProps) {
   if (!content.hero_enabled) return null
 
-  const titleParts = content.hero_title?.split(content.hero_title_highlight || '') || [content.hero_title || serviceName]
-  const highlightWord = content.hero_title_highlight || ''
-  const highlightColor = content.hero_title_highlight_color || '#00D9FF'
+      // Processar título com destaque, garantindo espaçamento adequado
+      let titleParts: string[] = []
+      let highlightWord = content.hero_title_highlight || ''
+      const highlightColor = content.hero_title_highlight_color || '#00D9FF'
+      
+      if (content.hero_title && highlightWord) {
+        // Dividir o título pela palavra destacada
+        const parts = content.hero_title.split(highlightWord)
+        if (parts.length === 2) {
+          // Garantir que há espaço antes e depois da palavra destacada
+          titleParts = [
+            parts[0].trimEnd(), // Remove espaços no final da primeira parte
+            parts[1].trimStart() // Remove espaços no início da segunda parte
+          ]
+        } else {
+          // Se não encontrou a palavra, usar o título completo
+          titleParts = [content.hero_title]
+          highlightWord = ''
+        }
+      } else {
+        titleParts = [content.hero_title || serviceName]
+        highlightWord = ''
+      }
   
   const isYouTube = content.hero_video_url ? !!getYouTubeId(content.hero_video_url) : false
   const youtubeId = content.hero_video_url ? getYouTubeId(content.hero_video_url) : null
@@ -28,32 +48,32 @@ export function ServiceHeroVideo({ content, serviceName }: ServiceHeroVideoProps
     <section className="relative bg-gradient-to-b from-gray-900 via-black to-gray-900 text-white py-12 md:py-20 px-4 overflow-hidden">
       <div className="container mx-auto max-w-6xl relative z-10">
         {/* Título com destaque - Antes do vídeo */}
-        <div className="text-center space-y-4 mb-8">
+        <div className="text-center space-y-6 mb-12">
           {content.hero_title && (
-            <div className="bg-gray-800/60 border border-gray-700/50 rounded-2xl p-6 backdrop-blur-sm inline-block">
-              <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold leading-tight text-white">
-                {titleParts[0]}
-                {highlightWord && (
+            <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold leading-tight text-white">
+              {titleParts[0]}
+              {highlightWord && (
+                <>
+                  {' '}
                   <span style={{ color: highlightColor }} className="font-extrabold drop-shadow-lg">
                     {highlightWord}
                   </span>
-                )}
-                {titleParts[1]}
-              </h1>
-            </div>
+                  {' '}
+                </>
+              )}
+              {titleParts[1]}
+            </h1>
           )}
           {content.hero_subtitle && (
-            <div className="bg-gray-800/40 border border-gray-700/30 rounded-xl p-4 max-w-3xl mx-auto backdrop-blur-sm">
-              <p className="text-lg md:text-xl text-gray-300">
-                {content.hero_subtitle}
-              </p>
-            </div>
+            <p className="text-lg md:text-xl text-gray-300 max-w-3xl mx-auto leading-relaxed">
+              {content.hero_subtitle}
+            </p>
           )}
         </div>
 
         {/* Vídeo Principal - Sempre mostrar placeholder */}
         <div className="mb-8">
-          <div className="relative aspect-video rounded-2xl overflow-hidden bg-gray-800 border-2 border-gray-700/50 shadow-2xl">
+          <div className="relative aspect-video rounded-2xl overflow-hidden shadow-2xl">
             {content.hero_video_url ? (
               isYouTube && youtubeId ? (
                 <iframe
@@ -75,7 +95,7 @@ export function ServiceHeroVideo({ content, serviceName }: ServiceHeroVideoProps
                 />
               )
             ) : (
-              <div className="w-full h-full flex items-center justify-center bg-gray-900/50">
+              <div className="w-full h-full flex items-center justify-center bg-gray-900/30 border border-gray-800/50 rounded-2xl">
                 <div className="text-center">
                   <div className="text-6xl mb-4">🎥</div>
                   <p className="text-gray-400 text-lg">Vídeo não adicionado</p>

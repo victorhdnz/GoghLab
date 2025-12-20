@@ -41,25 +41,8 @@ export const CustomServiceCard = ({ card }: CustomServiceCardProps) => {
       )}
 
       {/* Content */}
-      <div className="relative h-full flex flex-col justify-between p-6 md:p-8">
-        {/* Top Section - Icon/Logo */}
-        <div className="flex items-start justify-between">
-          <div className="w-16 h-16 md:w-20 md:h-20 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center group-hover:scale-110 group-hover:bg-white/15 transition-all duration-300">
-            {card.image ? (
-              <Image
-                src={card.image}
-                alt={card.title}
-                width={64}
-                height={64}
-                className="object-contain p-2 rounded-lg"
-              />
-            ) : (
-              <span className="text-3xl md:text-4xl">🚀</span>
-            )}
-          </div>
-        </div>
-
-        {/* Bottom Section - Text and CTA */}
+      <div className="relative h-full flex flex-col justify-end p-6 md:p-8">
+        {/* Text and CTA */}
         <div className="space-y-3">
           <div>
             <h3 className="text-xl md:text-2xl font-semibold text-white mb-2 tracking-tight">

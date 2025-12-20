@@ -13,21 +13,22 @@ export function ServiceCTA({ content }: ServiceCTAProps) {
   const whatsappNumber = content.cta_whatsapp_number?.replace(/\D/g, '') || ''
 
   return (
-    <section className="py-16 md:py-24 px-4 bg-gradient-to-br from-gray-900 via-gray-800 to-black text-white">
-      <div className="container mx-auto max-w-4xl text-center">
+    <section className="py-16 md:py-24 px-4 bg-gradient-to-br from-gray-900 via-black to-gray-950 text-white relative overflow-hidden">
+      {/* Background pattern */}
+      <div className="absolute inset-0 opacity-5">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.1),transparent_50%)]" />
+      </div>
+      
+      <div className="container mx-auto max-w-4xl text-center relative z-10">
         {content.cta_title && (
-          <div className="bg-gray-800/60 border border-gray-700/50 rounded-2xl p-8 mb-6 backdrop-blur-sm inline-block">
-            <h2 className="text-3xl md:text-5xl font-bold">
-              {content.cta_title}
-            </h2>
-          </div>
+          <h2 className="text-3xl md:text-5xl font-bold mb-6">
+            {content.cta_title}
+          </h2>
         )}
         {content.cta_description && (
-          <div className="bg-gray-800/40 border border-gray-700/30 rounded-xl p-6 mb-12 max-w-2xl mx-auto backdrop-blur-sm">
-            <p className="text-gray-300 text-lg md:text-xl">
-              {content.cta_description}
-            </p>
-          </div>
+          <p className="text-gray-300 text-lg md:text-xl mb-12 max-w-2xl mx-auto leading-relaxed">
+            {content.cta_description}
+          </p>
         )}
 
         <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">

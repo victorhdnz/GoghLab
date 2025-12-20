@@ -495,19 +495,6 @@ export default function EditServicePage({ params }: EditServicePageProps) {
               <div className="flex items-center gap-2">
                 <input
                   type="checkbox"
-                  id="is_featured"
-                  checked={basicData.is_featured}
-                  onChange={(e) => setBasicData({ ...basicData, is_featured: e.target.checked })}
-                  className="w-4 h-4"
-                />
-                <label htmlFor="is_featured" className="text-sm font-medium">
-                  Destacar serviço
-                </label>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
                   id="is_active"
                   checked={basicData.is_active}
                   onChange={(e) => setBasicData({ ...basicData, is_active: e.target.checked })}
