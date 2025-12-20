@@ -31,16 +31,19 @@ export default function CompararPage() {
   const isPreview = searchParams.get('preview') === 'true'
 
   useEffect(() => {
+    // Iniciar loading como false para não bloquear navegação
+    setLoading(false)
     loadData()
   }, [])
 
   const loadData = async () => {
     try {
-      setLoading(true)
-      await Promise.all([loadCompanies(), loadGlobalData()])
+      // Não bloquear a renderização - carregar dados em paralelo
+      Promise.all([loadCompanies(), loadGlobalData()]).finally(() => {
+        setLoading(false)
+      })
     } catch (error) {
       console.error('Erro ao carregar dados:', error)
-    } finally {
       setLoading(false)
     }
   }
@@ -160,6 +163,7 @@ function ComparisonTable({
             </h1>
             <Link 
               href="/"
+              prefetch={true}
               className="group flex items-center gap-2 px-6 py-3 bg-white/10 hover:bg-white/20 border border-white/20 rounded-full transition-all duration-300 backdrop-blur-sm"
             >
               <svg 

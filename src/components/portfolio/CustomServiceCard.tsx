@@ -91,6 +91,7 @@ export const CustomServiceCard = ({ card }: CustomServiceCardProps) => {
         href={card.link}
         className="block"
         onClick={handleClick}
+        prefetch={true}
       >
         {cardContent}
       </Link>

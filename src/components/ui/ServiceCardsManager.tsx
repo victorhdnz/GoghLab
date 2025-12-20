@@ -33,15 +33,6 @@ export function ServiceCardsManager({
   label = 'Cards de Serviços',
   className = '',
 }: ServiceCardsManagerProps) {
-  const [editingIndex, setEditingIndex] = useState<number | null>(null)
-  
-  // Log de debug para verificar se os cards estão sendo recebidos
-  console.log('🎴 ServiceCardsManager recebeu:', {
-    value,
-    isArray: Array.isArray(value),
-    length: value?.length || 0,
-  })
-
   const generateId = () => `card_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`
 
   const handleAdd = () => {
@@ -54,10 +45,9 @@ export function ServiceCardsManager({
       description: '',
       image: '',
       link: '',
-      buttonText: 'Saiba Mais',
+      buttonText: 'Ver detalhes',
     }
     onChange([...value, newCard])
-    setEditingIndex(value.length)
   }
 
   const handleRemove = (index: number) => {

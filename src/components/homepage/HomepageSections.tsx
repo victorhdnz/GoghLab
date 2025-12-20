@@ -100,17 +100,11 @@ export function HomepageSections({
               </div>
             )}
 
-            {/* Usar cards customizados se existirem, senão usar serviços do banco */}
-            {homepageContent.services_cards && homepageContent.services_cards.length > 0 ? (
+            {/* SEMPRE usar cards customizados se existirem (independentes dos serviços do banco) */}
+            {homepageContent.services_cards && Array.isArray(homepageContent.services_cards) && homepageContent.services_cards.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
                 {homepageContent.services_cards.map((card: CustomServiceCardType) => (
                   <CustomServiceCard key={card.id} card={card} />
-                ))}
-              </div>
-            ) : services.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-                {services.map((service) => (
-                  <ServiceCard key={service.id} service={service} />
                 ))}
               </div>
             ) : (
@@ -118,9 +112,9 @@ export function HomepageSections({
                 <div className="inline-block bg-gray-900 rounded-full p-6 mb-4">
                   <span className="text-5xl">🚀</span>
                 </div>
-                <h2 className="text-2xl font-semibold text-white mb-2">Nenhum serviço disponível</h2>
+                <h2 className="text-2xl font-semibold text-white mb-2">Nenhum card de serviço configurado</h2>
                 <p className="text-gray-400">
-                  Os serviços serão exibidos aqui quando forem adicionados.
+                  Adicione cards de serviços no editor da homepage.
                 </p>
               </div>
             )}
@@ -138,7 +132,7 @@ export function HomepageSections({
       <FadeInSection>
         <section className="py-16 md:py-24 px-4">
           <div className="container mx-auto max-w-4xl">
-            <Link href={homepageContent.comparison_cta_link || "/comparar"}>
+            <Link href={homepageContent.comparison_cta_link || "/comparar"} prefetch={true}>
               <div className="relative h-[300px] md:h-[400px] rounded-3xl overflow-hidden bg-gray-900 border border-gray-800 hover:border-gray-700 transition-all duration-300 group">
                 <div className="absolute inset-0 bg-gradient-to-br from-gray-800 via-gray-900 to-black" />
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.05),transparent_50%)]" />

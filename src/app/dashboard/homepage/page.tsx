@@ -141,12 +141,6 @@ export default function HomepageEditorPage() {
 
       if (data?.homepage_content) {
         const content = data.homepage_content
-        console.log('📥 Carregando homepage_content:', {
-          services_cards_count: content.services_cards?.length || 0,
-          services_cards: content.services_cards,
-          services_cards_isArray: Array.isArray(content.services_cards),
-        })
-        
         // Fazer merge preservando arrays (especialmente services_cards)
         setFormData(prev => {
           // Sempre usar o array do banco se existir, mesmo que vazio
@@ -160,13 +154,6 @@ export default function HomepageEditorPage() {
             // Se não existe no banco mas existe no estado anterior, manter
             servicesCards = prev.services_cards
           }
-          
-          console.log('📋 services_cards processado:', {
-            original: content.services_cards,
-            isArray: Array.isArray(content.services_cards),
-            length: servicesCards.length,
-            processed: servicesCards,
-          })
           
           return {
             ...prev,
@@ -201,11 +188,6 @@ export default function HomepageEditorPage() {
         section_order: sectionOrder,
         section_visibility: sectionVisibility,
       }
-      
-      console.log('💾 Salvando homepage_content:', {
-        services_cards_count: contentToSave.services_cards?.length || 0,
-        services_cards: contentToSave.services_cards,
-      })
       
       const { success, error } = await saveSiteSettings({
         fieldsToUpdate: {
@@ -355,7 +337,6 @@ export default function HomepageEditorPage() {
                   <ServiceCardsManager
                     value={formData.services_cards || []}
                     onChange={(cards) => {
-                      console.log('🔄 Cards atualizados no ServiceCardsManager:', cards)
                       setFormData({ ...formData, services_cards: cards })
                     }}
                     label="Cards de Serviços"

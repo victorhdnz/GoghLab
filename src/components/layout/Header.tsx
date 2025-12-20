@@ -57,8 +57,8 @@ export const Header = () => {
     // Carregar imediatamente
     loadSiteSettings()
 
-    // Recarregar configurações a cada 3 segundos (para atualizar após mudanças no dashboard)
-    const interval = setInterval(loadSiteSettings, 3000)
+    // Recarregar configurações a cada 30 segundos (reduzido para melhorar performance)
+    const interval = setInterval(loadSiteSettings, 30000)
     return () => clearInterval(interval)
   }, [])
 
@@ -117,7 +117,7 @@ export const Header = () => {
       <nav className="container mx-auto px-2 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-20 gap-2 sm:gap-4 w-full relative">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2 sm:gap-3 h-full min-w-0 flex-shrink-0 max-w-[calc(100%-140px)] sm:max-w-none z-10">
+          <Link href="/" prefetch={true} className="flex items-center gap-2 sm:gap-3 h-full min-w-0 flex-shrink-0 max-w-[calc(100%-140px)] sm:max-w-none z-10">
             {siteLogo && (
               <Image
                 src={siteLogo}
@@ -152,6 +152,7 @@ export const Header = () => {
               <Link
                 key={item.name}
                 href={item.href}
+                prefetch={true}
                 onClick={(e) => handleNavClick(e, item.href)}
                 className="text-gray-700 hover:text-black font-medium transition-colors"
               >
