@@ -6,55 +6,107 @@ import { useAuth } from '@/hooks/useAuth'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { ImageUploader } from '@/components/ui/ImageUploader'
+import { Switch } from '@/components/ui/Switch'
 import { createClient } from '@/lib/supabase/client'
-import { Save, ArrowLeft, Eye } from 'lucide-react'
+import { Save, Eye, Trash2 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import Link from 'next/link'
 import { DashboardNavigation } from '@/components/dashboard/DashboardNavigation'
+import { getSiteSettings, saveSiteSettings } from '@/lib/supabase/site-settings-helper'
+import { SectionWrapper } from '@/components/editor/section-wrapper'
 
 interface HomepageSettings {
-  hero_logo?: string
-  hero_subtitle: string
-  hero_description: string
+  hero_enabled?: boolean
+  hero_logo?: string | null
+  hero_title?: string
+  hero_subtitle?: string
+  hero_description?: string
   hero_background_image?: string
-  
-  services_title: string
-  services_description: string
-  
-  comparison_title: string
-  comparison_description: string
-  comparison_button_text: string
-  
-  contact_title: string
-  contact_description: string
-  contact_whatsapp: string
-  contact_instagram: string
+
+  services_enabled?: boolean
+  services_title?: string
+  services_description?: string
+
+  comparison_cta_enabled?: boolean
+  comparison_cta_title?: string
+  comparison_cta_description?: string
+  comparison_cta_link?: string
+
+  contact_enabled?: boolean
+  contact_title?: string
+  contact_description?: string
+  contact_whatsapp_enabled?: boolean
+  contact_whatsapp_text?: string
+  contact_email_enabled?: boolean
+  contact_email_text?: string
+  contact_instagram_enabled?: boolean
+  contact_instagram_text?: string
+
+  section_order?: string[]
+  section_visibility?: Record<string, boolean>
+}
+
+// Mapeamento de seções
+const sectionIcons: Record<string, string> = {
+  hero: '🎯',
+  services: '📦',
+  comparison: '⚖️',
+  contact: '📞',
+}
+
+const sectionLabels: Record<string, string> = {
+  hero: 'Hero (Principal)',
+  services: 'Nossos Serviços',
+  comparison: 'Comparação (CTA)',
+  contact: 'Contato',
 }
 
 export default function HomepageEditorPage() {
   const router = useRouter()
   const { isAuthenticated, isEditor, loading: authLoading } = useAuth()
   const supabase = createClient()
-  
+
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [settings, setSettings] = useState<HomepageSettings>({
-    hero_logo: '',
+  const [expandedSection, setExpandedSection] = useState<string | null>('hero')
+  const [sectionOrder, setSectionOrder] = useState<string[]>([
+    'hero',
+    'services',
+    'comparison',
+    'contact',
+  ])
+  const [sectionVisibility, setSectionVisibility] = useState<Record<string, boolean>>({
+    hero: true,
+    services: true,
+    comparison: true,
+    contact: true,
+  })
+  const [formData, setFormData] = useState<HomepageSettings>({
+    hero_enabled: true,
+    hero_logo: null,
+    hero_title: 'MV Company',
     hero_subtitle: 'Transformamos sua presença digital com serviços de alta qualidade',
     hero_description: 'Criação de sites, tráfego pago, criação de conteúdo e gestão de redes sociais',
     hero_background_image: '',
-    
+
+    services_enabled: true,
     services_title: 'Nossos Serviços',
     services_description: 'Soluções completas para impulsionar seu negócio no mundo digital',
-    
-    comparison_title: 'Compare a MV Company com outras empresas',
-    comparison_description: 'Veja por que somos a melhor escolha para transformar sua presença digital',
-    comparison_button_text: 'Comparar Agora',
-    
-    contact_title: 'Pronto para transformar seu negócio?',
+
+    comparison_cta_enabled: true,
+    comparison_cta_title: 'Compare a MV Company',
+    comparison_cta_description: 'Veja por que somos a melhor escolha para transformar sua presença digital',
+    comparison_cta_link: '/comparar',
+
+    contact_enabled: true,
+    contact_title: 'Fale Conosco',
     contact_description: 'Entre em contato e descubra como podemos ajudar você',
-    contact_whatsapp: '5534999999999',
-    contact_instagram: 'https://instagram.com/mvcompany',
+    contact_whatsapp_enabled: true,
+    contact_whatsapp_text: 'WhatsApp',
+    contact_email_enabled: false,
+    contact_email_text: 'E-mail',
+    contact_instagram_enabled: true,
+    contact_instagram_text: 'Instagram',
   })
 
   useEffect(() => {
@@ -66,25 +118,31 @@ export default function HomepageEditorPage() {
   }, [isAuthenticated, isEditor, authLoading, router])
 
   const loadSettings = async () => {
+    setLoading(true)
     try {
-      setLoading(true)
-      const { data, error } = await supabase
-        .from('site_settings')
-        .select('homepage_content, value')
-        .eq('key', 'general')
-        .maybeSingle()
+      const { data, error } = await getSiteSettings()
 
-      if (error && error.code !== 'PGRST116') {
+      if (error) {
         console.error('Erro ao carregar configurações:', error)
+        toast.error('Erro ao carregar configurações da homepage.')
+        return
       }
 
-      // Priorizar homepage_content (coluna direta), depois value.homepage (JSONB)
-      const homepageData = data?.homepage_content || data?.value?.homepage || {}
-      if (Object.keys(homepageData).length > 0) {
-        setSettings({ ...settings, ...homepageData })
+      if (data?.homepage_content) {
+        const content = data.homepage_content
+        setFormData(prev => ({ ...prev, ...content }))
+        
+        // Carregar ordem e visibilidade se existirem
+        if (content.section_order) {
+          setSectionOrder(content.section_order)
+        }
+        if (content.section_visibility) {
+          setSectionVisibility(content.section_visibility)
+        }
       }
     } catch (error) {
       console.error('Erro ao carregar configurações:', error)
+      toast.error('Erro ao carregar configurações da homepage.')
     } finally {
       setLoading(false)
     }
@@ -93,24 +151,284 @@ export default function HomepageEditorPage() {
   const handleSave = async () => {
     setSaving(true)
     try {
-      // Salvar em homepage_content (coluna direta JSONB) para garantir que apareça na página pública
-      const { error } = await supabase
-        .from('site_settings')
-        .upsert({
-          key: 'general',
-          homepage_content: settings
-        }, {
-          onConflict: 'key'
-        })
+      const { success, error } = await saveSiteSettings({
+        fieldsToUpdate: {
+          homepage_content: {
+            ...formData,
+            section_order: sectionOrder,
+            section_visibility: sectionVisibility,
+          }
+        },
+      })
 
-      if (error) throw error
+      if (!success) {
+        console.error('Erro ao salvar configurações:', error)
+        toast.error(error?.message || 'Erro ao salvar configurações da homepage.')
+        return
+      }
 
-      toast.success('Configurações salvas com sucesso!')
-    } catch (error: any) {
-      console.error('Erro ao salvar:', error)
-      toast.error('Erro ao salvar configurações')
+      toast.success('Configurações da homepage salvas com sucesso!')
+    } catch (error) {
+      console.error('Erro ao salvar configurações:', error)
+      toast.error('Erro ao salvar configurações da homepage.')
     } finally {
       setSaving(false)
+    }
+  }
+
+  // Funções para reordenar e visibilidade
+  const moveSection = (sectionId: string, direction: 'up' | 'down') => {
+    const currentIndex = sectionOrder.indexOf(sectionId)
+    if (currentIndex === -1) return
+
+    const newIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1
+    if (newIndex < 0 || newIndex >= sectionOrder.length) return
+
+    const newOrder = [...sectionOrder]
+    const [removed] = newOrder.splice(currentIndex, 1)
+    newOrder.splice(newIndex, 0, removed)
+
+    setSectionOrder(newOrder)
+    toast.success(`Seção movida ${direction === 'up' ? 'para cima' : 'para baixo'}!`)
+  }
+
+  const toggleSectionVisibility = (section: string) => {
+    setSectionVisibility(prev => ({
+      ...prev,
+      [section]: !prev[section]
+    }))
+    toast.success(`Seção ${sectionVisibility[section] ? 'oculta' : 'visível'}!`)
+  }
+
+  // Renderizar conteúdo de cada seção
+  const renderSectionContent = (sectionId: string) => {
+    switch (sectionId) {
+      case 'hero':
+        return (
+          <div className="space-y-4">
+            <Switch
+              label="Habilitar Seção Hero"
+              checked={formData.hero_enabled}
+              onCheckedChange={(checked) => setFormData({ ...formData, hero_enabled: checked })}
+            />
+            {formData.hero_enabled && (
+              <>
+                <div>
+                  <label className="block text-sm font-medium mb-2">Logo da Empresa (Opcional)</label>
+                  <ImageUploader
+                    value={formData.hero_logo || ''}
+                    onChange={(url) => setFormData({ ...formData, hero_logo: url })}
+                    placeholder="Upload da logo da empresa"
+                    cropType="square"
+                    aspectRatio={1}
+                    recommendedDimensions="200x100px"
+                  />
+                  {formData.hero_logo && (
+                    <Button
+                      variant="destructive"
+                      onClick={() => setFormData({ ...formData, hero_logo: null })}
+                      className="mt-4"
+                    >
+                      <Trash2 size={18} className="mr-2" /> Remover Logo
+                    </Button>
+                  )}
+                  <p className="text-sm text-gray-500 mt-2">
+                    Se uma logo for enviada, ela substituirá o título principal.
+                  </p>
+                </div>
+                {!formData.hero_logo && (
+                  <Input
+                    label="Título Principal"
+                    value={formData.hero_title || ''}
+                    onChange={(e) => setFormData({ ...formData, hero_title: e.target.value })}
+                    placeholder="Ex: MV Company"
+                  />
+                )}
+                <Input
+                  label="Subtítulo"
+                  value={formData.hero_subtitle || ''}
+                  onChange={(e) => setFormData({ ...formData, hero_subtitle: e.target.value })}
+                  placeholder="Ex: Transformamos sua presença digital..."
+                />
+                <div>
+                  <label className="block text-sm font-medium mb-2">Descrição</label>
+                  <textarea
+                    value={formData.hero_description || ''}
+                    onChange={(e) => setFormData({ ...formData, hero_description: e.target.value })}
+                    placeholder="Descrição adicional..."
+                    rows={3}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">Imagem de Fundo (Opcional)</label>
+                  <ImageUploader
+                    value={formData.hero_background_image || ''}
+                    onChange={(url) => setFormData({ ...formData, hero_background_image: url })}
+                    placeholder="Upload de imagem de fundo"
+                    cropType="banner"
+                    aspectRatio={16 / 9}
+                  />
+                </div>
+              </>
+            )}
+          </div>
+        )
+      case 'services':
+        return (
+          <div className="space-y-4">
+            <Switch
+              label="Habilitar Seção de Serviços"
+              checked={formData.services_enabled}
+              onCheckedChange={(checked) => setFormData({ ...formData, services_enabled: checked })}
+            />
+            {formData.services_enabled && (
+              <>
+                <Input
+                  label="Título da Seção"
+                  value={formData.services_title || ''}
+                  onChange={(e) => setFormData({ ...formData, services_title: e.target.value })}
+                  placeholder="Ex: Nossos Serviços"
+                />
+                <div>
+                  <label className="block text-sm font-medium mb-2">Descrição</label>
+                  <textarea
+                    value={formData.services_description || ''}
+                    onChange={(e) => setFormData({ ...formData, services_description: e.target.value })}
+                    placeholder="Descrição da seção de serviços..."
+                    rows={3}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <p className="text-sm text-gray-500">
+                  Os serviços são gerenciados na aba "Gerenciar Serviços" do dashboard.
+                </p>
+              </>
+            )}
+          </div>
+        )
+      case 'comparison':
+        return (
+          <div className="space-y-4">
+            <Switch
+              label="Habilitar Seção de Comparação"
+              checked={formData.comparison_cta_enabled}
+              onCheckedChange={(checked) => setFormData({ ...formData, comparison_cta_enabled: checked })}
+            />
+            {formData.comparison_cta_enabled && (
+              <>
+                <Input
+                  label="Título do CTA"
+                  value={formData.comparison_cta_title || ''}
+                  onChange={(e) => setFormData({ ...formData, comparison_cta_title: e.target.value })}
+                  placeholder="Ex: Compare a MV Company..."
+                />
+                <div>
+                  <label className="block text-sm font-medium mb-2">Descrição</label>
+                  <textarea
+                    value={formData.comparison_cta_description || ''}
+                    onChange={(e) => setFormData({ ...formData, comparison_cta_description: e.target.value })}
+                    placeholder="Descrição da comparação..."
+                    rows={3}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <Input
+                  label="Link do CTA"
+                  value={formData.comparison_cta_link || ''}
+                  onChange={(e) => setFormData({ ...formData, comparison_cta_link: e.target.value })}
+                  placeholder="Ex: /comparar"
+                />
+              </>
+            )}
+          </div>
+        )
+      case 'contact':
+        return (
+          <div className="space-y-4">
+            <Switch
+              label="Habilitar Seção de Contato"
+              checked={formData.contact_enabled}
+              onCheckedChange={(checked) => setFormData({ ...formData, contact_enabled: checked })}
+            />
+            {formData.contact_enabled && (
+              <>
+                <Input
+                  label="Título"
+                  value={formData.contact_title || ''}
+                  onChange={(e) => setFormData({ ...formData, contact_title: e.target.value })}
+                  placeholder="Ex: Fale Conosco"
+                />
+                <div>
+                  <label className="block text-sm font-medium mb-2">Descrição</label>
+                  <textarea
+                    value={formData.contact_description || ''}
+                    onChange={(e) => setFormData({ ...formData, contact_description: e.target.value })}
+                    placeholder="Descrição do contato..."
+                    rows={3}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div className="border-t border-gray-200 pt-4 mt-4">
+                  <h3 className="text-lg font-semibold mb-3">Botão WhatsApp</h3>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-sm font-medium">Habilitar WhatsApp</label>
+                    <Switch
+                      checked={formData.contact_whatsapp_enabled}
+                      onCheckedChange={(checked) => setFormData({ ...formData, contact_whatsapp_enabled: checked })}
+                    />
+                  </div>
+                  {formData.contact_whatsapp_enabled && (
+                    <Input
+                      label="Texto do Botão WhatsApp"
+                      value={formData.contact_whatsapp_text || ''}
+                      onChange={(e) => setFormData({ ...formData, contact_whatsapp_text: e.target.value })}
+                      placeholder="Ex: Falar no WhatsApp"
+                    />
+                  )}
+                </div>
+                <div className="border-t border-gray-200 pt-4 mt-4">
+                  <h3 className="text-lg font-semibold mb-3">Botão E-mail</h3>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-sm font-medium">Habilitar E-mail</label>
+                    <Switch
+                      checked={formData.contact_email_enabled}
+                      onCheckedChange={(checked) => setFormData({ ...formData, contact_email_enabled: checked })}
+                    />
+                  </div>
+                  {formData.contact_email_enabled && (
+                    <Input
+                      label="Texto do Botão E-mail"
+                      value={formData.contact_email_text || ''}
+                      onChange={(e) => setFormData({ ...formData, contact_email_text: e.target.value })}
+                      placeholder="Ex: Enviar E-mail"
+                    />
+                  )}
+                </div>
+                <div className="border-t border-gray-200 pt-4 mt-4">
+                  <h3 className="text-lg font-semibold mb-3">Botão Instagram</h3>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-sm font-medium">Habilitar Instagram</label>
+                    <Switch
+                      checked={formData.contact_instagram_enabled}
+                      onCheckedChange={(checked) => setFormData({ ...formData, contact_instagram_enabled: checked })}
+                    />
+                  </div>
+                  {formData.contact_instagram_enabled && (
+                    <Input
+                      label="Texto do Botão Instagram"
+                      value={formData.contact_instagram_text || ''}
+                      onChange={(e) => setFormData({ ...formData, contact_instagram_text: e.target.value })}
+                      placeholder="Ex: Instagram"
+                    />
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+        )
+      default:
+        return null
     }
   }
 
@@ -146,142 +464,51 @@ export default function HomepageEditorPage() {
           }
         />
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
-          {/* Hero Section */}
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h2 className="text-2xl font-bold mb-6">Seção Hero (Principal)</h2>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-2">Logo da Empresa</label>
-                <ImageUploader
-                  value={settings.hero_logo || ''}
-                  onChange={(url) => setSettings({ ...settings, hero_logo: url })}
-                  placeholder="Upload da logo da empresa (PNG transparente recomendado)"
-                  cropType="square"
-                  aspectRatio={1}
-                  recommendedDimensions="300x300px"
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  A logo será exibida no lugar do nome da empresa
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-8">
+          {/* Editor Principal */}
+          <div className="lg:col-span-2">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-xl font-bold">Seções da Homepage</h2>
+              </div>
+
+              {/* Dica */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                <p className="text-sm text-blue-800">
+                  <strong>💡 Dica:</strong> Use as setas ↑↓ para reordenar.
+                  Clique no 👁️ para ocultar/mostrar.
+                  Clique na seção para expandir e editar.
                 </p>
               </div>
-              <Input
-                label="Subtítulo"
-                value={settings.hero_subtitle}
-                onChange={(e) => setSettings({ ...settings, hero_subtitle: e.target.value })}
-                placeholder="Ex: Transformamos sua presença digital..."
-              />
-              <div>
-                <label className="block text-sm font-medium mb-2">Descrição</label>
-                <textarea
-                  value={settings.hero_description}
-                  onChange={(e) => setSettings({ ...settings, hero_description: e.target.value })}
-                  placeholder="Descrição adicional..."
-                  rows={3}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">Imagem de Fundo (Opcional)</label>
-                <ImageUploader
-                  value={settings.hero_background_image || ''}
-                  onChange={(url) => setSettings({ ...settings, hero_background_image: url })}
-                  placeholder="Upload de imagem de fundo"
-                  cropType="banner"
-                  aspectRatio={16 / 9}
-                  recommendedDimensions="1920x1080px"
-                />
-              </div>
+
+              {/* Seções */}
+              {sectionOrder.map((sectionId, index) => (
+                <SectionWrapper
+                  key={sectionId}
+                  section={sectionId}
+                  icon={sectionIcons[sectionId] || '📄'}
+                  title={sectionLabels[sectionId] || sectionId}
+                  expandedSection={expandedSection}
+                  setExpandedSection={setExpandedSection}
+                  index={index}
+                  toggleSectionVisibility={toggleSectionVisibility}
+                  isVisible={sectionVisibility[sectionId] ?? true}
+                  moveSection={moveSection}
+                  sectionOrder={sectionOrder}
+                >
+                  {renderSectionContent(sectionId)}
+                </SectionWrapper>
+              ))}
             </div>
           </div>
 
-          {/* Services Section */}
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h2 className="text-2xl font-bold mb-6">Seção de Serviços</h2>
-            <div className="space-y-4">
-              <Input
-                label="Título da Seção"
-                value={settings.services_title}
-                onChange={(e) => setSettings({ ...settings, services_title: e.target.value })}
-                placeholder="Ex: Nossos Serviços"
-              />
-              <div>
-                <label className="block text-sm font-medium mb-2">Descrição</label>
-                <textarea
-                  value={settings.services_description}
-                  onChange={(e) => setSettings({ ...settings, services_description: e.target.value })}
-                  placeholder="Descrição da seção de serviços..."
-                  rows={3}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-              <p className="text-sm text-gray-500">
-                Os serviços são gerenciados na aba "Gerenciar Serviços" do dashboard.
+          {/* Sidebar */}
+          <div className="lg:col-span-1 space-y-6">
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <h2 className="text-2xl font-bold mb-4">Prévia Rápida</h2>
+              <p className="text-gray-600 mb-4">
+                As alterações são salvas no banco de dados. Use o botão "Ver Preview" para visualizar a homepage completa.
               </p>
-            </div>
-          </div>
-
-          {/* Comparison Section */}
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h2 className="text-2xl font-bold mb-6">Seção de Comparação</h2>
-            <div className="space-y-4">
-              <Input
-                label="Título"
-                value={settings.comparison_title}
-                onChange={(e) => setSettings({ ...settings, comparison_title: e.target.value })}
-                placeholder="Ex: Compare a MV Company..."
-              />
-              <div>
-                <label className="block text-sm font-medium mb-2">Descrição</label>
-                <textarea
-                  value={settings.comparison_description}
-                  onChange={(e) => setSettings({ ...settings, comparison_description: e.target.value })}
-                  placeholder="Descrição da comparação..."
-                  rows={3}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-              <Input
-                label="Texto do Botão"
-                value={settings.comparison_button_text}
-                onChange={(e) => setSettings({ ...settings, comparison_button_text: e.target.value })}
-                placeholder="Ex: Comparar Agora"
-              />
-            </div>
-          </div>
-
-          {/* Contact Section */}
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h2 className="text-2xl font-bold mb-6">Seção de Contato</h2>
-            <div className="space-y-4">
-              <Input
-                label="Título"
-                value={settings.contact_title}
-                onChange={(e) => setSettings({ ...settings, contact_title: e.target.value })}
-                placeholder="Ex: Pronto para transformar seu negócio?"
-              />
-              <div>
-                <label className="block text-sm font-medium mb-2">Descrição</label>
-                <textarea
-                  value={settings.contact_description}
-                  onChange={(e) => setSettings({ ...settings, contact_description: e.target.value })}
-                  placeholder="Descrição do contato..."
-                  rows={3}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-              <Input
-                label="WhatsApp (apenas números)"
-                value={settings.contact_whatsapp}
-                onChange={(e) => setSettings({ ...settings, contact_whatsapp: e.target.value.replace(/\D/g, '') })}
-                placeholder="5534999999999"
-              />
-              <Input
-                label="URL do Instagram"
-                value={settings.contact_instagram}
-                onChange={(e) => setSettings({ ...settings, contact_instagram: e.target.value })}
-                placeholder="https://instagram.com/mvcompany"
-              />
             </div>
           </div>
         </div>
@@ -289,4 +516,3 @@ export default function HomepageEditorPage() {
     </div>
   )
 }
-

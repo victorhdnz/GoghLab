@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useAuth } from '@/hooks/useAuth'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
+import { Switch } from '@/components/ui/Switch'
 import { createClient } from '@/lib/supabase/client'
 import { Save, Eye } from 'lucide-react'
 import toast from 'react-hot-toast'
@@ -226,15 +227,11 @@ export default function ServiceDetailLayoutPage() {
       case 'hero':
         return (
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <label className="text-sm font-medium">Habilitar Seção Hero</label>
-              <input
-                type="checkbox"
-                checked={formData.hero_enabled ?? true}
-                onChange={(e) => setFormData({ ...formData, hero_enabled: e.target.checked })}
-                className="w-4 h-4"
-              />
-            </div>
+            <Switch
+              label="Habilitar Seção Hero"
+              checked={formData.hero_enabled ?? true}
+              onCheckedChange={(checked) => setFormData({ ...formData, hero_enabled: checked })}
+            />
             {formData.hero_enabled && (
               <>
                 <Input
@@ -257,15 +254,11 @@ export default function ServiceDetailLayoutPage() {
       case 'description':
         return (
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <label className="text-sm font-medium">Habilitar Seção Descrição</label>
-              <input
-                type="checkbox"
-                checked={formData.description_enabled ?? true}
-                onChange={(e) => setFormData({ ...formData, description_enabled: e.target.checked })}
-                className="w-4 h-4"
-              />
-            </div>
+            <Switch
+              label="Habilitar Seção Descrição"
+              checked={formData.description_enabled ?? true}
+              onCheckedChange={(checked) => setFormData({ ...formData, description_enabled: checked })}
+            />
             {formData.description_enabled && (
               <Input
                 label="Título da Seção"
@@ -280,15 +273,11 @@ export default function ServiceDetailLayoutPage() {
       case 'video':
         return (
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <label className="text-sm font-medium">Habilitar Seção Vídeo</label>
-              <input
-                type="checkbox"
-                checked={formData.video_enabled ?? true}
-                onChange={(e) => setFormData({ ...formData, video_enabled: e.target.checked })}
-                className="w-4 h-4"
-              />
-            </div>
+            <Switch
+              label="Habilitar Seção Vídeo"
+              checked={formData.video_enabled ?? true}
+              onCheckedChange={(checked) => setFormData({ ...formData, video_enabled: checked })}
+            />
             {formData.video_enabled && (
               <Input
                 label="Título da Seção"
@@ -303,15 +292,11 @@ export default function ServiceDetailLayoutPage() {
       case 'gallery':
         return (
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <label className="text-sm font-medium">Habilitar Seção Galeria</label>
-              <input
-                type="checkbox"
-                checked={formData.gallery_enabled ?? true}
-                onChange={(e) => setFormData({ ...formData, gallery_enabled: e.target.checked })}
-                className="w-4 h-4"
-              />
-            </div>
+            <Switch
+              label="Habilitar Seção Galeria"
+              checked={formData.gallery_enabled ?? true}
+              onCheckedChange={(checked) => setFormData({ ...formData, gallery_enabled: checked })}
+            />
             {formData.gallery_enabled && (
               <Input
                 label="Título da Seção"
@@ -326,15 +311,11 @@ export default function ServiceDetailLayoutPage() {
       case 'testimonials':
         return (
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <label className="text-sm font-medium">Habilitar Seção Depoimentos</label>
-              <input
-                type="checkbox"
-                checked={formData.testimonials_enabled ?? true}
-                onChange={(e) => setFormData({ ...formData, testimonials_enabled: e.target.checked })}
-                className="w-4 h-4"
-              />
-            </div>
+            <Switch
+              label="Habilitar Seção Depoimentos"
+              checked={formData.testimonials_enabled ?? true}
+              onCheckedChange={(checked) => setFormData({ ...formData, testimonials_enabled: checked })}
+            />
             {formData.testimonials_enabled && (
               <Input
                 label="Título da Seção"
@@ -349,15 +330,11 @@ export default function ServiceDetailLayoutPage() {
       case 'pricing':
         return (
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <label className="text-sm font-medium">Habilitar Seção Preços</label>
-              <input
-                type="checkbox"
-                checked={formData.pricing_enabled ?? true}
-                onChange={(e) => setFormData({ ...formData, pricing_enabled: e.target.checked })}
-                className="w-4 h-4"
-              />
-            </div>
+            <Switch
+              label="Habilitar Seção Preços"
+              checked={formData.pricing_enabled ?? true}
+              onCheckedChange={(checked) => setFormData({ ...formData, pricing_enabled: checked })}
+            />
             {formData.pricing_enabled && (
               <Input
                 label="Título da Seção"
@@ -372,15 +349,11 @@ export default function ServiceDetailLayoutPage() {
       case 'related_services':
         return (
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <label className="text-sm font-medium">Habilitar Seção Serviços Relacionados</label>
-              <input
-                type="checkbox"
-                checked={formData.related_services_enabled ?? true}
-                onChange={(e) => setFormData({ ...formData, related_services_enabled: e.target.checked })}
-                className="w-4 h-4"
-              />
-            </div>
+            <Switch
+              label="Habilitar Seção Serviços Relacionados"
+              checked={formData.related_services_enabled ?? true}
+              onCheckedChange={(checked) => setFormData({ ...formData, related_services_enabled: checked })}
+            />
             {formData.related_services_enabled && (
               <Input
                 label="Título da Seção"
@@ -395,15 +368,11 @@ export default function ServiceDetailLayoutPage() {
       case 'cta':
         return (
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <label className="text-sm font-medium">Habilitar Seção CTA</label>
-              <input
-                type="checkbox"
-                checked={formData.cta_enabled ?? true}
-                onChange={(e) => setFormData({ ...formData, cta_enabled: e.target.checked })}
-                className="w-4 h-4"
-              />
-            </div>
+            <Switch
+              label="Habilitar Seção CTA Final"
+              checked={formData.cta_enabled ?? true}
+              onCheckedChange={(checked) => setFormData({ ...formData, cta_enabled: checked })}
+            />
             {formData.cta_enabled && (
               <>
                 <Input
