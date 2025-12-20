@@ -1,6 +1,7 @@
 import { createServerClient } from '@/lib/supabase/server'
 import { ServiceCard } from '@/components/portfolio/ServiceCard'
 import { CustomServiceCard } from '@/components/portfolio/CustomServiceCard'
+import { ServiceCard as CustomServiceCardType } from '@/components/ui/ServiceCardsManager'
 import { Service } from '@/types'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -141,7 +142,7 @@ export default async function Home() {
           {/* Usar cards customizados se existirem, senão usar serviços do banco */}
           {homepageContent.services_cards && homepageContent.services_cards.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-              {homepageContent.services_cards.map((card) => (
+              {homepageContent.services_cards.map((card: CustomServiceCardType) => (
                 <CustomServiceCard key={card.id} card={card} />
               ))}
             </div>
