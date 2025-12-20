@@ -2,6 +2,7 @@ import { createServerClient } from '@/lib/supabase/server'
 import { ServiceCard } from '@/components/portfolio/ServiceCard'
 import { Service } from '@/types'
 import Link from 'next/link'
+import Image from 'next/image'
 import { ArrowRight, GitCompare } from 'lucide-react'
 
 async function getServices(): Promise<Service[]> {
@@ -26,30 +27,89 @@ async function getServices(): Promise<Service[]> {
   }
 }
 
+async function getHomepageSettings() {
+  try {
+    const supabase = createServerClient()
+    const { data, error } = await supabase
+      .from('site_settings')
+      .select('value')
+      .eq('key', 'general')
+      .maybeSingle()
+
+    if (error && error.code !== 'PGRST116') {
+      console.error('Erro ao buscar configurações:', error)
+    }
+
+    return data?.value?.homepage || null
+  } catch (error) {
+    console.error('Erro ao buscar configurações:', error)
+    return null
+  }
+}
+
 export default async function Home() {
   const services = await getServices()
+  const homepageSettings = await getHomepageSettings()
+  
+  // Valores padrão
+  const hero = {
+    title: homepageSettings?.hero_title || 'MV Company',
+    subtitle: homepageSettings?.hero_subtitle || 'Transformamos sua presença digital com serviços de alta qualidade',
+    description: homepageSettings?.hero_description || 'Criação de sites, tráfego pago, criação de conteúdo e gestão de redes sociais',
+    buttonText: homepageSettings?.hero_button_text || 'Ver Serviços',
+    backgroundImage: homepageSettings?.hero_background_image || '',
+  }
+  
+  const servicesSection = {
+    title: homepageSettings?.services_title || 'Nossos Serviços',
+    description: homepageSettings?.services_description || 'Soluções completas para impulsionar seu negócio no mundo digital',
+  }
+  
+  const comparison = {
+    title: homepageSettings?.comparison_title || 'Compare a MV Company com outras empresas',
+    description: homepageSettings?.comparison_description || 'Veja por que somos a melhor escolha para transformar sua presença digital',
+    buttonText: homepageSettings?.comparison_button_text || 'Comparar Agora',
+  }
+  
+  const contact = {
+    title: homepageSettings?.contact_title || 'Pronto para transformar seu negócio?',
+    description: homepageSettings?.contact_description || 'Entre em contato e descubra como podemos ajudar você',
+    whatsapp: homepageSettings?.contact_whatsapp || '5534999999999',
+    instagram: homepageSettings?.contact_instagram || 'https://instagram.com/mvcompany',
+  }
 
   return (
     <div className="min-h-screen bg-white">
       {/* Hero Section */}
-      <section className="relative bg-gradient-to-br from-black via-gray-900 to-black text-white py-20 px-4">
-        <div className="container mx-auto max-w-6xl">
+      <section className="relative bg-gradient-to-br from-black via-gray-900 to-black text-white py-20 px-4 overflow-hidden">
+        {hero.backgroundImage && (
+          <div className="absolute inset-0 z-0 opacity-20">
+            <Image
+              src={hero.backgroundImage}
+              alt="Background"
+              fill
+              className="object-cover"
+              priority
+            />
+          </div>
+        )}
+        <div className="container mx-auto max-w-6xl relative z-10">
           <div className="text-center space-y-6">
             <h1 className="text-4xl md:text-6xl font-bold">
-              MV Company
+              {hero.title}
             </h1>
             <p className="text-xl md:text-2xl text-gray-300 max-w-3xl mx-auto">
-              Transformamos sua presença digital com serviços de alta qualidade
+              {hero.subtitle}
             </p>
             <p className="text-lg text-gray-400 max-w-2xl mx-auto">
-              Criação de sites, tráfego pago, criação de conteúdo e gestão de redes sociais
+              {hero.description}
             </p>
             <div className="flex flex-wrap gap-4 justify-center pt-4">
               <a
                 href="#servicos"
                 className="bg-white text-black px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors"
               >
-                Ver Serviços
+                {hero.buttonText}
               </a>
               <Link
                 href="/comparar"
@@ -68,10 +128,10 @@ export default async function Home() {
         <div className="container mx-auto max-w-7xl">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              Nossos Serviços
+              {servicesSection.title}
             </h2>
             <p className="text-gray-600 max-w-2xl mx-auto">
-              Soluções completas para impulsionar seu negócio no mundo digital
+              {servicesSection.description}
             </p>
           </div>
 
@@ -103,16 +163,16 @@ export default async function Home() {
                 <GitCompare size={32} className="text-white" />
               </div>
               <h2 className="text-3xl md:text-4xl font-bold">
-                Compare a MV Company com outras empresas
+                {comparison.title}
               </h2>
               <p className="text-gray-300 text-lg max-w-2xl mx-auto">
-                Veja por que somos a melhor escolha para transformar sua presença digital
+                {comparison.description}
               </p>
               <Link
                 href="/comparar"
                 className="inline-flex items-center gap-2 bg-white text-black px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors"
               >
-                Comparar Agora
+                {comparison.buttonText}
                 <ArrowRight size={20} />
               </Link>
             </div>
@@ -124,14 +184,14 @@ export default async function Home() {
       <section className="py-16 px-4">
         <div className="container mx-auto max-w-4xl text-center">
           <h2 className="text-3xl md:text-4xl font-bold mb-4">
-            Pronto para transformar seu negócio?
+            {contact.title}
           </h2>
           <p className="text-gray-600 text-lg mb-8">
-            Entre em contato e descubra como podemos ajudar você
+            {contact.description}
           </p>
           <div className="flex flex-wrap gap-4 justify-center">
             <a
-              href="https://wa.me/5534999999999"
+              href={`https://wa.me/${contact.whatsapp}`}
               target="_blank"
               rel="noopener noreferrer"
               className="bg-green-500 text-white px-8 py-3 rounded-lg font-semibold hover:bg-green-600 transition-colors"
@@ -139,7 +199,7 @@ export default async function Home() {
               WhatsApp
             </a>
             <a
-              href="https://instagram.com/mvcompany"
+              href={contact.instagram}
               target="_blank"
               rel="noopener noreferrer"
               className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-8 py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity"

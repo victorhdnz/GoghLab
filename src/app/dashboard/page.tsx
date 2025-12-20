@@ -5,23 +5,14 @@ import { useRouter } from 'next/navigation'
 import { useAuth } from '@/hooks/useAuth'
 import { motion } from 'framer-motion'
 import {
-  Layout,
-  BarChart3,
   GitCompare,
-  FileText,
   Layers,
   Eye,
   MousePointer,
-  HelpCircle,
-  ArrowRight,
   Palette,
-  Link2,
   Package,
   LogOut,
   Lock,
-  BookOpen,
-  Wrench,
-  Star,
   Plus,
 } from 'lucide-react'
 import Link from 'next/link'
@@ -30,8 +21,6 @@ import { createClient } from '@/lib/supabase/client'
 import toast from 'react-hot-toast'
 
 interface DashboardStats {
-  totalLayouts: number
-  totalVersions: number
   totalViews: number
   totalClicks: number
   totalServices: number
@@ -207,8 +196,6 @@ function AccessDenied() {
 function DashboardContent() {
   const { profile } = useAuth()
   const [stats, setStats] = useState<DashboardStats>({
-    totalLayouts: 0,
-    totalVersions: 0,
     totalViews: 0,
     totalClicks: 0,
     totalServices: 0,
@@ -227,9 +214,7 @@ function DashboardContent() {
     try {
       setLoadingData(true)
 
-      const [layoutsResult, versionsResult, analyticsResult, servicesResult, comparisonsResult] = await Promise.all([
-        supabase.from('portfolio_layouts').select('id', { count: 'exact' }),
-        supabase.from('portfolio_pages').select('id', { count: 'exact' }),
+      const [analyticsResult, servicesResult, comparisonsResult] = await Promise.all([
         supabase.from('portfolio_analytics').select('event_type').gte('created_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()),
         supabase.from('services').select('id', { count: 'exact' }).eq('is_active', true),
         supabase.from('company_comparisons').select('id', { count: 'exact' }).eq('is_active', true),
@@ -239,8 +224,6 @@ function DashboardContent() {
       const clicks = analyticsResult.data?.filter(a => a.event_type === 'click').length || 0
 
       setStats({
-        totalLayouts: layoutsResult.count || 0,
-        totalVersions: versionsResult.count || 0,
         totalViews: views,
         totalClicks: clicks,
         totalServices: servicesResult.count || 0,
@@ -291,23 +274,16 @@ function DashboardContent() {
 
   const mainSections = [
     {
-      title: 'Landing Pages',
-      description: 'Gerencie layouts, versões e campanhas de marketing',
+      title: 'Página Inicial',
+      description: 'Edite o conteúdo da página inicial do site',
       icon: Layers,
       items: [
         {
-          title: 'Gerenciar Layouts e Versões',
-          description: 'Criar, editar e visualizar todas as landing pages',
-          href: '/dashboard/landing',
+          title: 'Editar Homepage',
+          description: 'Personalize textos, imagens e seções da página inicial',
+          href: '/dashboard/homepage',
           icon: Palette,
           color: 'bg-indigo-500',
-        },
-        {
-          title: 'Analytics',
-          description: 'Ver visualizações, cliques, tempo na página e conversões',
-          href: '/dashboard/analytics',
-          icon: BarChart3,
-          color: 'bg-teal-500',
         },
       ],
     },
@@ -351,20 +327,6 @@ function DashboardContent() {
           icon: Eye,
           color: 'bg-gray-500',
           external: true,
-        },
-      ],
-    },
-    {
-      title: 'Configurações',
-      description: 'Ajustes gerais do site e sistema',
-      icon: FileText,
-      items: [
-        {
-          title: 'Configurações do Site',
-          description: 'Nome, logo, descrição e informações de contato',
-          href: '/dashboard/configuracoes',
-          icon: FileText,
-          color: 'bg-gray-500',
         },
       ],
     },
