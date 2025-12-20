@@ -41,7 +41,17 @@ async function getSiteSettings() {
       console.error('Error fetching site settings:', error)
       return null
     }
-    return data
+    
+    // Garantir que homepage_content seja um objeto válido
+    if (data && data.homepage_content && typeof data.homepage_content === 'object') {
+      return data
+    }
+    
+    // Se homepage_content não existe ou é null, retornar objeto com homepage_content vazio
+    return {
+      ...data,
+      homepage_content: data?.homepage_content || {}
+    }
   } catch (error) {
     console.error('Error fetching site settings:', error)
     return null

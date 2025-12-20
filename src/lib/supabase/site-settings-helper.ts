@@ -58,13 +58,33 @@ export async function saveSiteSettings({
     // 2. Obter valor JSONB existente
     const existingValue: any = existing?.value || {}
 
-    // 3. Criar objeto com merge inteligente
-    const mergedValue: any = { ...existingValue } // Começar com TODOS os dados existentes
+    // 3. Separar colunas diretas de campos do value JSONB
+    const directColumnKeys = [
+      'site_name', 'site_title', 'site_logo', 'site_description', 'footer_text', 'copyright_text',
+      'contact_email', 'contact_whatsapp', 'instagram_url', 'facebook_url',
+      'address_street', 'address_city', 'address_state', 'address_zip', 'loading_emoji',
+      'homepage_content', 'service_detail_layout', 'loading_logo'
+    ]
 
-    // 4. Atualizar apenas os campos especificados, SEMPRE priorizando valores do formulário
-    // IMPORTANTE: Valores preenchidos no formulário SEMPRE são salvos, só preserva do banco se estiver vazio
+    // Separar fieldsToUpdate em colunas diretas e campos do value
+    const directColumnUpdates: any = {}
+    const valueFieldUpdates: any = {}
+
     Object.keys(fieldsToUpdate).forEach(key => {
-      const newValue = fieldsToUpdate[key] // Valor atual do formulário
+      if (directColumnKeys.includes(key)) {
+        directColumnUpdates[key] = fieldsToUpdate[key]
+      } else {
+        valueFieldUpdates[key] = fieldsToUpdate[key]
+      }
+    })
+
+    // 4. Criar objeto com merge inteligente APENAS para campos do value JSONB
+    const mergedValue: any = { ...existingValue } // Começar com TODOS os dados existentes do value
+
+    // 5. Atualizar apenas os campos do value especificados, SEMPRE priorizando valores do formulário
+    // IMPORTANTE: Valores preenchidos no formulário SEMPRE são salvos, só preserva do banco se estiver vazio
+    Object.keys(valueFieldUpdates).forEach(key => {
+      const newValue = valueFieldUpdates[key] // Valor atual do formulário
       const existingValueForKey = existingValue[key] // Valor antigo do banco
 
       // Se forceUpdate está ativo, sempre usar o valor novo (do formulário)
@@ -124,25 +144,22 @@ export async function saveSiteSettings({
       }
     })
 
-    // 5. Preparar update payload incluindo colunas diretas
+    // 6. Preparar update payload incluindo colunas diretas e value JSONB
     const updatePayload: any = {
       value: mergedValue,
       updated_at: new Date().toISOString(),
     }
 
-    // Lista de colunas diretas que podem ser atualizadas
-    const directColumns = [
-      'site_name', 'site_title', 'site_logo', 'site_description', 'footer_text', 'copyright_text',
-      'contact_email', 'contact_whatsapp', 'instagram_url', 'facebook_url',
-      'address_street', 'address_city', 'address_state', 'address_zip', 'loading_emoji'
-    ]
-
-    // Atualizar colunas diretas se estiverem em fieldsToUpdate
-    directColumns.forEach(column => {
-      if (fieldsToUpdate[column] !== undefined) {
-        updatePayload[column] = fieldsToUpdate[column]
-      }
+    // Adicionar colunas diretas ao payload (incluindo homepage_content)
+    Object.keys(directColumnUpdates).forEach(column => {
+      updatePayload[column] = directColumnUpdates[column]
+      console.log(`📝 Salvando coluna direta: ${column}`, directColumnUpdates[column])
     })
+    
+    // Log de debug para homepage_content
+    if (directColumnUpdates.homepage_content) {
+      console.log('✅ homepage_content será salvo diretamente:', JSON.stringify(directColumnUpdates.homepage_content, null, 2))
+    }
 
     // LOG DE SEGURANÇA: Verificar se arrays importantes foram preservados ANTES DE SALVAR
     console.log('🔒 Verificação de segurança - Arrays preservados ANTES DE SALVAR:', {
@@ -198,6 +215,7 @@ export async function saveSiteSettings({
 
 /**
  * Busca todas as configurações do site_settings
+ * Retorna tanto o value (JSONB) quanto as colunas diretas (homepage_content, etc)
  */
 export async function getSiteSettings(): Promise<{ data: any | null; error: any }> {
   try {
@@ -209,7 +227,29 @@ export async function getSiteSettings(): Promise<{ data: any | null; error: any 
       .eq('key', 'general')
       .maybeSingle()
 
-    return { data: data?.value || null, error }
+    if (error) {
+      return { data: null, error }
+    }
+
+    if (!data) {
+      return { data: null, error: null }
+    }
+
+    // Combinar value (JSONB) com colunas diretas
+    const result = {
+      ...(data.value || {}), // Dados do JSONB value
+      // Colunas diretas importantes
+      homepage_content: data.homepage_content || null,
+      service_detail_layout: data.service_detail_layout || null,
+      loading_logo: data.loading_logo || null,
+      site_name: data.site_name || null,
+      site_logo: data.site_logo || null,
+      contact_email: data.contact_email || null,
+      contact_whatsapp: data.contact_whatsapp || null,
+      instagram_url: data.instagram_url || null,
+    }
+
+    return { data: result, error: null }
   } catch (error: any) {
     console.error('Erro ao buscar site_settings:', error)
     return { data: null, error }
