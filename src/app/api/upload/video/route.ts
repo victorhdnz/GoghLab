@@ -56,6 +56,19 @@ export async function POST(request: NextRequest) {
       }, { status: 403 })
     }
 
+    // Criar cliente com service_role_key para fazer upload (bypass RLS)
+    const { createClient: createSupabaseClient } = await import('@supabase/supabase-js')
+    const supabaseAdmin = createSupabaseClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      }
+    )
+
     // Gerar nome único para o arquivo (sanitizado)
     // Remover caracteres especiais e espaços do nome do arquivo original
     const sanitizedName = file.name
@@ -72,11 +85,13 @@ export async function POST(request: NextRequest) {
     const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 15)}.${finalExt}`
     const filePath = fileName
 
-    // Fazer upload para Supabase Storage usando o File diretamente
-    // O Supabase Storage aceita File, Blob ou ArrayBuffer
-    const { data: uploadData, error: uploadError } = await supabase.storage
+    // Converter File para ArrayBuffer para upload
+    const arrayBuffer = await file.arrayBuffer()
+    
+    // Fazer upload para Supabase Storage usando service_role_key (bypass RLS)
+    const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
       .from('videos')
-      .upload(filePath, file, {
+      .upload(filePath, arrayBuffer, {
         cacheControl: '3600',
         upsert: false,
         contentType: file.type || `video/${finalExt}`,
@@ -102,7 +117,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Obter URL pública do vídeo
-    const { data: urlData } = supabase.storage
+    const { data: urlData } = supabaseAdmin.storage
       .from('videos')
       .getPublicUrl(filePath)
 

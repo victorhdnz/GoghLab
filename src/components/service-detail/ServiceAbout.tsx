@@ -15,20 +15,20 @@ export function ServiceAbout({ content }: ServiceAboutProps) {
       <div className="container mx-auto max-w-6xl">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 md:gap-16 items-center">
           {/* Image - Sempre mostrar placeholder */}
-          <div className="relative aspect-square rounded-2xl overflow-hidden shadow-2xl">
+          <div className="relative aspect-square rounded-2xl overflow-hidden shadow-2xl bg-gray-900/30">
             {content.about_image ? (
               <>
                 <Image
                   src={content.about_image}
                   alt="Quem somos nós"
                   fill
-                  className="object-cover"
+                  className="object-contain"
                   sizes="(max-width: 1024px) 100vw, 50vw"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent pointer-events-none" />
               </>
             ) : (
-              <div className="w-full h-full flex items-center justify-center bg-gray-900/30 border border-gray-800/50 rounded-2xl">
+              <div className="w-full h-full flex items-center justify-center border border-gray-800/50 rounded-2xl">
                 <div className="text-center">
                   <div className="text-6xl mb-4">📷</div>
                   <p className="text-gray-400 text-lg">Imagem não adicionada</p>

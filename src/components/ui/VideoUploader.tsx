@@ -104,22 +104,23 @@ export function VideoUploader({
         throw new Error('Apenas administradores e editores podem fazer upload de vídeos')
       }
 
-      // Fazer upload direto para Supabase Storage do lado do cliente
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('videos')
-        .upload(filePath, file, {
-          cacheControl: '3600',
-          upsert: false,
-          contentType: file.type || `video/${finalExt}`,
-        })
+      // Usar API route para upload (evita problemas de RLS)
+      const formData = new FormData()
+      formData.append('file', file)
 
-      if (uploadError) {
-        console.error('Erro no upload do Supabase:', uploadError)
+      const uploadResponse = await fetch('/api/upload/video', {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (!uploadResponse.ok) {
+        const errorData = await uploadResponse.json().catch(() => ({ error: 'Erro desconhecido' }))
+        let errorMessage = errorData.error || 'Erro ao fazer upload do vídeo'
         
-        let errorMessage = uploadError.message || 'Erro ao fazer upload do vídeo'
-        
-        // Tratar erros comuns
-        if (errorMessage.includes('pattern') || errorMessage.includes('match')) {
+        // Tratar erros específicos
+        if (errorMessage.includes('row-level security') || errorMessage.includes('RLS')) {
+          errorMessage = 'Erro de permissão. Verifique se você tem permissão para fazer upload de vídeos.'
+        } else if (errorMessage.includes('pattern') || errorMessage.includes('match')) {
           errorMessage = 'Formato de arquivo inválido. Verifique se o arquivo é um vídeo válido.'
         } else if (errorMessage.includes('duplicate') || errorMessage.includes('exists')) {
           errorMessage = 'Um arquivo com este nome já existe. Tente novamente.'
@@ -130,19 +131,16 @@ export function VideoUploader({
         throw new Error(errorMessage)
       }
 
-      setUploadProgress(100)
-
-      // Obter URL pública do vídeo
-      const { data: urlData } = supabase.storage
-        .from('videos')
-        .getPublicUrl(filePath)
-
-      if (!urlData?.publicUrl) {
-        throw new Error('Erro ao obter URL do vídeo')
+      const uploadData = await uploadResponse.json()
+      
+      if (!uploadData.url) {
+        throw new Error('Erro ao obter URL do vídeo após upload')
       }
 
-      setPreview(urlData.publicUrl)
-      onChange(urlData.publicUrl)
+      setUploadProgress(100)
+
+      setPreview(uploadData.url)
+      onChange(uploadData.url)
       toast.success('Vídeo carregado com sucesso!')
     } catch (error: any) {
       console.error('Erro no upload:', error)

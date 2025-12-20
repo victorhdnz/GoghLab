@@ -53,20 +53,20 @@ export function ServiceGifts({ content }: ServiceGiftsProps) {
                   )}
 
                   {/* Image Container */}
-                  <div className="relative aspect-[4/3] w-full rounded-xl overflow-hidden mb-4">
+                  <div className="relative aspect-[4/3] w-full rounded-xl overflow-hidden mb-4 bg-gray-900/30">
                     {item.image ? (
                       <>
                         <Image
                           src={item.image}
                           alt={item.title}
                           fill
-                          className="object-cover group-hover:scale-110 transition-transform duration-500"
+                          className="object-contain group-hover:scale-105 transition-transform duration-500"
                           sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
                         />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent pointer-events-none" />
                       </>
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-gray-900/30 border border-gray-800/50 rounded-xl">
+                      <div className="w-full h-full flex items-center justify-center border border-gray-800/50 rounded-xl">
                         <div className="text-center">
                           <div className="text-5xl mb-3">🎁</div>
                           <p className="text-gray-500 text-sm">Imagem não adicionada</p>

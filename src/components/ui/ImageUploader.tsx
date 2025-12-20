@@ -98,14 +98,15 @@ export function ImageUploader({
     <div className={`space-y-4 ${className}`}>
       <div className="relative">
         {preview ? (
-          <div className="relative group">
-            <Image
-              src={preview}
-              alt="Preview"
-              width={400}
-              height={300}
-              className="w-full h-48 object-cover rounded-lg border"
-            />
+          <div className="relative group bg-gray-100 rounded-lg border overflow-hidden">
+            <div className="relative w-full h-48">
+              <Image
+                src={preview}
+                alt="Preview"
+                fill
+                className="object-contain rounded-lg"
+              />
+            </div>
             <div className="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
               <Button
                 variant="outline"

@@ -134,16 +134,6 @@ export function AlternateContentManager({ value = [], onChange, label = 'Conteú
                     cropType="banner"
                     aspectRatio={16 / 9}
                   />
-                  {item.image && (
-                    <div className="mt-2 relative w-full h-48 rounded-lg overflow-hidden border border-gray-300">
-                      <Image
-                        src={item.image}
-                        alt={item.title || 'Preview'}
-                        fill
-                        className="object-cover"
-                      />
-                    </div>
-                  )}
                 </div>
               </div>
             </div>

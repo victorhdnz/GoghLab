@@ -30,13 +30,19 @@ export function ServiceAlternateContent({ content }: ServiceAlternateContentProp
           const highlightColor = item.title_highlight_color || '#00D9FF'
           
           if (item.title && highlightWord) {
-            // Dividir o título pela palavra destacada
-            const parts = item.title.split(highlightWord)
-            if (parts.length === 2) {
-              // Garantir que há espaço antes e depois da palavra destacada
+            // Buscar a palavra destacada no título (case-insensitive)
+            const titleLower = item.title.toLowerCase()
+            const highlightLower = highlightWord.toLowerCase()
+            const highlightIndex = titleLower.indexOf(highlightLower)
+            
+            if (highlightIndex !== -1) {
+              // Encontrou a palavra, dividir o título
+              const beforeHighlight = item.title.substring(0, highlightIndex)
+              const afterHighlight = item.title.substring(highlightIndex + highlightWord.length)
+              
               titleParts = [
-                parts[0].trimEnd(), // Remove espaços no final da primeira parte
-                parts[1].trimStart() // Remove espaços no início da segunda parte
+                beforeHighlight.trimEnd(),
+                afterHighlight.trimStart()
               ]
             } else {
               // Se não encontrou a palavra, usar o título completo
@@ -57,7 +63,7 @@ export function ServiceAlternateContent({ content }: ServiceAlternateContentProp
             >
               {/* Image - Sempre mostrar placeholder */}
               <div
-                className={`relative aspect-video rounded-2xl overflow-hidden shadow-2xl ${
+                className={`relative aspect-video rounded-2xl overflow-hidden shadow-2xl bg-gray-900/30 ${
                   isImageLeft ? 'lg:col-start-1' : 'lg:col-start-2'
                 }`}
               >
@@ -67,13 +73,13 @@ export function ServiceAlternateContent({ content }: ServiceAlternateContentProp
                       src={item.image}
                       alt={item.title || 'Content'}
                       fill
-                      className="object-cover"
+                      className="object-contain"
                       sizes="(max-width: 1024px) 100vw, 50vw"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent pointer-events-none" />
                   </>
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center bg-gray-900/30 border border-gray-800/50 rounded-2xl">
+                  <div className="w-full h-full flex items-center justify-center border border-gray-800/50 rounded-2xl">
                     <div className="text-center">
                       <div className="text-6xl mb-4">🖼️</div>
                       <p className="text-gray-400 text-lg">Imagem não adicionada</p>
