@@ -14,19 +14,29 @@ export function ServiceAbout({ content }: ServiceAboutProps) {
     <section className="py-16 md:py-24 px-4 bg-black text-white">
       <div className="container mx-auto max-w-6xl">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-          {/* Image */}
-          {content.about_image && (
-            <div className="relative aspect-square rounded-2xl overflow-hidden border-2 border-gray-700/50 shadow-2xl">
-              <Image
-                src={content.about_image}
-                alt="Quem somos nós"
-                fill
-                className="object-cover"
-                sizes="(max-width: 1024px) 100vw, 50vw"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-gray-900/60 to-transparent" />
-            </div>
-          )}
+          {/* Image - Sempre mostrar placeholder */}
+          <div className="relative aspect-square rounded-2xl overflow-hidden border-2 border-gray-700/50 shadow-2xl">
+            {content.about_image ? (
+              <>
+                <Image
+                  src={content.about_image}
+                  alt="Quem somos nós"
+                  fill
+                  className="object-cover"
+                  sizes="(max-width: 1024px) 100vw, 50vw"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-gray-900/60 to-transparent" />
+              </>
+            ) : (
+              <div className="w-full h-full flex items-center justify-center bg-gray-900/50">
+                <div className="text-center">
+                  <div className="text-6xl mb-4">📷</div>
+                  <p className="text-gray-400 text-lg">Imagem não adicionada</p>
+                  <p className="text-gray-500 text-sm mt-2">Adicione uma imagem no editor</p>
+                </div>
+              </div>
+            )}
+          </div>
 
           {/* Text Content */}
           <div className="space-y-6">

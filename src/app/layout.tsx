@@ -45,7 +45,7 @@ async function getSiteDescription(): Promise<string> {
   }
 
   // Descrição padrão caso não encontre no banco
-  return 'MV Company - Prestadora de serviços digitais. Criação de sites, tráfego pago, criação de conteúdo e gestão de redes sociais.'
+  return 'Toda sua gestão digital em um só lugar.'
 }
 
 // Função para buscar nome do site do banco de dados
@@ -109,7 +109,7 @@ async function getSiteTitle(): Promise<string | null> {
       }
       // Se não tiver site_title, usar site_name + sufixo
       if (fallbackData?.site_name) {
-        return `${fallbackData.site_name} - Relógios Premium`
+        return `${fallbackData.site_name} - Toda sua gestão digital em um só lugar.`
       }
     }
 
@@ -118,7 +118,7 @@ async function getSiteTitle(): Promise<string | null> {
     }
     // Se não tiver site_title, usar site_name + sufixo
     if (data?.site_name) {
-      return `${data.site_name} - Relógios Premium`
+      return `${data.site_name} - Toda sua gestão digital em um só lugar.`
     }
   } catch (error) {
     console.error('Erro ao buscar título do site:', error)
@@ -131,7 +131,7 @@ async function getSiteTitle(): Promise<string | null> {
 export async function generateMetadata(): Promise<Metadata> {
   const siteDescription = await getSiteDescription()
   const siteName = await getSiteName()
-  const siteTitle = await getSiteTitle() || `${siteName} - Serviços Digitais`
+  const siteTitle = await getSiteTitle() || `${siteName} - Toda sua gestão digital em um só lugar.`
   const siteUrl = getSiteUrl()
 
   return {

@@ -51,11 +51,11 @@ export function ServiceHeroVideo({ content, serviceName }: ServiceHeroVideoProps
           )}
         </div>
 
-        {/* Vídeo Principal */}
-        {content.hero_video_url && (
-          <div className="mb-8">
-            <div className="relative aspect-video rounded-2xl overflow-hidden bg-gray-800 border-2 border-gray-700/50 shadow-2xl">
-              {isYouTube && youtubeId ? (
+        {/* Vídeo Principal - Sempre mostrar placeholder */}
+        <div className="mb-8">
+          <div className="relative aspect-video rounded-2xl overflow-hidden bg-gray-800 border-2 border-gray-700/50 shadow-2xl">
+            {content.hero_video_url ? (
+              isYouTube && youtubeId ? (
                 <iframe
                   src={`https://www.youtube.com/embed/${youtubeId}${content.hero_video_autoplay ? '?autoplay=1&mute=1' : ''}`}
                   title={content.hero_title || serviceName}
@@ -73,10 +73,18 @@ export function ServiceHeroVideo({ content, serviceName }: ServiceHeroVideoProps
                   controls
                   className="w-full h-full object-cover"
                 />
-              )}
-            </div>
+              )
+            ) : (
+              <div className="w-full h-full flex items-center justify-center bg-gray-900/50">
+                <div className="text-center">
+                  <div className="text-6xl mb-4">🎥</div>
+                  <p className="text-gray-400 text-lg">Vídeo não adicionado</p>
+                  <p className="text-gray-500 text-sm mt-2">Adicione um vídeo no editor</p>
+                </div>
+              </div>
+            )}
           </div>
-        )}
+        </div>
       </div>
     </section>
   )

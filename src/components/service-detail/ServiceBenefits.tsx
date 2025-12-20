@@ -8,9 +8,9 @@ interface ServiceBenefitsProps {
 }
 
 export function ServiceBenefits({ content }: ServiceBenefitsProps) {
-  if (!content.benefits_enabled || !content.benefits_items || content.benefits_items.length === 0) {
-    return null
-  }
+  if (!content.benefits_enabled) return null
+
+  const hasItems = content.benefits_items && content.benefits_items.length > 0
 
   return (
     <section className="py-16 md:py-24 px-4 bg-black text-white">
@@ -21,8 +21,15 @@ export function ServiceBenefits({ content }: ServiceBenefitsProps) {
           </h2>
         )}
 
-        <div className="space-y-6">
-          {content.benefits_items.map((item, index) => {
+        {!hasItems ? (
+          <div className="text-center py-12">
+            <div className="bg-gray-800/40 border-2 border-dashed border-gray-700/50 rounded-2xl p-8 backdrop-blur-sm">
+              <p className="text-gray-400 text-lg">Nenhum benefício adicionado ainda</p>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {content.benefits_items.map((item, index) => {
             // Cores de destaque estratégicas baseadas no índice
             const accentColors = [
               'bg-orange-500/20 border-orange-500/30 text-orange-400', // Laranja
@@ -71,7 +78,8 @@ export function ServiceBenefits({ content }: ServiceBenefitsProps) {
               </div>
             )
           })}
-        </div>
+          </div>
+        )}
       </div>
     </section>
   )

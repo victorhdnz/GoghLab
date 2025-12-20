@@ -8,9 +8,9 @@ interface ServiceGiftsProps {
 }
 
 export function ServiceGifts({ content }: ServiceGiftsProps) {
-  if (!content.gifts_enabled || !content.gifts_items || content.gifts_items.length === 0) {
-    return null
-  }
+  if (!content.gifts_enabled) return null
+
+  const hasItems = content.gifts_items && content.gifts_items.length > 0
 
   return (
     <section className="py-16 md:py-24 px-4 bg-black text-white">
@@ -21,8 +21,15 @@ export function ServiceGifts({ content }: ServiceGiftsProps) {
           </h2>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {content.gifts_items.map((item, index) => {
+        {!hasItems ? (
+          <div className="text-center py-12">
+            <div className="bg-gray-800/40 border-2 border-dashed border-gray-700/50 rounded-2xl p-8 backdrop-blur-sm">
+              <p className="text-gray-400 text-lg">Nenhum presente adicionado ainda</p>
+            </div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {content.gifts_items.map((item, index) => {
             // Cores de destaque estratégicas para badges
             const badgeColors = [
               'bg-gray-800/90 border-orange-500/40 text-orange-300', // Laranja
@@ -44,19 +51,29 @@ export function ServiceGifts({ content }: ServiceGiftsProps) {
                   </div>
                 )}
 
-              {/* Image */}
-              {item.image && (
-                <div className="relative aspect-video w-full">
-                  <Image
-                    src={item.image}
-                    alt={item.title}
-                    fill
-                    className="object-cover group-hover:scale-105 transition-transform duration-300"
-                    sizes="(max-width: 768px) 100vw, 50vw"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
-                </div>
-              )}
+              {/* Image - Sempre mostrar placeholder */}
+              <div className="relative aspect-video w-full border-2 border-gray-700/50">
+                {item.image ? (
+                  <>
+                    <Image
+                      src={item.image}
+                      alt={item.title}
+                      fill
+                      className="object-cover group-hover:scale-105 transition-transform duration-300"
+                      sizes="(max-width: 768px) 100vw, 50vw"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
+                  </>
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center bg-gray-900/50">
+                    <div className="text-center">
+                      <div className="text-6xl mb-4">🎁</div>
+                      <p className="text-gray-400 text-lg">Imagem não adicionada</p>
+                      <p className="text-gray-500 text-sm mt-2">Adicione uma imagem no editor</p>
+                    </div>
+                  </div>
+                )}
+              </div>
 
                 {/* Content */}
                 <div className="p-6">
@@ -68,7 +85,8 @@ export function ServiceGifts({ content }: ServiceGiftsProps) {
               </div>
             )
           })}
-        </div>
+          </div>
+        )}
       </div>
     </section>
   )
