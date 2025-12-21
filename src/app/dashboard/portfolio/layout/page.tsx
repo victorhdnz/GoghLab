@@ -24,7 +24,6 @@ const sectionIcons: Record<string, string> = {
   hero: '🎥',
   benefits: '📋',
   alternate: '🔄',
-  about: '👥',
   cta: '📞',
 }
 
@@ -32,7 +31,6 @@ const sectionLabels: Record<string, string> = {
   hero: 'Hero com Vídeo',
   benefits: 'O que você receberá',
   alternate: 'Conteúdo Alternado',
-  about: 'Quem somos nós',
   cta: 'Contato',
 }
 
@@ -48,14 +46,12 @@ export default function ServiceDetailLayoutPage() {
     'hero',
     'benefits',
     'alternate',
-    'about',
     'cta',
   ])
   const [sectionVisibility, setSectionVisibility] = useState<Record<string, boolean>>({
     hero: true,
     benefits: true,
     alternate: true,
-    about: true,
     cta: true,
   })
   const [formData, setFormData] = useState<ServiceDetailContent>({
@@ -73,11 +69,6 @@ export default function ServiceDetailLayoutPage() {
 
     alternate_content_enabled: true,
     alternate_content_items: [],
-
-    about_enabled: true,
-    about_title: 'Quem somos nós',
-    about_image: '',
-    about_text: '',
 
     cta_enabled: true,
     cta_title: 'Fale Conosco',
@@ -113,17 +104,18 @@ export default function ServiceDetailLayoutPage() {
         const layout = data.service_detail_layout as ServiceDetailContent
         setFormData(prev => ({ ...prev, ...layout }))
         
-        // Carregar ordem e visibilidade se existirem, filtrando 'gifts' e 'testimonials'
+        // Carregar ordem e visibilidade se existirem, filtrando 'gifts', 'testimonials' e 'about'
         if (layout.section_order) {
           const filteredOrder = layout.section_order.filter(
-            (sectionId) => sectionId !== 'gifts' && sectionId !== 'testimonials'
+            (sectionId) => sectionId !== 'gifts' && sectionId !== 'testimonials' && sectionId !== 'about'
           )
-          setSectionOrder(filteredOrder.length > 0 ? filteredOrder : ['hero', 'benefits', 'alternate', 'about', 'cta'])
+          setSectionOrder(filteredOrder.length > 0 ? filteredOrder : ['hero', 'benefits', 'alternate', 'cta'])
         }
         if (layout.section_visibility) {
           const filteredVisibility = { ...layout.section_visibility }
           delete filteredVisibility.gifts
           delete filteredVisibility.testimonials
+          delete filteredVisibility.about
           setSectionVisibility(filteredVisibility)
         }
       }
@@ -301,47 +293,6 @@ export default function ServiceDetailLayoutPage() {
                 value={formData.alternate_content_items || []}
                 onChange={(items) => setFormData({ ...formData, alternate_content_items: items })}
               />
-            )}
-          </div>
-        )
-
-      case 'about':
-        return (
-          <div className="space-y-4">
-            <Switch
-              label="Habilitar Seção 'Quem somos nós'"
-              checked={formData.about_enabled ?? true}
-              onCheckedChange={(checked) => setFormData({ ...formData, about_enabled: checked })}
-            />
-            {formData.about_enabled && (
-              <>
-                <Input
-                  label="Título da Seção"
-                  value={formData.about_title || ''}
-                  onChange={(e) => setFormData({ ...formData, about_title: e.target.value })}
-                  placeholder="Ex: Quem somos nós"
-                />
-                <div>
-                  <label className="block text-sm font-medium mb-2">Foto dos Donos (PNG transparente recomendado)</label>
-                  <ImageUploader
-                    value={formData.about_image || ''}
-                    onChange={(url) => setFormData({ ...formData, about_image: url })}
-                    placeholder="Upload de foto"
-                    cropType="square"
-                    aspectRatio={1}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2">Texto sobre a empresa</label>
-                  <textarea
-                    value={formData.about_text || ''}
-                    onChange={(e) => setFormData({ ...formData, about_text: e.target.value })}
-                    placeholder="Texto sobre a empresa..."
-                    rows={6}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-              </>
             )}
           </div>
         )

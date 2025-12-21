@@ -8,7 +8,6 @@ import { ServicePageTracker } from '@/components/analytics/ServicePageTracker'
 import { ServiceHeroVideo } from '@/components/service-detail/ServiceHeroVideo'
 import { ServiceBenefits } from '@/components/service-detail/ServiceBenefits'
 import { ServiceAlternateContent } from '@/components/service-detail/ServiceAlternateContent'
-import { ServiceAbout } from '@/components/service-detail/ServiceAbout'
 import { ServiceCTA } from '@/components/service-detail/ServiceCTA'
 import { FixedLogo } from '@/components/layout/FixedLogo'
 
@@ -140,40 +139,37 @@ export default async function ServicePage({ params }: { params: { slug: string }
     benefits_items: [],
     alternate_content_enabled: true,
     alternate_content_items: [],
-    about_enabled: true,
     cta_enabled: true,
-    section_order: ['hero', 'benefits', 'alternate', 'about', 'cta'],
+    section_order: ['hero', 'benefits', 'alternate', 'cta'],
     section_visibility: {
       hero: true,
       benefits: true,
       alternate: true,
-      about: true,
       cta: true,
     },
   }
 
-  // Ordem padrão das seções (sem 'gifts' e 'testimonials')
-  const sectionOrder = (content.section_order || ['hero', 'benefits', 'alternate', 'about', 'cta']).filter(
-    (sectionId) => sectionId !== 'gifts' && sectionId !== 'testimonials'
+  // Ordem padrão das seções (sem 'gifts', 'testimonials' e 'about')
+  const sectionOrder = (content.section_order || ['hero', 'benefits', 'alternate', 'cta']).filter(
+    (sectionId) => sectionId !== 'gifts' && sectionId !== 'testimonials' && sectionId !== 'about'
   )
   const sectionVisibility = content.section_visibility || {
     hero: true,
     benefits: true,
     alternate: true,
-    about: true,
     cta: true,
   }
   
-  // Garantir que gifts e testimonials não estejam na visibilidade
+  // Garantir que gifts, testimonials e about não estejam na visibilidade
   if (sectionVisibility.gifts !== undefined) delete sectionVisibility.gifts
   if (sectionVisibility.testimonials !== undefined) delete sectionVisibility.testimonials
+  if (sectionVisibility.about !== undefined) delete sectionVisibility.about
 
   // Mapear seções para componentes
   const sectionRenderers: Record<string, () => JSX.Element | null> = {
     hero: () => <ServiceHeroVideo content={content} serviceName={service.name} />,
     benefits: () => <ServiceBenefits content={content} />,
     alternate: () => <ServiceAlternateContent content={content} />,
-    about: () => <ServiceAbout content={content} />,
     cta: () => <ServiceCTA content={content} siteSettings={siteSettings} />,
   }
 
