@@ -202,45 +202,61 @@ export const PricingComponent: React.FC<PricingComponentProps> = ({
               <h4 className="text-sm font-semibold mb-2 mt-4 text-gray-300">Recursos Incluídos:</h4>
               <ul className="list-none space-y-0">
                 {comparisonFeatures.length > 0 ? (
-                  // Usar recursos globais de comparação
-                  <>
-                    {comparisonFeatures.slice(0, 5).map((comparisonFeature) => {
+                  // Usar recursos globais de comparação - mostrar apenas os que têm texto preenchido
+                  (() => {
+                    const availableFeatures = comparisonFeatures.filter((comparisonFeature) => {
                       const featureValue = (plan.feature_values || []).find(fv => fv.feature_id === comparisonFeature.id)
-                      const hasFeature = !!(featureValue?.text && featureValue.text.trim() !== '')
+                      return !!(featureValue?.text && featureValue.text.trim() !== '')
+                    })
+                    
+                    if (availableFeatures.length === 0) {
                       return (
-                        <li key={comparisonFeature.id} className="flex items-start space-x-3 py-2">
-                          {hasFeature ? (
-                            <>
-                              <Check className="h-4 w-4 flex-shrink-0 mt-0.5 text-white" aria-hidden="true" />
-                              <span className="text-sm text-white">{comparisonFeature.name}</span>
-                            </>
-                          ) : (
-                            <>
-                              <X className="h-4 w-4 flex-shrink-0 mt-0.5 text-gray-500" aria-hidden="true" />
-                              <span className="text-sm text-gray-500">{comparisonFeature.name}</span>
-                            </>
-                          )}
+                        <li className="text-sm text-gray-400 py-2">
+                          Nenhum recurso configurado
                         </li>
                       )
-                    })}
-                    {comparisonFeatures.length > 5 && (
-                      <li className="text-sm text-gray-400 mt-2">
-                        + {comparisonFeatures.length - 5} recursos
-                      </li>
-                    )}
-                  </>
+                    }
+                    
+                    return (
+                      <>
+                        {availableFeatures.slice(0, 5).map((comparisonFeature) => (
+                          <li key={comparisonFeature.id} className="flex items-start space-x-3 py-2">
+                            <Check className="h-4 w-4 flex-shrink-0 mt-0.5 text-white" aria-hidden="true" />
+                            <span className="text-sm text-white">{comparisonFeature.name}</span>
+                          </li>
+                        ))}
+                        {availableFeatures.length > 5 && (
+                          <li className="text-sm text-gray-400 mt-2">
+                            +{availableFeatures.length - 5} Recursos
+                          </li>
+                        )}
+                      </>
+                    )
+                  })()
                 ) : (
-                  // Fallback para features antigas (compatibilidade)
-                  <>
-                    {plan.features.slice(0, 5).map((feature) => (
-                      <FeatureItem key={feature.name} feature={feature} />
-                    ))}
-                    {plan.features.length > 5 && (
-                      <li className="text-sm text-gray-400 mt-2">
-                        + {plan.features.length - 5} recursos
-                      </li>
-                    )}
-                  </>
+                  // Fallback para features antigas (compatibilidade) - mostrar apenas as incluídas
+                  (() => {
+                    const includedFeatures = plan.features.filter(f => f.isIncluded)
+                    if (includedFeatures.length === 0) {
+                      return (
+                        <li className="text-sm text-gray-400 py-2">
+                          Nenhum recurso configurado
+                        </li>
+                      )
+                    }
+                    return (
+                      <>
+                        {includedFeatures.slice(0, 5).map((feature) => (
+                          <FeatureItem key={feature.name} feature={feature} />
+                        ))}
+                        {includedFeatures.length > 5 && (
+                          <li className="text-sm text-gray-400 mt-2">
+                            +{includedFeatures.length - 5} Recursos
+                          </li>
+                        )}
+                      </>
+                    )
+                  })()
                 )}
               </ul>
             </CardContent>
