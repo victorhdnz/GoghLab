@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { MessageCircle, Mail, Heart, UserPlus, TrendingUp, CheckCircle, Bell, ShoppingCart } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -61,11 +62,39 @@ export function NotificationIconSelector({
   label = 'Ícone' 
 }: NotificationIconSelectorProps) {
   const [isOpen, setIsOpen] = useState(false)
+  const [position, setPosition] = useState({ top: 0, left: 0, width: 0 })
+  const [mounted, setMounted] = useState(false)
   const buttonRef = useRef<HTMLButtonElement>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
   const selectedIcon = value && iconMap[value] ? iconMap[value] : MessageCircle
   const SelectedIcon = selectedIcon
   const selectedColor = iconColors[value] || '#25D366'
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  useEffect(() => {
+    if (isOpen && buttonRef.current && mounted) {
+      const updatePosition = () => {
+        if (buttonRef.current) {
+          const rect = buttonRef.current.getBoundingClientRect()
+          setPosition({
+            top: rect.bottom + window.scrollY + 4,
+            left: rect.left + window.scrollX,
+            width: rect.width,
+          })
+        }
+      }
+      updatePosition()
+      window.addEventListener('scroll', updatePosition, true)
+      window.addEventListener('resize', updatePosition)
+      return () => {
+        window.removeEventListener('scroll', updatePosition, true)
+        window.removeEventListener('resize', updatePosition)
+      }
+    }
+  }, [isOpen, mounted])
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -126,7 +155,7 @@ export function NotificationIconSelector({
           </svg>
         </button>
 
-        {isOpen && (
+        {isOpen && mounted && createPortal(
           <>
             <div
               className="fixed inset-0 z-[9998]"
@@ -134,7 +163,13 @@ export function NotificationIconSelector({
             />
             <div
               ref={dropdownRef}
-              className="absolute z-[9999] mt-1 w-full bg-white border border-gray-300 rounded-lg shadow-xl max-h-[400px] overflow-y-auto overscroll-contain"
+              className="fixed z-[9999] bg-white border border-gray-300 rounded-lg shadow-xl max-h-[400px] overflow-y-auto overscroll-contain"
+              style={{
+                top: `${position.top}px`,
+                left: `${position.left}px`,
+                width: `${position.width}px`,
+                minWidth: '300px',
+              }}
             >
               <div className="p-3 grid grid-cols-4 gap-2 pb-3">
                 {iconOptions.map((iconName) => {
@@ -178,7 +213,8 @@ export function NotificationIconSelector({
                 })}
               </div>
             </div>
-          </>
+          </>,
+          document.body
         )}
       </div>
     </div>

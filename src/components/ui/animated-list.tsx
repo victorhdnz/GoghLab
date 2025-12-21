@@ -5,6 +5,7 @@ import React, {
   useEffect,
   useMemo,
   useState,
+  useRef,
 } from 'react'
 import { AnimatePresence, motion, MotionProps } from 'framer-motion'
 
@@ -33,12 +34,44 @@ export interface AnimatedListProps extends ComponentPropsWithoutRef<'div'> {
 export const AnimatedList = React.memo(
   ({ children, className, delay = 1000, ...props }: AnimatedListProps) => {
     const [index, setIndex] = useState(0)
+    const [isVisible, setIsVisible] = useState(false)
+    const containerRef = useRef<HTMLDivElement>(null)
     const childrenArray = useMemo(
       () => React.Children.toArray(children),
       [children]
     )
 
+    // Intersection Observer para detectar quando o componente está visível
     useEffect(() => {
+      const observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              setIsVisible(true)
+            }
+          })
+        },
+        {
+          threshold: 0.1, // Começar quando 10% do componente estiver visível
+          rootMargin: '50px', // Começar 50px antes de entrar no viewport
+        }
+      )
+
+      if (containerRef.current) {
+        observer.observe(containerRef.current)
+      }
+
+      return () => {
+        if (containerRef.current) {
+          observer.unobserve(containerRef.current)
+        }
+      }
+    }, [])
+
+    // Só começar a animação quando estiver visível
+    useEffect(() => {
+      if (!isVisible) return
+
       if (index < childrenArray.length - 1) {
         const timeout = setTimeout(() => {
           setIndex((prevIndex) => (prevIndex + 1) % childrenArray.length)
@@ -46,7 +79,7 @@ export const AnimatedList = React.memo(
 
         return () => clearTimeout(timeout)
       }
-    }, [index, delay, childrenArray.length])
+    }, [index, delay, childrenArray.length, isVisible])
 
     const itemsToShow = useMemo(() => {
       const result = childrenArray.slice(0, index + 1).reverse()
@@ -55,6 +88,7 @@ export const AnimatedList = React.memo(
 
     return (
       <div
+        ref={containerRef}
         className={cn(`flex flex-col items-center gap-4`, className)}
         {...props}
       >
