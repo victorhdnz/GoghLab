@@ -196,11 +196,27 @@ export default function HomepageEditorPage() {
         })
         
         // Carregar ordem e visibilidade se existirem
-        if (content.section_order) {
-          setSectionOrder(content.section_order)
+        if (content.section_order && Array.isArray(content.section_order)) {
+          // Garantir que 'notifications' esteja na ordem se não estiver
+          const order = [...content.section_order]
+          if (!order.includes('notifications')) {
+            // Adicionar 'notifications' antes de 'contact' se 'contact' existir, senão no final
+            const contactIndex = order.indexOf('contact')
+            if (contactIndex >= 0) {
+              order.splice(contactIndex, 0, 'notifications')
+            } else {
+              order.push('notifications')
+            }
+          }
+          setSectionOrder(order)
         }
         if (content.section_visibility) {
-          setSectionVisibility(content.section_visibility)
+          // Garantir que 'notifications' tenha visibilidade definida
+          const visibility = { ...content.section_visibility }
+          if (visibility.notifications === undefined) {
+            visibility.notifications = true
+          }
+          setSectionVisibility(visibility)
         }
       }
     } catch (error) {

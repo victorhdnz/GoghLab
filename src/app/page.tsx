@@ -66,13 +66,28 @@ export default async function Home() {
   const homepageContent = siteSettings?.homepage_content || {}
   
   // Ordem padrão das seções
-  const sectionOrder = homepageContent.section_order || ['hero', 'services', 'comparison', 'notifications', 'contact']
-  const sectionVisibility = homepageContent.section_visibility || {
+  let sectionOrder = homepageContent.section_order || ['hero', 'services', 'comparison', 'notifications', 'contact']
+  // Garantir que 'notifications' esteja na ordem se não estiver
+  if (Array.isArray(sectionOrder) && !sectionOrder.includes('notifications')) {
+    const contactIndex = sectionOrder.indexOf('contact')
+    if (contactIndex >= 0) {
+      sectionOrder = [...sectionOrder]
+      sectionOrder.splice(contactIndex, 0, 'notifications')
+    } else {
+      sectionOrder = [...sectionOrder, 'notifications']
+    }
+  }
+  
+  let sectionVisibility = homepageContent.section_visibility || {
     hero: true,
     services: true,
     comparison: true,
     notifications: true,
     contact: true,
+  }
+  // Garantir que 'notifications' tenha visibilidade definida
+  if (sectionVisibility.notifications === undefined) {
+    sectionVisibility = { ...sectionVisibility, notifications: true }
   }
 
   return (
