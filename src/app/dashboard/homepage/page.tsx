@@ -179,10 +179,19 @@ export default function HomepageEditorPage() {
             servicesCards = prev.services_cards
           }
           
+          // Garantir que notifications_items seja sempre um array
+          let notificationsItems: any[] = []
+          if (Array.isArray(content.notifications_items)) {
+            notificationsItems = content.notifications_items
+          } else if (Array.isArray(prev.notifications_items) && prev.notifications_items.length > 0) {
+            notificationsItems = prev.notifications_items
+          }
+          
           return {
             ...prev,
             ...content,
             services_cards: servicesCards,
+            notifications_items: notificationsItems,
           }
         })
         
@@ -209,6 +218,7 @@ export default function HomepageEditorPage() {
       const contentToSave = {
         ...formData,
         services_cards: Array.isArray(formData.services_cards) ? formData.services_cards : [],
+        notifications_items: Array.isArray(formData.notifications_items) ? formData.notifications_items : [],
         section_order: sectionOrder,
         section_visibility: sectionVisibility,
       }

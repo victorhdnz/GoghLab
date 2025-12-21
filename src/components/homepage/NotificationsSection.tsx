@@ -88,7 +88,10 @@ export function NotificationsSection({
   notifications = [],
   delay = 1500,
 }: NotificationsSectionProps) {
-  if (!enabled || !notifications || notifications.length === 0) return null
+  // Se não estiver habilitado explicitamente como false, verificar se há notificações
+  if (enabled === false) return null
+  // Se não houver notificações, não renderizar
+  if (!notifications || notifications.length === 0) return null
 
   return (
     <FadeInSection>

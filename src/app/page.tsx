@@ -66,11 +66,12 @@ export default async function Home() {
   const homepageContent = siteSettings?.homepage_content || {}
   
   // Ordem padrão das seções
-  const sectionOrder = homepageContent.section_order || ['hero', 'services', 'comparison', 'contact']
+  const sectionOrder = homepageContent.section_order || ['hero', 'services', 'comparison', 'notifications', 'contact']
   const sectionVisibility = homepageContent.section_visibility || {
     hero: true,
     services: true,
     comparison: true,
+    notifications: true,
     contact: true,
   }
 

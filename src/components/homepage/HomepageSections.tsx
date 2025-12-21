@@ -160,11 +160,15 @@ export function HomepageSections({
 
   // Função para renderizar seção de Notificações
   const renderNotificationsSection = () => {
+    // Se estiver explicitamente desabilitado ou oculto, não renderizar
     if (homepageContent.notifications_enabled === false || sectionVisibility.notifications === false) return null
+    
+    // Se não houver notificações configuradas, não renderizar
+    if (!homepageContent.notifications_items || homepageContent.notifications_items.length === 0) return null
     
     return (
       <NotificationsSection
-        enabled={homepageContent.notifications_enabled}
+        enabled={homepageContent.notifications_enabled !== false}
         title={homepageContent.notifications_title}
         description={homepageContent.notifications_description}
         notifications={homepageContent.notifications_items}
