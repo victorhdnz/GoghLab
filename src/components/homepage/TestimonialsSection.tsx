@@ -201,14 +201,17 @@ export function TestimonialsSection({
             </div>
           )}
 
-          <div className="relative flex h-96 w-full flex-row items-center justify-center gap-4 overflow-hidden [perspective:300px] bg-black">
-            {/* Conteúdo 3D - deve ficar atrás */}
+          <div 
+            className="relative flex h-96 w-full flex-row items-center justify-center gap-4 overflow-hidden [perspective:300px] bg-black"
+            style={{ isolation: 'isolate' }}
+          >
             <div
-              className="flex flex-row items-center gap-4 absolute inset-0"
+              className="flex flex-row items-center gap-4"
               style={{
                 transform:
                   'translateX(-100px) translateY(0px) translateZ(-100px) rotateX(20deg) rotateY(-10deg) rotateZ(20deg)',
-                zIndex: 1,
+                isolation: 'isolate',
+                zIndex: 0,
               }}
             >
               <Marquee 
@@ -251,23 +254,11 @@ export function TestimonialsSection({
               </Marquee>
             </div>
 
-            {/* Gradientes para efeito de fade infinito - devem ficar acima do conteúdo 3D */}
-            <div 
-              className="pointer-events-none absolute inset-x-0 top-0 h-1/4 bg-gradient-to-b from-black to-transparent"
-              style={{ zIndex: 10 }}
-            ></div>
-            <div 
-              className="pointer-events-none absolute inset-x-0 bottom-0 h-1/4 bg-gradient-to-t from-black to-transparent"
-              style={{ zIndex: 10 }}
-            ></div>
-            <div 
-              className="pointer-events-none absolute inset-y-0 left-0 w-1/4 bg-gradient-to-r from-black to-transparent"
-              style={{ zIndex: 10 }}
-            ></div>
-            <div 
-              className="pointer-events-none absolute inset-y-0 right-0 w-1/4 bg-gradient-to-l from-black to-transparent"
-              style={{ zIndex: 10 }}
-            ></div>
+            {/* Gradientes para efeito de fade infinito - igual à seção de notificações */}
+            <div className="pointer-events-none absolute inset-x-0 top-0 h-1/4 bg-gradient-to-b from-black to-transparent" style={{ zIndex: 1 }}></div>
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/4 bg-gradient-to-t from-black to-transparent" style={{ zIndex: 1 }}></div>
+            <div className="pointer-events-none absolute inset-y-0 left-0 w-1/4 bg-gradient-to-r from-black to-transparent" style={{ zIndex: 1 }}></div>
+            <div className="pointer-events-none absolute inset-y-0 right-0 w-1/4 bg-gradient-to-l from-black to-transparent" style={{ zIndex: 1 }}></div>
           </div>
         </div>
       </section>
