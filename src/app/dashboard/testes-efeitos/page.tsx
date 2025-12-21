@@ -4,11 +4,12 @@ import { useState } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { BackButton } from '@/components/ui/BackButton'
-import { Sparkles, Zap, Palette, Code, Calendar, Bell, FileText, Share2, Globe, List, Star } from 'lucide-react'
+import { Sparkles, Zap, Palette, Code, Calendar, Bell, FileText, Share2, Globe, List, Star, Circle } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { BentoCard, BentoGrid } from '@/components/ui/bento-grid'
 import { AnimatedListDemo } from '@/components/ui/AnimatedListDemo'
 import { Marquee3DDemo } from '@/components/ui/Marquee3DDemo'
+import { DotPatternDemo, DotPatternWithGlowEffectDemo } from '@/components/ui/DotPatternDemo'
 
 export default function TestesEfeitosPage() {
   const { isAuthenticated, isEditor, loading: authLoading } = useAuth()
@@ -41,6 +42,7 @@ export default function TestesEfeitosPage() {
     { id: 'bento-grid', label: 'Bento Grid', icon: Sparkles },
     { id: 'animated-list', label: 'Animated List', icon: List },
     { id: 'marquee-3d', label: 'Marquee 3D', icon: Star },
+    { id: 'dot-pattern', label: 'Dot Pattern', icon: Circle },
     { id: 'custom', label: 'Custom', icon: Code },
   ]
 
@@ -301,6 +303,47 @@ export default function TestesEfeitosPage() {
                         <p><strong>Dica:</strong> O componente <code className="bg-gray-100 px-2 py-1 rounded">Marquee</code> aceita qualquer conteúdo como children.</p>
                         <p>Use as props <code className="bg-gray-100 px-2 py-1 rounded">vertical</code>, <code className="bg-gray-100 px-2 py-1 rounded">reverse</code> e <code className="bg-gray-100 px-2 py-1 rounded">pauseOnHover</code> para personalizar a animação.</p>
                         <p>Use <code className="bg-gray-100 px-2 py-1 rounded">[--duration:20s]</code> para controlar a velocidade da animação.</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'dot-pattern' && (
+              <div className="space-y-6">
+                <div>
+                  <h2 className="text-xl font-bold mb-4">Dot Pattern</h2>
+                  <p className="text-gray-600 mb-4">
+                    Padrão de pontos animado para backgrounds - pode ser usado com ou sem efeito de brilho
+                  </p>
+                  
+                  {/* Exemplo Dot Pattern Básico */}
+                  <div className="mb-6">
+                    <h3 className="text-lg font-semibold mb-3">Dot Pattern Básico</h3>
+                    <DotPatternDemo />
+                  </div>
+
+                  {/* Exemplo Dot Pattern com Glow */}
+                  <div className="mb-6">
+                    <h3 className="text-lg font-semibold mb-3">Dot Pattern com Efeito Glow</h3>
+                    <DotPatternWithGlowEffectDemo />
+                  </div>
+
+                  <div className="mt-6">
+                    <h3 className="text-lg font-semibold mb-3">Área para seus testes</h3>
+                    <div className="bg-white rounded-lg p-8 border-2 border-dashed border-gray-300 min-h-[200px]">
+                      <p className="text-gray-400 text-center mb-4">
+                        Adicione seus próprios testes de Dot Pattern aqui
+                      </p>
+                      <div className="text-sm text-gray-500 space-y-2">
+                        <p><strong>Dica:</strong> O componente <code className="bg-gray-100 px-2 py-1 rounded">DotPattern</code> aceita várias props:</p>
+                        <ul className="list-disc list-inside space-y-1 ml-4">
+                          <li><code>width</code> e <code>height</code> - Espaçamento entre pontos (padrão: 16)</li>
+                          <li><code>cr</code> - Raio dos pontos (padrão: 1)</li>
+                          <li><code>glow</code> - Ativa efeito de brilho animado (padrão: false)</li>
+                          <li><code>className</code> - Classes CSS adicionais para personalizar cor e opacidade</li>
+                        </ul>
                       </div>
                     </div>
                   </div>
