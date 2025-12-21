@@ -108,6 +108,36 @@ async function getServiceDetailLayout(serviceId: string): Promise<ServiceDetailC
   }
 }
 
+async function getSiteSettings() {
+  try {
+    const supabase = createServerClient()
+    const { data, error } = await supabase
+      .from('site_settings')
+      .select('site_name, site_description, contact_email, contact_whatsapp, instagram_url, site_logo, homepage_content')
+      .eq('key', 'general')
+      .maybeSingle()
+
+    if (error) {
+      console.error('Error fetching site settings:', error)
+      return null
+    }
+    
+    // Garantir que homepage_content seja um objeto válido
+    let homepageContent: any = {}
+    if (data && data.homepage_content && typeof data.homepage_content === 'object') {
+      homepageContent = data.homepage_content
+    }
+    
+    return {
+      ...data,
+      homepage_content: homepageContent
+    }
+  } catch (error) {
+    console.error('Error fetching site settings:', error)
+    return null
+  }
+}
+
 export default async function ServicePage({ params }: { params: { slug: string } }) {
   const service = await getService(params.slug)
 
@@ -115,9 +145,10 @@ export default async function ServicePage({ params }: { params: { slug: string }
     notFound()
   }
 
-  const [testimonials, layoutContent] = await Promise.all([
+  const [testimonials, layoutContent, siteSettings] = await Promise.all([
     getTestimonials(service.id),
     getServiceDetailLayout(service.id),
+    getSiteSettings(),
   ])
 
   console.log('📄 Layout carregado para serviço:', {
@@ -134,36 +165,48 @@ export default async function ServicePage({ params }: { params: { slug: string }
     hero_title: service.name, // Usar o nome do serviço como título padrão
     benefits_enabled: true,
     benefits_items: [],
-    gifts_enabled: true,
+    gifts_enabled: false, // Desabilitado por padrão
     gifts_items: [],
     alternate_content_enabled: true,
     alternate_content_items: [],
     about_enabled: true,
-    testimonials_enabled: true,
+    testimonials_enabled: false, // Desabilitado por padrão
     cta_enabled: true,
-    section_order: ['hero', 'benefits', 'gifts', 'alternate', 'about', 'testimonials', 'cta'],
+    section_order: ['hero', 'benefits', 'alternate', 'about', 'cta'], // Removido 'gifts' e 'testimonials'
     section_visibility: {
       hero: true,
       benefits: true,
-      gifts: true,
+      gifts: false, // Desabilitado por padrão
       alternate: true,
       about: true,
-      testimonials: true,
+      testimonials: false, // Desabilitado por padrão
       cta: true,
     },
   }
 
-  // Ordem padrão das seções
-  const sectionOrder = content.section_order || ['hero', 'benefits', 'gifts', 'alternate', 'about', 'testimonials', 'cta']
+  // Ordem padrão das seções (sem 'gifts' e 'testimonials')
+  const sectionOrder = content.section_order || ['hero', 'benefits', 'alternate', 'about', 'cta']
   const sectionVisibility = content.section_visibility || {
     hero: true,
     benefits: true,
-    gifts: true,
+    gifts: false, // Desabilitado por padrão
     alternate: true,
     about: true,
-    testimonials: true,
+    testimonials: false, // Desabilitado por padrão
     cta: true,
   }
+  
+  // Filtrar seções desabilitadas da ordem
+  const filteredSectionOrder = sectionOrder.filter(sectionId => {
+    // Sempre permitir seções principais, mas remover gifts e testimonials se desabilitados
+    if (sectionId === 'gifts' && (content.gifts_enabled === false || sectionVisibility.gifts === false)) {
+      return false
+    }
+    if (sectionId === 'testimonials' && (content.testimonials_enabled === false || sectionVisibility.testimonials === false)) {
+      return false
+    }
+    return true
+  })
 
   // Mapear seções para componentes
   const sectionRenderers: Record<string, () => JSX.Element | null> = {
@@ -173,15 +216,15 @@ export default async function ServicePage({ params }: { params: { slug: string }
     alternate: () => <ServiceAlternateContent content={content} />,
     about: () => <ServiceAbout content={content} />,
     testimonials: () => <ServiceTestimonials content={content} testimonials={testimonials} />,
-    cta: () => <ServiceCTA content={content} />,
+    cta: () => <ServiceCTA content={content} siteSettings={siteSettings} />,
   }
 
   return (
     <ServicePageTracker serviceId={service.id} serviceSlug={service.slug}>
       <FixedLogo />
       <div className="min-h-screen bg-black">
-        {/* Renderizar seções na ordem configurada */}
-        {sectionOrder.map((sectionId: string) => {
+        {/* Renderizar seções na ordem configurada (filtradas) */}
+        {filteredSectionOrder.map((sectionId: string) => {
           const renderer = sectionRenderers[sectionId]
           if (!renderer || sectionVisibility[sectionId] === false) return null
           return <div key={sectionId}>{renderer()}</div>

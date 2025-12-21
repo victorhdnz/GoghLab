@@ -17,50 +17,16 @@ function getYouTubeId(url: string): string | null {
 export function ServiceHeroVideo({ content, serviceName }: ServiceHeroVideoProps) {
   if (!content.hero_enabled) return null
 
-      // Processar título com destaque, garantindo espaçamento adequado
-      let titleParts: string[] = []
-      let highlightWord = content.hero_title_highlight || ''
-      const highlightColor = content.hero_title_highlight_color || '#FFFFFF'
-      
-      if (content.hero_title && highlightWord) {
-        // Dividir o título pela palavra destacada
-        const parts = content.hero_title.split(highlightWord)
-        if (parts.length === 2) {
-          // Garantir que há espaço antes e depois da palavra destacada
-          titleParts = [
-            parts[0].trimEnd(), // Remove espaços no final da primeira parte
-            parts[1].trimStart() // Remove espaços no início da segunda parte
-          ]
-        } else {
-          // Se não encontrou a palavra, usar o título completo
-          titleParts = [content.hero_title]
-          highlightWord = ''
-        }
-      } else {
-        titleParts = [content.hero_title || serviceName]
-        highlightWord = ''
-      }
-  
   const isYouTube = content.hero_video_url ? !!getYouTubeId(content.hero_video_url) : false
   const youtubeId = content.hero_video_url ? getYouTubeId(content.hero_video_url) : null
 
   return (
-    <section className="relative bg-gradient-to-b from-gray-900 via-black to-gray-900 text-white py-12 md:py-20 px-4 overflow-hidden">
+    <section className="relative bg-gradient-to-b from-gray-900 via-black to-gray-900 text-white py-12 md:py-20 px-4 overflow-hidden pt-24 md:pt-32">
       <div className="container mx-auto max-w-6xl relative z-10">
-        {/* Título com destaque - Antes do vídeo */}
+        {/* Título - Antes do vídeo */}
         <div className="text-center space-y-6 mb-12">
           <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold leading-tight text-white">
-            {titleParts[0]}
-            {highlightWord && (
-              <>
-                {' '}
-                <span style={{ color: highlightColor }} className="font-extrabold drop-shadow-lg">
-                  {highlightWord}
-                </span>
-                {' '}
-              </>
-            )}
-            {titleParts[1]}
+            {content.hero_title || serviceName}
           </h1>
           {content.hero_subtitle && (
             <p className="text-lg md:text-xl text-gray-300 max-w-3xl mx-auto leading-relaxed">

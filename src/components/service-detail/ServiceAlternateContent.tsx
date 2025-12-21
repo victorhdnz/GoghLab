@@ -24,35 +24,6 @@ export function ServiceAlternateContent({ content }: ServiceAlternateContentProp
           const isImageLeft = item.image_position === 'left' || (item.image_position !== 'right' && item.position === 'left')
           const isImageRight = item.image_position === 'right' || (item.image_position !== 'left' && item.position === 'right')
 
-          // Processar título com destaque, garantindo espaçamento adequado
-          let titleParts: string[] = []
-          let highlightWord = item.title_highlight || ''
-          const highlightColor = item.title_highlight_color || '#FFFFFF'
-          
-          if (item.title && highlightWord) {
-            // Buscar a palavra destacada no título (case-insensitive)
-            const titleLower = item.title.toLowerCase()
-            const highlightLower = highlightWord.toLowerCase()
-            const highlightIndex = titleLower.indexOf(highlightLower)
-            
-            if (highlightIndex !== -1) {
-              // Encontrou a palavra, dividir o título
-              const beforeHighlight = item.title.substring(0, highlightIndex)
-              const afterHighlight = item.title.substring(highlightIndex + highlightWord.length)
-              
-              titleParts = [
-                beforeHighlight.trimEnd(),
-                afterHighlight.trimStart()
-              ]
-            } else {
-              // Se não encontrou a palavra, usar o título completo
-              titleParts = [item.title]
-              highlightWord = ''
-            }
-          } else {
-            titleParts = [item.title || '']
-            highlightWord = ''
-          }
 
           return (
             <div
@@ -93,17 +64,7 @@ export function ServiceAlternateContent({ content }: ServiceAlternateContentProp
               <div className={`space-y-6 ${isImageLeft ? 'lg:col-start-2' : 'lg:col-start-1'}`}>
                 {item.title && (
                   <h3 className="text-2xl md:text-4xl font-bold text-white leading-tight">
-                    {titleParts[0]}
-                    {highlightWord && (
-                      <>
-                        {' '}
-                        <span style={{ color: highlightColor }} className="font-extrabold">
-                          {highlightWord}
-                        </span>
-                        {' '}
-                      </>
-                    )}
-                    {titleParts[1]}
+                    {item.title}
                   </h3>
                 )}
                 {item.description && (
