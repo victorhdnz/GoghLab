@@ -4,9 +4,10 @@ import { useState } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { BackButton } from '@/components/ui/BackButton'
-import { Sparkles, Zap, Palette, Code, Calendar, Bell, FileText, Share2, Globe } from 'lucide-react'
+import { Sparkles, Zap, Palette, Code, Calendar, Bell, FileText, Share2, Globe, List } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { BentoCard, BentoGrid } from '@/components/ui/bento-grid'
+import { AnimatedListDemo } from '@/components/ui/AnimatedListDemo'
 
 export default function TestesEfeitosPage() {
   const { isAuthenticated, isEditor, loading: authLoading } = useAuth()
@@ -37,6 +38,7 @@ export default function TestesEfeitosPage() {
     { id: 'gsap', label: 'GSAP', icon: Sparkles },
     { id: 'shadcn', label: 'Shadcn UI', icon: Palette },
     { id: 'bento-grid', label: 'Bento Grid', icon: Sparkles },
+    { id: 'animated-list', label: 'Animated List', icon: List },
     { id: 'custom', label: 'Custom', icon: Code },
   ]
 
@@ -238,6 +240,35 @@ export default function TestesEfeitosPage() {
                           <li><code>lg:col-span-3</code> - 3 colunas (padrão)</li>
                           <li><code>lg:row-start-1 lg:row-end-3</code> - Altura dupla</li>
                         </ul>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'animated-list' && (
+              <div className="space-y-6">
+                <div>
+                  <h2 className="text-xl font-bold mb-4">Animated List</h2>
+                  <p className="text-gray-600 mb-4">
+                    Lista animada que exibe itens sequencialmente com animações suaves
+                  </p>
+                  
+                  {/* Exemplo Animated List */}
+                  <div className="bg-gray-900 rounded-lg p-8 min-h-[600px]">
+                    <AnimatedListDemo />
+                  </div>
+
+                  <div className="mt-6">
+                    <h3 className="text-lg font-semibold mb-3">Área para seus testes</h3>
+                    <div className="bg-white rounded-lg p-8 border-2 border-dashed border-gray-300 min-h-[200px]">
+                      <p className="text-gray-400 text-center mb-4">
+                        Adicione seus próprios itens animados aqui
+                      </p>
+                      <div className="text-sm text-gray-500 space-y-2">
+                        <p><strong>Dica:</strong> O componente <code className="bg-gray-100 px-2 py-1 rounded">AnimatedList</code> aceita qualquer conteúdo como children.</p>
+                        <p>Use a prop <code className="bg-gray-100 px-2 py-1 rounded">delay</code> para controlar o tempo entre cada item (padrão: 1000ms).</p>
                       </div>
                     </div>
                   </div>
