@@ -1,11 +1,13 @@
 'use client'
 
 import * as React from 'react'
+import { useState } from 'react'
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Check, X } from "lucide-react"
+import { Modal } from "@/components/ui/Modal"
+import { Check, X, BarChart3 } from "lucide-react"
 
 // --- 1. Typescript Interfaces (API) ---
 
@@ -78,6 +80,8 @@ export const PricingComponent: React.FC<PricingComponentProps> = ({
   className,
   ...props
 }) => {
+  const [isComparisonModalOpen, setIsComparisonModalOpen] = useState(false)
+
   // Ensure exactly 3 plans are passed for the intended layout
   if (plans.length !== 3) {
     console.error("PricingComponent requires exactly 3 pricing tiers.")
@@ -277,11 +281,81 @@ export const PricingComponent: React.FC<PricingComponentProps> = ({
 
       {/* Comparison Table (Desktop/Tablet visibility) */}
       <section aria-label="Feature Comparison Table" className="mt-16">
-        <h3 className="text-2xl font-bold mb-6 hidden md:block text-center text-white">
-          Comparação Detalhada de Recursos
-        </h3>
+        <div className="flex flex-col md:flex-row items-center justify-between mb-6">
+          <h3 className="text-2xl font-bold hidden md:block text-center text-white w-full">
+            Comparação Detalhada de Recursos
+          </h3>
+          {/* Botão para mobile */}
+          <Button
+            onClick={() => setIsComparisonModalOpen(true)}
+            variant="outline"
+            className="md:hidden w-full max-w-sm bg-gray-800 border-gray-700 text-white hover:bg-gray-700"
+          >
+            <BarChart3 size={18} className="mr-2" />
+            Ver Comparação Detalhada
+          </Button>
+        </div>
         {ComparisonTable}
       </section>
+
+      {/* Modal para mobile com tabela de comparação */}
+      <Modal
+        isOpen={isComparisonModalOpen}
+        onClose={() => setIsComparisonModalOpen(false)}
+        title="Comparação Detalhada de Recursos"
+        size="xl"
+      >
+        <div className="border border-gray-700 rounded-lg overflow-x-auto shadow-sm bg-gray-900">
+          <table className="min-w-full divide-y divide-gray-700">
+            <thead>
+              <tr className="bg-gray-800">
+                <th scope="col" className="px-4 py-3 text-left text-sm font-semibold text-white w-[150px] whitespace-nowrap">
+                  Recurso
+                </th>
+                {plans.map((plan) => (
+                  <th
+                    key={`th-modal-${plan.id}`}
+                    scope="col"
+                    className={cn(
+                      "px-4 py-3 text-center text-sm font-semibold text-white whitespace-nowrap",
+                      plan.isPopular && "bg-gray-800"
+                    )}
+                  >
+                    {plan.name}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-700 bg-gray-900">
+              {allFeatures.map((featureName, index) => (
+                <tr key={`modal-${featureName}`} className={cn("transition-colors hover:bg-gray-800", index % 2 === 0 ? "bg-gray-900" : "bg-gray-800/50")}>
+                  <td className="px-4 py-3 text-left text-sm font-medium text-white">
+                    {featureName}
+                  </td>
+                  {plans.map((plan) => {
+                    const feature = plan.features.find(f => f.name === featureName)
+                    const isIncluded = feature?.isIncluded ?? false
+                    const Icon = isIncluded ? Check : X
+                    const iconColor = isIncluded ? "text-white" : "text-gray-500"
+
+                    return (
+                      <td
+                        key={`modal-${plan.id}-${featureName}`}
+                        className={cn(
+                          "px-4 py-3 text-center transition-all duration-150",
+                          plan.isPopular && "bg-gray-800/30"
+                        )}
+                      >
+                        <Icon className={cn("h-5 w-5 mx-auto", iconColor)} aria-hidden="true" />
+                      </td>
+                    )
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Modal>
     </div>
   )
 }
