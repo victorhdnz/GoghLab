@@ -602,12 +602,12 @@ export default function PricingEditorPage() {
                     </div>
 
                     {/* Recursos de Comparação Detalhada */}
-                    {comparisonFeatures.length > 0 && (
+                    {comparisonFeatures.length > 0 ? (
                       <div className="border-t pt-4 mt-4">
                         <h4 className="font-semibold mb-3">Textos dos Recursos de Comparação</h4>
                         <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
                           <p className="text-xs text-blue-800">
-                            <strong>💡 Dica:</strong> Configure o texto de cada recurso para este plano. Se deixar vazio, aparecerá como "não tem" (✗) na tabela de comparação detalhada.
+                            <strong>💡 Dica:</strong> Configure o texto de cada recurso para este plano. Se deixar vazio, aparecerá como "não tem" (✗) na tabela de comparação detalhada. Os recursos são criados na seção "Recursos de Comparação (Globais)" acima.
                           </p>
                         </div>
                         <div className="space-y-3">
@@ -640,44 +640,15 @@ export default function PricingEditorPage() {
                           })}
                         </div>
                       </div>
+                    ) : (
+                      <div className="border-t pt-4 mt-4">
+                        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                          <p className="text-sm text-yellow-800">
+                            <strong>⚠️ Atenção:</strong> Crie recursos de comparação na seção "Recursos de Comparação (Globais)" acima para poder configurá-los aqui.
+                          </p>
+                        </div>
+                      </div>
                     )}
-
-                    {/* Features */}
-                    <div className="border-t pt-4 mt-4">
-                      <div className="flex justify-between items-center mb-3">
-                        <h4 className="font-semibold">Recursos (Features)</h4>
-                        <Button
-                          onClick={() => addFeature(planIndex)}
-                          variant="outline"
-                          size="sm"
-                        >
-                          + Adicionar Recurso
-                        </Button>
-                      </div>
-                      <div className="space-y-3">
-                        {plan.features.map((feature, featureIndex) => (
-                          <div key={featureIndex} className="flex gap-3 items-start">
-                            <Input
-                              value={feature.name}
-                              onChange={(e) => updateFeature(planIndex, featureIndex, 'name', e.target.value)}
-                              placeholder="Nome do recurso"
-                              className="flex-1"
-                            />
-                            <Switch
-                              checked={feature.isIncluded}
-                              onCheckedChange={(checked) => updateFeature(planIndex, featureIndex, 'isIncluded', checked)}
-                            />
-                            <Button
-                              onClick={() => removeFeature(planIndex, featureIndex)}
-                              variant="ghost"
-                              size="sm"
-                            >
-                              Remover
-                            </Button>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
                   </div>
                 </div>
               ))}
