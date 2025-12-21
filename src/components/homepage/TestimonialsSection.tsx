@@ -260,7 +260,7 @@ export function TestimonialsSection({
               <Marquee 
                 pauseOnHover 
                 vertical 
-                className={`[--duration:${validDuration}s!important] ${!isVisible ? '[animation-play-state:paused]' : ''}`}
+                className={`[--duration:${validDuration}s] ${!isVisible ? '[animation-play-state:paused]' : ''}`}
               >
                 {firstRow.map((review) => (
                   <ReviewCard key={review.id} {...review} />
@@ -269,7 +269,7 @@ export function TestimonialsSection({
               <Marquee 
                 reverse 
                 pauseOnHover 
-                className={`[--duration:${validDuration}s!important] ${!isVisible ? '[animation-play-state:paused]' : ''}`} 
+                className={`[--duration:${validDuration}s] ${!isVisible ? '[animation-play-state:paused]' : ''}`} 
                 vertical
               >
                 {secondRow.map((review) => (
@@ -279,7 +279,7 @@ export function TestimonialsSection({
               <Marquee 
                 reverse 
                 pauseOnHover 
-                className={`[--duration:${validDuration}s!important] ${!isVisible ? '[animation-play-state:paused]' : ''}`} 
+                className={`[--duration:${validDuration}s] ${!isVisible ? '[animation-play-state:paused]' : ''}`} 
                 vertical
               >
                 {thirdRow.map((review) => (
@@ -288,7 +288,7 @@ export function TestimonialsSection({
               </Marquee>
               <Marquee 
                 pauseOnHover 
-                className={`[--duration:${validDuration}s!important] ${!isVisible ? '[animation-play-state:paused]' : ''}`} 
+                className={`[--duration:${validDuration}s] ${!isVisible ? '[animation-play-state:paused]' : ''}`} 
                 vertical
               >
                 {fourthRow.map((review) => (
@@ -298,10 +298,10 @@ export function TestimonialsSection({
             </div>
 
             {/* Gradientes para efeito de fade infinito nas bordas - igual à demo */}
-            <div className="pointer-events-none absolute inset-x-0 top-0 h-1/4 bg-gradient-to-b from-black z-[100]"></div>
-            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/4 bg-gradient-to-t from-black z-[100]"></div>
-            <div className="pointer-events-none absolute inset-y-0 left-0 w-1/4 bg-gradient-to-r from-black z-[100]"></div>
-            <div className="pointer-events-none absolute inset-y-0 right-0 w-1/4 bg-gradient-to-l from-black z-[100]"></div>
+            <div className="pointer-events-none absolute inset-x-0 top-0 h-1/3 bg-gradient-to-b from-black via-black/80 to-transparent z-50"></div>
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black via-black/80 to-transparent z-50"></div>
+            <div className="pointer-events-none absolute inset-y-0 left-0 w-1/4 bg-gradient-to-r from-black via-black/60 to-transparent z-50"></div>
+            <div className="pointer-events-none absolute inset-y-0 right-0 w-1/4 bg-gradient-to-l from-black via-black/60 to-transparent z-50"></div>
           </div>
         </div>
       </section>
