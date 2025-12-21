@@ -268,6 +268,7 @@ export function HomepageSections({
         plans={pricing.pricing_plans}
         whatsappNumber={pricing.pricing_whatsapp_number || siteSettings?.contact_whatsapp}
         comparisonFeatures={pricing.comparison_features || []}
+        featureCategories={pricing.feature_categories || []}
       />
     )
   }

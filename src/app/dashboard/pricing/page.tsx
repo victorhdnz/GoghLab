@@ -19,6 +19,13 @@ interface ComparisonFeature {
   id: string
   name: string
   order: number
+  category?: string // Categoria do recurso (ex: "Criação de Site", "Gestão de Redes Sociais")
+}
+
+interface FeatureCategory {
+  id: string
+  name: string
+  order: number
 }
 
 interface PlanFeatureValue {
@@ -153,6 +160,12 @@ export default function PricingEditorPage() {
         const features = data.homepage_content.pricing.comparison_features as ComparisonFeature[]
         setComparisonFeatures(features.sort((a, b) => a.order - b.order))
       }
+
+      // Carregar categorias de recursos
+      if (data?.homepage_content?.pricing?.feature_categories) {
+        const categories = data.homepage_content.pricing.feature_categories as FeatureCategory[]
+        setFeatureCategories(categories.sort((a, b) => a.order - b.order))
+      }
     } catch (error) {
       console.error('Erro ao carregar configurações:', error)
       toast.error('Erro ao carregar configurações de pricing.')
@@ -174,6 +187,7 @@ export default function PricingEditorPage() {
             pricing: {
               ...formData,
               comparison_features: comparisonFeatures,
+              feature_categories: featureCategories,
             },
           },
         },
@@ -249,6 +263,7 @@ export default function PricingEditorPage() {
       id: generateFeatureId(),
       name: '',
       order: comparisonFeatures.length,
+      category: undefined,
     }
     setComparisonFeatures([...comparisonFeatures, newFeature])
   }
@@ -268,6 +283,12 @@ export default function PricingEditorPage() {
   const handleUpdateComparisonFeature = (featureId: string, field: 'name', value: string) => {
     setComparisonFeatures(prev => prev.map(feature => 
       feature.id === featureId ? { ...feature, [field]: value } : feature
+    ))
+  }
+
+  const handleUpdateComparisonFeatureCategory = (featureId: string, categoryId: string | undefined) => {
+    setComparisonFeatures(prev => prev.map(feature => 
+      feature.id === featureId ? { ...feature, category: categoryId } : feature
     ))
   }
 
@@ -419,6 +440,79 @@ export default function PricingEditorPage() {
               )}
             </div>
           </div>
+
+          {/* Categorias de Recursos */}
+          {formData.pricing_enabled && (
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+              <button
+                onClick={() => setCategoriesExpanded(!categoriesExpanded)}
+                className="w-full flex items-center justify-between mb-4"
+              >
+                <div className="flex items-center gap-3">
+                  <h2 className="text-xl font-bold">Categorias de Recursos</h2>
+                  <span className="text-sm text-gray-500">({featureCategories.length} categorias)</span>
+                </div>
+                {categoriesExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+              </button>
+
+              {categoriesExpanded && (
+                <div className="space-y-4">
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <p className="text-sm text-blue-800">
+                      <strong>💡 Dica:</strong> Crie categorias para agrupar recursos similares. Ex: "Criação de Site", "Gestão de Redes Sociais", etc. Isso permite que diferentes planos tenham o mesmo recurso com textos diferentes.
+                    </p>
+                  </div>
+
+                  <div className="space-y-3">
+                    {featureCategories.map((category, index) => (
+                      <div key={category.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => handleMoveCategory(category.id, 'up')}
+                            disabled={index === 0}
+                            className="p-1 hover:bg-gray-200 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                            title="Mover para cima"
+                          >
+                            <ArrowUp size={16} />
+                          </button>
+                          <button
+                            onClick={() => handleMoveCategory(category.id, 'down')}
+                            disabled={index === featureCategories.length - 1}
+                            className="p-1 hover:bg-gray-200 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                            title="Mover para baixo"
+                          >
+                            <ArrowDown size={16} />
+                          </button>
+                        </div>
+                        <Input
+                          value={category.name}
+                          onChange={(e) => handleUpdateCategory(category.id, 'name', e.target.value)}
+                          placeholder="Nome da categoria (ex: Criação de Site)"
+                          className="flex-1"
+                        />
+                        <button
+                          onClick={() => handleRemoveCategory(category.id)}
+                          className="text-red-600 hover:text-red-800 p-2 hover:bg-red-50 rounded"
+                          title="Remover categoria"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+
+                  <Button
+                    onClick={handleAddCategory}
+                    variant="outline"
+                    className="w-full"
+                  >
+                    <Plus size={18} className="mr-2" />
+                    Adicionar Categoria
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Recursos de Comparação Globais */}
           {formData.pricing_enabled && (
@@ -605,10 +699,16 @@ export default function PricingEditorPage() {
                     {comparisonFeatures.length > 0 ? (
                       <div className="border-t pt-4 mt-4">
                         <h4 className="font-semibold mb-3">Textos dos Recursos de Comparação</h4>
-                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
-                          <p className="text-xs text-blue-800">
-                            <strong>💡 Dica:</strong> Configure o texto de cada recurso para este plano. Se deixar vazio, aparecerá como "não tem" (✗) na tabela de comparação detalhada. Os recursos são criados na seção "Recursos de Comparação (Globais)" acima.
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                          <p className="text-sm text-blue-800 mb-2">
+                            <strong>💡 Como funciona:</strong>
                           </p>
+                          <ul className="text-xs text-blue-800 space-y-1 ml-4 list-disc">
+                            <li><strong>Nome do recurso:</strong> Aparece como título principal na tabela (ex: "Criação de Site")</li>
+                            <li><strong>Quando TODOS os planos têm texto:</strong> A tabela mostra ✓ + o texto específico de cada plano lado a lado</li>
+                            <li><strong>Quando APENAS ALGUNS planos têm:</strong> Mostra ✓ + texto para quem tem, e ✗ para quem não tem</li>
+                            <li><strong>Se deixar vazio:</strong> Aparecerá como ✗ na tabela, indicando que o plano não tem esse recurso</li>
+                          </ul>
                         </div>
                         <div className="space-y-3">
                           {comparisonFeatures.map((comparisonFeature) => {

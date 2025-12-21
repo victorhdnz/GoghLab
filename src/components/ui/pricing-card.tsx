@@ -44,6 +44,13 @@ export interface ComparisonFeature {
   id: string
   name: string
   order: number
+  category?: string // Categoria do recurso (ex: "Criação de Site", "Gestão de Redes Sociais")
+}
+
+export interface FeatureCategory {
+  id: string
+  name: string
+  order: number
 }
 
 export interface PricingComponentProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -63,6 +70,8 @@ export interface PricingComponentProps extends React.HTMLAttributes<HTMLDivEleme
   annualDiscountPercent?: number
   /** Recursos globais para comparação detalhada */
   comparisonFeatures?: ComparisonFeature[]
+  /** Categorias de recursos */
+  featureCategories?: FeatureCategory[]
 }
 
 // --- 2. Utility Components ---
@@ -93,6 +102,7 @@ export const PricingComponent: React.FC<PricingComponentProps> = ({
   description = "Soluções completas de gestão digital para impulsionar seu negócio. Do básico ao enterprise, temos o plano certo para você.",
   annualDiscountPercent = 20,
   comparisonFeatures = [],
+  featureCategories = [],
   className,
   ...props
 }) => {
@@ -283,6 +293,37 @@ export const PricingComponent: React.FC<PricingComponentProps> = ({
   )
 
   // --- 3.3. Comparison Table (Mobile hidden, Tablet/Desktop visible) ---
+  // Agrupar recursos por categoria
+  const groupedFeatures = React.useMemo(() => {
+    if (comparisonFeatures.length === 0) {
+      return null
+    }
+
+    const grouped: Record<string, Array<{ name: string; feature: ComparisonFeature }>> = {}
+    
+    // Agrupar por categoria
+    comparisonFeatures.forEach(feature => {
+      const categoryId = feature.category || 'uncategorized'
+      if (!grouped[categoryId]) {
+        grouped[categoryId] = []
+      }
+      grouped[categoryId].push({ name: feature.name, feature })
+    })
+
+    // Ordenar categorias
+    const sortedCategories = featureCategories
+      .filter(cat => grouped[cat.id] && grouped[cat.id].length > 0)
+      .sort((a, b) => a.order - b.order)
+      .map(cat => cat.id)
+    
+    // Adicionar categoria "uncategorized" no final se houver
+    if (grouped['uncategorized'] && grouped['uncategorized'].length > 0) {
+      sortedCategories.push('uncategorized')
+    }
+
+    return { grouped, sortedCategories }
+  }, [comparisonFeatures, featureCategories])
+
   const ComparisonTable = (
     <div className="mt-16 hidden md:block border border-gray-700 rounded-lg overflow-x-auto shadow-sm bg-gray-900">
       <table className="min-w-full divide-y divide-gray-700">
@@ -306,46 +347,134 @@ export const PricingComponent: React.FC<PricingComponentProps> = ({
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-700 bg-gray-900">
-          {allFeatures.map((featureName, index) => {
-            // Se estiver usando recursos globais, encontrar o ID do recurso
-            const comparisonFeature = comparisonFeatures.find(f => f.name === featureName)
-            const featureId = comparisonFeature?.id
+          {groupedFeatures ? (
+            // Renderizar agrupado por categoria
+            (() => {
+              let rowIndex = 0
+              return groupedFeatures.sortedCategories.map((categoryId) => {
+                const categoryName = categoryId === 'uncategorized' 
+                  ? null 
+                  : featureCategories.find(c => c.id === categoryId)?.name
+                const features = groupedFeatures.grouped[categoryId] || []
 
-            return (
-              <tr key={featureName} className={cn("transition-colors hover:bg-gray-800", index % 2 === 0 ? "bg-gray-900" : "bg-gray-800/50")}>
-                <td className="px-6 py-3 text-left text-sm font-medium text-white">
-                  {featureName}
-                </td>
-                {plans.map((plan) => {
-                  // Se usar recursos globais, verificar feature_values
-                  let isIncluded = false
-                  if (comparisonFeatures.length > 0 && featureId) {
-                    const featureValue = (plan.feature_values || []).find(fv => fv.feature_id === featureId)
-                    isIncluded = !!(featureValue?.text && featureValue.text.trim() !== '')
-                  } else {
-                    // Fallback para features antigas
-                    const feature = plan.features.find(f => f.name === featureName)
-                    isIncluded = feature?.isIncluded ?? false
-                  }
-                  
-                  const Icon = isIncluded ? Check : X
-                  const iconColor = isIncluded ? "text-white" : "text-gray-500"
+                return (
+                  <React.Fragment key={categoryId}>
+                    {categoryName && (
+                      <tr className="bg-gray-800/70">
+                        <td colSpan={4} className="px-6 py-3 text-left text-sm font-bold text-white">
+                          {categoryName}
+                        </td>
+                      </tr>
+                    )}
+                    {features.map(({ name, feature }) => {
+                      const featureId = feature.id
+                      const currentRowIndex = rowIndex++
+                      
+                      // Verificar valores de cada plano
+                      const planValues = plans.map(plan => {
+                        const featureValue = (plan.feature_values || []).find(fv => fv.feature_id === featureId)
+                        return {
+                          plan,
+                          hasFeature: !!(featureValue?.text && featureValue.text.trim() !== ''),
+                          text: featureValue?.text || ''
+                        }
+                      })
+                      
+                      const allHaveFeature = planValues.every(pv => pv.hasFeature)
 
-                  return (
-                    <td
-                      key={`${plan.id}-${featureName}`}
-                      className={cn(
-                        "px-6 py-3 text-center transition-all duration-150",
-                        plan.isPopular && "bg-gray-800/30"
-                      )}
-                    >
-                      <Icon className={cn("h-5 w-5 mx-auto", iconColor)} aria-hidden="true" />
-                    </td>
-                  )
-                })}
-              </tr>
-            )
-          })}
+                      return (
+                        <tr key={name} className={cn("transition-colors hover:bg-gray-800", currentRowIndex % 2 === 0 ? "bg-gray-900" : "bg-gray-800/50")}>
+                          {/* Nome do recurso (título principal) */}
+                          <td className="px-6 py-3 text-left text-sm font-semibold text-white">
+                            {name}
+                          </td>
+                          {planValues.map(({ plan, hasFeature, text }) => {
+                            if (allHaveFeature) {
+                              // TODOS os planos têm texto: mostrar ✓ + texto específico de cada plano
+                              return (
+                                <td
+                                  key={`${plan.id}-${name}`}
+                                  className={cn(
+                                    "px-6 py-3 text-left transition-all duration-150",
+                                    plan.isPopular && "bg-gray-800/30"
+                                  )}
+                                >
+                                  <div className="flex items-start gap-2">
+                                    <Check className="h-4 w-4 flex-shrink-0 text-white mt-0.5" aria-hidden="true" />
+                                    <span className="text-sm text-gray-300 leading-relaxed">{text}</span>
+                                  </div>
+                                </td>
+                              )
+                            } else {
+                              // APENAS ALGUNS planos têm: mostrar ✓ + texto para quem tem, ✗ para quem não tem
+                              return (
+                                <td
+                                  key={`${plan.id}-${name}`}
+                                  className={cn(
+                                    "px-6 py-3 transition-all duration-150",
+                                    hasFeature ? "text-left" : "text-center",
+                                    plan.isPopular && "bg-gray-800/30"
+                                  )}
+                                >
+                                  {hasFeature && text ? (
+                                    <div className="flex items-start gap-2">
+                                      <Check className="h-4 w-4 flex-shrink-0 text-white mt-0.5" aria-hidden="true" />
+                                      <span className="text-sm text-gray-300 leading-relaxed">{text}</span>
+                                    </div>
+                                  ) : (
+                                    <X className="h-5 w-5 mx-auto text-gray-500" aria-hidden="true" />
+                                  )}
+                                </td>
+                              )
+                            }
+                          })}
+                        </tr>
+                      )
+                    })}
+                  </React.Fragment>
+                )
+              })
+            })()
+          ) : (
+            // Fallback: mostrar lista simples sem categorias
+            allFeatures.map((featureName, index) => {
+              const feature = comparisonFeatures.find(f => f.name === featureName)
+              const featureId = feature?.id
+
+              return (
+                <tr key={featureName} className={cn("transition-colors hover:bg-gray-800", index % 2 === 0 ? "bg-gray-900" : "bg-gray-800/50")}>
+                  <td className="px-6 py-3 text-left text-sm font-medium text-white">
+                    {featureName}
+                  </td>
+                  {plans.map((plan) => {
+                    let isIncluded = false
+                    if (comparisonFeatures.length > 0 && featureId) {
+                      const featureValue = (plan.feature_values || []).find(fv => fv.feature_id === featureId)
+                      isIncluded = !!(featureValue?.text && featureValue.text.trim() !== '')
+                    } else {
+                      const feature = plan.features.find(f => f.name === featureName)
+                      isIncluded = feature?.isIncluded ?? false
+                    }
+                    
+                    const Icon = isIncluded ? Check : X
+                    const iconColor = isIncluded ? "text-white" : "text-gray-500"
+
+                    return (
+                      <td
+                        key={`${plan.id}-${featureName}`}
+                        className={cn(
+                          "px-6 py-3 text-center transition-all duration-150",
+                          plan.isPopular && "bg-gray-800/30"
+                        )}
+                      >
+                        <Icon className={cn("h-5 w-5 mx-auto", iconColor)} aria-hidden="true" />
+                      </td>
+                    )
+                  })}
+                </tr>
+              )
+            })
+          )}
         </tbody>
       </table>
     </div>
