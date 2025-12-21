@@ -5,7 +5,6 @@ import { cn } from '@/lib/utils'
 import { Marquee } from '@/components/ui/marquee'
 import { FadeInSection } from '@/components/ui/FadeInSection'
 import Image from 'next/image'
-import Image from 'next/image'
 
 export interface TestimonialItem {
   id: string
