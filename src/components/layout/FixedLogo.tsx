@@ -8,6 +8,7 @@ import { createClient } from '@/lib/supabase/client'
 export function FixedLogo() {
   const [siteLogo, setSiteLogo] = useState<string | null>(null)
   const [siteName, setSiteName] = useState<string>('MV Company')
+  const [opacity, setOpacity] = useState<number>(1)
 
   useEffect(() => {
     const loadLogo = async () => {
@@ -41,6 +42,35 @@ export function FixedLogo() {
     loadLogo()
   }, [])
 
+  // Efeito para ajustar transparência baseado no scroll
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollY = window.scrollY
+      // Começar a reduzir opacidade após 50px de scroll
+      // Opacidade mínima de 0.3 quando scroll > 200px
+      const threshold = 50
+      const maxScroll = 200
+      
+      if (scrollY < threshold) {
+        setOpacity(1)
+      } else if (scrollY >= maxScroll) {
+        setOpacity(0.3)
+      } else {
+        // Interpolação linear entre 1 e 0.3
+        const progress = (scrollY - threshold) / (maxScroll - threshold)
+        setOpacity(1 - (progress * 0.7))
+      }
+    }
+
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    // Definir opacidade inicial
+    handleScroll()
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll)
+    }
+  }, [])
+
   // Se não houver logo, não renderizar
   if (!siteLogo) return null
 
@@ -48,8 +78,9 @@ export function FixedLogo() {
     <header className="fixed top-0 left-0 right-0 z-[100] flex justify-center items-center py-3 px-4 pointer-events-none">
       <Link 
         href="/" 
-        className="pointer-events-auto transition-opacity hover:opacity-80"
+        className="pointer-events-auto transition-opacity duration-300 hover:opacity-80"
         prefetch={true}
+        style={{ opacity }}
       >
         <div className="relative w-20 h-10 md:w-24 md:h-12 lg:w-28 lg:h-14">
           <Image
