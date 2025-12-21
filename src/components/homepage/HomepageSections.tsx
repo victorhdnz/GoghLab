@@ -11,6 +11,8 @@ import { SocialButton } from '@/components/ui/SocialButton'
 import { FadeInSection } from '@/components/ui/FadeInSection'
 import { NotificationsSection } from './NotificationsSection'
 import { TestimonialsSection } from './TestimonialsSection'
+import { Highlighter } from '@/components/ui/highlighter'
+import { AuroraText } from '@/components/ui/aurora-text'
 
 interface HomepageSectionsProps {
   homepageContent: any
@@ -65,12 +67,16 @@ export function HomepageSections({
             )}
             {homepageContent.hero_subtitle && (
               <p className="text-lg md:text-xl text-gray-400 max-w-3xl mx-auto font-light mb-4">
-                {homepageContent.hero_subtitle}
+                <Highlighter action="underline" color="#FF9800" isView={true}>
+                  {homepageContent.hero_subtitle}
+                </Highlighter>
               </p>
             )}
             {homepageContent.hero_description && (
               <p className="text-base md:text-lg text-gray-500 max-w-2xl mx-auto font-light">
-                {homepageContent.hero_description}
+                <AuroraText colors={["#0070F3", "#38bdf8", "#60a5fa", "#93c5fd", "#dbeafe"]} speed={1}>
+                  {homepageContent.hero_description}
+                </AuroraText>
               </p>
             )}
           </div>
