@@ -83,7 +83,7 @@ export function TestimonialsSection({
   title,
   description,
   testimonials = [],
-  duration = 80,
+  duration = 120,
 }: TestimonialsSectionProps) {
   // Se não estiver habilitado explicitamente como false, verificar se há depoimentos
   if (enabled === false) return null
@@ -174,19 +174,36 @@ export function TestimonialsSection({
       }
       
       // Criar sequências suficientes para preencher todas as 4 colunas
-      // Usar 4 sequências para garantir conteúdo distribuído em todas as colunas
+      // Usar 6 sequências para garantir que todas as colunas tenham conteúdo suficiente
+      // e passem juntas de forma sincronizada
       const extendedItems: TestimonialItem[] = []
-      for (let i = 0; i < 4; i++) {
+      for (let i = 0; i < 6; i++) {
         const shuffled = shuffleWithoutConsecutive(items)
         extendedItems.push(...shuffled)
       }
       
       // Distribuir de forma intercalada (round-robin) entre as 4 colunas
-      // Isso garante que cada coluna receba itens de forma equilibrada
+      // Isso garante que cada coluna receba itens de forma equilibrada e sincronizada
       const columns: TestimonialItem[][] = [[], [], [], []]
       extendedItems.forEach((item, index) => {
         columns[index % 4].push(item)
       })
+      
+      // Garantir que todas as colunas tenham pelo menos o mesmo número mínimo de itens
+      const minLength = Math.min(...columns.map(col => col.length))
+      if (minLength > 0) {
+        // Se alguma coluna tiver muito menos itens, redistribuir
+        columns.forEach((col, colIndex) => {
+          if (col.length < minLength * 0.8) {
+            // Adicionar itens de outras colunas que têm mais
+            const sourceCol = columns.find((c, idx) => idx !== colIndex && c.length > minLength * 1.2)
+            if (sourceCol && sourceCol.length > 0) {
+              const itemsToMove = Math.ceil((minLength - col.length) / 2)
+              col.push(...sourceCol.splice(0, Math.min(itemsToMove, sourceCol.length)))
+            }
+          }
+        })
+      }
       
       return columns
     }

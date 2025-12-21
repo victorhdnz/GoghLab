@@ -165,7 +165,7 @@ export default function HomepageEditorPage() {
     testimonials_title: 'O que nossos clientes dizem',
     testimonials_description: 'Depoimentos reais de quem confia na MV Company',
     testimonials_items: [],
-    testimonials_duration: 80,
+    testimonials_duration: 120,
   })
 
   useEffect(() => {
@@ -561,12 +561,12 @@ export default function HomepageEditorPage() {
                   </label>
                   <Input
                     type="number"
-                    value={formData.testimonials_duration || 80}
-                    onChange={(e) => setFormData({ ...formData, testimonials_duration: parseInt(e.target.value) || 80 })}
-                    placeholder="80"
+                    value={formData.testimonials_duration || 120}
+                    onChange={(e) => setFormData({ ...formData, testimonials_duration: parseInt(e.target.value) || 120 })}
+                    placeholder="120"
                   />
                   <p className="text-xs text-gray-500 mt-1">
-                    Tempo em segundos para uma rotação completa (padrão: 80s)
+                    Tempo em segundos para uma rotação completa (padrão: 120s)
                   </p>
                 </div>
                 <div className="border-t border-gray-200 pt-4 mt-4">
