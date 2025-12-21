@@ -133,7 +133,7 @@ export const ProductCard = ({ product }: ProductCardProps) => {
 
 
   return (
-    <Card hover className="group">
+    <Card className="group transition-all duration-200 hover:shadow-lg">
       <Link href={`/produtos/${product.slug}`}>
         <div className="relative aspect-square overflow-hidden">
           {/* Combo Badge */}
