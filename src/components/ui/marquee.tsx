@@ -46,16 +46,19 @@ export function Marquee({
   // Garantir que repeat seja um número válido e positivo
   const safeRepeat = Math.max(1, Math.min(Math.floor(Number(repeat) || 4), 10))
   
-  // Verificar se className já tem --duration, se não, usar padrão
-  const hasCustomDuration = className && typeof className === 'string' && className.includes('--duration')
-  const defaultDuration = hasCustomDuration ? '' : '[--duration:40s]'
+  // Extrair --duration do style se existir, senão usar padrão
+  const durationFromStyle = props.style && (props.style as any)['--duration']
+  const finalStyle = {
+    '--duration': durationFromStyle || '40s',
+    ...(props.style || {})
+  } as React.CSSProperties
   
   return (
     <div
       {...props}
+      style={finalStyle}
       className={cn(
         'group flex [gap:var(--gap)] overflow-hidden p-2 [--gap:1rem]',
-        defaultDuration,
         {
           'flex-row': !vertical,
           'flex-col': vertical,

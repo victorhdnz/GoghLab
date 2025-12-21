@@ -94,6 +94,9 @@ export function TestimonialsSection({
   // Se não houver depoimentos, não renderizar
   if (!validTestimonials || validTestimonials.length === 0) return null
 
+  // Garantir que duration seja um número válido
+  const validDuration = duration && typeof duration === 'number' && duration > 0 ? duration : 200
+
   // Memoizar a criação dos arrays intercalados para evitar recálculos desnecessários
   const [firstRow, secondRow, thirdRow, fourthRow] = useMemo(() => {
     const createInterleavedColumns = (items: TestimonialItem[]) => {
@@ -206,32 +209,50 @@ export function TestimonialsSection({
                   'translateX(-100px) translateY(0px) translateZ(-100px) rotateX(20deg) rotateY(-10deg) rotateZ(20deg)',
               }}
             >
-              <Marquee pauseOnHover vertical className={`[--duration:${duration || 200}s]`}>
+              <Marquee 
+                pauseOnHover 
+                vertical 
+                style={{ '--duration': `${validDuration}s` } as React.CSSProperties}
+              >
                 {firstRow.map((review) => (
                   <ReviewCard key={review.id} {...review} />
                 ))}
               </Marquee>
-              <Marquee reverse pauseOnHover className={`[--duration:${duration || 200}s]`} vertical>
+              <Marquee 
+                reverse 
+                pauseOnHover 
+                vertical
+                style={{ '--duration': `${validDuration}s` } as React.CSSProperties}
+              >
                 {secondRow.map((review) => (
                   <ReviewCard key={review.id} {...review} />
                 ))}
               </Marquee>
-              <Marquee reverse pauseOnHover className={`[--duration:${duration || 200}s]`} vertical>
+              <Marquee 
+                reverse 
+                pauseOnHover 
+                vertical
+                style={{ '--duration': `${validDuration}s` } as React.CSSProperties}
+              >
                 {thirdRow.map((review) => (
                   <ReviewCard key={review.id} {...review} />
                 ))}
               </Marquee>
-              <Marquee pauseOnHover className={`[--duration:${duration || 200}s]`} vertical>
+              <Marquee 
+                pauseOnHover 
+                vertical
+                style={{ '--duration': `${validDuration}s` } as React.CSSProperties}
+              >
                 {fourthRow.map((review) => (
                   <ReviewCard key={review.id} {...review} />
                 ))}
               </Marquee>
             </div>
 
-            <div className="pointer-events-none absolute inset-x-0 top-0 h-1/4 bg-gradient-to-b from-black z-10"></div>
-            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/4 bg-gradient-to-t from-black z-10"></div>
-            <div className="pointer-events-none absolute inset-y-0 left-0 w-1/4 bg-gradient-to-r from-black z-10"></div>
-            <div className="pointer-events-none absolute inset-y-0 right-0 w-1/4 bg-gradient-to-l from-black z-10"></div>
+            <div className="pointer-events-none absolute inset-x-0 top-0 h-1/4 bg-gradient-to-b from-black to-transparent"></div>
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/4 bg-gradient-to-t from-black to-transparent"></div>
+            <div className="pointer-events-none absolute inset-y-0 left-0 w-1/4 bg-gradient-to-r from-black to-transparent"></div>
+            <div className="pointer-events-none absolute inset-y-0 right-0 w-1/4 bg-gradient-to-l from-black to-transparent"></div>
           </div>
         </div>
       </section>
