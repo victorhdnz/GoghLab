@@ -11,6 +11,7 @@ import { SocialButton } from '@/components/ui/SocialButton'
 import { FadeInSection } from '@/components/ui/FadeInSection'
 import { NotificationsSection } from './NotificationsSection'
 import { TestimonialsSection } from './TestimonialsSection'
+import { DotPattern } from '@/components/ui/dot-pattern'
 
 interface HomepageSectionsProps {
   homepageContent: any
@@ -34,8 +35,16 @@ export function HomepageSections({
     return (
       <FadeInSection>
         <section className="relative bg-black text-white py-16 md:py-24 px-4 overflow-hidden">
+          {/* Dot Pattern Background */}
+          <DotPattern
+            width={20}
+            height={20}
+            cr={1}
+            glow={true}
+            className="opacity-30 text-white/20 z-0"
+          />
           {homepageContent.hero_background_image && (
-            <div className="absolute inset-0 z-0 opacity-20">
+            <div className="absolute inset-0 z-[1] opacity-20">
               <Image
                 src={homepageContent.hero_background_image}
                 alt="Background"

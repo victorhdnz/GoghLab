@@ -4,6 +4,7 @@ import { useMemo, memo } from 'react'
 import { cn } from '@/lib/utils'
 import { Marquee } from '@/components/ui/marquee'
 import { FadeInSection } from '@/components/ui/FadeInSection'
+import { DotPattern } from '@/components/ui/dot-pattern'
 import Image from 'next/image'
 
 export interface TestimonialItem {
@@ -186,8 +187,16 @@ export function TestimonialsSection({
 
   return (
     <FadeInSection>
-      <section className="py-16 md:py-24 px-4 bg-black">
-        <div className="container mx-auto max-w-7xl">
+      <section className="relative py-16 md:py-24 px-4 bg-black">
+        {/* Dot Pattern Background */}
+        <DotPattern
+          width={20}
+          height={20}
+          cr={1}
+          glow={true}
+          className="opacity-30 text-white/20 z-0"
+        />
+        <div className="container mx-auto max-w-7xl relative z-10">
           {title && (
             <div className="text-center mb-12">
               <h2 className="text-3xl md:text-5xl font-bold text-white mb-4">

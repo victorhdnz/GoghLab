@@ -130,15 +130,7 @@ export default async function Home() {
 
   return (
     <HomepageTracker>
-      <div className="min-h-screen bg-black relative">
-        {/* Dot Pattern Background */}
-        <DotPattern
-          width={20}
-          height={20}
-          cr={1}
-          glow={true}
-          className="opacity-30 text-white/20"
-        />
+      <div className="min-h-screen bg-black">
         <HomepageSections
           homepageContent={homepageContent}
           siteSettings={siteSettings}

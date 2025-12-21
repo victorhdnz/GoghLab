@@ -4,6 +4,7 @@ import { AnimatedList } from '@/components/ui/animated-list'
 import { Bell, Mail, MessageCircle, Heart, UserPlus, TrendingUp, CheckCircle, ShoppingCart } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { FadeInSection } from '@/components/ui/FadeInSection'
+import { DotPattern } from '@/components/ui/dot-pattern'
 
 export interface NotificationItem {
   id: string
@@ -99,8 +100,16 @@ export function NotificationsSection({
 
   return (
     <FadeInSection>
-      <section className="py-16 md:py-24 px-4 bg-black">
-        <div className="container mx-auto max-w-4xl">
+      <section className="relative py-16 md:py-24 px-4 bg-black">
+        {/* Dot Pattern Background */}
+        <DotPattern
+          width={20}
+          height={20}
+          cr={1}
+          glow={true}
+          className="opacity-30 text-white/20 z-0"
+        />
+        <div className="container mx-auto max-w-4xl relative z-10">
           {title && (
             <div className="text-center mb-12">
               <h2 className="text-3xl md:text-5xl font-bold text-white mb-4">
