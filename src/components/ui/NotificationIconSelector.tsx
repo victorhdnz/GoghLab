@@ -61,23 +61,11 @@ export function NotificationIconSelector({
   label = 'Ícone' 
 }: NotificationIconSelectorProps) {
   const [isOpen, setIsOpen] = useState(false)
-  const [position, setPosition] = useState({ top: 0, left: 0, width: 0 })
   const buttonRef = useRef<HTMLButtonElement>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
   const selectedIcon = value && iconMap[value] ? iconMap[value] : MessageCircle
   const SelectedIcon = selectedIcon
   const selectedColor = iconColors[value] || '#25D366'
-
-  useEffect(() => {
-    if (isOpen && buttonRef.current) {
-      const rect = buttonRef.current.getBoundingClientRect()
-      setPosition({
-        top: rect.bottom + window.scrollY + 4,
-        left: rect.left + window.scrollX,
-        width: rect.width,
-      })
-    }
-  }, [isOpen])
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -99,13 +87,16 @@ export function NotificationIconSelector({
   }, [isOpen])
 
   return (
-    <div>
+    <div className="relative">
       <label className="block text-sm font-medium mb-2">{label}</label>
       <div className="relative">
         <button
           ref={buttonRef}
           type="button"
-          onClick={() => setIsOpen(!isOpen)}
+          onClick={(e) => {
+            e.stopPropagation()
+            setIsOpen(!isOpen)
+          }}
           className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white flex items-center justify-between hover:border-gray-400 transition-colors"
         >
           <div className="flex items-center gap-3">
@@ -143,12 +134,7 @@ export function NotificationIconSelector({
             />
             <div
               ref={dropdownRef}
-              className="fixed z-[9999] bg-white border border-gray-300 rounded-lg shadow-xl max-h-[400px] overflow-y-auto overscroll-contain"
-              style={{
-                top: `${position.top}px`,
-                left: `${position.left}px`,
-                width: `${position.width}px`,
-              }}
+              className="absolute z-[9999] mt-1 w-full bg-white border border-gray-300 rounded-lg shadow-xl max-h-[400px] overflow-y-auto overscroll-contain"
             >
               <div className="p-3 grid grid-cols-4 gap-2 pb-3">
                 {iconOptions.map((iconName) => {
