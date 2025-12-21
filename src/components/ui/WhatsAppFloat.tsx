@@ -54,7 +54,7 @@ export const WhatsAppFloat = ({
             stiffness: 260, 
             damping: 20 
           }}
-          className={`fixed bottom-6 right-6 z-50 ${className}`}
+          className={`fixed bottom-6 right-6 z-[9999] ${className}`}
         >
           <motion.button
             onClick={handleClick}
