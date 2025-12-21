@@ -46,35 +46,17 @@ export function Marquee({
   // Garantir que repeat seja um número válido e positivo
   const safeRepeat = Math.max(1, Math.min(Math.floor(Number(repeat) || 4), 10))
   
-  // Extrair --duration do className se existir
-  let customDuration: string | undefined
-  if (className && typeof className === 'string') {
-    const match = className.match(/\[--duration:(\d+)s\]/)
-    if (match) {
-      customDuration = match[1] + 's'
-    }
-  }
-  
-  // Remover [--duration:Xs] do className para evitar duplicação
-  const cleanClassName = className && typeof className === 'string' 
-    ? className.replace(/\[--duration:\d+s\]/g, '').trim()
-    : className
-  
   return (
     <div
       {...props}
       className={cn(
-        'group flex [gap:var(--gap)] overflow-hidden p-2 [--gap:1rem]',
+        'group flex [gap:var(--gap)] overflow-hidden p-2 [--duration:40s] [--gap:1rem]',
         {
           'flex-row': !vertical,
           'flex-col': vertical,
         },
-        cleanClassName
+        className
       )}
-      style={{
-        ...(customDuration ? { '--duration': customDuration } : { '--duration': '40s' }),
-        ...(props.style || {})
-      } as React.CSSProperties}
     >
       {Array(safeRepeat)
         .fill(0)

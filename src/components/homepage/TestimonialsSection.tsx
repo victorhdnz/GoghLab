@@ -37,41 +37,27 @@ const ReviewCard = memo(({
     <figure
       className={cn(
         'relative h-full w-fit cursor-pointer overflow-hidden rounded-xl border p-4 sm:w-36',
-        // dark styles adaptados para paleta preto/branco/cinza
-        'border-gray-800 bg-gray-900',
-        'will-change-transform'
+        // dark styles adaptados para paleta preto/branco/cinza - igual à demo
+        'border-gray-800 bg-gray-900/50 hover:bg-gray-800/50',
+        'backdrop-blur-sm'
       )}
-      style={{ 
-        backgroundColor: 'rgba(17, 24, 39, 0.95)',
-        backfaceVisibility: 'hidden',
-        WebkitBackfaceVisibility: 'hidden',
-        transform: 'translateZ(0)'
-      }}
     >
       <div className="flex flex-row items-center gap-2">
         {img ? (
-          <div className="relative w-8 h-8 rounded-full overflow-hidden flex-shrink-0">
-            <Image
-              src={img}
-              alt={name}
-              fill
-              className="object-cover"
-              loading="lazy"
-            />
-          </div>
+          <img className="rounded-full" width="32" height="32" alt="" src={img} />
         ) : (
           <div className="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center flex-shrink-0">
             <span className="text-xs text-gray-400">👤</span>
           </div>
         )}
-        <div className="flex flex-col min-w-0">
-          <figcaption className="text-sm font-medium text-white truncate">
+        <div className="flex flex-col">
+          <figcaption className="text-sm font-medium text-white">
             {name}
           </figcaption>
-          <p className="text-xs font-medium text-gray-400 truncate">{username}</p>
+          <p className="text-xs font-medium text-gray-400">{username}</p>
         </div>
       </div>
-      <blockquote className="mt-2 text-sm text-gray-300 line-clamp-3">{body}</blockquote>
+      <blockquote className="mt-2 text-sm text-gray-300">{body}</blockquote>
     </figure>
   )
 })
