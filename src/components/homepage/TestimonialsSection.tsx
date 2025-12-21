@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, memo } from 'react'
+import { useMemo, memo, useEffect, useRef, useState } from 'react'
 import { cn } from '@/lib/utils'
 import { Marquee } from '@/components/ui/marquee'
 import { FadeInSection } from '@/components/ui/FadeInSection'
@@ -94,6 +94,36 @@ export function TestimonialsSection({
   // Se não houver depoimentos, não renderizar
   if (!validTestimonials || validTestimonials.length === 0) return null
 
+  // IntersectionObserver para pausar animação quando não estiver visível
+  const [isVisible, setIsVisible] = useState(true)
+  const sectionRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          setIsVisible(entry.isIntersecting)
+        })
+      },
+      {
+        threshold: 0.1,
+        rootMargin: '100px',
+      }
+    )
+
+    const currentRef = sectionRef.current
+    if (currentRef) {
+      observer.observe(currentRef)
+    }
+
+    return () => {
+      if (currentRef) {
+        observer.unobserve(currentRef)
+      }
+      observer.disconnect()
+    }
+  }, [])
+
   // Memoizar a criação dos arrays intercalados para evitar recálculos desnecessários
   const [firstRow, secondRow, thirdRow, fourthRow] = useMemo(() => {
     const createInterleavedColumns = (items: TestimonialItem[]) => {
@@ -143,9 +173,9 @@ export function TestimonialsSection({
         return shuffled
       }
       
-      // Reduzir de 8 para 4 sequências para melhor performance
+      // Reduzir para 2 sequências para melhor performance
       const extendedItems: TestimonialItem[] = []
-      for (let i = 0; i < 4; i++) {
+      for (let i = 0; i < 2; i++) {
         const shuffled = shuffleWithoutConsecutive(items)
         extendedItems.push(...shuffled)
       }
@@ -180,11 +210,13 @@ export function TestimonialsSection({
           )}
 
           <div 
+            ref={sectionRef}
             className="relative flex h-96 w-full flex-row items-center justify-center gap-4 overflow-hidden [perspective:300px] z-0"
             style={{
               transformStyle: 'preserve-3d',
-              willChange: 'transform',
-              contain: 'layout style paint'
+              willChange: isVisible ? 'transform' : 'auto',
+              contain: 'layout style paint',
+              contentVisibility: isVisible ? 'auto' : 'hidden',
             }}
           >
             <div
@@ -194,22 +226,22 @@ export function TestimonialsSection({
                   'translateX(-100px) translateY(0px) translateZ(-100px) rotateX(20deg) rotateY(-10deg) rotateZ(20deg)',
               }}
             >
-              <Marquee pauseOnHover vertical repeat={2} className={`[--duration:${duration}s]`}>
+              <Marquee pauseOnHover vertical repeat={1} className={`[--duration:${duration}s] ${!isVisible ? '[animation-play-state:paused]' : ''}`}>
                 {firstRow.map((review) => (
                   <ReviewCard key={review.id} {...review} />
                 ))}
               </Marquee>
-              <Marquee reverse pauseOnHover vertical repeat={2} className={`[--duration:${duration}s]`}>
+              <Marquee reverse pauseOnHover vertical repeat={1} className={`[--duration:${duration}s] ${!isVisible ? '[animation-play-state:paused]' : ''}`}>
                 {secondRow.map((review) => (
                   <ReviewCard key={review.id} {...review} />
                 ))}
               </Marquee>
-              <Marquee reverse pauseOnHover vertical repeat={2} className={`[--duration:${duration}s]`}>
+              <Marquee reverse pauseOnHover vertical repeat={1} className={`[--duration:${duration}s] ${!isVisible ? '[animation-play-state:paused]' : ''}`}>
                 {thirdRow.map((review) => (
                   <ReviewCard key={review.id} {...review} />
                 ))}
               </Marquee>
-              <Marquee pauseOnHover vertical repeat={2} className={`[--duration:${duration}s]`}>
+              <Marquee pauseOnHover vertical repeat={1} className={`[--duration:${duration}s] ${!isVisible ? '[animation-play-state:paused]' : ''}`}>
                 {fourthRow.map((review) => (
                   <ReviewCard key={review.id} {...review} />
                 ))}

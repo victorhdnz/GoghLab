@@ -53,6 +53,10 @@ export const AnimatedList = React.memo(
           entries.forEach((entry) => {
             if (entry.isIntersecting) {
               setIsVisible(true)
+            } else {
+              // Resetar quando sair do viewport para que volte a funcionar quando retornar
+              setIsVisible(false)
+              setIndex(0)
             }
           })
         },
@@ -62,14 +66,16 @@ export const AnimatedList = React.memo(
         }
       )
 
-      if (containerRef.current) {
-        observer.observe(containerRef.current)
+      const currentRef = containerRef.current
+      if (currentRef) {
+        observer.observe(currentRef)
       }
 
       return () => {
-        if (containerRef.current) {
-          observer.unobserve(containerRef.current)
+        if (currentRef) {
+          observer.unobserve(currentRef)
         }
+        observer.disconnect()
       }
     }, [])
 
