@@ -44,7 +44,7 @@ export interface ComparisonFeature {
   id: string
   name: string
   order: number
-  category?: string // Categoria do recurso (ex: "Criação de Site", "Gestão de Redes Sociais")
+  category_id: string // ID da categoria (obrigatório)
 }
 
 export interface FeatureCategory {
@@ -303,7 +303,7 @@ export const PricingComponent: React.FC<PricingComponentProps> = ({
     
     // Agrupar por categoria
     comparisonFeatures.forEach(feature => {
-      const categoryId = feature.category || 'uncategorized'
+      const categoryId = feature.category_id || 'uncategorized'
       if (!grouped[categoryId]) {
         grouped[categoryId] = []
       }
