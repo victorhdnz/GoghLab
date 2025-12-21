@@ -4,12 +4,13 @@ import { useState } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { BackButton } from '@/components/ui/BackButton'
-import { Sparkles, Zap, Palette, Code, Calendar, Bell, FileText, Share2, Globe, List, Star, Circle } from 'lucide-react'
+import { Sparkles, Zap, Palette, Code, Calendar, Bell, FileText, Share2, Globe, List, Star, Circle, Box } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { BentoCard, BentoGrid } from '@/components/ui/bento-grid'
 import { AnimatedListDemo } from '@/components/ui/AnimatedListDemo'
 import { Marquee3DDemo } from '@/components/ui/Marquee3DDemo'
 import { DotPatternDemo, DotPatternWithGlowEffectDemo } from '@/components/ui/DotPatternDemo'
+import { SplineSceneBasic } from '@/components/ui/SplineSceneDemo'
 
 export default function TestesEfeitosPage() {
   const { isAuthenticated, isEditor, loading: authLoading } = useAuth()
@@ -43,6 +44,7 @@ export default function TestesEfeitosPage() {
     { id: 'animated-list', label: 'Animated List', icon: List },
     { id: 'marquee-3d', label: 'Marquee 3D', icon: Star },
     { id: 'dot-pattern', label: 'Dot Pattern', icon: Circle },
+    { id: 'spline-scene', label: 'Spline Scene', icon: Box },
     { id: 'custom', label: 'Custom', icon: Code },
   ]
 
@@ -344,6 +346,36 @@ export default function TestesEfeitosPage() {
                           <li><code>glow</code> - Ativa efeito de brilho animado (padrão: false)</li>
                           <li><code>className</code> - Classes CSS adicionais para personalizar cor e opacidade</li>
                         </ul>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'spline-scene' && (
+              <div className="space-y-6">
+                <div>
+                  <h2 className="text-xl font-bold mb-4">Spline Scene</h2>
+                  <p className="text-gray-600 mb-4">
+                    Cena 3D interativa usando Spline - o robô segue o movimento do mouse
+                  </p>
+                  
+                  {/* Exemplo Spline Scene */}
+                  <div className="mb-6">
+                    <SplineSceneBasic />
+                  </div>
+
+                  <div className="mt-6">
+                    <h3 className="text-lg font-semibold mb-3">Área para seus testes</h3>
+                    <div className="bg-white rounded-lg p-8 border-2 border-dashed border-gray-300 min-h-[200px]">
+                      <p className="text-gray-400 text-center mb-4">
+                        Adicione suas próprias cenas Spline aqui
+                      </p>
+                      <div className="text-sm text-gray-500 space-y-2">
+                        <p><strong>Dica:</strong> O componente <code className="bg-gray-100 px-2 py-1 rounded">SplineScene</code> aceita uma URL de cena Spline.</p>
+                        <p>Você pode criar suas próprias cenas 3D em <a href="https://spline.design" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">spline.design</a> e usar a URL da cena.</p>
+                        <p>Use a prop <code className="bg-gray-100 px-2 py-1 rounded">scene</code> para passar a URL da cena.</p>
                       </div>
                     </div>
                   </div>
