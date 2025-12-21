@@ -4,8 +4,9 @@ import { useState } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { BackButton } from '@/components/ui/BackButton'
-import { Sparkles, Zap, Palette, Code } from 'lucide-react'
+import { Sparkles, Zap, Palette, Code, Calendar, Bell, FileText, Share2, Globe } from 'lucide-react'
 import { motion } from 'framer-motion'
+import { BentoCard, BentoGrid } from '@/components/ui/bento-grid'
 
 export default function TestesEfeitosPage() {
   const { isAuthenticated, isEditor, loading: authLoading } = useAuth()
@@ -35,6 +36,7 @@ export default function TestesEfeitosPage() {
     { id: 'framer-motion', label: 'Framer Motion', icon: Zap },
     { id: 'gsap', label: 'GSAP', icon: Sparkles },
     { id: 'shadcn', label: 'Shadcn UI', icon: Palette },
+    { id: 'bento-grid', label: 'Bento Grid', icon: Sparkles },
     { id: 'custom', label: 'Custom', icon: Code },
   ]
 
@@ -148,6 +150,96 @@ export default function TestesEfeitosPage() {
                   </p>
                   <div className="bg-gray-100 rounded-lg p-8 min-h-[400px] flex items-center justify-center">
                     <p className="text-gray-500">Adicione seus testes de Shadcn UI aqui</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'bento-grid' && (
+              <div className="space-y-6">
+                <div>
+                  <h2 className="text-xl font-bold mb-4">Bento Grid</h2>
+                  <p className="text-gray-600 mb-4">
+                    Teste o componente Bento Grid - layout de cards em grid responsivo com efeitos hover
+                  </p>
+                  
+                  {/* Exemplo Bento Grid */}
+                  <div className="bg-gray-50 rounded-lg p-8 min-h-[600px]">
+                    <BentoGrid className="lg:grid-rows-3">
+                      <BentoCard
+                        name="Save your files"
+                        description="We automatically save your files as you type."
+                        href="#"
+                        cta="Learn more"
+                        Icon={FileText}
+                        className="lg:row-start-1 lg:row-end-4 lg:col-start-2 lg:col-end-3"
+                        background={
+                          <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-xl" />
+                        }
+                      />
+                      <BentoCard
+                        name="Full text search"
+                        description="Search through all your files in one place."
+                        href="#"
+                        cta="Learn more"
+                        Icon={Globe}
+                        className="lg:col-start-1 lg:col-end-2 lg:row-start-1 lg:row-end-3"
+                        background={
+                          <div className="absolute inset-0 bg-gradient-to-br from-green-500/10 to-teal-500/10 rounded-xl" />
+                        }
+                      />
+                      <BentoCard
+                        name="Multilingual"
+                        description="Supports 100+ languages and counting."
+                        href="#"
+                        cta="Learn more"
+                        Icon={Globe}
+                        className="lg:col-start-1 lg:col-end-2 lg:row-start-3 lg:row-end-4"
+                        background={
+                          <div className="absolute inset-0 bg-gradient-to-br from-orange-500/10 to-red-500/10 rounded-xl" />
+                        }
+                      />
+                      <BentoCard
+                        name="Calendar"
+                        description="Use the calendar to filter your files by date."
+                        href="#"
+                        cta="Learn more"
+                        Icon={Calendar}
+                        className="lg:col-start-3 lg:col-end-3 lg:row-start-1 lg:row-end-2"
+                        background={
+                          <div className="absolute inset-0 bg-gradient-to-br from-yellow-500/10 to-orange-500/10 rounded-xl" />
+                        }
+                      />
+                      <BentoCard
+                        name="Notifications"
+                        description="Get notified when someone shares a file or mentions you in a comment."
+                        href="#"
+                        cta="Learn more"
+                        Icon={Bell}
+                        className="lg:col-start-3 lg:col-end-3 lg:row-start-2 lg:row-end-4"
+                        background={
+                          <div className="absolute inset-0 bg-gradient-to-br from-pink-500/10 to-rose-500/10 rounded-xl" />
+                        }
+                      />
+                    </BentoGrid>
+                  </div>
+
+                  <div className="mt-6">
+                    <h3 className="text-lg font-semibold mb-3">Área para seus testes</h3>
+                    <div className="bg-white rounded-lg p-8 border-2 border-dashed border-gray-300 min-h-[200px]">
+                      <p className="text-gray-400 text-center mb-4">
+                        Adicione seus próprios cards Bento Grid aqui
+                      </p>
+                      <div className="text-sm text-gray-500 space-y-2">
+                        <p><strong>Dica:</strong> Use a propriedade <code className="bg-gray-100 px-2 py-1 rounded">className</code> para controlar o tamanho dos cards:</p>
+                        <ul className="list-disc list-inside space-y-1 ml-4">
+                          <li><code>lg:col-start-1 lg:col-end-2</code> - 1 coluna</li>
+                          <li><code>lg:col-start-1 lg:col-end-3</code> - 2 colunas</li>
+                          <li><code>lg:col-span-3</code> - 3 colunas (padrão)</li>
+                          <li><code>lg:row-start-1 lg:row-end-3</code> - Altura dupla</li>
+                        </ul>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
