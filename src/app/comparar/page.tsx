@@ -187,7 +187,7 @@ function ComparisonTable({
             <div className="font-semibold text-gray-900">Característica</div>
             {/* MV Company Column */}
             <div className="flex flex-col items-center gap-3">
-              <div className="w-20 h-20 rounded-3xl bg-black flex items-center justify-center overflow-hidden">
+              <div className="w-20 h-20 rounded-3xl bg-transparent flex items-center justify-center overflow-hidden">
                 {mvCompany?.logo ? (
                   <Image
                     src={mvCompany.logo}
@@ -308,7 +308,7 @@ function ComparisonTable({
             <div className="grid grid-cols-3 gap-4">
               {/* MV Company */}
               <div className="flex flex-col items-center gap-2">
-                <div className="w-16 h-16 rounded-2xl bg-black flex items-center justify-center overflow-hidden">
+                <div className="w-16 h-16 rounded-2xl bg-transparent flex items-center justify-center overflow-hidden">
                   {mvCompany?.logo ? (
                     <Image
                       src={mvCompany.logo}

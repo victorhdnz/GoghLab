@@ -16,6 +16,7 @@ import { getSiteSettings, saveSiteSettings } from '@/lib/supabase/site-settings-
 import { SectionWrapper } from '@/components/editor/section-wrapper'
 import { ServiceCardsManager, ServiceCard } from '@/components/ui/ServiceCardsManager'
 import { NotificationsManager } from '@/components/ui/NotificationsManager'
+import { TestimonialsManager } from '@/components/ui/TestimonialsManager'
 
 interface HomepageSettings {
   hero_enabled?: boolean
@@ -66,6 +67,19 @@ interface HomepageSettings {
   }>
   notifications_delay?: number
 
+  // Seção de Depoimentos (Marquee 3D)
+  testimonials_enabled?: boolean
+  testimonials_title?: string
+  testimonials_description?: string
+  testimonials_items?: Array<{
+    id: string
+    name: string
+    username: string
+    body: string
+    img: string
+  }>
+  testimonials_duration?: number
+
   section_order?: string[]
   section_visibility?: Record<string, boolean>
 }
@@ -76,6 +90,7 @@ const sectionIcons: Record<string, string> = {
   services: '📦',
   comparison: '⚖️',
   notifications: '🔔',
+  testimonials: '⭐',
   contact: '📞',
 }
 
@@ -84,6 +99,7 @@ const sectionLabels: Record<string, string> = {
   services: 'Nossos Serviços',
   comparison: 'Comparação (CTA)',
   notifications: 'Notificações (Prova Social)',
+  testimonials: 'Depoimentos (Marquee 3D)',
   contact: 'Contato',
 }
 
@@ -100,6 +116,7 @@ export default function HomepageEditorPage() {
     'services',
     'comparison',
     'notifications',
+    'testimonials',
     'contact',
   ])
   const [sectionVisibility, setSectionVisibility] = useState<Record<string, boolean>>({
@@ -107,6 +124,7 @@ export default function HomepageEditorPage() {
     services: true,
     comparison: true,
     notifications: true,
+    testimonials: true,
     contact: true,
   })
   const [formData, setFormData] = useState<HomepageSettings>({
@@ -142,6 +160,12 @@ export default function HomepageEditorPage() {
     notifications_description: 'Veja o sucesso da nossa consultoria através das notificações',
     notifications_items: [],
     notifications_delay: 1500,
+
+    testimonials_enabled: true,
+    testimonials_title: 'O que nossos clientes dizem',
+    testimonials_description: 'Depoimentos reais de quem confia na MV Company',
+    testimonials_items: [],
+    testimonials_duration: 20,
   })
 
   useEffect(() => {
@@ -187,17 +211,26 @@ export default function HomepageEditorPage() {
             notificationsItems = prev.notifications_items
           }
           
+          // Garantir que testimonials_items seja sempre um array
+          let testimonialsItems: any[] = []
+          if (Array.isArray(content.testimonials_items)) {
+            testimonialsItems = content.testimonials_items
+          } else if (Array.isArray(prev.testimonials_items) && prev.testimonials_items.length > 0) {
+            testimonialsItems = prev.testimonials_items
+          }
+          
           return {
             ...prev,
             ...content,
             services_cards: servicesCards,
             notifications_items: notificationsItems,
+            testimonials_items: testimonialsItems,
           }
         })
         
         // Carregar ordem e visibilidade se existirem
         if (content.section_order && Array.isArray(content.section_order)) {
-          // Garantir que 'notifications' esteja na ordem se não estiver
+          // Garantir que 'notifications' e 'testimonials' estejam na ordem se não estiverem
           const order = [...content.section_order]
           if (!order.includes('notifications')) {
             // Adicionar 'notifications' antes de 'contact' se 'contact' existir, senão no final
@@ -208,13 +241,25 @@ export default function HomepageEditorPage() {
               order.push('notifications')
             }
           }
+          if (!order.includes('testimonials')) {
+            // Adicionar 'testimonials' antes de 'contact' se 'contact' existir, senão no final
+            const contactIndex = order.indexOf('contact')
+            if (contactIndex >= 0) {
+              order.splice(contactIndex, 0, 'testimonials')
+            } else {
+              order.push('testimonials')
+            }
+          }
           setSectionOrder(order)
         }
         if (content.section_visibility) {
-          // Garantir que 'notifications' tenha visibilidade definida
+          // Garantir que 'notifications' e 'testimonials' tenham visibilidade definida
           const visibility = { ...content.section_visibility }
           if (visibility.notifications === undefined) {
             visibility.notifications = true
+          }
+          if (visibility.testimonials === undefined) {
+            visibility.testimonials = true
           }
           setSectionVisibility(visibility)
         }
@@ -235,6 +280,7 @@ export default function HomepageEditorPage() {
         ...formData,
         services_cards: Array.isArray(formData.services_cards) ? formData.services_cards : [],
         notifications_items: Array.isArray(formData.notifications_items) ? formData.notifications_items : [],
+        testimonials_items: Array.isArray(formData.testimonials_items) ? formData.testimonials_items : [],
         section_order: sectionOrder,
         section_visibility: sectionVisibility,
       }
@@ -477,6 +523,57 @@ export default function HomepageEditorPage() {
                     value={formData.notifications_items || []}
                     onChange={(items) => setFormData({ ...formData, notifications_items: items })}
                     label="Notificações"
+                  />
+                </div>
+              </>
+            )}
+          </div>
+        )
+      case 'testimonials':
+        return (
+          <div className="space-y-4">
+            <Switch
+              label="Habilitar Seção de Depoimentos (Marquee 3D)"
+              checked={formData.testimonials_enabled}
+              onCheckedChange={(checked) => setFormData({ ...formData, testimonials_enabled: checked })}
+            />
+            {formData.testimonials_enabled && (
+              <>
+                <Input
+                  label="Título da Seção"
+                  value={formData.testimonials_title || ''}
+                  onChange={(e) => setFormData({ ...formData, testimonials_title: e.target.value })}
+                  placeholder="Ex: O que nossos clientes dizem"
+                />
+                <div>
+                  <label className="block text-sm font-medium mb-2">Descrição</label>
+                  <textarea
+                    value={formData.testimonials_description || ''}
+                    onChange={(e) => setFormData({ ...formData, testimonials_description: e.target.value })}
+                    placeholder="Ex: Depoimentos reais de quem confia na MV Company"
+                    rows={3}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    Duração da Animação (segundos)
+                  </label>
+                  <Input
+                    type="number"
+                    value={formData.testimonials_duration || 20}
+                    onChange={(e) => setFormData({ ...formData, testimonials_duration: parseInt(e.target.value) || 20 })}
+                    placeholder="20"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Tempo em segundos para uma rotação completa (padrão: 20s)
+                  </p>
+                </div>
+                <div className="border-t border-gray-200 pt-4 mt-4">
+                  <TestimonialsManager
+                    value={formData.testimonials_items || []}
+                    onChange={(items) => setFormData({ ...formData, testimonials_items: items })}
+                    label="Depoimentos"
                   />
                 </div>
               </>

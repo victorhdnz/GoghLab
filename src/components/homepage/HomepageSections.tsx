@@ -10,6 +10,7 @@ import { GitCompare } from 'lucide-react'
 import { SocialButton } from '@/components/ui/SocialButton'
 import { FadeInSection } from '@/components/ui/FadeInSection'
 import { NotificationsSection } from './NotificationsSection'
+import { TestimonialsSection } from './TestimonialsSection'
 
 interface HomepageSectionsProps {
   homepageContent: any
@@ -177,6 +178,25 @@ export function HomepageSections({
     )
   }
 
+  // Função para renderizar seção de Depoimentos
+  const renderTestimonialsSection = () => {
+    // Se estiver explicitamente desabilitado ou oculto, não renderizar
+    if (homepageContent.testimonials_enabled === false || sectionVisibility.testimonials === false) return null
+    
+    // Se não houver depoimentos configurados, não renderizar
+    if (!homepageContent.testimonials_items || homepageContent.testimonials_items.length === 0) return null
+    
+    return (
+      <TestimonialsSection
+        enabled={homepageContent.testimonials_enabled !== false}
+        title={homepageContent.testimonials_title}
+        description={homepageContent.testimonials_description}
+        testimonials={homepageContent.testimonials_items}
+        duration={homepageContent.testimonials_duration}
+      />
+    )
+  }
+
   // Função para renderizar seção de Contato
   const renderContactSection = () => {
     if (homepageContent.contact_enabled === false || sectionVisibility.contact === false) return null
@@ -228,6 +248,7 @@ export function HomepageSections({
     services: renderServicesSection,
     comparison: renderComparisonSection,
     notifications: renderNotificationsSection,
+    testimonials: renderTestimonialsSection,
     contact: renderContactSection,
   }
 

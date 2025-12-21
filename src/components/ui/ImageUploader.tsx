@@ -98,8 +98,8 @@ export function ImageUploader({
     <div className={`space-y-4 ${className}`}>
       <div className="relative">
         {preview ? (
-          <div className="relative group bg-gray-100 rounded-lg border overflow-hidden">
-            <div className="relative w-full h-48">
+          <div className="relative group rounded-lg border overflow-hidden bg-transparent">
+            <div className="relative w-full h-48 bg-transparent">
               <Image
                 src={preview}
                 alt="Preview"
