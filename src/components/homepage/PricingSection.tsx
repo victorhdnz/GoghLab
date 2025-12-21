@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { PricingComponent, PriceTier, BillingCycle } from '@/components/ui/pricing-card'
+import { PricingComponent, PriceTier, BillingCycle, ComparisonFeature } from '@/components/ui/pricing-card'
 import { FadeInSection } from '@/components/ui/FadeInSection'
 
 interface PricingSectionProps {
@@ -11,6 +11,7 @@ interface PricingSectionProps {
   annualDiscount?: number
   plans?: [PriceTier, PriceTier, PriceTier]
   whatsappNumber?: string
+  comparisonFeatures?: ComparisonFeature[]
 }
 
 export function PricingSection({
@@ -20,6 +21,7 @@ export function PricingSection({
   annualDiscount = 20,
   plans,
   whatsappNumber,
+  comparisonFeatures = [],
 }: PricingSectionProps) {
   const [billingCycle, setBillingCycle] = useState<BillingCycle>('annually')
 
@@ -52,6 +54,7 @@ export function PricingSection({
           title={title}
           description={description}
           annualDiscountPercent={annualDiscount}
+          comparisonFeatures={comparisonFeatures}
         />
       </section>
     </FadeInSection>

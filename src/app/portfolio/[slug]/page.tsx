@@ -200,6 +200,7 @@ export default async function ServicePage({ params }: { params: { slug: string }
           plans={pricing.pricing_plans}
           whatsappNumber={pricing.pricing_whatsapp_number || siteSettings?.contact_whatsapp}
           serviceName={service.name}
+          comparisonFeatures={pricing.comparison_features || []}
         />
       )
     },

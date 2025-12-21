@@ -19,6 +19,11 @@ export interface Feature {
   tooltip?: string
 }
 
+export interface PlanFeatureValue {
+  feature_id: string
+  text: string // Se vazio, significa que não tem o recurso
+}
+
 export interface PriceTier {
   id: string
   name: string
@@ -28,9 +33,17 @@ export interface PriceTier {
   isPopular: boolean
   buttonLabel: string
   features: Feature[]
+  // Valores dos recursos de comparação (feature_id -> text)
+  feature_values?: PlanFeatureValue[]
   // Mensagens personalizadas para WhatsApp
   whatsappMessageMonthly?: string
   whatsappMessageAnnually?: string
+}
+
+export interface ComparisonFeature {
+  id: string
+  name: string
+  order: number
 }
 
 export interface PricingComponentProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -48,6 +61,8 @@ export interface PricingComponentProps extends React.HTMLAttributes<HTMLDivEleme
   description?: string
   /** Percentual de desconto anual */
   annualDiscountPercent?: number
+  /** Recursos globais para comparação detalhada */
+  comparisonFeatures?: ComparisonFeature[]
 }
 
 // --- 2. Utility Components ---
@@ -77,6 +92,7 @@ export const PricingComponent: React.FC<PricingComponentProps> = ({
   title = "Escolha o plano ideal para sua empresa",
   description = "Soluções completas de gestão digital para impulsionar seu negócio. Do básico ao enterprise, temos o plano certo para você.",
   annualDiscountPercent = 20,
+  comparisonFeatures = [],
   className,
   ...props
 }) => {
@@ -125,8 +141,10 @@ export const PricingComponent: React.FC<PricingComponentProps> = ({
 
   // --- 3.2. Pricing Cards & Comparison Table Data ---
 
-  // Extract all unique feature names across all plans for the comparison table header
-  const allFeatures = Array.from(new Set(plans.flatMap(p => p.features.map(f => f.name))))
+  // Usar recursos globais de comparação se disponíveis, senão usar features dos planos
+  const allFeatures = comparisonFeatures.length > 0
+    ? comparisonFeatures.map(f => f.name)
+    : Array.from(new Set(plans.flatMap(p => p.features.map(f => f.name))))
   
   // Render the list of pricing cards
   const PricingCards = (
@@ -238,31 +256,46 @@ export const PricingComponent: React.FC<PricingComponentProps> = ({
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-700 bg-gray-900">
-          {allFeatures.map((featureName, index) => (
-            <tr key={featureName} className={cn("transition-colors hover:bg-gray-800", index % 2 === 0 ? "bg-gray-900" : "bg-gray-800/50")}>
-              <td className="px-6 py-3 text-left text-sm font-medium text-white whitespace-nowrap">
-                {featureName}
-              </td>
-              {plans.map((plan) => {
-                const feature = plan.features.find(f => f.name === featureName)
-                const isIncluded = feature?.isIncluded ?? false
-                const Icon = isIncluded ? Check : X
-                const iconColor = isIncluded ? "text-white" : "text-gray-500"
+          {allFeatures.map((featureName, index) => {
+            // Se estiver usando recursos globais, encontrar o ID do recurso
+            const comparisonFeature = comparisonFeatures.find(f => f.name === featureName)
+            const featureId = comparisonFeature?.id
 
-                return (
-                  <td
-                    key={`${plan.id}-${featureName}`}
-                    className={cn(
-                      "px-6 py-3 text-center transition-all duration-150",
-                      plan.isPopular && "bg-gray-800/30"
-                    )}
-                  >
-                    <Icon className={cn("h-5 w-5 mx-auto", iconColor)} aria-hidden="true" />
-                  </td>
-                )
-              })}
-            </tr>
-          ))}
+            return (
+              <tr key={featureName} className={cn("transition-colors hover:bg-gray-800", index % 2 === 0 ? "bg-gray-900" : "bg-gray-800/50")}>
+                <td className="px-6 py-3 text-left text-sm font-medium text-white">
+                  {featureName}
+                </td>
+                {plans.map((plan) => {
+                  // Se usar recursos globais, verificar feature_values
+                  let isIncluded = false
+                  if (comparisonFeatures.length > 0 && featureId) {
+                    const featureValue = (plan.feature_values || []).find(fv => fv.feature_id === featureId)
+                    isIncluded = !!(featureValue?.text && featureValue.text.trim() !== '')
+                  } else {
+                    // Fallback para features antigas
+                    const feature = plan.features.find(f => f.name === featureName)
+                    isIncluded = feature?.isIncluded ?? false
+                  }
+                  
+                  const Icon = isIncluded ? Check : X
+                  const iconColor = isIncluded ? "text-white" : "text-gray-500"
+
+                  return (
+                    <td
+                      key={`${plan.id}-${featureName}`}
+                      className={cn(
+                        "px-6 py-3 text-center transition-all duration-150",
+                        plan.isPopular && "bg-gray-800/30"
+                      )}
+                    >
+                      <Icon className={cn("h-5 w-5 mx-auto", iconColor)} aria-hidden="true" />
+                    </td>
+                  )
+                })}
+              </tr>
+            )
+          })}
         </tbody>
       </table>
     </div>
@@ -335,31 +368,46 @@ export const PricingComponent: React.FC<PricingComponentProps> = ({
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-700 bg-gray-900">
-              {allFeatures.map((featureName, index) => (
-                <tr key={`modal-${featureName}`} className={cn("transition-colors hover:bg-gray-800", index % 2 === 0 ? "bg-gray-900" : "bg-gray-800/50")}>
-                  <td className="px-4 py-3 text-left text-sm font-medium text-white">
-                    {featureName}
-                  </td>
-                  {plans.map((plan) => {
-                    const feature = plan.features.find(f => f.name === featureName)
-                    const isIncluded = feature?.isIncluded ?? false
-                    const Icon = isIncluded ? Check : X
-                    const iconColor = isIncluded ? "text-white" : "text-gray-500"
+              {allFeatures.map((featureName, index) => {
+                // Se estiver usando recursos globais, encontrar o ID do recurso
+                const comparisonFeature = comparisonFeatures.find(f => f.name === featureName)
+                const featureId = comparisonFeature?.id
 
-                    return (
-                      <td
-                        key={`modal-${plan.id}-${featureName}`}
-                        className={cn(
-                          "px-4 py-3 text-center transition-all duration-150",
-                          plan.isPopular && "bg-gray-800/30"
-                        )}
-                      >
-                        <Icon className={cn("h-5 w-5 mx-auto", iconColor)} aria-hidden="true" />
-                      </td>
-                    )
-                  })}
-                </tr>
-              ))}
+                return (
+                  <tr key={`modal-${featureName}`} className={cn("transition-colors hover:bg-gray-800", index % 2 === 0 ? "bg-gray-900" : "bg-gray-800/50")}>
+                    <td className="px-4 py-3 text-left text-sm font-medium text-white">
+                      {featureName}
+                    </td>
+                    {plans.map((plan) => {
+                      // Se usar recursos globais, verificar feature_values
+                      let isIncluded = false
+                      if (comparisonFeatures.length > 0 && featureId) {
+                        const featureValue = (plan.feature_values || []).find(fv => fv.feature_id === featureId)
+                        isIncluded = !!(featureValue?.text && featureValue.text.trim() !== '')
+                      } else {
+                        // Fallback para features antigas
+                        const feature = plan.features.find(f => f.name === featureName)
+                        isIncluded = feature?.isIncluded ?? false
+                      }
+                      
+                      const Icon = isIncluded ? Check : X
+                      const iconColor = isIncluded ? "text-white" : "text-gray-500"
+
+                      return (
+                        <td
+                          key={`modal-${plan.id}-${featureName}`}
+                          className={cn(
+                            "px-4 py-3 text-center transition-all duration-150",
+                            plan.isPopular && "bg-gray-800/30"
+                          )}
+                        >
+                          <Icon className={cn("h-5 w-5 mx-auto", iconColor)} aria-hidden="true" />
+                        </td>
+                      )
+                    })}
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         </div>

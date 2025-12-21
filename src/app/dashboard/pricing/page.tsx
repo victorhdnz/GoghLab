@@ -13,6 +13,18 @@ import Link from 'next/link'
 import { DashboardNavigation } from '@/components/dashboard/DashboardNavigation'
 import { getSiteSettings, saveSiteSettings } from '@/lib/supabase/site-settings-helper'
 import { PriceTier, Feature } from '@/components/ui/pricing-card'
+import { Plus, Trash2, ArrowUp, ArrowDown, ChevronDown, ChevronUp } from 'lucide-react'
+
+interface ComparisonFeature {
+  id: string
+  name: string
+  order: number
+}
+
+interface PlanFeatureValue {
+  feature_id: string
+  text: string // Se vazio, significa que não tem o recurso
+}
 
 interface PricingSettings {
   pricing_enabled?: boolean
@@ -21,6 +33,7 @@ interface PricingSettings {
   pricing_annual_discount?: number
   pricing_plans?: [PriceTier, PriceTier, PriceTier]
   pricing_whatsapp_number?: string
+  comparison_features?: ComparisonFeature[] // Recursos globais para comparação
 }
 
 export default function PricingEditorPage() {
@@ -30,6 +43,8 @@ export default function PricingEditorPage() {
 
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [comparisonFeaturesExpanded, setComparisonFeaturesExpanded] = useState(true)
+  const [comparisonFeatures, setComparisonFeatures] = useState<ComparisonFeature[]>([])
   const [formData, setFormData] = useState<PricingSettings>({
     pricing_enabled: false,
     pricing_title: 'Escolha o plano ideal para sua empresa',
@@ -132,6 +147,12 @@ export default function PricingEditorPage() {
           pricing_plans: pricing.pricing_plans || prev.pricing_plans,
         }))
       }
+
+      // Carregar recursos de comparação
+      if (data?.homepage_content?.pricing?.comparison_features) {
+        const features = data.homepage_content.pricing.comparison_features as ComparisonFeature[]
+        setComparisonFeatures(features.sort((a, b) => a.order - b.order))
+      }
     } catch (error) {
       console.error('Erro ao carregar configurações:', error)
       toast.error('Erro ao carregar configurações de pricing.')
@@ -150,7 +171,10 @@ export default function PricingEditorPage() {
         fieldsToUpdate: {
           homepage_content: {
             ...currentHomepageContent,
-            pricing: formData,
+            pricing: {
+              ...formData,
+              comparison_features: comparisonFeatures,
+            },
           },
         },
       })
@@ -213,6 +237,88 @@ export default function PricingEditorPage() {
     const newPlans = [...formData.pricing_plans] as [PriceTier, PriceTier, PriceTier]
     newPlans[planIndex].features.splice(featureIndex, 1)
     setFormData({ ...formData, pricing_plans: newPlans })
+  }
+
+  // Funções para gerenciar recursos de comparação globais
+  const generateFeatureId = () => {
+    return `feature-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+  }
+
+  const handleAddComparisonFeature = () => {
+    const newFeature: ComparisonFeature = {
+      id: generateFeatureId(),
+      name: '',
+      order: comparisonFeatures.length,
+    }
+    setComparisonFeatures([...comparisonFeatures, newFeature])
+  }
+
+  const handleRemoveComparisonFeature = (featureId: string) => {
+    setComparisonFeatures(comparisonFeatures.filter(f => f.id !== featureId))
+    // Remover também dos feature_values de todos os planos
+    if (formData.pricing_plans) {
+      const newPlans = formData.pricing_plans.map(plan => ({
+        ...plan,
+        feature_values: (plan.feature_values || []).filter(fv => fv.feature_id !== featureId),
+      })) as [PriceTier, PriceTier, PriceTier]
+      setFormData({ ...formData, pricing_plans: newPlans })
+    }
+  }
+
+  const handleUpdateComparisonFeature = (featureId: string, field: 'name', value: string) => {
+    setComparisonFeatures(prev => prev.map(feature => 
+      feature.id === featureId ? { ...feature, [field]: value } : feature
+    ))
+  }
+
+  const handleMoveComparisonFeature = (featureId: string, direction: 'up' | 'down') => {
+    const currentIndex = comparisonFeatures.findIndex(f => f.id === featureId)
+    if (currentIndex === -1) return
+
+    const newIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1
+    if (newIndex < 0 || newIndex >= comparisonFeatures.length) return
+
+    const newFeatures = [...comparisonFeatures]
+    const [removed] = newFeatures.splice(currentIndex, 1)
+    newFeatures.splice(newIndex, 0, removed)
+    
+    // Atualizar ordem
+    const updatedFeatures = newFeatures.map((feature, index) => ({
+      ...feature,
+      order: index,
+    }))
+    
+    setComparisonFeatures(updatedFeatures)
+  }
+
+  // Função para atualizar o texto de um recurso de comparação em um plano
+  const updatePlanFeatureValue = (planIndex: number, featureId: string, text: string) => {
+    if (!formData.pricing_plans) return
+    
+    const newPlans = [...formData.pricing_plans] as [PriceTier, PriceTier, PriceTier]
+    const plan = newPlans[planIndex]
+    const featureValues = plan.feature_values || []
+    
+    const existingIndex = featureValues.findIndex(fv => fv.feature_id === featureId)
+    
+    if (existingIndex >= 0) {
+      // Atualizar existente
+      featureValues[existingIndex].text = text
+    } else {
+      // Adicionar novo
+      featureValues.push({ feature_id: featureId, text })
+    }
+    
+    newPlans[planIndex] = { ...plan, feature_values: featureValues }
+    setFormData({ ...formData, pricing_plans: newPlans })
+  }
+
+  // Função para obter o texto de um recurso em um plano
+  const getPlanFeatureText = (planIndex: number, featureId: string): string => {
+    if (!formData.pricing_plans) return ''
+    const plan = formData.pricing_plans[planIndex]
+    const featureValue = (plan.feature_values || []).find(fv => fv.feature_id === featureId)
+    return featureValue?.text || ''
   }
 
   if (authLoading || loading) {
@@ -313,6 +419,79 @@ export default function PricingEditorPage() {
               )}
             </div>
           </div>
+
+          {/* Recursos de Comparação Globais */}
+          {formData.pricing_enabled && (
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+              <button
+                onClick={() => setComparisonFeaturesExpanded(!comparisonFeaturesExpanded)}
+                className="w-full flex items-center justify-between mb-4"
+              >
+                <div className="flex items-center gap-3">
+                  <h2 className="text-xl font-bold">Recursos de Comparação (Globais)</h2>
+                  <span className="text-sm text-gray-500">({comparisonFeatures.length} recursos)</span>
+                </div>
+                {comparisonFeaturesExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+              </button>
+
+              {comparisonFeaturesExpanded && (
+                <div className="space-y-4">
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <p className="text-sm text-blue-800">
+                      <strong>💡 Dica:</strong> Crie os recursos de comparação aqui. Depois, configure o texto de cada recurso em cada plano. Se deixar vazio, aparecerá como "não tem" (✗) na tabela de comparação.
+                    </p>
+                  </div>
+
+                  <div className="space-y-3">
+                    {comparisonFeatures.map((feature, index) => (
+                      <div key={feature.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => handleMoveComparisonFeature(feature.id, 'up')}
+                            disabled={index === 0}
+                            className="p-1 hover:bg-gray-200 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                            title="Mover para cima"
+                          >
+                            <ArrowUp size={16} />
+                          </button>
+                          <button
+                            onClick={() => handleMoveComparisonFeature(feature.id, 'down')}
+                            disabled={index === comparisonFeatures.length - 1}
+                            className="p-1 hover:bg-gray-200 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                            title="Mover para baixo"
+                          >
+                            <ArrowDown size={16} />
+                          </button>
+                        </div>
+                        <Input
+                          value={feature.name}
+                          onChange={(e) => handleUpdateComparisonFeature(feature.id, 'name', e.target.value)}
+                          placeholder="Nome do recurso (ex: Desenvolvimento Web Essencial)"
+                          className="flex-1"
+                        />
+                        <button
+                          onClick={() => handleRemoveComparisonFeature(feature.id)}
+                          className="text-red-600 hover:text-red-800 p-2 hover:bg-red-50 rounded"
+                          title="Remover recurso"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+
+                  <Button
+                    onClick={handleAddComparisonFeature}
+                    variant="outline"
+                    className="w-full"
+                  >
+                    <Plus size={18} className="mr-2" />
+                    Adicionar Recurso de Comparação
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Planos */}
           {formData.pricing_enabled && formData.pricing_plans && (
@@ -421,6 +600,47 @@ export default function PricingEditorPage() {
                         />
                       </div>
                     </div>
+
+                    {/* Recursos de Comparação Detalhada */}
+                    {comparisonFeatures.length > 0 && (
+                      <div className="border-t pt-4 mt-4">
+                        <h4 className="font-semibold mb-3">Textos dos Recursos de Comparação</h4>
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+                          <p className="text-xs text-blue-800">
+                            <strong>💡 Dica:</strong> Configure o texto de cada recurso para este plano. Se deixar vazio, aparecerá como "não tem" (✗) na tabela de comparação detalhada.
+                          </p>
+                        </div>
+                        <div className="space-y-3">
+                          {comparisonFeatures.map((comparisonFeature) => {
+                            const currentText = getPlanFeatureText(planIndex, comparisonFeature.id)
+                            return (
+                              <div key={comparisonFeature.id} className="space-y-2">
+                                <label className="block text-sm font-medium text-gray-700">
+                                  {comparisonFeature.name || 'Recurso sem nome'}
+                                </label>
+                                <textarea
+                                  value={currentText}
+                                  onChange={(e) => updatePlanFeatureValue(planIndex, comparisonFeature.id, e.target.value)}
+                                  placeholder={`Digite o texto para ${comparisonFeature.name || 'este recurso'} neste plano (deixe vazio se não tiver)`}
+                                  rows={2}
+                                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                />
+                                {currentText && (
+                                  <p className="text-xs text-green-600">
+                                    ✓ Este recurso aparecerá na tabela de comparação
+                                  </p>
+                                )}
+                                {!currentText && (
+                                  <p className="text-xs text-gray-500">
+                                    ✗ Este recurso aparecerá como "não tem" na tabela de comparação
+                                  </p>
+                                )}
+                              </div>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    )}
 
                     {/* Features */}
                     <div className="border-t pt-4 mt-4">
