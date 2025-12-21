@@ -44,7 +44,16 @@ const iconColors: Record<string, string> = {
   sale: '#10B981',
 }
 
-const iconOptions = Object.keys(iconMap) as Array<keyof typeof iconMap>
+const iconOptions: Array<'whatsapp' | 'email' | 'instagram' | 'like' | 'user' | 'trending' | 'check' | 'sale'> = [
+  'whatsapp',
+  'email',
+  'instagram',
+  'like',
+  'user',
+  'trending',
+  'check',
+  'sale',
+]
 
 export function NotificationIconSelector({ 
   value = 'whatsapp', 
