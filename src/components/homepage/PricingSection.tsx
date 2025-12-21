@@ -56,7 +56,6 @@ export function PricingSection({
           title={title}
           description={description}
           annualDiscountPercent={annualDiscount}
-          comparisonFeatures={comparisonFeatures}
           featureCategories={featureCategories}
         />
       </section>

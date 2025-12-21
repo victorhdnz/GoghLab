@@ -15,21 +15,14 @@ import { getSiteSettings, saveSiteSettings } from '@/lib/supabase/site-settings-
 import { PriceTier, Feature } from '@/components/ui/pricing-card'
 import { Plus, Trash2, ArrowUp, ArrowDown, ChevronDown, ChevronUp } from 'lucide-react'
 
-interface ComparisonFeature {
-  id: string
-  name: string
-  order: number
-  category_id: string // ID da categoria (obrigatório)
-}
-
 interface FeatureCategory {
   id: string
   name: string
   order: number
 }
 
-interface PlanFeatureValue {
-  feature_id: string
+interface PlanCategoryValue {
+  category_id: string
   text: string // Se vazio, significa que não tem o recurso
 }
 
@@ -40,7 +33,7 @@ interface PricingSettings {
   pricing_annual_discount?: number
   pricing_plans?: [PriceTier, PriceTier, PriceTier]
   pricing_whatsapp_number?: string
-  comparison_features?: ComparisonFeature[] // Recursos globais para comparação
+  feature_categories?: FeatureCategory[]
 }
 
 export default function PricingEditorPage() {
@@ -50,9 +43,7 @@ export default function PricingEditorPage() {
 
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [comparisonFeaturesExpanded, setComparisonFeaturesExpanded] = useState(true)
   const [categoriesExpanded, setCategoriesExpanded] = useState(true)
-  const [comparisonFeatures, setComparisonFeatures] = useState<ComparisonFeature[]>([])
   const [featureCategories, setFeatureCategories] = useState<FeatureCategory[]>([])
   const [formData, setFormData] = useState<PricingSettings>({
     pricing_enabled: false,
@@ -157,13 +148,7 @@ export default function PricingEditorPage() {
         }))
       }
 
-      // Carregar recursos de comparação
-      if (data?.homepage_content?.pricing?.comparison_features) {
-        const features = data.homepage_content.pricing.comparison_features as ComparisonFeature[]
-        setComparisonFeatures(features.sort((a, b) => a.order - b.order))
-      }
-
-      // Carregar categorias de recursos
+          // Carregar categorias de recursos
       if (data?.homepage_content?.pricing?.feature_categories) {
         const categories = data.homepage_content.pricing.feature_categories as FeatureCategory[]
         setFeatureCategories(categories.sort((a, b) => a.order - b.order))
@@ -188,7 +173,6 @@ export default function PricingEditorPage() {
             ...currentHomepageContent,
             pricing: {
               ...formData,
-              comparison_features: comparisonFeatures,
               feature_categories: featureCategories,
             },
           },
@@ -271,17 +255,11 @@ export default function PricingEditorPage() {
 
   const handleRemoveCategory = (categoryId: string) => {
     setFeatureCategories(featureCategories.filter(c => c.id !== categoryId))
-    // Remover todos os recursos dessa categoria
-    setComparisonFeatures(prev => prev.filter(f => f.category_id !== categoryId))
-    // Remover também dos feature_values de todos os planos
+    // Remover também dos category_values de todos os planos
     if (formData.pricing_plans) {
-      const categoryFeatureIds = comparisonFeatures
-        .filter(f => f.category_id === categoryId)
-        .map(f => f.id)
-      
       const newPlans = formData.pricing_plans.map(plan => ({
         ...plan,
-        feature_values: (plan.feature_values || []).filter(fv => !categoryFeatureIds.includes(fv.feature_id)),
+        category_values: (plan.category_values || []).filter(cv => cv.category_id !== categoryId),
       })) as [PriceTier, PriceTier, PriceTier]
       setFormData({ ...formData, pricing_plans: newPlans })
     }
@@ -313,100 +291,34 @@ export default function PricingEditorPage() {
     setFeatureCategories(updatedCategories)
   }
 
-  // Funções para gerenciar recursos de comparação globais
-  const generateFeatureId = () => {
-    return `feature-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
-  }
-
-  const handleAddComparisonFeature = (categoryId: string) => {
-    const categoryFeatures = comparisonFeatures.filter(f => f.category_id === categoryId)
-    const newFeature: ComparisonFeature = {
-      id: generateFeatureId(),
-      name: '',
-      order: categoryFeatures.length,
-      category_id: categoryId,
-    }
-    setComparisonFeatures([...comparisonFeatures, newFeature])
-  }
-
-  const handleRemoveComparisonFeature = (featureId: string) => {
-    setComparisonFeatures(comparisonFeatures.filter(f => f.id !== featureId))
-    // Remover também dos feature_values de todos os planos
-    if (formData.pricing_plans) {
-      const newPlans = formData.pricing_plans.map(plan => ({
-        ...plan,
-        feature_values: (plan.feature_values || []).filter(fv => fv.feature_id !== featureId),
-      })) as [PriceTier, PriceTier, PriceTier]
-      setFormData({ ...formData, pricing_plans: newPlans })
-    }
-  }
-
-  const handleUpdateComparisonFeature = (featureId: string, field: 'name', value: string) => {
-    setComparisonFeatures(prev => prev.map(feature => 
-      feature.id === featureId ? { ...feature, [field]: value } : feature
-    ))
-  }
-
-
-  const handleMoveComparisonFeature = (featureId: string, direction: 'up' | 'down') => {
-    const feature = comparisonFeatures.find(f => f.id === featureId)
-    if (!feature) return
-
-    // Mover apenas dentro da mesma categoria
-    const categoryFeatures = comparisonFeatures
-      .filter(f => f.category_id === feature.category_id)
-      .sort((a, b) => a.order - b.order)
-    
-    const currentIndex = categoryFeatures.findIndex(f => f.id === featureId)
-    if (currentIndex === -1) return
-
-    const newIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1
-    if (newIndex < 0 || newIndex >= categoryFeatures.length) return
-
-    // Reordenar apenas os recursos da mesma categoria
-    const newCategoryFeatures = [...categoryFeatures]
-    const [removed] = newCategoryFeatures.splice(currentIndex, 1)
-    newCategoryFeatures.splice(newIndex, 0, removed)
-    
-    // Atualizar ordem apenas dos recursos desta categoria
-    const updatedCategoryFeatures = newCategoryFeatures.map((f, index) => ({
-      ...f,
-      order: index,
-    }))
-    
-    // Atualizar todos os recursos, mantendo os de outras categorias
-    const otherFeatures = comparisonFeatures.filter(f => f.category_id !== feature.category_id)
-    setComparisonFeatures([...otherFeatures, ...updatedCategoryFeatures])
-  }
-
-  // Função para atualizar o texto de um recurso de comparação em um plano
-  const updatePlanFeatureValue = (planIndex: number, featureId: string, text: string) => {
+  // Função para atualizar o texto de uma categoria em um plano
+  const updatePlanCategoryValue = (planIndex: number, categoryId: string, text: string) => {
     if (!formData.pricing_plans) return
     
     const newPlans = [...formData.pricing_plans] as [PriceTier, PriceTier, PriceTier]
     const plan = newPlans[planIndex]
-    const featureValues = plan.feature_values || []
+    const categoryValues = plan.category_values || []
     
-    const existingIndex = featureValues.findIndex(fv => fv.feature_id === featureId)
+    const existingIndex = categoryValues.findIndex(cv => cv.category_id === categoryId)
     
     if (existingIndex >= 0) {
       // Atualizar existente
-      featureValues[existingIndex].text = text
+      categoryValues[existingIndex].text = text
     } else {
       // Adicionar novo
-      featureValues.push({ feature_id: featureId, text })
+      categoryValues.push({ category_id: categoryId, text })
     }
     
-    newPlans[planIndex] = { ...plan, feature_values: featureValues }
+    newPlans[planIndex] = { ...plan, category_values: categoryValues }
     setFormData({ ...formData, pricing_plans: newPlans })
   }
 
-  // Função para obter o texto de um recurso em um plano
-  const getPlanFeatureText = (planIndex: number, featureId: string): string => {
+  // Função para obter o texto de uma categoria em um plano
+  const getPlanCategoryText = (planIndex: number, categoryId: string): string => {
     if (!formData.pricing_plans) return ''
     const plan = formData.pricing_plans[planIndex]
-    const featureValue = (plan.feature_values || []).find(fv => fv.feature_id === featureId)
-    return featureValue?.text || ''
+    const categoryValue = (plan.category_values || []).find(cv => cv.category_id === categoryId)
+    return categoryValue?.text || ''
   }
 
   if (authLoading || loading) {
@@ -581,103 +493,6 @@ export default function PricingEditorPage() {
             </div>
           )}
 
-          {/* Recursos de Comparação Globais - Agrupados por Categoria */}
-          {formData.pricing_enabled && featureCategories.length > 0 && (
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-              <button
-                onClick={() => setComparisonFeaturesExpanded(!comparisonFeaturesExpanded)}
-                className="w-full flex items-center justify-between mb-4"
-              >
-                <div className="flex items-center gap-3">
-                  <h2 className="text-xl font-bold">Recursos de Comparação (Agrupados por Categoria)</h2>
-                  <span className="text-sm text-gray-500">({comparisonFeatures.length} recursos)</span>
-                </div>
-                {comparisonFeaturesExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
-              </button>
-
-              {comparisonFeaturesExpanded && (
-                <div className="space-y-4">
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <p className="text-sm text-blue-800">
-                      <strong>💡 Dica:</strong> Crie recursos dentro de cada categoria. Esses recursos serão espelhados em todos os planos, onde você poderá configurar o texto específico de cada um.
-                    </p>
-                  </div>
-
-                  {/* Mostrar categorias com seus recursos */}
-                  {featureCategories.map((category) => {
-                    const categoryFeatures = comparisonFeatures
-                      .filter(f => f.category_id === category.id)
-                      .sort((a, b) => a.order - b.order)
-                    
-                    return (
-                      <div key={category.id} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
-                        <div className="flex items-center justify-between mb-3">
-                          <h3 className="font-semibold text-gray-900">{category.name}</h3>
-                          <Button
-                            onClick={() => handleAddComparisonFeature(category.id)}
-                            variant="outline"
-                            size="sm"
-                          >
-                            <Plus size={16} className="mr-2" />
-                            Adicionar Recurso
-                          </Button>
-                        </div>
-                        
-                        <div className="space-y-2">
-                          {categoryFeatures.map((feature, index) => (
-                            <div key={feature.id} className="flex items-center gap-3 p-2 bg-white rounded border border-gray-200">
-                              <div className="flex items-center gap-2">
-                                <button
-                                  onClick={() => handleMoveComparisonFeature(feature.id, 'up')}
-                                  disabled={index === 0}
-                                  className="p-1 hover:bg-gray-200 rounded disabled:opacity-50 disabled:cursor-not-allowed"
-                                  title="Mover para cima"
-                                >
-                                  <ArrowUp size={14} />
-                                </button>
-                                <button
-                                  onClick={() => handleMoveComparisonFeature(feature.id, 'down')}
-                                  disabled={index === categoryFeatures.length - 1}
-                                  className="p-1 hover:bg-gray-200 rounded disabled:opacity-50 disabled:cursor-not-allowed"
-                                  title="Mover para baixo"
-                                >
-                                  <ArrowDown size={14} />
-                                </button>
-                              </div>
-                              <Input
-                                value={feature.name}
-                                onChange={(e) => handleUpdateComparisonFeature(feature.id, 'name', e.target.value)}
-                                placeholder="Nome do recurso (ex: Desenvolvimento Web Essencial)"
-                                className="flex-1"
-                              />
-                              <button
-                                onClick={() => handleRemoveComparisonFeature(feature.id)}
-                                className="text-red-600 hover:text-red-800 p-2 hover:bg-red-50 rounded"
-                                title="Remover recurso"
-                              >
-                                <Trash2 size={16} />
-                              </button>
-                            </div>
-                          ))}
-                          {categoryFeatures.length === 0 && (
-                            <p className="text-sm text-gray-500 italic">Nenhum recurso nesta categoria. Clique em "Adicionar Recurso" para criar.</p>
-                          )}
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
-            </div>
-          )}
-
-          {formData.pricing_enabled && featureCategories.length === 0 && (
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-              <p className="text-sm text-yellow-800">
-                <strong>⚠️ Atenção:</strong> Crie pelo menos uma categoria na seção "Categorias de Recursos" acima para poder adicionar recursos.
-              </p>
-            </div>
-          )}
 
           {/* Planos */}
           {formData.pricing_enabled && formData.pricing_plans && (
@@ -787,62 +602,47 @@ export default function PricingEditorPage() {
                       </div>
                     </div>
 
-                    {/* Recursos de Comparação Detalhada - Agrupados por Categoria */}
-                    {featureCategories.length > 0 && comparisonFeatures.length > 0 ? (
+                    {/* Textos das Categorias de Comparação */}
+                    {featureCategories.length > 0 ? (
                       <div className="border-t pt-4 mt-4">
-                        <h4 className="font-semibold mb-3">Textos dos Recursos de Comparação</h4>
+                        <h4 className="font-semibold mb-3">Textos das Categorias de Comparação</h4>
                         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
                           <p className="text-sm text-blue-800 mb-2">
                             <strong>💡 Como funciona:</strong>
                           </p>
                           <ul className="text-xs text-blue-800 space-y-1 ml-4 list-disc">
-                            <li><strong>Nome do recurso:</strong> Aparece como título principal na tabela</li>
+                            <li><strong>Nome da categoria:</strong> Aparece como título principal na tabela</li>
                             <li><strong>Quando TODOS os planos têm texto:</strong> A tabela mostra ✓ + o texto específico de cada plano lado a lado</li>
                             <li><strong>Quando APENAS ALGUNS planos têm:</strong> Mostra ✓ + texto para quem tem, e ✗ para quem não tem</li>
-                            <li><strong>Se deixar vazio:</strong> Aparecerá como ✗ na tabela, indicando que o plano não tem esse recurso</li>
+                            <li><strong>Se deixar vazio:</strong> Aparecerá como ✗ na tabela, indicando que o plano não tem essa categoria</li>
                           </ul>
                         </div>
                         
-                        {/* Mostrar categorias com seus recursos */}
+                        {/* Mostrar categorias com campo de texto */}
                         <div className="space-y-4">
                           {featureCategories.map((category) => {
-                            const categoryFeatures = comparisonFeatures
-                              .filter(f => f.category_id === category.id)
-                              .sort((a, b) => a.order - b.order)
-                            
-                            if (categoryFeatures.length === 0) return null
-                            
+                            const currentText = getPlanCategoryText(planIndex, category.id)
                             return (
                               <div key={category.id} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
                                 <h5 className="font-semibold text-gray-900 mb-3">{category.name}</h5>
-                                <div className="space-y-3">
-                                  {categoryFeatures.map((comparisonFeature) => {
-                                    const currentText = getPlanFeatureText(planIndex, comparisonFeature.id)
-                                    return (
-                                      <div key={comparisonFeature.id} className="space-y-2 bg-white p-3 rounded border border-gray-200">
-                                        <label className="block text-sm font-medium text-gray-700">
-                                          {comparisonFeature.name || 'Recurso sem nome'}
-                                        </label>
-                                        <textarea
-                                          value={currentText}
-                                          onChange={(e) => updatePlanFeatureValue(planIndex, comparisonFeature.id, e.target.value)}
-                                          placeholder={`Digite o texto para ${comparisonFeature.name || 'este recurso'} neste plano (deixe vazio se não tiver)`}
-                                          rows={2}
-                                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                        />
-                                        {currentText && (
-                                          <p className="text-xs text-green-600">
-                                            ✓ Este recurso aparecerá na tabela de comparação
-                                          </p>
-                                        )}
-                                        {!currentText && (
-                                          <p className="text-xs text-gray-500">
-                                            ✗ Este recurso aparecerá como "não tem" na tabela de comparação
-                                          </p>
-                                        )}
-                                      </div>
-                                    )
-                                  })}
+                                <div className="space-y-2 bg-white p-3 rounded border border-gray-200">
+                                  <textarea
+                                    value={currentText}
+                                    onChange={(e) => updatePlanCategoryValue(planIndex, category.id, e.target.value)}
+                                    placeholder={`Digite o texto para ${category.name} neste plano (deixe vazio se não tiver)`}
+                                    rows={3}
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                  />
+                                  {currentText && (
+                                    <p className="text-xs text-green-600">
+                                      ✓ Esta categoria aparecerá na tabela de comparação
+                                    </p>
+                                  )}
+                                  {!currentText && (
+                                    <p className="text-xs text-gray-500">
+                                      ✗ Esta categoria aparecerá como "não tem" na tabela de comparação
+                                    </p>
+                                  )}
                                 </div>
                               </div>
                             )
@@ -853,7 +653,7 @@ export default function PricingEditorPage() {
                       <div className="border-t pt-4 mt-4">
                         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
                           <p className="text-sm text-yellow-800">
-                            <strong>⚠️ Atenção:</strong> Crie categorias e recursos na seção "Categorias de Recursos" e "Recursos de Comparação" acima para poder configurá-los aqui.
+                            <strong>⚠️ Atenção:</strong> Crie categorias na seção "Categorias de Recursos" acima para poder configurá-las aqui.
                           </p>
                         </div>
                       </div>

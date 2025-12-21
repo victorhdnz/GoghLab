@@ -267,7 +267,6 @@ export function HomepageSections({
         annualDiscount={pricing.pricing_annual_discount}
         plans={pricing.pricing_plans}
         whatsappNumber={pricing.pricing_whatsapp_number || siteSettings?.contact_whatsapp}
-        comparisonFeatures={pricing.comparison_features || []}
         featureCategories={pricing.feature_categories || []}
       />
     )

@@ -63,7 +63,6 @@ export function ServicePricing({
           title={title}
           description={description}
           annualDiscountPercent={annualDiscount}
-          comparisonFeatures={comparisonFeatures}
           featureCategories={featureCategories}
         />
       </section>
