@@ -90,16 +90,20 @@ export function HomepageSections({
               const { firstPart, secondPart } = splitTextForHighlights(homepageContent.hero_subtitle)
               return (
                 <p className="text-2xl md:text-3xl lg:text-4xl text-white max-w-4xl mx-auto font-bold mb-6 leading-tight">
-                  <Highlighter action="underline" color="#FF9800" isView={true}>
-                    {firstPart}
-                  </Highlighter>
+                  <span className="inline-block relative z-0">
+                    <Highlighter action="underline" color="#FF9800" isView={true}>
+                      {firstPart}
+                    </Highlighter>
+                  </span>
                   {secondPart && (
                     <>
                       {homepageContent.hero_subtitle.includes(',') ? ',' : ' '}
                       {' '}
-                      <Highlighter action="highlight" color="#87CEFA" isView={true}>
-                        {secondPart}
-                      </Highlighter>
+                      <span className="inline-block relative z-0">
+                        <Highlighter action="highlight" color="#87CEFA" isView={true}>
+                          {secondPart}
+                        </Highlighter>
+                      </span>
                     </>
                   )}
                 </p>
