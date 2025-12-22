@@ -27,7 +27,7 @@ function HandWrittenTitle({
         <div className="relative w-full max-w-4xl mx-auto py-12 md:py-16">
             <div className="relative text-center flex flex-col items-center justify-center">
                 {/* SVG apenas ao redor do título */}
-                <div className="relative inline-block mb-4 px-12 py-8 md:px-16 md:py-12">
+                <div className="relative inline-block mb-4 px-12 py-8 md:px-20 md:py-14">
                     <div className="absolute inset-0">
                         <motion.svg
                             width="100%"
