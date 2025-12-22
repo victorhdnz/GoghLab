@@ -58,7 +58,7 @@ export function HomepageVideo({ enabled = true, videoUrl, videoAutoplay = false,
   const youtubeId = videoUrl ? getYouTubeId(videoUrl) : null
 
   return (
-    <section className="relative bg-gradient-to-b from-gray-900 via-black to-gray-900 text-white py-12 md:py-20 px-4 overflow-hidden pt-24 md:pt-32">
+    <section className="relative bg-black text-white py-12 md:py-20 px-4 overflow-hidden pt-24 md:pt-32">
       <div className="container mx-auto max-w-6xl relative z-10">
         {/* Título com animação Pointer Highlight - Antes do vídeo */}
         {title && (
