@@ -59,8 +59,6 @@ export default function ServiceDetailLayoutPage() {
     hero_video_url: '',
     hero_video_autoplay: false,
     hero_title: '',
-    hero_title_highlight: '',
-    hero_title_highlight_color: '#FFFFFF',
     hero_subtitle: '',
 
     benefits_enabled: true,
@@ -217,29 +215,6 @@ export default function ServiceDetailLayoutPage() {
                   onChange={(e) => setFormData({ ...formData, hero_title: e.target.value })}
                   placeholder="Ex: Aprenda esses 2 ajustes..."
                 />
-                <Input
-                  label="Palavra para Destacar (dentro do título)"
-                  value={formData.hero_title_highlight || ''}
-                  onChange={(e) => setFormData({ ...formData, hero_title_highlight: e.target.value })}
-                  placeholder="Ex: preguiçosos"
-                />
-                <div className="flex items-center gap-4">
-                  <Input
-                    label="Cor da Palavra Destacada"
-                    value={formData.hero_title_highlight_color || '#FFFFFF'}
-                    onChange={(e) => setFormData({ ...formData, hero_title_highlight_color: e.target.value })}
-                    type="color"
-                    className="w-24 h-12"
-                  />
-                  <div className="flex-1">
-                    <Input
-                      label=""
-                      value={formData.hero_title_highlight_color || '#FFFFFF'}
-                      onChange={(e) => setFormData({ ...formData, hero_title_highlight_color: e.target.value })}
-                      placeholder="#FFFFFF"
-                    />
-                  </div>
-                </div>
                 <div>
                   <label className="block text-sm font-medium mb-2">Subtítulo</label>
                   <textarea

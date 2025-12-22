@@ -1,6 +1,7 @@
 'use client'
 
 import { ServiceDetailContent } from '@/types/service-detail'
+import { HandWrittenTitle } from '@/components/ui/hand-writing-text'
 
 interface ServiceHeroVideoProps {
   content: ServiceDetailContent
@@ -23,16 +24,12 @@ export function ServiceHeroVideo({ content, serviceName }: ServiceHeroVideoProps
   return (
     <section className="relative bg-gradient-to-b from-gray-900 via-black to-gray-900 text-white py-12 md:py-20 px-4 overflow-hidden pt-24 md:pt-32">
       <div className="container mx-auto max-w-6xl relative z-10">
-        {/* Título - Antes do vídeo */}
-        <div className="text-center space-y-6 mb-12">
-          <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold leading-tight text-white">
-            {content.hero_title || serviceName}
-          </h1>
-          {content.hero_subtitle && (
-            <p className="text-lg md:text-xl text-gray-300 max-w-3xl mx-auto leading-relaxed">
-              {content.hero_subtitle}
-            </p>
-          )}
+        {/* Título com animação Hand Writing - Antes do vídeo */}
+        <div className="mb-12">
+          <HandWrittenTitle
+            title={content.hero_title || serviceName}
+            subtitle={content.hero_subtitle}
+          />
         </div>
 
         {/* Vídeo Principal - Sempre mostrar placeholder */}
