@@ -19,38 +19,99 @@ export function NavigationTabs({ variant, className }: NavigationTabsProps) {
       // Homepage tabs: Preço (0), Contato (1), Comparador (2)
       switch (index) {
         case 0: // Preço
-          const pricingSection = document.getElementById('pricing-section')
-          if (pricingSection) {
-            pricingSection.scrollIntoView({ behavior: 'smooth', block: 'start' })
-          }
+          setTimeout(() => {
+            const pricingSection = document.getElementById('pricing-section')
+            if (pricingSection) {
+              const headerOffset = 100
+              const elementPosition = pricingSection.getBoundingClientRect().top
+              const offsetPosition = elementPosition + window.pageYOffset - headerOffset
+              
+              window.scrollTo({
+                top: offsetPosition,
+                behavior: 'smooth'
+              })
+            }
+          }, 100)
           break
         case 1: // Contato
-          const contactSection = document.getElementById('contact-section')
-          if (contactSection) {
-            contactSection.scrollIntoView({ behavior: 'smooth', block: 'start' })
-          }
+          setTimeout(() => {
+            const contactSection = document.getElementById('contact-section')
+            if (contactSection) {
+              const headerOffset = 100
+              const elementPosition = contactSection.getBoundingClientRect().top
+              const offsetPosition = elementPosition + window.pageYOffset - headerOffset
+              
+              window.scrollTo({
+                top: offsetPosition,
+                behavior: 'smooth'
+              })
+            }
+          }, 100)
           break
         case 2: // Comparador
-          const comparisonSection = document.getElementById('comparison-section')
-          if (comparisonSection) {
-            comparisonSection.scrollIntoView({ behavior: 'smooth', block: 'start' })
+          // Tentar encontrar a seção com múltiplas tentativas
+          let attempts = 0
+          const maxAttempts = 5
+          
+          const tryScrollToComparison = () => {
+            attempts++
+            const comparisonSection = document.getElementById('comparison-section')
+            
+            if (comparisonSection) {
+              // Calcular offset para considerar header fixo
+              const headerOffset = 100
+              const elementPosition = comparisonSection.getBoundingClientRect().top
+              const offsetPosition = elementPosition + window.pageYOffset - headerOffset
+              
+              window.scrollTo({
+                top: offsetPosition,
+                behavior: 'smooth'
+              })
+            } else if (attempts < maxAttempts) {
+              // Tentar novamente após um pequeno delay
+              setTimeout(tryScrollToComparison, 100)
+            } else {
+              // Se a seção não existir após várias tentativas, redirecionar para a página de comparação
+              router.push('/comparar')
+            }
           }
+          
+          // Iniciar a primeira tentativa após um pequeno delay
+          setTimeout(tryScrollToComparison, 100)
           break
       }
     } else {
       // Service page tabs: Preço (0), Contato (1), Homepage (2)
       switch (index) {
         case 0: // Preço
-          const pricingSection = document.getElementById('pricing-section')
-          if (pricingSection) {
-            pricingSection.scrollIntoView({ behavior: 'smooth', block: 'start' })
-          }
+          setTimeout(() => {
+            const pricingSection = document.getElementById('pricing-section')
+            if (pricingSection) {
+              const headerOffset = 100
+              const elementPosition = pricingSection.getBoundingClientRect().top
+              const offsetPosition = elementPosition + window.pageYOffset - headerOffset
+              
+              window.scrollTo({
+                top: offsetPosition,
+                behavior: 'smooth'
+              })
+            }
+          }, 100)
           break
         case 1: // Contato
-          const contactSection = document.getElementById('contact-section')
-          if (contactSection) {
-            contactSection.scrollIntoView({ behavior: 'smooth', block: 'start' })
-          }
+          setTimeout(() => {
+            const contactSection = document.getElementById('contact-section')
+            if (contactSection) {
+              const headerOffset = 100
+              const elementPosition = contactSection.getBoundingClientRect().top
+              const offsetPosition = elementPosition + window.pageYOffset - headerOffset
+              
+              window.scrollTo({
+                top: offsetPosition,
+                behavior: 'smooth'
+              })
+            }
+          }, 100)
           break
         case 2: // Homepage
           window.location.href = '/'
