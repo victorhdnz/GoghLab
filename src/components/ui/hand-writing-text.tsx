@@ -27,17 +27,17 @@ function HandWrittenTitle({
         <div className="relative w-full max-w-4xl mx-auto py-12 md:py-16">
             <div className="relative text-center flex flex-col items-center justify-center">
                 {/* SVG apenas ao redor do título */}
-                <div className="relative inline-block mb-4 px-8 py-4">
-                    <div className="absolute inset-0">
+                <div className="relative inline-block mb-4">
+                    <div className="absolute inset-0 -m-6 md:-m-8">
                         <motion.svg
-                            width="100%"
-                            height="100%"
+                            width="calc(100% + 3rem)"
+                            height="calc(100% + 3rem)"
                             viewBox="0 0 1200 600"
-                            preserveAspectRatio="none"
+                            preserveAspectRatio="xMidYMid meet"
                             initial="hidden"
                             animate="visible"
                             className="w-full h-full"
-                            style={{ pointerEvents: 'none' }}
+                            style={{ pointerEvents: 'none', margin: '0 auto' }}
                         >
                             <title>Hand Written Title</title>
                             <motion.path
@@ -57,7 +57,7 @@ function HandWrittenTitle({
                         </motion.svg>
                     </div>
                     <motion.h1
-                        className="relative z-10 text-3xl md:text-5xl lg:text-6xl text-white tracking-tighter font-bold whitespace-nowrap"
+                        className="relative z-10 text-3xl md:text-5xl lg:text-6xl text-white tracking-tighter font-bold whitespace-nowrap px-4"
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.5, duration: 0.8 }}
