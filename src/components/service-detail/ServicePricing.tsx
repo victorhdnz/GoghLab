@@ -52,7 +52,7 @@ export function ServicePricing({
 
   return (
     <FadeInSection>
-      <section className="py-16 md:py-24 px-4 bg-black">
+      <section id="pricing-section" className="py-16 md:py-24 px-4 bg-black">
         <PricingComponent
           plans={plans}
           billingCycle={billingCycle}

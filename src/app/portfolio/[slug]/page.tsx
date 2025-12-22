@@ -11,6 +11,7 @@ import { ServiceAlternateContent } from '@/components/service-detail/ServiceAlte
 import { ServicePricing } from '@/components/service-detail/ServicePricing'
 import { ServiceCTA } from '@/components/service-detail/ServiceCTA'
 import { FixedLogo } from '@/components/layout/FixedLogo'
+import { NavigationTabs } from '@/components/ui/NavigationTabs'
 
 async function getService(slug: string): Promise<Service | null> {
   try {
@@ -225,6 +226,7 @@ export default async function ServicePage({ params }: { params: { slug: string }
           if (sectionVisibility[sectionId] === false) return null
           return <div key={sectionId}>{renderer()}</div>
         })}
+        <NavigationTabs variant="service" />
       </div>
     </ServicePageTracker>
   )

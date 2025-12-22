@@ -3,6 +3,7 @@ import { Service } from '@/types'
 import { HomepageTracker } from '@/components/analytics/HomepageTracker'
 import { HomepageSections } from '@/components/homepage/HomepageSections'
 import { FixedLogo } from '@/components/layout/FixedLogo'
+import { NavigationTabs } from '@/components/ui/NavigationTabs'
 
 async function getServices(): Promise<Service[]> {
   try {
@@ -165,6 +166,7 @@ export default async function Home() {
           sectionVisibility={sectionVisibility}
           sectionOrder={sectionOrder}
         />
+        <NavigationTabs variant="homepage" />
       </div>
     </HomepageTracker>
   )
