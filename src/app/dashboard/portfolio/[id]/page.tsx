@@ -442,13 +442,15 @@ export default function EditServicePage({ params }: EditServicePageProps) {
                   placeholder="Ex: Tráfego Pago"
                 />
                 <div>
-                  <label className="block text-sm font-medium mb-2">Imagem (URL ou deixe vazio para usar a imagem do serviço)</label>
-                  <Input
+                  <label className="block text-sm font-medium mb-2">Imagem</label>
+                  <ImageUploader
                     value={layoutData.scroll_animation_image || ''}
-                    onChange={(e) => setLayoutData({ ...layoutData, scroll_animation_image: e.target.value })}
-                    placeholder="URL da imagem ou deixe vazio"
+                    onChange={(url) => setLayoutData({ ...layoutData, scroll_animation_image: url })}
+                    placeholder="Clique para fazer upload de uma imagem"
+                    cropType="custom"
+                    recommendedDimensions="Recomendado: 1400x720px ou proporção similar"
                   />
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-xs text-gray-500 mt-2">
                     Se deixar vazio, será usada a imagem de capa do serviço ou a primeira imagem do array de imagens.
                   </p>
                 </div>
