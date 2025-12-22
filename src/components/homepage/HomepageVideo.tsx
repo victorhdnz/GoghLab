@@ -1,6 +1,6 @@
 'use client'
 
-import { HandWrittenTitle } from '@/components/ui/hand-writing-text'
+import { PointerHighlight } from '@/components/ui/pointer-highlight'
 
 interface HomepageVideoProps {
   enabled?: boolean
@@ -17,6 +17,40 @@ function getYouTubeId(url: string): string | null {
   return match ? match[1] : null
 }
 
+// Função para dividir o título e aplicar PointerHighlight na palavra "nós"
+function renderTitleWithHighlight(title: string) {
+  if (!title) return null
+
+  // Procurar pela palavra "nós" (case insensitive, com acentuação)
+  const regex = /(\b[nN]ós\b)/i
+  const parts = title.split(regex)
+
+  if (parts.length === 1) {
+    // Se não encontrar "nós", retornar o título normal
+    return <>{title}</>
+  }
+
+  return (
+    <>
+      {parts.map((part, index) => {
+        if (regex.test(part)) {
+          // Aplicar PointerHighlight na palavra "nós"
+          return (
+            <PointerHighlight 
+              key={index} 
+              rectangleClassName="border-white" 
+              pointerClassName="text-white"
+            >
+              <span className="inline">{part}</span>
+            </PointerHighlight>
+          )
+        }
+        return <span key={index}>{part}</span>
+      })}
+    </>
+  )
+}
+
 export function HomepageVideo({ enabled = true, videoUrl, videoAutoplay = false, title, subtitle }: HomepageVideoProps) {
   if (!enabled) return null
 
@@ -26,13 +60,17 @@ export function HomepageVideo({ enabled = true, videoUrl, videoAutoplay = false,
   return (
     <section className="relative bg-gradient-to-b from-gray-900 via-black to-gray-900 text-white py-12 md:py-20 px-4 overflow-hidden pt-24 md:pt-32">
       <div className="container mx-auto max-w-6xl relative z-10">
-        {/* Título com animação Hand Writing - Antes do vídeo */}
+        {/* Título com animação Pointer Highlight - Antes do vídeo */}
         {title && (
           <div className="mb-12">
-            <HandWrittenTitle
-              title={title}
-              subtitle={subtitle}
-            />
+            <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold text-white tracking-tight mb-4 md:mb-6 leading-tight">
+              {renderTitleWithHighlight(title)}
+            </h1>
+            {subtitle && (
+              <p className="text-lg md:text-xl text-white/90 mt-4 md:mt-6">
+                {subtitle}
+              </p>
+            )}
           </div>
         )}
 
