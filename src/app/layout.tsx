@@ -128,12 +128,63 @@ async function getSiteTitle(): Promise<string | null> {
   return null
 }
 
+// Função para buscar logo do site do banco de dados
+async function getSiteLogo(): Promise<string | null> {
+  try {
+    const supabase = createServerClient()
+    const { data, error } = await supabase
+      .from('site_settings')
+      .select('site_logo, homepage_content')
+      .eq('key', 'general')
+      .maybeSingle()
+
+    if (error && error.code !== 'PGRST116') {
+      console.error('Erro ao buscar logo do site:', error)
+      return null
+    }
+
+    if (data) {
+      // Priorizar site_logo, mas usar hero_logo como fallback
+      let logo = data.site_logo
+      if (!logo && data.homepage_content && typeof data.homepage_content === 'object') {
+        logo = (data.homepage_content as any)?.hero_logo || null
+      }
+      return logo
+    }
+  } catch (error) {
+    console.error('Erro ao buscar logo do site:', error)
+  }
+
+  return null
+}
+
 // Gerar metadata dinamicamente com dados do banco
 export async function generateMetadata(): Promise<Metadata> {
   const siteDescription = await getSiteDescription()
   const siteName = await getSiteName()
   const siteTitle = await getSiteTitle() || `${siteName} - Toda sua gestão digital em um só lugar.`
   const siteUrl = getSiteUrl()
+  const siteLogo = await getSiteLogo()
+
+  // Construir array de ícones - usar logo do banco se disponível
+  const iconArray: Array<{ url: string; sizes?: string; type?: string }> = []
+  
+  if (siteLogo) {
+    // Usar logo do banco de dados como ícone principal
+    iconArray.push({ url: siteLogo, sizes: 'any' })
+    iconArray.push({ url: siteLogo, sizes: '16x16', type: 'image/png' })
+    iconArray.push({ url: siteLogo, sizes: '32x32', type: 'image/png' })
+  } else {
+    // Fallback para arquivos estáticos se não houver logo no banco
+    iconArray.push({ url: '/favicon.ico', sizes: 'any' })
+    iconArray.push({ url: '/icon-16x16.png', sizes: '16x16', type: 'image/png' })
+    iconArray.push({ url: '/icon-32x32.png', sizes: '32x32', type: 'image/png' })
+  }
+
+  // Apple Touch Icon - sempre usar logo do banco se disponível (importante para Safari)
+  const appleIconArray = siteLogo 
+    ? [{ url: siteLogo, sizes: '180x180', type: 'image/png' }]
+    : [{ url: '/apple-icon.png', sizes: '180x180', type: 'image/png' }]
 
   return {
     metadataBase: new URL(siteUrl),
@@ -150,30 +201,33 @@ export async function generateMetadata(): Promise<Metadata> {
       locale: 'pt_BR',
       siteName: siteName,
       url: siteUrl,
-      images: [
-        {
-          url: `${siteUrl}/og-image.jpg`, // Você pode adicionar uma imagem OG personalizada
-          width: 1200,
-          height: 630,
-          alt: siteTitle,
-        },
-      ],
+      images: siteLogo 
+        ? [
+            {
+              url: siteLogo,
+              width: 1200,
+              height: 630,
+              alt: siteTitle,
+            },
+          ]
+        : [
+            {
+              url: `${siteUrl}/og-image.jpg`,
+              width: 1200,
+              height: 630,
+              alt: siteTitle,
+            },
+          ],
     },
     twitter: {
       card: 'summary_large_image',
       title: siteTitle,
       description: siteDescription,
-      images: [`${siteUrl}/og-image.jpg`],
+      images: siteLogo ? [siteLogo] : [`${siteUrl}/og-image.jpg`],
     },
     icons: {
-      icon: [
-        { url: '/favicon.ico', sizes: 'any' },
-        { url: '/icon-16x16.png', sizes: '16x16', type: 'image/png' },
-        { url: '/icon-32x32.png', sizes: '32x32', type: 'image/png' },
-      ],
-      apple: [
-        { url: '/apple-icon.png', sizes: '180x180', type: 'image/png' },
-      ],
+      icon: iconArray,
+      apple: appleIconArray,
     },
     manifest: '/manifest.json',
   }

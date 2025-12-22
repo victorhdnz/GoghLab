@@ -27,7 +27,7 @@ export function ServiceCardSwap({
   return (
     <section className="relative py-8 md:py-16 lg:py-24 px-4 bg-black min-h-[400px] md:min-h-[600px] overflow-hidden">
       <div className="container mx-auto max-w-7xl relative">
-        <div className="flex flex-col lg:flex-row items-start lg:items-center gap-4 md:gap-8 lg:gap-12">
+        <div className="flex flex-col lg:flex-row items-start lg:items-center gap-2 md:gap-4 lg:gap-6">
           {/* Conteúdo à esquerda */}
           <div className="flex-1 max-w-2xl relative z-10">
             {title && (
