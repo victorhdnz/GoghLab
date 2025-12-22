@@ -27,7 +27,7 @@ export function ServiceCardSwap({
   return (
     <section className="relative py-8 md:py-16 lg:py-24 px-4 bg-black min-h-[400px] md:min-h-[600px] overflow-hidden">
       <div className="container mx-auto max-w-7xl relative">
-        <div className="flex flex-col lg:flex-row items-start lg:items-start gap-0">
+        <div className="flex flex-col lg:flex-row items-start lg:items-center gap-0">
           {/* Conteúdo à esquerda */}
           <div className="flex-1 max-w-2xl relative z-10">
             {title && (
@@ -43,7 +43,7 @@ export function ServiceCardSwap({
           </div>
 
           {/* Cards animados à direita - abaixo do texto no mobile, ao lado no desktop */}
-          <div className="relative w-full lg:w-auto lg:flex-shrink-0 lg:ml-4 lg:-mt-8 -mt-2" style={{ height: '300px', minHeight: '300px' }}>
+          <div className="relative w-full lg:w-auto lg:flex-shrink-0 lg:ml-8 -mt-2" style={{ height: '300px', minHeight: '300px' }}>
             <CardSwap
               cardDistance={60}
               verticalDistance={70}
