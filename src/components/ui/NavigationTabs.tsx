@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { DollarSign, MessageCircle, GitCompare, Home } from 'lucide-react'
+import { DollarSign, MessageCircle, Home } from 'lucide-react'
 import { ExpandableTabs } from './expandable-tabs'
 
 interface NavigationTabsProps {
@@ -16,7 +16,7 @@ export function NavigationTabs({ variant, className }: NavigationTabsProps) {
     if (index === null) return
 
     if (variant === 'homepage') {
-      // Homepage tabs: Preço (0), Contato (1), Comparador (2)
+      // Homepage tabs: Preço (0), Contato (1)
       switch (index) {
         case 0: // Preço
           setTimeout(() => {
@@ -47,89 +47,6 @@ export function NavigationTabs({ variant, className }: NavigationTabsProps) {
               })
             }
           }, 100)
-          break
-        case 2: // Comparador
-          // Função para fazer scroll até a seção com múltiplas tentativas
-          let attemptCount = 0
-          const maxAttempts = 15
-          
-          const scrollToComparison = () => {
-            attemptCount++
-            
-            // Tentar encontrar por ID primeiro
-            let comparisonSection = document.getElementById('comparison-section')
-            
-            // Se não encontrar por ID, tentar por querySelector com diferentes variações
-            if (!comparisonSection) {
-              comparisonSection = document.querySelector('[id="comparison-section"]') as HTMLElement
-            }
-            
-            if (!comparisonSection) {
-              comparisonSection = document.querySelector('section#comparison-section') as HTMLElement
-            }
-            
-            // Se ainda não encontrar, tentar encontrar qualquer elemento com o texto "Compare" ou "Comparar"
-            if (!comparisonSection) {
-              const sections = document.querySelectorAll('section')
-              for (const section of sections) {
-                const text = section.textContent || ''
-                if (text.includes('Compare') || text.includes('Comparar') || text.includes('MV Company')) {
-                  const hasGitCompare = section.querySelector('svg') || section.innerHTML.includes('GitCompare')
-                  if (hasGitCompare) {
-                    comparisonSection = section as HTMLElement
-                    break
-                  }
-                }
-              }
-            }
-            
-            if (comparisonSection) {
-              console.log('✅ Seção de comparação encontrada! Fazendo scroll...', comparisonSection)
-              
-              // Calcular posição com offset para header fixo
-              const headerOffset = 120
-              const elementTop = comparisonSection.getBoundingClientRect().top + window.pageYOffset
-              const targetPosition = elementTop - headerOffset
-              
-              console.log('📍 Posição do elemento:', elementTop, 'Posição alvo:', targetPosition)
-              
-              // Fazer scroll suave
-              window.scrollTo({
-                top: Math.max(0, targetPosition),
-                behavior: 'smooth'
-              })
-              
-              // Verificar se o scroll funcionou após um delay
-              setTimeout(() => {
-                const currentPosition = window.pageYOffset
-                const elementPosition = comparisonSection!.getBoundingClientRect().top + window.pageYOffset - headerOffset
-                const distance = Math.abs(currentPosition - elementPosition)
-                
-                console.log('📊 Verificação de scroll - Posição atual:', currentPosition, 'Distância:', distance)
-                
-                // Se ainda não estiver próximo o suficiente, tentar novamente
-                if (distance > 50 && attemptCount < maxAttempts) {
-                  console.log('🔄 Tentando scroll novamente...')
-                  scrollToComparison()
-                } else {
-                  console.log('✅ Scroll concluído com sucesso!')
-                }
-              }, 300)
-            } else if (attemptCount < maxAttempts) {
-              console.log(`🔍 Tentativa ${attemptCount}/${maxAttempts} - Seção não encontrada, tentando novamente...`)
-              // Tentar novamente após um delay maior
-              setTimeout(scrollToComparison, 200)
-            } else {
-              // Se a seção não existir após várias tentativas, redirecionar para a página de comparação
-              console.warn('Seção de comparação não encontrada após', maxAttempts, 'tentativas, redirecionando para /comparar')
-              router.push('/comparar')
-            }
-          }
-          
-          // Usar requestAnimationFrame para garantir que o DOM esteja pronto
-          requestAnimationFrame(() => {
-            setTimeout(scrollToComparison, 100)
-          })
           break
       }
     } else {
@@ -166,7 +83,10 @@ export function NavigationTabs({ variant, className }: NavigationTabsProps) {
           }, 100)
           break
         case 2: // Homepage
-          window.location.href = '/'
+          // Usar window.location para garantir redirecionamento completo
+          if (typeof window !== 'undefined') {
+            window.location.href = '/'
+          }
           break
       }
     }
@@ -175,8 +95,6 @@ export function NavigationTabs({ variant, className }: NavigationTabsProps) {
   const homepageTabs = [
     { title: 'Preço', icon: DollarSign },
     { title: 'Contato', icon: MessageCircle },
-    { type: 'separator' as const },
-    { title: 'Comparador', icon: GitCompare },
   ]
 
   const serviceTabs = [
