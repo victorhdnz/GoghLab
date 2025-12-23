@@ -40,26 +40,26 @@ export function ServiceCardSwap({
   const cardHeight = isMobile ? 300 : 400;
 
   return (
-    <section className="relative py-8 md:py-16 lg:py-24 px-4 bg-black overflow-visible">
-      <div className="container mx-auto max-w-7xl relative">
-        <div className="flex flex-col md:flex-row items-start gap-6 md:gap-8 lg:gap-12">
+    <section className="relative py-8 md:py-16 lg:py-24 px-4 bg-black overflow-x-hidden">
+      <div className="container mx-auto max-w-7xl relative overflow-x-hidden">
+        <div className="flex flex-col md:flex-row items-start gap-6 md:gap-8 lg:gap-12 overflow-x-hidden">
           {/* Conteúdo à esquerda */}
-          <div className="flex-1 md:max-w-2xl relative z-10 w-full">
+          <div className="flex-1 md:max-w-2xl relative z-10 w-full order-1">
             {title && (
               <h2 className="text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold text-white mb-3 md:mb-4 tracking-tight break-words">
                 {title}
               </h2>
             )}
             {subtitle && (
-              <p className="text-base md:text-lg lg:text-xl text-white/80 break-words">
+              <p className="text-base md:text-lg lg:text-xl text-white/80 break-words mb-8 md:mb-0">
                 {subtitle}
               </p>
             )}
           </div>
 
           {/* Cards animados à direita - abaixo do texto no mobile, ao lado no desktop */}
-          <div className="relative w-full md:w-auto md:flex-shrink-0 mt-8 md:mt-16 flex items-start justify-center md:justify-start z-0">
-            <div className="relative w-full max-w-[350px] md:w-[500px] min-h-[300px] md:min-h-[500px] overflow-visible">
+          <div className="relative w-full md:w-auto md:flex-shrink-0 mt-4 md:mt-16 flex items-start justify-center md:justify-start order-2 md:order-2 overflow-x-hidden" style={{ zIndex: 1, position: 'relative', clear: 'both' }}>
+            <div className="relative w-full max-w-[350px] mx-auto md:mx-0 md:w-[500px] min-h-[300px] md:min-h-[500px] overflow-x-hidden" style={{ position: 'relative', isolation: 'isolate' }}>
               <CardSwap
                 cardDistance={60}
                 verticalDistance={70}

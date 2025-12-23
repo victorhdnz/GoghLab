@@ -40,10 +40,12 @@
   body {
     @apply text-foreground antialiased;
     background-color: #ffffff;
+    overflow-x: hidden;
   }
   
   html {
     background-color: #ffffff;
+    overflow-x: hidden;
   }
 
   h1 {
