@@ -59,7 +59,7 @@ export function ServiceCardSwap({
 
           {/* Cards animados à direita - abaixo do texto no mobile, ao lado no desktop */}
           <div className="relative w-full md:w-auto md:flex-shrink-0 mt-4 md:mt-16 flex items-start justify-center md:justify-start order-2 md:order-2" style={{ zIndex: 1, position: 'relative', clear: 'both' }}>
-            <div className="relative w-full max-w-[260px] mx-auto md:mx-0 md:w-[500px] h-[280px] md:min-h-[500px] overflow-x-hidden md:overflow-visible" style={{ position: 'relative', isolation: 'isolate', paddingTop: isMobile ? '40px' : '0', overflowY: 'hidden' }}>
+            <div className="relative w-full max-w-[260px] mx-auto md:mx-0 md:w-[500px] h-[280px] md:min-h-[500px] overflow-x-hidden md:overflow-visible" style={{ position: 'relative', isolation: 'isolate', paddingTop: isMobile ? '40px' : '0', overflowY: isMobile ? 'hidden' : 'visible' }}>
               <CardSwap
                 cardDistance={isMobile ? 35 : 60}
                 verticalDistance={isMobile ? 45 : 70}
