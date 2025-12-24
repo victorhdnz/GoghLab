@@ -5,6 +5,7 @@ import { Plus, Trash2, ArrowUp, ArrowDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/Input';
 import { SocialLink } from '@/types/link-aggregator';
+import { IconSelector } from './IconSelector';
 
 interface SocialLinksManagerProps {
   value: SocialLink[];
@@ -117,12 +118,21 @@ export function SocialLinksManager({ value = [], onChange, label = 'Redes Sociai
               />
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Ícone (nome do ícone Lucide ou URL de imagem)
+                  Ícone
                 </label>
+                <IconSelector
+                  type="social"
+                  value={item.icon || ''}
+                  onChange={(iconName) => handleUpdate(index, 'icon', iconName)}
+                />
+                <p className="mt-2 text-xs text-gray-500">
+                  Ou digite manualmente o nome do ícone (ex: instagram, tiktok, github)
+                </p>
                 <Input
                   value={item.icon || ''}
                   onChange={(e) => handleUpdate(index, 'icon', e.target.value)}
-                  placeholder="Ex: instagram, github, mail (ou URL de imagem)"
+                  placeholder="Ou digite manualmente..."
+                  className="mt-2"
                 />
               </div>
               <div className="flex items-center gap-2">

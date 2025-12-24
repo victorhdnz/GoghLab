@@ -124,6 +124,12 @@ function Band({ maxSpeed = 50, minSpeed = 0, isMobile = false }: BandProps) {
   const gltf = useGLTF(cardGLB);
   const texture = useTexture(lanyardTexture);
   const { nodes, materials } = gltf as any;
+  
+  // Verificar se os assets foram carregados corretamente
+  if (!nodes || !nodes.card || !materials || !materials.base) {
+    // Se os assets não existirem, renderizar apenas um placeholder simples
+    return null;
+  }
 
   const [curve] = useState(
     () =>

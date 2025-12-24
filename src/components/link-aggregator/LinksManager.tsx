@@ -5,6 +5,7 @@ import { Plus, Trash2, ArrowUp, ArrowDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/Input';
 import { LinkItem } from '@/types/link-aggregator';
+import { IconSelector } from './IconSelector';
 
 interface LinksManagerProps {
   value: LinkItem[];
@@ -125,12 +126,15 @@ export function LinksManager({ value = [], onChange, label = 'Links' }: LinksMan
               />
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Ícone (nome do ícone Lucide ou URL de imagem)
+                  Ícone
                 </label>
-                <Input
+                <IconSelector
+                  type="link"
                   value={item.icon || ''}
-                  onChange={(e) => handleUpdate(index, 'icon', e.target.value)}
-                  placeholder="Ex: instagram, github, mail (ou URL de imagem)"
+                  onChange={(iconName) => {
+                    handleUpdate(index, 'icon', iconName);
+                    handleUpdate(index, 'icon_type', 'lucide');
+                  }}
                 />
                 <select
                   value={item.icon_type || 'lucide'}
@@ -140,6 +144,19 @@ export function LinksManager({ value = [], onChange, label = 'Links' }: LinksMan
                   <option value="lucide">Ícone Lucide</option>
                   <option value="image">URL de Imagem</option>
                 </select>
+                {item.icon_type === 'image' && (
+                  <Input
+                    value={item.icon || ''}
+                    onChange={(e) => handleUpdate(index, 'icon', e.target.value)}
+                    placeholder="URL da imagem..."
+                    className="mt-2"
+                  />
+                )}
+                {item.icon_type === 'lucide' && (
+                  <p className="mt-2 text-xs text-gray-500">
+                    Ou digite manualmente o nome do ícone
+                  </p>
+                )}
               </div>
               <div className="flex items-center gap-2">
                 <input
