@@ -1,38 +1,9 @@
 'use client';
 
-import { useState, Component, ReactNode } from 'react';
+import { useState } from 'react';
 import Image from 'next/image';
 import { LinkAggregator, LinkItem, SocialLink } from '@/types/link-aggregator';
-import Lanyard from '@/components/ui/lanyard';
 import { AnimatedLetterText } from '@/components/ui/potfolio-text';
-
-// Error Boundary para capturar erros do Lanyard sem quebrar a página
-class LanyardErrorBoundary extends Component<
-  { children: ReactNode },
-  { hasError: boolean }
-> {
-  constructor(props: { children: ReactNode }) {
-    super(props);
-    this.state = { hasError: false };
-  }
-
-  static getDerivedStateFromError() {
-    return { hasError: true };
-  }
-
-  componentDidCatch(error: Error) {
-    // Silenciosamente ignorar erros do Lanyard (assets não encontrados)
-    console.warn('Lanyard: Assets não encontrados. O efeito 3D não será exibido.');
-  }
-
-  render() {
-    if (this.state.hasError) {
-      return null; // Não renderizar nada se houver erro
-    }
-
-    return this.props.children;
-  }
-}
 import { 
   Github, 
   Instagram, 
@@ -186,18 +157,6 @@ export function LinkAggregatorPage({ aggregator }: LinkAggregatorPageProps) {
           backgroundImage: `radial-gradient(circle, white 1px, transparent 1px)`,
           backgroundSize: '30px 30px',
         }} />
-      </div>
-
-      {/* Efeito Lanyard - 3D */}
-      <div className="absolute inset-0 z-0">
-        <LanyardErrorBoundary>
-          <Lanyard 
-            position={[0, 0, 30]} 
-            gravity={[0, -40, 0]} 
-            fov={20}
-            transparent={true}
-          />
-        </LanyardErrorBoundary>
       </div>
 
       {/* Conteúdo */}
