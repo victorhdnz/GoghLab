@@ -13,6 +13,7 @@ import {
   useSphericalJoint,
   RigidBodyProps
 } from '@react-three/rapier';
+// @ts-ignore - meshline exports are not properly typed
 import { MeshLineGeometry, MeshLineMaterial } from 'meshline';
 import * as THREE from 'three';
 
@@ -21,6 +22,7 @@ import * as THREE from 'three';
 const cardGLB = '/assets/lanyard/card.glb';
 const lanyardTexture = '/assets/lanyard/lanyard.png';
 
+// @ts-ignore - meshline components need to be extended for react-three-fiber
 extend({ MeshLineGeometry, MeshLineMaterial });
 
 interface LanyardProps {

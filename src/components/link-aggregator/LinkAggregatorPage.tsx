@@ -61,11 +61,12 @@ export function LinkAggregatorPage({ aggregator }: LinkAggregatorPageProps) {
   };
 
   const getIcon = (link: LinkItem | SocialLink) => {
-    if (link.icon_type === 'image' && link.icon) {
+    // Verificar se é LinkItem e tem icon_type
+    if ('icon_type' in link && link.icon_type === 'image' && link.icon) {
       return (
         <Image
           src={link.icon}
-          alt={link.title || ''}
+          alt={'title' in link ? link.title || '' : 'platform' in link ? link.platform : ''}
           width={24}
           height={24}
           className="rounded-full"
