@@ -18,9 +18,10 @@ export function ConditionalWhatsAppFloat() {
   } | null>(null)
   const [loading, setLoading] = useState(true)
   
-  // Não mostrar o botão global em catálogos e suporte
+  // Não mostrar o botão global em catálogos, suporte e agregadores de links
   const isCatalog = pathname?.startsWith('/catalogo')
   const isSupport = pathname?.startsWith('/suporte')
+  const isLinkAggregator = pathname?.startsWith('/links/')
   
   useEffect(() => {
     const loadConfig = async () => {
@@ -164,7 +165,7 @@ export function ConditionalWhatsAppFloat() {
     loadConfig()
   }, [pathname])
   
-  if (isCatalog || isSupport || loading || !config?.enabled) {
+  if (isCatalog || isSupport || isLinkAggregator || loading || !config?.enabled) {
     return null
   }
   
