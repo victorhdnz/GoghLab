@@ -7,7 +7,7 @@ import { createClient } from '@/lib/supabase/client';
 import { Input } from '@/components/ui/Input';
 import { ImageUploader } from '@/components/ui/ImageUploader';
 import { Button } from '@/components/ui/button';
-import { Switch } from '@/components/ui/switch';
+import { Switch } from '@/components/ui/Switch';
 import { LinkItem, SocialLink, LinkAggregator } from '@/types/link-aggregator';
 import { LinksManager } from '@/components/link-aggregator/LinksManager';
 import { SocialLinksManager } from '@/components/link-aggregator/SocialLinksManager';
