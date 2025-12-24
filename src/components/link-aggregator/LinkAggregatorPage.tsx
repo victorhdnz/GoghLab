@@ -64,9 +64,10 @@ export function LinkAggregatorPage({ aggregator }: LinkAggregatorPageProps) {
     // Verificar se é LinkItem e tem icon_type
     if ('icon_type' in link && link.icon_type === 'image' && link.icon) {
       const linkItem = link as LinkItem;
+      // Já verificamos que link.icon existe na condição acima
       return (
         <Image
-          src={linkItem.icon}
+          src={linkItem.icon!}
           alt={linkItem.title || ''}
           width={24}
           height={24}
