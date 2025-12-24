@@ -106,6 +106,7 @@ function Band({ maxSpeed = 50, minSpeed = 0, isMobile = false }: BandProps) {
   const j2 = useRef<any>(null);
   const j3 = useRef<any>(null);
   const card = useRef<any>(null);
+  const [hasError, setHasError] = useState(false);
 
   const vec = new THREE.Vector3();
   const ang = new THREE.Vector3();
@@ -121,13 +122,14 @@ function Band({ maxSpeed = 50, minSpeed = 0, isMobile = false }: BandProps) {
   };
 
   // Carregar assets - os hooks devem ser chamados sempre
+  // Se os assets não existirem, o Error Boundary capturará o erro
   const gltf = useGLTF(cardGLB);
   const texture = useTexture(lanyardTexture);
   const { nodes, materials } = gltf as any;
   
   // Verificar se os assets foram carregados corretamente
   if (!nodes || !nodes.card || !materials || !materials.base) {
-    // Se os assets não existirem, renderizar apenas um placeholder simples
+    // Se os assets não existirem, não renderizar nada
     return null;
   }
 
