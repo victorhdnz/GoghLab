@@ -123,7 +123,7 @@ function Band({ maxSpeed = 50, minSpeed = 0, isMobile = false }: BandProps) {
   // Carregar assets - os hooks devem ser chamados sempre
   const gltf = useGLTF(cardGLB);
   const texture = useTexture(lanyardTexture);
-  const { nodes, materials } = gltf;
+  const { nodes, materials } = gltf as any;
 
   const [curve] = useState(
     () =>
@@ -222,7 +222,7 @@ function Band({ maxSpeed = 50, minSpeed = 0, isMobile = false }: BandProps) {
               drag(new THREE.Vector3().copy(e.point).sub(vec.copy(card.current.translation())));
             }}
           >
-            <mesh geometry={nodes.card.geometry}>
+            <mesh geometry={(nodes.card as any).geometry}>
               <meshPhysicalMaterial
                 map={materials.base.map}
                 map-anisotropy={16}
@@ -232,8 +232,8 @@ function Band({ maxSpeed = 50, minSpeed = 0, isMobile = false }: BandProps) {
                 metalness={0.8}
               />
             </mesh>
-            <mesh geometry={nodes.clip.geometry} material={materials.metal} material-roughness={0.3} />
-            <mesh geometry={nodes.clamp.geometry} material={materials.metal} />
+            <mesh geometry={(nodes.clip as any).geometry} material={materials.metal} material-roughness={0.3} />
+            <mesh geometry={(nodes.clamp as any).geometry} material={materials.metal} />
           </group>
         </RigidBody>
       </group>
