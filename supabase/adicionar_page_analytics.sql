@@ -58,6 +58,19 @@ CREATE POLICY "Admins and editors can view analytics" ON page_analytics
     )
   );
 
+-- Política: Apenas admins e editors podem deletar analytics
+DROP POLICY IF EXISTS "Admins and editors can delete analytics" ON page_analytics;
+CREATE POLICY "Admins and editors can delete analytics" ON page_analytics
+  FOR DELETE
+  USING (
+    EXISTS (
+      SELECT 1 
+      FROM profiles 
+      WHERE profiles.id = auth.uid() 
+      AND profiles.role IN ('admin', 'editor')
+    )
+  );
+
 -- Verificar se foi criado corretamente
 DO $$
 BEGIN

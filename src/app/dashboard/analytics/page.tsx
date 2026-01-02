@@ -158,9 +158,14 @@ export default function AnalyticsPage() {
       
       let query = supabase
         .from('page_analytics')
-        .select('*')
-        .gte('created_at', startDate)
-        .lte('created_at', endDate)
+        .select('*', { count: 'exact' })
+      
+      // Aplicar filtros de data apenas se não for "all"
+      if (dateRange !== 'all') {
+        query = query
+          .gte('created_at', startDate)
+          .lte('created_at', endDate)
+      }
 
       // Filtrar por tipo de página
       if (pageType !== 'all') {
@@ -173,19 +178,46 @@ export default function AnalyticsPage() {
       }
       // Para homepage, o page_type já filtra corretamente, não precisa de filtro adicional
 
-      const { data, error } = await query.order('created_at', { ascending: false })
+      const { data, error, count } = await query.order('created_at', { ascending: false })
 
-      if (error) throw error
+      if (error) {
+        console.error('Erro na query:', error)
+        throw error
+      }
 
+      // Limpar dados antigos antes de definir novos
+      setAnalytics([])
+      
+      // Aguardar um pouco para garantir que o estado foi limpo
+      await new Promise(resolve => setTimeout(resolve, 100))
+      
       setAnalytics(data || [])
-      calculateSummary(data || [])
-      calculateDailyStats(data || [])
-      calculatePagePerformance(data || [])
-      calculateSessions(data || [])
-      calculateClickDetails(data || [])
+      
+      // Recalcular todas as métricas com os novos dados
+      if (data && data.length > 0) {
+        calculateSummary(data)
+        calculateDailyStats(data)
+        calculatePagePerformance(data)
+        calculateSessions(data)
+        calculateClickDetails(data)
+      } else {
+        // Se não há dados, limpar todas as métricas
+        setSummary(null)
+        setDailyStats([])
+        setPagePerformance([])
+        setSessions([])
+        setClickDetails([])
+      }
     } catch (error: any) {
       console.error('Erro ao carregar analytics:', error)
-      toast.error('Erro ao carregar dados')
+      toast.error(error.message || 'Erro ao carregar dados')
+      // Limpar dados em caso de erro
+      setAnalytics([])
+      setSummary(null)
+      setDailyStats([])
+      setPagePerformance([])
+      setSessions([])
+      setClickDetails([])
     } finally {
       setLoading(false)
     }
@@ -487,20 +519,44 @@ export default function AnalyticsPage() {
 
       // Deletar em lotes de 1000 (limite do Supabase)
       const batchSize = 1000
-      const ids = idsToDelete.map(item => item.id)
+      const ids = idsToDelete.map((item: { id: string }) => item.id)
+      
+      let totalDeleted = 0
+      let errors: any[] = []
       
       for (let i = 0; i < ids.length; i += batchSize) {
         const batch = ids.slice(i, i + batchSize)
-        const { error: deleteError } = await supabase
-          .from('page_analytics')
-          .delete()
-          .in('id', batch)
-        
-        if (deleteError) throw deleteError
+        try {
+          const { error: deleteError } = await supabase
+            .from('page_analytics')
+            .delete()
+            .in('id', batch)
+          
+          if (deleteError) {
+            console.error('Erro ao deletar lote:', deleteError)
+            errors.push(deleteError)
+            // Continuar tentando deletar os outros lotes mesmo se um falhar
+          } else {
+            totalDeleted += batch.length
+          }
+        } catch (err) {
+          console.error('Erro ao deletar lote:', err)
+          errors.push(err)
+        }
       }
 
-      toast.success(`${ids.length} registro(s) apagado(s) com sucesso!`)
-      loadAnalytics()
+      if (errors.length > 0 && totalDeleted === 0) {
+        // Se todos os lotes falharam, mostrar erro
+        throw new Error(`Erro ao apagar dados: ${errors[0]?.message || 'Erro desconhecido'}`)
+      } else if (errors.length > 0) {
+        // Se alguns lotes falharam mas outros funcionaram
+        toast.success(`${totalDeleted} registro(s) apagado(s). Alguns erros ocorreram.`)
+      } else {
+        toast.success(`${totalDeleted} registro(s) apagado(s) com sucesso!`)
+      }
+      
+      // Recarregar dados após deletar
+      await loadAnalytics()
     } catch (error: any) {
       console.error('Erro ao apagar dados:', error)
       toast.error(error.message || 'Erro ao apagar dados')
