@@ -379,7 +379,7 @@ export default function AnalyticsPage() {
             // Tentar formatar o slug como nome
             pageName = data.pageSlug
               .split('-')
-              .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+              .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1))
               .join(' ')
           }
         }
@@ -612,7 +612,7 @@ export default function AnalyticsPage() {
         } else if (event.page_slug) {
           pageName = event.page_slug
             .split('-')
-            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+            .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1))
             .join(' ')
         }
       }
