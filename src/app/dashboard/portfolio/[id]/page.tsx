@@ -21,6 +21,7 @@ import toast from 'react-hot-toast'
 import { BackButton } from '@/components/ui/BackButton'
 import { DashboardNavigation } from '@/components/dashboard/DashboardNavigation'
 import { SectionWrapper } from '@/components/editor/section-wrapper'
+import { getSiteSettings, saveSiteSettings } from '@/lib/supabase/site-settings-helper'
 
 interface EditServicePageProps {
   params: { id: string }
@@ -34,7 +35,6 @@ const sectionIcons: Record<string, string> = {
   benefits: '📋',
   stats: '📊',
   card_swap: '🃏',
-  pricing: '💰',
   cta: '📞',
 }
 
@@ -45,7 +45,6 @@ const sectionLabels: Record<string, string> = {
   benefits: 'O que você receberá',
   stats: 'Estatísticas/Alcance',
   card_swap: 'Animação de Cards',
-  pricing: 'Planos de Assinatura',
   cta: 'Contato',
 }
 
@@ -64,7 +63,6 @@ export default function EditServicePage({ params }: EditServicePageProps) {
     'benefits',
     'stats',
     'card_swap',
-    'pricing',
     'cta',
   ])
   const [sectionVisibility, setSectionVisibility] = useState<Record<string, boolean>>({
@@ -74,9 +72,9 @@ export default function EditServicePage({ params }: EditServicePageProps) {
     benefits: true,
     stats: false,
     card_swap: false,
-    pricing: false,
     cta: true,
   })
+  const [servicesPricingEnabled, setServicesPricingEnabled] = useState<boolean>(false)
   const supabase = createClient()
 
   // Dados básicos do serviço
@@ -146,9 +144,24 @@ export default function EditServicePage({ params }: EditServicePageProps) {
       } else {
         loadService()
         loadCategories()
+        loadGlobalPricingSetting()
       }
     }
   }, [isAuthenticated, isEditor, authLoading, router, params.id])
+
+  const loadGlobalPricingSetting = async () => {
+    try {
+      const { data, error } = await getSiteSettings()
+      if (error) {
+        console.error('Erro ao carregar configuração global de pricing:', error)
+        return
+      }
+      const homepageContent = data?.homepage_content || {}
+      setServicesPricingEnabled(homepageContent.services_pricing_enabled === true)
+    } catch (error) {
+      console.error('Erro ao carregar configuração global de pricing:', error)
+    }
+  }
 
   const loadService = async () => {
     try {
@@ -185,13 +198,13 @@ export default function EditServicePage({ params }: EditServicePageProps) {
         const layout = data.detail_layout as ServiceDetailContent
         setLayoutData(prev => ({ ...prev, ...layout }))
         
-        // Filtrar seções removidas (gifts, testimonials, about)
+        // Filtrar seções removidas (gifts, testimonials, about, pricing)
         if (layout.section_order) {
           const filteredOrder = layout.section_order.filter(
-            (sectionId) => sectionId !== 'gifts' && sectionId !== 'testimonials' && sectionId !== 'about' && sectionId !== 'alternate'
+            (sectionId) => sectionId !== 'gifts' && sectionId !== 'testimonials' && sectionId !== 'about' && sectionId !== 'alternate' && sectionId !== 'pricing'
           )
-          // Garantir que 'pricing', 'stats', 'scroll_animation' e 'card_swap' estejam presentes
-          let finalOrder = filteredOrder.length > 0 ? filteredOrder : ['basic', 'hero', 'scroll_animation', 'benefits', 'stats', 'card_swap', 'pricing', 'cta']
+          // Garantir que 'stats', 'scroll_animation' e 'card_swap' estejam presentes
+          let finalOrder = filteredOrder.length > 0 ? filteredOrder : ['basic', 'hero', 'scroll_animation', 'benefits', 'stats', 'card_swap', 'cta']
           if (!finalOrder.includes('scroll_animation') && finalOrder.includes('hero')) {
             const heroIndex = finalOrder.indexOf('hero')
             finalOrder.splice(heroIndex + 1, 0, 'scroll_animation')
@@ -210,12 +223,6 @@ export default function EditServicePage({ params }: EditServicePageProps) {
           } else if (!finalOrder.includes('card_swap')) {
             finalOrder.push('card_swap')
           }
-          if (!finalOrder.includes('pricing') && finalOrder.includes('cta')) {
-            const ctaIndex = finalOrder.indexOf('cta')
-            finalOrder.splice(ctaIndex, 0, 'pricing')
-          } else if (!finalOrder.includes('pricing')) {
-            finalOrder.push('pricing')
-          }
           setSectionOrder(finalOrder)
         }
         if (layout.section_visibility) {
@@ -224,10 +231,8 @@ export default function EditServicePage({ params }: EditServicePageProps) {
           delete filteredVisibility.testimonials
           delete filteredVisibility.about
           delete filteredVisibility.alternate
-          // Garantir que 'pricing', 'stats', 'scroll_animation' e 'card_swap' estejam presentes na visibilidade
-          if (filteredVisibility.pricing === undefined) {
-            filteredVisibility.pricing = false
-          }
+          delete filteredVisibility.pricing
+          // Garantir que 'stats', 'scroll_animation' e 'card_swap' estejam presentes na visibilidade
           if (filteredVisibility.stats === undefined) {
             filteredVisibility.stats = false
           }
@@ -328,6 +333,34 @@ export default function EditServicePage({ params }: EditServicePageProps) {
     }
     
     toast.success(`Seção ${sectionVisibility[section] ? 'oculta' : 'visível'}!`)
+  }
+
+  const handleSaveGlobalPricing = async (enabled: boolean) => {
+    try {
+      const { data: currentData } = await getSiteSettings()
+      const currentHomepageContent = currentData?.homepage_content || {}
+
+      const { success, error } = await saveSiteSettings({
+        fieldsToUpdate: {
+          homepage_content: {
+            ...currentHomepageContent,
+            services_pricing_enabled: enabled,
+          },
+        },
+      })
+
+      if (!success) {
+        console.error('Erro ao salvar configuração global de pricing:', error)
+        toast.error(error?.message || 'Erro ao salvar configuração de pricing')
+        return
+      }
+
+      setServicesPricingEnabled(enabled)
+      toast.success(`Planos de assinatura ${enabled ? 'habilitados' : 'desabilitados'} em todos os serviços!`)
+    } catch (error) {
+      console.error('Erro ao salvar configuração global de pricing:', error)
+      toast.error('Erro ao salvar configuração de pricing')
+    }
   }
 
   const handleSave = async () => {
@@ -559,27 +592,6 @@ export default function EditServicePage({ params }: EditServicePageProps) {
           </div>
         )
 
-      case 'pricing':
-        return (
-          <div className="space-y-4">
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <p className="text-sm text-blue-800">
-                <strong>💡 Informação:</strong> Os planos de assinatura são gerenciados exclusivamente na página{' '}
-                <a href="/dashboard/pricing" className="text-blue-600 hover:underline font-semibold">
-                  Gerenciar Planos de Assinatura
-                </a>
-                . A seção aparecerá automaticamente na homepage e nas páginas de serviços quando estiver habilitada na página de pricing.
-              </p>
-            </div>
-            <p className="text-sm text-gray-600">
-              Para configurar os planos, preços, features e mensagens do WhatsApp, acesse{' '}
-              <a href="/dashboard/pricing" className="text-blue-600 hover:underline font-semibold">
-                /dashboard/pricing
-              </a>
-            </p>
-          </div>
-        )
-
       case 'cta':
         return (
           <div className="space-y-4">
@@ -771,6 +783,35 @@ export default function EditServicePage({ params }: EditServicePageProps) {
 
           {/* Sidebar */}
           <div className="lg:col-span-1 space-y-6">
+            {/* Controle Global de Planos de Assinatura */}
+            <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
+              <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+                <span>💰</span>
+                Planos de Assinatura
+              </h3>
+              <div className="space-y-4">
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                  <p className="text-sm text-blue-800">
+                    <strong>💡 Informação:</strong> Este controle ativa ou desativa a seção de planos de assinatura em <strong>todos os serviços</strong> ao mesmo tempo. Os planos são configurados na página{' '}
+                    <a href="/dashboard/pricing" className="text-blue-600 hover:underline font-semibold">
+                      Gerenciar Planos de Assinatura
+                    </a>
+                    .
+                  </p>
+                </div>
+                <Switch
+                  label="Habilitar Planos de Assinatura em Todos os Serviços"
+                  checked={servicesPricingEnabled}
+                  onCheckedChange={handleSaveGlobalPricing}
+                />
+                {servicesPricingEnabled && (
+                  <p className="text-xs text-gray-500">
+                    A seção de planos aparecerá em todas as páginas de serviços quando estiver habilitada na página de pricing.
+                  </p>
+                )}
+              </div>
+            </div>
+
             {/* Configuração do WhatsApp Flutuante */}
             <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
               <h3 className="text-lg font-bold mb-4 flex items-center gap-2">

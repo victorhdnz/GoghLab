@@ -266,14 +266,12 @@ export function HomepageSections({
   }
 
   // Função para renderizar seção de Pricing
-  // A seção apenas espelha o que está configurado em /dashboard/pricing
-  // Não depende de sectionVisibility, apenas de pricing_enabled da página de pricing
+  // A seção depende tanto de pricing_enabled da página de pricing quanto de sectionVisibility.pricing
   const renderPricingSection = () => {
     const pricing = homepageContent.pricing || {}
     
-    // A seção só aparece se estiver habilitada na página de pricing
-    // Não verifica sectionVisibility.pricing pois é gerenciado exclusivamente em /dashboard/pricing
-    if (pricing.pricing_enabled !== true) return null
+    // A seção só aparece se estiver habilitada na página de pricing E se sectionVisibility.pricing for true
+    if (pricing.pricing_enabled !== true || sectionVisibility.pricing === false) return null
 
     return (
       <PricingSection
@@ -361,8 +359,8 @@ export function HomepageSections({
           return null
         }
         
-        // Para pricing, não verificar sectionVisibility pois é gerenciado exclusivamente em /dashboard/pricing
-        if (sectionId !== 'pricing' && sectionVisibility[sectionId] === false) {
+        // Verificar sectionVisibility para todas as seções, incluindo pricing
+        if (sectionVisibility[sectionId] === false) {
           return null
         }
         

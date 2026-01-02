@@ -75,6 +75,12 @@ export default function AnalyticsPage() {
   const [customEndDate, setCustomEndDate] = useState<string>('')
   const [showSessions, setShowSessions] = useState(true)
   const [deleting, setDeleting] = useState(false)
+  const [clickDetails, setClickDetails] = useState<Array<{
+    element: string
+    text: string
+    pageName: string
+    count: number
+  }>>([])
 
   useEffect(() => {
     if (authLoading) return
@@ -162,9 +168,10 @@ export default function AnalyticsPage() {
       }
 
       // Filtrar por página específica
-      if (selectedPageId) {
+      if (selectedPageId && pageType === 'service') {
         query = query.eq('page_id', selectedPageId)
       }
+      // Para homepage, o page_type já filtra corretamente, não precisa de filtro adicional
 
       const { data, error } = await query.order('created_at', { ascending: false })
 
@@ -175,6 +182,7 @@ export default function AnalyticsPage() {
       calculateDailyStats(data || [])
       calculatePagePerformance(data || [])
       calculateSessions(data || [])
+      calculateClickDetails(data || [])
     } catch (error: any) {
       console.error('Erro ao carregar analytics:', error)
       toast.error('Erro ao carregar dados')
@@ -301,22 +309,36 @@ export default function AnalyticsPage() {
       visitors: Set<string>
       scrolls: number[]
       times: number[]
+      sessionScrolls: Map<string, number[]> // Para calcular bounce rate corretamente
     }>()
 
     data.forEach(event => {
-      const key = event.page_id || event.page_slug || 'homepage'
+      // Criar chave única para identificar a página
+      // Para homepage: usar '/' ou 'homepage'
+      // Para serviços: usar page_id (prioritário) ou page_slug
+      let key: string
+      if (event.page_type === 'homepage') {
+        key = 'homepage'
+      } else if (event.page_id) {
+        key = event.page_id
+      } else if (event.page_slug) {
+        key = event.page_slug
+      } else {
+        key = 'unknown'
+      }
       
       if (!pageMap.has(key)) {
         pageMap.set(key, {
           pageId: event.page_id,
           pageSlug: event.page_slug,
-          pageName: event.page_slug || 'Homepage',
+          pageName: event.page_type === 'homepage' ? 'Homepage' : (event.page_slug || 'Página desconhecida'),
           pageType: event.page_type,
           views: 0,
           clicks: 0,
           visitors: new Set(),
           scrolls: [],
-          times: []
+          times: [],
+          sessionScrolls: new Map()
         })
       }
 
@@ -328,31 +350,52 @@ export default function AnalyticsPage() {
       } else if (event.event_type === 'click') {
         page.clicks++
       } else if (event.event_type === 'scroll') {
-        page.scrolls.push(event.event_data?.scroll_depth || 0)
+        const scrollDepth = event.event_data?.scroll_depth || 0
+        page.scrolls.push(scrollDepth)
+        // Armazenar scroll por sessão para calcular bounce rate
+        if (!page.sessionScrolls.has(event.session_id)) {
+          page.sessionScrolls.set(event.session_id, [])
+        }
+        page.sessionScrolls.get(event.session_id)!.push(scrollDepth)
       } else if (event.event_type === 'time_on_page') {
         page.times.push(event.event_data?.time_seconds || 0)
       }
     })
 
-    // Buscar nomes dos serviços
+    // Buscar nomes dos serviços e calcular métricas
     const performance: PagePerformance[] = Array.from(pageMap.entries())
       .map(([key, data]) => {
-        const service = pages.find(p => p.id === data.pageId || p.slug === data.pageSlug)
-        const pageName = service ? service.name : (data.pageSlug || 'Homepage')
-
-        const sessions = new Set(
-          data.views > 0 
-            ? Array.from(data.visitors).map(v => v)
-            : []
-        )
+        let pageName = data.pageName
         
-        const bouncedSessions = Array.from(sessions).filter(sessionId => {
-          const sessionEvents = data.scrolls.filter((_, i) => {
-            // Verificar se a sessão teve scroll > 25%
-            return data.scrolls[i] > 25
-          })
-          return sessionEvents.length === 0
-        }).length
+        // Buscar nome do serviço se for uma página de serviço
+        if (data.pageType === 'service') {
+          const service = pages.find(p => 
+            (data.pageId && p.id === data.pageId) || 
+            (data.pageSlug && p.slug === data.pageSlug)
+          )
+          if (service) {
+            pageName = service.name
+          } else if (data.pageSlug) {
+            // Tentar formatar o slug como nome
+            pageName = data.pageSlug
+              .split('-')
+              .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+              .join(' ')
+          }
+        }
+
+        // Calcular bounce rate corretamente
+        // Uma sessão é considerada "bounce" se não teve scroll > 25%
+        const sessions = Array.from(data.visitors)
+        let bouncedSessions = 0
+        
+        sessions.forEach(sessionId => {
+          const sessionScrolls = data.sessionScrolls.get(sessionId) || []
+          const maxScroll = sessionScrolls.length > 0 ? Math.max(...sessionScrolls) : 0
+          if (maxScroll <= 25) {
+            bouncedSessions++
+          }
+        })
 
         return {
           pageId: data.pageId,
@@ -368,8 +411,8 @@ export default function AnalyticsPage() {
           avgScroll: data.scrolls.length > 0
             ? Math.round(data.scrolls.reduce((a, b) => a + b, 0) / data.scrolls.length)
             : 0,
-          bounceRate: sessions.size > 0
-            ? Math.round((bouncedSessions / sessions.size) * 100 * 10) / 10
+          bounceRate: sessions.length > 0
+            ? Math.round((bouncedSessions / sessions.length) * 100 * 10) / 10
             : 0,
         }
       })
@@ -380,41 +423,87 @@ export default function AnalyticsPage() {
 
   // Apagar dados de analytics
   const handleDeleteData = async () => {
-    if (!confirm('Tem certeza que deseja apagar todos os dados de analytics? Esta ação não pode ser desfeita.')) {
+    const confirmMessage = selectedPageId 
+      ? `Tem certeza que deseja apagar os dados da página selecionada? Esta ação não pode ser desfeita.`
+      : pageType !== 'all'
+      ? `Tem certeza que deseja apagar todos os dados de ${pageType === 'homepage' ? 'Homepage' : 'Serviços'}? Esta ação não pode ser desfeita.`
+      : `Tem certeza que deseja apagar todos os dados de analytics? Esta ação não pode ser desfeita.`
+    
+    if (!confirm(confirmMessage)) {
       return
     }
 
     try {
       setDeleting(true)
       
-      // Se há filtros aplicados, apagar apenas os dados filtrados
       const { startDate, endDate } = getDateFilter(dateRange)
       
-      let query = supabase
-        .from('page_analytics')
-        .delete()
-        .gte('created_at', startDate)
-        .lte('created_at', endDate)
-
-      // Filtrar por tipo de página
+      // Construir filtros dinamicamente
+      let filters: any = {}
+      
+      if (dateRange !== 'all') {
+        filters.created_at = {
+          gte: startDate,
+          lte: endDate
+        }
+      }
+      
       if (pageType !== 'all') {
-        query = query.eq('page_type', pageType)
+        filters.page_type = pageType
       }
-
-      // Filtrar por página específica
+      
       if (selectedPageId) {
-        query = query.eq('page_id', selectedPageId)
+        filters.page_id = selectedPageId
       }
 
-      const { error } = await query
+      // Usar RPC ou deletar em lotes
+      // Primeiro, buscar os IDs que devem ser deletados
+      let selectQuery = supabase
+        .from('page_analytics')
+        .select('id')
+      
+      if (dateRange !== 'all') {
+        selectQuery = selectQuery
+          .gte('created_at', startDate)
+          .lte('created_at', endDate)
+      }
+      
+      if (pageType !== 'all') {
+        selectQuery = selectQuery.eq('page_type', pageType)
+      }
+      
+      if (selectedPageId) {
+        selectQuery = selectQuery.eq('page_id', selectedPageId)
+      }
 
-      if (error) throw error
+      const { data: idsToDelete, error: selectError } = await selectQuery
 
-      toast.success('Dados apagados com sucesso!')
+      if (selectError) throw selectError
+
+      if (!idsToDelete || idsToDelete.length === 0) {
+        toast.info('Nenhum dado encontrado para apagar.')
+        return
+      }
+
+      // Deletar em lotes de 1000 (limite do Supabase)
+      const batchSize = 1000
+      const ids = idsToDelete.map(item => item.id)
+      
+      for (let i = 0; i < ids.length; i += batchSize) {
+        const batch = ids.slice(i, i + batchSize)
+        const { error: deleteError } = await supabase
+          .from('page_analytics')
+          .delete()
+          .in('id', batch)
+        
+        if (deleteError) throw deleteError
+      }
+
+      toast.success(`${ids.length} registro(s) apagado(s) com sucesso!`)
       loadAnalytics()
     } catch (error: any) {
       console.error('Erro ao apagar dados:', error)
-      toast.error('Erro ao apagar dados')
+      toast.error(error.message || 'Erro ao apagar dados')
     } finally {
       setDeleting(false)
     }
@@ -423,7 +512,9 @@ export default function AnalyticsPage() {
   // Calcular sessões
   const calculateSessions = (data: any[]) => {
     const sessionMap = new Map<string, {
-      pageName: string
+      pageType: string
+      pageId: string | null
+      pageSlug: string | null
       startTime: string
       events: any[]
     }>()
@@ -431,7 +522,9 @@ export default function AnalyticsPage() {
     data.forEach(event => {
       if (!sessionMap.has(event.session_id)) {
         sessionMap.set(event.session_id, {
-          pageName: event.page_slug || 'Homepage',
+          pageType: event.page_type,
+          pageId: event.page_id,
+          pageSlug: event.page_slug,
           startTime: event.created_at,
           events: []
         })
@@ -440,11 +533,11 @@ export default function AnalyticsPage() {
     })
 
     const sessionsData: SessionData[] = Array.from(sessionMap.entries())
-      .map(([sessionId, data]) => {
-        const views = data.events.filter(e => e.event_type === 'page_view')
-        const clicks = data.events.filter(e => e.event_type === 'click')
-        const scrolls = data.events.filter(e => e.event_type === 'scroll')
-        const times = data.events.filter(e => e.event_type === 'time_on_page')
+      .map(([sessionId, sessionData]) => {
+        const views = sessionData.events.filter(e => e.event_type === 'page_view')
+        const clicks = sessionData.events.filter(e => e.event_type === 'click')
+        const scrolls = sessionData.events.filter(e => e.event_type === 'scroll')
+        const times = sessionData.events.filter(e => e.event_type === 'time_on_page')
 
         const maxScroll = scrolls.length > 0
           ? Math.max(...scrolls.map(s => s.event_data?.scroll_depth || 0))
@@ -454,13 +547,32 @@ export default function AnalyticsPage() {
           ? Math.max(...times.map(t => t.event_data?.time_seconds || 0))
           : 0
 
-        const service = pages.find(p => p.slug === data.pageName)
-        const pageName = service ? service.name : (data.pageName || 'Homepage')
+        // Determinar nome da página corretamente
+        let pageName = 'Homepage'
+        if (sessionData.pageType === 'service') {
+          const service = pages.find(p => 
+            (sessionData.pageId && p.id === sessionData.pageId) || 
+            (sessionData.pageSlug && p.slug === sessionData.pageSlug)
+          )
+          if (service) {
+            pageName = service.name
+          } else if (sessionData.pageSlug) {
+            // Formatar slug como nome
+            pageName = sessionData.pageSlug
+              .split('-')
+              .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+              .join(' ')
+          } else {
+            pageName = 'Serviço desconhecido'
+          }
+        } else if (sessionData.pageType === 'homepage') {
+          pageName = 'Homepage'
+        }
 
         return {
           sessionId,
           pageName,
-          startTime: data.startTime,
+          startTime: sessionData.startTime,
           duration: totalTime,
           scrollDepth: maxScroll,
           clicks: clicks.length,
@@ -471,6 +583,59 @@ export default function AnalyticsPage() {
       .slice(0, 100) // Limitar a 100 sessões mais recentes
 
     setSessions(sessionsData)
+  }
+
+  // Calcular detalhes de cliques por elemento
+  const calculateClickDetails = (data: any[]) => {
+    const clickMap = new Map<string, {
+      element: string
+      text: string
+      pageName: string
+      count: number
+    }>()
+
+    const clickEvents = data.filter(e => e.event_type === 'click')
+    
+    clickEvents.forEach(event => {
+      const element = event.event_data?.element || 'unknown'
+      const text = event.event_data?.text || ''
+      
+      // Determinar nome da página
+      let pageName = 'Homepage'
+      if (event.page_type === 'service') {
+        const service = pages.find(p => 
+          (event.page_id && p.id === event.page_id) || 
+          (event.page_slug && p.slug === event.page_slug)
+        )
+        if (service) {
+          pageName = service.name
+        } else if (event.page_slug) {
+          pageName = event.page_slug
+            .split('-')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(' ')
+        }
+      }
+
+      const key = `${event.page_type}_${event.page_id || event.page_slug || 'homepage'}_${element}_${text}`
+      
+      if (!clickMap.has(key)) {
+        clickMap.set(key, {
+          element,
+          text: text || element,
+          pageName,
+          count: 0
+        })
+      }
+      
+      clickMap.get(key)!.count++
+    })
+
+    const details = Array.from(clickMap.values())
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 50) // Top 50 elementos mais clicados
+
+    setClickDetails(details)
   }
 
   if (authLoading || loading) {
@@ -532,7 +697,7 @@ export default function AnalyticsPage() {
             </div>
 
             {/* Página Específica */}
-            {(pageType === 'service') && (
+            {(pageType === 'service' || pageType === 'homepage') && (
               <div className="flex-1 min-w-[200px]">
                 <label className="block text-sm font-medium mb-2">Página Específica</label>
                 <select
@@ -541,13 +706,17 @@ export default function AnalyticsPage() {
                   className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-black"
                 >
                   <option value="">Todas</option>
-                  {pages
-                    .filter(p => p.type === 'service')
-                    .map(page => (
-                      <option key={page.id} value={page.id}>
-                        {page.name}
-                      </option>
-                    ))}
+                  {pageType === 'homepage' ? (
+                    <option value="homepage">Homepage</option>
+                  ) : (
+                    pages
+                      .filter(p => p.type === 'service')
+                      .map(page => (
+                        <option key={page.id} value={page.id}>
+                          {page.name}
+                        </option>
+                      ))
+                  )}
                 </select>
               </div>
             )}
@@ -640,6 +809,86 @@ export default function AnalyticsPage() {
               <p className="text-sm text-gray-500">Scroll médio</p>
             </div>
 
+          </div>
+        )}
+
+        {/* Detalhes de Cliques por Elemento */}
+        {clickDetails.length > 0 && (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 mb-6">
+            <div className="p-6 border-b border-gray-200">
+              <h2 className="text-xl font-bold text-gray-900 mb-1">🖱️ Cliques por Elemento</h2>
+              <p className="text-sm text-gray-500">Elementos mais clicados nas páginas</p>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50 border-b border-gray-200">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Página</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Elemento</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Texto</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cliques</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {clickDetails.map((detail, index) => (
+                    <tr key={index} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{detail.pageName}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs font-medium">
+                          {detail.element}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-900">{detail.text || '-'}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">{detail.count}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* Performance por Página */}
+        {pagePerformance.length > 0 && (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 mb-6">
+            <div className="p-6 border-b border-gray-200">
+              <h2 className="text-xl font-bold text-gray-900 mb-1">📊 Performance por Página</h2>
+              <p className="text-sm text-gray-500">Métricas detalhadas de cada página</p>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50 border-b border-gray-200">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Página</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tipo</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Visualizações</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Visitantes</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cliques</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tempo Médio</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Scroll Médio</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Bounce Rate</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {pagePerformance.map((page, index) => (
+                    <tr key={index} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{page.pageName}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <span className="px-2 py-1 bg-gray-100 text-gray-800 rounded text-xs">
+                          {page.pageType === 'homepage' ? 'Homepage' : 'Serviço'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{page.views}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{page.visitors}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{page.clicks}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{page.avgTime}s</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{page.avgScroll}%</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{page.bounceRate}%</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
 

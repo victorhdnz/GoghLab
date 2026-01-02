@@ -153,9 +153,9 @@ export default async function ServicePage({ params }: { params: { slug: string }
     },
   }
 
-  // Ordem padrão das seções (sem 'gifts', 'testimonials', 'about' e 'alternate')
-  const sectionOrder = (content.section_order || ['hero', 'scroll_animation', 'benefits', 'stats', 'card_swap', 'pricing', 'cta']).filter(
-    (sectionId) => sectionId !== 'gifts' && sectionId !== 'testimonials' && sectionId !== 'about' && sectionId !== 'alternate'
+  // Ordem padrão das seções (sem 'gifts', 'testimonials', 'about', 'alternate' e 'pricing')
+  const sectionOrder = (content.section_order || ['hero', 'scroll_animation', 'benefits', 'stats', 'card_swap', 'cta']).filter(
+    (sectionId) => sectionId !== 'gifts' && sectionId !== 'testimonials' && sectionId !== 'about' && sectionId !== 'alternate' && sectionId !== 'pricing'
   )
   // Garantir que 'card_swap' esteja presente
   if (!sectionOrder.includes('card_swap') && sectionOrder.includes('stats')) {
@@ -164,8 +164,9 @@ export default async function ServicePage({ params }: { params: { slug: string }
   } else if (!sectionOrder.includes('card_swap')) {
     sectionOrder.push('card_swap')
   }
-  // Garantir que 'pricing' esteja antes de 'cta' se não estiver
-  if (!sectionOrder.includes('pricing')) {
+  // Adicionar 'pricing' antes de 'cta' se services_pricing_enabled estiver habilitado
+  const servicesPricingEnabled = siteSettings?.homepage_content?.services_pricing_enabled === true
+  if (servicesPricingEnabled && !sectionOrder.includes('pricing')) {
     const ctaIndex = sectionOrder.indexOf('cta')
     if (ctaIndex >= 0) {
       sectionOrder.splice(ctaIndex, 0, 'pricing')
@@ -180,7 +181,6 @@ export default async function ServicePage({ params }: { params: { slug: string }
     benefits: true,
     stats: false,
     card_swap: false,
-    pricing: false,
     cta: true,
   }
   
@@ -189,7 +189,7 @@ export default async function ServicePage({ params }: { params: { slug: string }
   if (sectionVisibility.testimonials !== undefined) delete sectionVisibility.testimonials
   if (sectionVisibility.about !== undefined) delete sectionVisibility.about
   if (sectionVisibility.alternate !== undefined) delete sectionVisibility.alternate
-  if (sectionVisibility.pricing === undefined) sectionVisibility.pricing = false
+  if (sectionVisibility.pricing !== undefined) delete sectionVisibility.pricing // Remover pricing da visibilidade individual
   if (sectionVisibility.stats === undefined) sectionVisibility.stats = false
   if (sectionVisibility.card_swap === undefined) sectionVisibility.card_swap = false
   if (sectionVisibility.scroll_animation === undefined) sectionVisibility.scroll_animation = true
@@ -230,9 +230,8 @@ export default async function ServicePage({ params }: { params: { slug: string }
       )
     },
     pricing: () => {
-      // A seção apenas espelha o que está configurado em /dashboard/pricing
-      // Só aparece se estiver habilitada na página de pricing
-      if (pricing.pricing_enabled !== true) return null
+      // A seção aparece se estiver habilitada na página de pricing E se services_pricing_enabled estiver habilitado
+      if (pricing.pricing_enabled !== true || !servicesPricingEnabled) return null
       
       return (
         <ServicePricing
@@ -282,7 +281,8 @@ export default async function ServicePage({ params }: { params: { slug: string }
           const renderer = sectionRenderers[sectionId]
           if (!renderer) return null
           
-          // Para pricing, não verificar sectionVisibility pois é gerenciado exclusivamente em /dashboard/pricing
+          // Para pricing, verificar apenas se services_pricing_enabled estiver habilitado
+          // A verificação de pricing_enabled já é feita dentro do renderer
           if (sectionId === 'pricing') {
             return <div key={sectionId}>{renderer()}</div>
           }
