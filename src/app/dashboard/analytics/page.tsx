@@ -470,26 +470,43 @@ export default function AnalyticsPage() {
       
       const { startDate, endDate } = getDateFilter(dateRange)
       
-      // Construir filtros dinamicamente
-      let filters: any = {}
-      
-      if (dateRange !== 'all') {
-        filters.created_at = {
-          gte: startDate,
-          lte: endDate
+      // Tentar usar função RPC primeiro (mais eficiente e seguro)
+      try {
+        const rpcParams: any = {}
+        
+        if (dateRange !== 'all') {
+          rpcParams.p_start_date = startDate
+          rpcParams.p_end_date = endDate
         }
-      }
-      
-      if (pageType !== 'all') {
-        filters.page_type = pageType
-      }
-      
-      if (selectedPageId) {
-        filters.page_id = selectedPageId
+        
+        if (pageType !== 'all') {
+          rpcParams.p_page_type = pageType
+        }
+        
+        if (selectedPageId) {
+          rpcParams.p_page_id = selectedPageId
+        }
+
+        const { data: deletedCount, error: rpcError } = await supabase
+          .rpc('delete_page_analytics', rpcParams)
+
+        if (!rpcError && deletedCount !== null) {
+          if (deletedCount === 0) {
+            toast('Nenhum dado encontrado para apagar.', { icon: 'ℹ️' })
+          } else {
+            toast.success(`${deletedCount} registro(s) apagado(s) com sucesso!`)
+          }
+          await loadAnalytics()
+          return
+        } else if (rpcError) {
+          // Se a função RPC não existir ou der erro, tentar método alternativo
+          console.warn('Função RPC não disponível, usando método alternativo:', rpcError)
+        }
+      } catch (rpcErr) {
+        console.warn('Erro ao usar RPC, tentando método alternativo:', rpcErr)
       }
 
-      // Usar RPC ou deletar em lotes
-      // Primeiro, buscar os IDs que devem ser deletados
+      // Método alternativo: deletar em lotes usando IDs
       let selectQuery = supabase
         .from('page_analytics')
         .select('id')
@@ -508,17 +525,20 @@ export default function AnalyticsPage() {
         selectQuery = selectQuery.eq('page_id', selectedPageId)
       }
 
-      const { data: idsToDelete, error: selectError } = await selectQuery
+      const { data: idsToDelete, error: selectError } = await selectQuery.limit(10000)
 
-      if (selectError) throw selectError
+      if (selectError) {
+        console.error('Erro ao buscar IDs para deletar:', selectError)
+        throw selectError
+      }
 
       if (!idsToDelete || idsToDelete.length === 0) {
         toast('Nenhum dado encontrado para apagar.', { icon: 'ℹ️' })
         return
       }
 
-      // Deletar em lotes de 1000 (limite do Supabase)
-      const batchSize = 1000
+      // Deletar em lotes menores (100 por vez para evitar timeout)
+      const batchSize = 100
       const ids = idsToDelete.map((item: { id: string }) => item.id)
       
       let totalDeleted = 0
@@ -527,29 +547,26 @@ export default function AnalyticsPage() {
       for (let i = 0; i < ids.length; i += batchSize) {
         const batch = ids.slice(i, i + batchSize)
         try {
-          const { error: deleteError } = await supabase
+          const { error: deleteError, count } = await supabase
             .from('page_analytics')
-            .delete()
+            .delete({ count: 'exact' })
             .in('id', batch)
           
           if (deleteError) {
             console.error('Erro ao deletar lote:', deleteError)
             errors.push(deleteError)
-            // Continuar tentando deletar os outros lotes mesmo se um falhar
           } else {
             totalDeleted += batch.length
           }
-        } catch (err) {
+        } catch (err: any) {
           console.error('Erro ao deletar lote:', err)
           errors.push(err)
         }
       }
 
       if (errors.length > 0 && totalDeleted === 0) {
-        // Se todos os lotes falharam, mostrar erro
         throw new Error(`Erro ao apagar dados: ${errors[0]?.message || 'Erro desconhecido'}`)
       } else if (errors.length > 0) {
-        // Se alguns lotes falharam mas outros funcionaram
         toast.success(`${totalDeleted} registro(s) apagado(s). Alguns erros ocorreram.`)
       } else {
         toast.success(`${totalDeleted} registro(s) apagado(s) com sucesso!`)
@@ -559,7 +576,8 @@ export default function AnalyticsPage() {
       await loadAnalytics()
     } catch (error: any) {
       console.error('Erro ao apagar dados:', error)
-      toast.error(error.message || 'Erro ao apagar dados')
+      const errorMessage = error?.message || error?.error?.message || 'Erro ao apagar dados'
+      toast.error(errorMessage)
     } finally {
       setDeleting(false)
     }
