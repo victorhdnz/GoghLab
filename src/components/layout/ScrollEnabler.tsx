@@ -42,12 +42,13 @@ export function ScrollEnabler() {
 
     // Executar quando a página estiver totalmente carregada
     if (typeof window !== 'undefined') {
-      if (document.readyState === 'complete') {
+      const readyState = document.readyState
+      if (readyState === 'complete') {
         enableScroll()
       } else {
         window.addEventListener('load', enableScroll)
         // Também executar quando DOM estiver pronto
-        if (document.readyState === 'interactive' || document.readyState === 'complete') {
+        if (readyState === 'interactive') {
           enableScroll()
         } else {
           document.addEventListener('DOMContentLoaded', enableScroll)
