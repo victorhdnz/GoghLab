@@ -332,8 +332,8 @@ export const useAuth = () => {
   const isEditor = profile?.role === 'admin' || profile?.role === 'editor' || emailIsAdmin
   
   // Flag para indicar se a verificação de permissões está completa
-  // Só está pronto quando: não está carregando E (tem profile OU já verificou pelo email)
-  const permissionsReady = !loading && (profile !== null || emailIsAdmin)
+  // Simplesmente: não está carregando = permissões prontas
+  const permissionsReady = !loading
 
   return {
     user,
