@@ -53,7 +53,7 @@ export default function EditLinkAggregatorPage() {
   const loadAggregator = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('link_aggregators')
         .select('*')
         .eq('id', id)
@@ -100,7 +100,7 @@ export default function EditLinkAggregatorPage() {
       setSaving(true);
 
       // Verificar se o slug já existe (exceto o atual)
-      const { data: existing } = await supabase
+      const { data: existing } = await (supabase as any)
         .from('link_aggregators')
         .select('id')
         .eq('slug', formData.slug)
@@ -112,7 +112,7 @@ export default function EditLinkAggregatorPage() {
         return;
       }
 
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('link_aggregators')
         .update({
           name: formData.name,

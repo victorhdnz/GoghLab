@@ -74,7 +74,7 @@ export default function NewLinkAggregatorPage() {
       }
 
       // Verificar se o slug já existe
-      const { data: existing } = await supabase
+      const { data: existing } = await (supabase as any)
         .from('link_aggregators')
         .select('id')
         .eq('slug', formData.slug)
@@ -85,7 +85,7 @@ export default function NewLinkAggregatorPage() {
         return;
       }
 
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('link_aggregators')
         .insert({
           user_id: user.id,

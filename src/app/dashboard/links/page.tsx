@@ -33,7 +33,7 @@ export default function LinkAggregatorsDashboard() {
       
       if (!user) return;
 
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('link_aggregators')
         .select('*')
         .eq('user_id', user.id)
@@ -68,7 +68,7 @@ export default function LinkAggregatorsDashboard() {
     if (!confirm('Tem certeza que deseja excluir este agregador?')) return;
 
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('link_aggregators')
         .delete()
         .eq('id', id);
