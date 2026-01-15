@@ -39,7 +39,7 @@
 
   body {
     @apply text-foreground antialiased;
-    background-color: #ffffff;
+    background-color: #F5F1E8; /* Bege Gogh Lab */
     overflow-x: hidden;
     overflow-y: auto;
     /* Garantir que o scroll sempre funcione no mobile */
@@ -48,7 +48,7 @@
   }
 
   html {
-    background-color: #ffffff;
+    background-color: #F5F1E8; /* Bege Gogh Lab */
     overflow-x: hidden;
     overflow-y: auto;
     /* Garantir que o scroll sempre funcione no mobile */
@@ -86,7 +86,7 @@
     --gogh-beige-light: #FBF8F3;
     --gogh-white: #FFFFFF;
     
-    --background: 0 0% 100%;
+    --background: 43 33% 94%; /* Bege Gogh Lab #F5F1E8 em HSL */
     --foreground: 0 0% 3.9%;
     --card: 0 0% 100%;
     --card-foreground: 0 0% 3.9%;
