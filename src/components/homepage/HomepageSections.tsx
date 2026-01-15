@@ -14,6 +14,8 @@ import { TestimonialsSection } from './TestimonialsSection'
 import { SplineSection } from './SplineSection'
 import { PricingSection } from './PricingSection'
 import { HomepageVideo } from './HomepageVideo'
+import { TrustedBySection } from './TrustedBySection'
+import { AwardSection } from './AwardSection'
 import { Highlighter } from '@/components/ui/highlighter'
 import { AuroraText } from '@/components/ui/aurora-text'
 import { FeaturesSectionWithHoverEffects } from '@/components/ui/feature-section-with-hover-effects'
@@ -58,15 +60,50 @@ export function HomepageSections({
   const renderVideoSection = () => {
     if (homepageContent.video_enabled === false || sectionVisibility.video === false) return null
     
+    // Verificar se o award deve ser mostrado ao lado do vídeo
+    const showAwardWithVideo = homepageContent.award_with_video_enabled !== false
+    
     return (
-      <HomepageVideo
-        enabled={homepageContent.video_enabled !== false}
-        videoUrl={homepageContent.video_url}
-        videoAutoplay={homepageContent.video_autoplay}
-        title={homepageContent.video_title}
-        subtitle={homepageContent.video_subtitle}
+      <section className="py-16 md:py-24 px-4 bg-gogh-beige">
+        <div className="container mx-auto max-w-7xl">
+          <div className={`flex flex-col ${showAwardWithVideo ? 'lg:flex-row' : ''} items-center justify-center gap-8`}>
+            <div className={showAwardWithVideo ? 'lg:w-2/3' : 'w-full'}>
+              <HomepageVideo
+                enabled={homepageContent.video_enabled !== false}
+                videoUrl={homepageContent.video_url}
+                videoAutoplay={homepageContent.video_autoplay}
+                title={homepageContent.video_title}
+                subtitle={homepageContent.video_subtitle}
+              />
+            </div>
+            {showAwardWithVideo && (
+              <div className="lg:w-1/3">
+                <AwardSection variant="alongside-video" />
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
+    )
+  }
+
+  // Função para renderizar seção "Trusted By" (Logo Carousel)
+  const renderTrustedBySection = () => {
+    if (homepageContent.trusted_by_enabled === false || sectionVisibility.trusted_by === false) return null
+    
+    return (
+      <TrustedBySection
+        title={homepageContent.trusted_by_title || "Utilizamos as melhores ferramentas"}
+        subtitle={homepageContent.trusted_by_subtitle || "Tecnologias de ponta para entregar resultados excepcionais"}
       />
     )
+  }
+
+  // Função para renderizar seção Award standalone
+  const renderAwardSection = () => {
+    if (homepageContent.award_enabled === false || sectionVisibility.award === false) return null
+    
+    return <AwardSection variant="standalone" />
   }
 
   // Função para renderizar seção Hero
@@ -358,6 +395,8 @@ export function HomepageSections({
   const sectionRenderers: Record<string, () => JSX.Element | null> = {
     hero: renderHeroSection,
     video: renderVideoSection,
+    trusted_by: renderTrustedBySection,
+    award: renderAwardSection,
     services: renderServicesSection,
     features: renderFeaturesSection,
     comparison: renderComparisonSection,
@@ -371,7 +410,7 @@ export function HomepageSections({
   // Garantir que sectionOrder seja um array válido
   const validSectionOrder = Array.isArray(sectionOrder) && sectionOrder.length > 0 
     ? sectionOrder 
-    : ['hero', 'features', 'services', 'comparison', 'notifications', 'testimonials', 'spline', 'pricing', 'contact']
+    : ['hero', 'video', 'trusted_by', 'features', 'services', 'comparison', 'notifications', 'testimonials', 'spline', 'pricing', 'contact']
   
   return (
     <>
