@@ -24,16 +24,17 @@ export function GoogleLoginButton({
     try {
       setLoading(true)
 
-      // Usar domínio de produção (goghlab.com.br) como padrão
-      // Isso evita ter que reconfigurar o Google OAuth depois
-      const productionUrl = 'https://goghlab.com.br'
-      // Passar o destino como parâmetro para redirecionar após login
-      const redirectUrl = redirectTo || `${productionUrl}/auth/callback?next=/dashboard`
+      // Usar domínio correto baseado no ambiente
+      const siteUrl = getSiteUrl()
+      // Destino após login (padrão: dashboard)
+      const nextPath = redirectTo || '/dashboard'
+      // URL de callback do auth com o destino final
+      const callbackUrl = `${siteUrl}/auth/callback?next=${encodeURIComponent(nextPath)}`
       
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: redirectUrl,
+          redirectTo: callbackUrl,
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
@@ -49,7 +50,6 @@ export function GoogleLoginButton({
       }
 
       // O redirecionamento será feito automaticamente pelo Supabase
-      // Não precisamos fazer nada aqui
     } catch (err: any) {
       console.error('Erro ao fazer login com Google:', err)
       toast.error('Erro ao fazer login com Google. Tente novamente.')

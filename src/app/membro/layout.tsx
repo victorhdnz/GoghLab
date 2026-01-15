@@ -17,7 +17,9 @@ import {
   Crown,
   Sparkles,
   ChevronRight,
-  Home
+  Home,
+  CreditCard,
+  ExternalLink
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 
@@ -63,17 +65,41 @@ export default function MemberLayout({ children }: MemberLayoutProps) {
   const router = useRouter()
   const pathname = usePathname()
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [openingPortal, setOpeningPortal] = useState(false)
+
+  // Abrir portal de gerenciamento do Stripe
+  const handleManageSubscription = async () => {
+    try {
+      setOpeningPortal(true)
+      const response = await fetch('/api/stripe/portal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      })
+      const data = await response.json()
+      
+      if (data.url) {
+        window.location.href = data.url
+      } else {
+        console.error('Erro ao abrir portal:', data.error)
+      }
+    } catch (error) {
+      console.error('Erro ao abrir portal:', error)
+    } finally {
+      setOpeningPortal(false)
+    }
+  }
 
   // Verificar autenticação e assinatura
   useEffect(() => {
     if (!loading) {
       if (!isAuthenticated) {
         router.push('/login?redirect=/membro')
-      } else if (!hasActiveSubscription && pathname !== '/membro/assinar') {
-        router.push('/membro/assinar')
+      } else if (!hasActiveSubscription) {
+        // Redirecionar para homepage onde tem os planos bonitos
+        router.push('/#pricing')
       }
     }
-  }, [loading, isAuthenticated, hasActiveSubscription, router, pathname])
+  }, [loading, isAuthenticated, hasActiveSubscription, router])
 
   // Loading state
   if (loading) {
@@ -87,13 +113,8 @@ export default function MemberLayout({ children }: MemberLayoutProps) {
     )
   }
 
-  // Não autenticado
-  if (!isAuthenticated) {
-    return null
-  }
-
-  // Sem assinatura ativa - permitir apenas página de assinar
-  if (!hasActiveSubscription && pathname !== '/membro/assinar') {
+  // Não autenticado ou sem assinatura - aguardar redirecionamento
+  if (!isAuthenticated || !hasActiveSubscription) {
     return null
   }
 
@@ -164,9 +185,9 @@ export default function MemberLayout({ children }: MemberLayoutProps) {
                       <Crown className="w-3 h-3" />
                       Pro
                     </span>
-                  ) : (
+                  ) : subscription?.plan_id === 'gogh_essencial' ? (
                     <span className="text-xs text-gogh-grayDark">Essencial</span>
-                  )}
+                  ) : null}
                 </div>
               </div>
             </div>
@@ -206,13 +227,22 @@ export default function MemberLayout({ children }: MemberLayoutProps) {
 
           {/* Bottom Actions */}
           <div className="p-4 border-t border-gogh-grayLight space-y-2">
-            <Link
-              href="/membro/configuracoes"
-              className="flex items-center gap-3 px-4 py-2 text-gogh-grayDark hover:text-gogh-black hover:bg-gogh-grayLight rounded-lg transition-colors"
-            >
-              <Settings className="w-5 h-5" />
-              <span>Configurações</span>
-            </Link>
+            {/* Gerenciar Assinatura */}
+            {hasActiveSubscription && (
+              <button
+                onClick={handleManageSubscription}
+                disabled={openingPortal}
+                className="w-full flex items-center gap-3 px-4 py-2 text-gogh-grayDark hover:text-gogh-black hover:bg-gogh-grayLight rounded-lg transition-colors disabled:opacity-50"
+              >
+                <CreditCard className="w-5 h-5" />
+                <span className="flex-1 text-left">Gerenciar Assinatura</span>
+                {openingPortal ? (
+                  <div className="w-4 h-4 border-2 border-gogh-grayDark border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <ExternalLink className="w-4 h-4" />
+                )}
+              </button>
+            )}
             <button
               onClick={handleSignOut}
               className="w-full flex items-center gap-3 px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"

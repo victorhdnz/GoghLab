@@ -4,8 +4,10 @@ import { useEffect, useState } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
 import { motion } from 'framer-motion'
 import { Sparkles, ArrowLeft, CheckCircle2, AlertCircle } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
 
 export default function LoginPage() {
   const { isAuthenticated, loading, signInWithGoogle } = useAuth()
@@ -13,9 +15,36 @@ export default function LoginPage() {
   const searchParams = useSearchParams()
   const [signingIn, setSigningIn] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [siteLogo, setSiteLogo] = useState<string | null>(null)
+  const [siteName, setSiteName] = useState('Gogh Lab')
 
   const redirect = searchParams.get('redirect') || '/membro'
   const errorParam = searchParams.get('error')
+
+  // Buscar logo e nome do site
+  useEffect(() => {
+    const fetchSiteSettings = async () => {
+      try {
+        const supabase = createClient()
+        const { data } = await supabase
+          .from('site_settings')
+          .select('site_logo, site_name, homepage_content')
+          .eq('key', 'general')
+          .maybeSingle()
+
+        if (data) {
+          // Tentar pegar logo de site_logo ou hero_logo
+          const logo = data.site_logo || 
+            (data.homepage_content as any)?.hero_logo || null
+          setSiteLogo(logo)
+          if (data.site_name) setSiteName(data.site_name)
+        }
+      } catch (err) {
+        console.error('Erro ao buscar configurações:', err)
+      }
+    }
+    fetchSiteSettings()
+  }, [])
 
   useEffect(() => {
     if (errorParam) {
@@ -81,11 +110,22 @@ export default function LoginPage() {
         <div className="bg-white rounded-2xl shadow-xl border border-gogh-grayLight overflow-hidden">
           {/* Header */}
           <div className="bg-gradient-to-r from-gogh-black to-gogh-grayDark p-8 text-center">
-            <div className="w-16 h-16 bg-gogh-yellow rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <Sparkles className="w-8 h-8 text-gogh-black" />
-            </div>
+            {siteLogo ? (
+              <div className="w-20 h-20 mx-auto mb-4 relative">
+                <Image
+                  src={siteLogo}
+                  alt={siteName}
+                  fill
+                  className="object-contain"
+                />
+              </div>
+            ) : (
+              <div className="w-16 h-16 bg-gogh-yellow rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <Sparkles className="w-8 h-8 text-gogh-black" />
+              </div>
+            )}
             <h1 className="text-2xl font-bold text-white mb-2">
-              Bem-vindo à Gogh Lab
+              Bem-vindo à {siteName}
             </h1>
             <p className="text-white/70 text-sm">
               Acesse sua área de membros
