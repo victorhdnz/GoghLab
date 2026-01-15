@@ -64,13 +64,13 @@ export default function PricingEditorPage() {
           { name: 'Agente de IA para Vídeos', isIncluded: true },
           { name: 'Agente de IA para Redes Sociais', isIncluded: true },
           { name: 'Agente de IA para Anúncios', isIncluded: true },
-          { name: 'Ideias e roteiros ilimitados', isIncluded: true },
+          { name: '8 interações por dia', isIncluded: true },
           { name: 'Suporte por e-mail', isIncluded: true },
           { name: 'Cursos de edição', isIncluded: false },
           { name: 'Canva Pro + CapCut Pro', isIncluded: false },
         ],
-        stripePriceIdMonthly: '', // Configurar no Stripe
-        stripePriceIdAnnually: '', // Configurar no Stripe
+        stripePriceIdMonthly: 'price_1SpjGIJmSvvqlkSQGIpVMt0H',
+        stripePriceIdAnnually: 'price_1SpjHyJmSvvqlkSQRBubxB7K',
       },
       {
         id: 'gogh-pro',
@@ -82,15 +82,15 @@ export default function PricingEditorPage() {
         buttonLabel: 'Assinar Pro',
         features: [
           { name: 'Tudo do plano Essencial', isIncluded: true },
-          { name: 'Cursos de edição de foto (Canva)', isIncluded: true },
-          { name: 'Cursos de edição de vídeo (CapCut)', isIncluded: true },
-          { name: 'Materiais e guias exclusivos', isIncluded: true },
+          { name: '20 interações por dia (2,5x mais)', isIncluded: true },
+          { name: 'Respostas mais completas', isIncluded: true },
+          { name: 'Cursos de edição (Canva + CapCut)', isIncluded: true },
           { name: 'Acesso ao Canva Pro', isIncluded: true },
           { name: 'Acesso ao CapCut Pro', isIncluded: true },
           { name: 'Suporte prioritário', isIncluded: true },
         ],
-        stripePriceIdMonthly: '', // Configurar no Stripe
-        stripePriceIdAnnually: '', // Configurar no Stripe
+        stripePriceIdMonthly: 'price_1SpjJIJmSvvqlkSQpBHztwk6',
+        stripePriceIdAnnually: 'price_1SpjKSJmSvvqlkSQlr8jNDTf',
       },
     ],
   })
