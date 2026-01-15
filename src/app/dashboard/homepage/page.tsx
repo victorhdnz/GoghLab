@@ -20,6 +20,10 @@ import { NotificationsManager } from '@/components/ui/NotificationsManager'
 import { TestimonialsManager } from '@/components/ui/TestimonialsManager'
 
 interface HomepageSettings {
+  // Configurações globais do site (afetam todas as páginas)
+  site_name?: string
+  site_title?: string  // Título da aba do navegador
+  
   hero_enabled?: boolean
   hero_logo?: string | null
   hero_title?: string
@@ -153,11 +157,15 @@ export default function HomepageEditorPage() {
     contact: true,
   })
   const [formData, setFormData] = useState<HomepageSettings>({
+    // Configurações globais
+    site_name: 'Gogh Lab',
+    site_title: 'Gogh Lab - Criatividade guiada por tecnologia',
+    
     hero_enabled: true,
     hero_logo: null,
-    hero_title: 'MV Company',
-    hero_subtitle: 'Transformamos sua presença digital com serviços de alta qualidade',
-    hero_description: 'Criação de sites, tráfego pago, criação de conteúdo e gestão de redes sociais',
+    hero_title: 'Gogh Lab',
+    hero_subtitle: 'Criatividade guiada por tecnologia',
+    hero_description: 'Agentes de IA para criação de conteúdo, redes sociais e anúncios',
     hero_background_image: '',
 
     services_enabled: true,
@@ -166,7 +174,7 @@ export default function HomepageEditorPage() {
     services_cards: [],
 
     comparison_cta_enabled: true,
-    comparison_cta_title: 'Compare a MV Company',
+    comparison_cta_title: 'Compare o Gogh Lab',
     comparison_cta_description: 'Veja por que somos a melhor escolha para transformar sua presença digital',
     comparison_cta_link: '/comparar',
 
@@ -182,13 +190,13 @@ export default function HomepageEditorPage() {
 
     notifications_enabled: true,
     notifications_title: 'Nossos resultados em tempo real',
-    notifications_description: 'Veja o sucesso da nossa consultoria através das notificações',
+    notifications_description: 'Veja o sucesso dos nossos clientes em tempo real',
     notifications_items: [],
     notifications_delay: 1500,
 
     testimonials_enabled: true,
     testimonials_title: 'O que nossos clientes dizem',
-    testimonials_description: 'Depoimentos reais de quem confia na MV Company',
+    testimonials_description: 'Depoimentos reais de quem confia no Gogh Lab',
     testimonials_items: [],
     testimonials_duration: 200,
 
@@ -209,16 +217,25 @@ export default function HomepageEditorPage() {
   const loadSettings = async () => {
     setLoading(true)
     try {
-      const { data, error } = await getSiteSettings()
+      // Buscar dados diretamente do banco para garantir que temos site_logo
+      const { data: rawData, error: rawError } = await supabase
+        .from('site_settings')
+        .select('*')
+        .eq('key', 'general')
+        .maybeSingle()
+      
+      console.log('🔍 Dados brutos do banco:', rawData)
+      console.log('🔍 site_logo do banco:', rawData?.site_logo)
+      console.log('🔍 hero_logo do homepage_content:', rawData?.homepage_content?.hero_logo)
 
-      if (error) {
-        console.error('Erro ao carregar configurações:', error)
+      if (rawError) {
+        console.error('Erro ao carregar configurações:', rawError)
         toast.error('Erro ao carregar configurações da homepage.')
         return
       }
 
-      if (data?.homepage_content) {
-        const content = data.homepage_content
+      if (rawData?.homepage_content) {
+        const content = rawData.homepage_content as any
         // Fazer merge preservando arrays (especialmente services_cards)
         setFormData(prev => {
           // Sempre usar o array do banco se existir, mesmo que vazio
@@ -251,12 +268,17 @@ export default function HomepageEditorPage() {
           
           // Sincronizar hero_logo com site_logo (priorizar site_logo se existir)
           // Isso garante que a logo global do site seja usada no editor
-          const heroLogo = data.site_logo || content.hero_logo || null
+          const heroLogo = rawData.site_logo || content.hero_logo || null
+          console.log('🔍 Logo final a ser usada:', heroLogo)
+          console.log('🔍 site_name do banco:', rawData.site_name)
+          console.log('🔍 site_title do banco:', rawData.site_title)
           
           return {
             ...prev,
             ...content,
             hero_logo: heroLogo,
+            site_name: rawData.site_name || content.site_name || 'Gogh Lab',
+            site_title: rawData.site_title || content.site_title || 'Gogh Lab - Criatividade guiada por tecnologia',
             services_cards: servicesCards,
             notifications_items: notificationsItems,
             testimonials_items: testimonialsItems,
@@ -371,14 +393,17 @@ export default function HomepageEditorPage() {
       
       // Preparar campos para atualizar
       const fieldsToUpdate: Record<string, any> = {
-        homepage_content: contentToSave
+        homepage_content: contentToSave,
+        site_logo: formData.hero_logo || null, // Sempre sincronizar a logo global
+        site_name: formData.site_name || 'Gogh Lab',
+        site_title: formData.site_title || 'Gogh Lab - Criatividade guiada por tecnologia',
       }
       
-      // IMPORTANTE: Sincronizar hero_logo com site_logo (logo fixa global)
-      // Quando a logo do hero é alterada, também atualiza a logo global do site
-      if (formData.hero_logo !== undefined) {
-        fieldsToUpdate.site_logo = formData.hero_logo || null
-      }
+      console.log('🔍 Salvando configurações:', {
+        logo: formData.hero_logo,
+        site_name: formData.site_name,
+        site_title: formData.site_title
+      })
       
       const { success, error } = await saveSiteSettings({
         fieldsToUpdate,
@@ -389,6 +414,22 @@ export default function HomepageEditorPage() {
         console.error('Erro ao salvar configurações:', error)
         toast.error(error?.message || 'Erro ao salvar configurações da homepage.')
         return
+      }
+      
+      // FALLBACK: Atualizar campos diretamente caso o helper não funcione
+      const { error: directError } = await supabase
+        .from('site_settings')
+        .update({ 
+          site_logo: formData.hero_logo || null,
+          site_name: formData.site_name || 'Gogh Lab',
+          site_title: formData.site_title || 'Gogh Lab - Criatividade guiada por tecnologia',
+        })
+        .eq('key', 'general')
+      
+      if (directError) {
+        console.error('Erro ao salvar diretamente:', directError)
+      } else {
+        console.log('✅ Configurações salvas diretamente com sucesso')
       }
 
       toast.success('Configurações da homepage salvas com sucesso!')
@@ -430,6 +471,30 @@ export default function HomepageEditorPage() {
       case 'hero':
         return (
           <div className="space-y-4">
+            {/* Configurações Globais do Site */}
+            <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg space-y-4">
+              <h4 className="font-semibold text-yellow-800 flex items-center gap-2">
+                🌐 Configurações Globais (afetam todas as páginas)
+              </h4>
+              <Input
+                label="Nome do Site"
+                value={formData.site_name || ''}
+                onChange={(e) => setFormData({ ...formData, site_name: e.target.value })}
+                placeholder="Ex: Gogh Lab"
+              />
+              <Input
+                label="Título da Aba do Navegador (SEO)"
+                value={formData.site_title || ''}
+                onChange={(e) => setFormData({ ...formData, site_title: e.target.value })}
+                placeholder="Ex: Gogh Lab - Criatividade guiada por tecnologia"
+              />
+              <p className="text-xs text-yellow-700">
+                O título aparece na aba do navegador e é importante para SEO.
+              </p>
+            </div>
+
+            <hr className="my-4" />
+            
             <Switch
               label="Habilitar Seção Hero"
               checked={formData.hero_enabled}
@@ -438,14 +503,14 @@ export default function HomepageEditorPage() {
             {formData.hero_enabled && (
               <>
                 <div>
-                  <label className="block text-sm font-medium mb-2">Logo da Empresa (Opcional)</label>
+                  <label className="block text-sm font-medium mb-2">Logo da Empresa (Favicon e Logo Fixa)</label>
                   <ImageUploader
                     value={formData.hero_logo || ''}
                     onChange={(url) => setFormData({ ...formData, hero_logo: url })}
                     placeholder="Upload da logo da empresa"
                     cropType="square"
                     aspectRatio={1}
-                    recommendedDimensions="200x100px"
+                    recommendedDimensions="200x200px (quadrada funciona melhor como favicon)"
                   />
                   {formData.hero_logo && (
                     <button
@@ -456,7 +521,7 @@ export default function HomepageEditorPage() {
                     </button>
                   )}
                   <p className="text-sm text-gray-500 mt-2">
-                    Se uma logo for enviada, ela substituirá o título principal.
+                    Esta logo aparecerá fixa no topo de todas as páginas e como favicon (ícone da aba).
                   </p>
                 </div>
                 {!formData.hero_logo && (
@@ -464,14 +529,14 @@ export default function HomepageEditorPage() {
                     label="Título Principal"
                     value={formData.hero_title || ''}
                     onChange={(e) => setFormData({ ...formData, hero_title: e.target.value })}
-                    placeholder="Ex: MV Company"
+                    placeholder="Ex: Gogh Lab"
                   />
                 )}
                 <Input
                   label="Subtítulo"
                   value={formData.hero_subtitle || ''}
                   onChange={(e) => setFormData({ ...formData, hero_subtitle: e.target.value })}
-                  placeholder="Ex: Transformamos sua presença digital..."
+                  placeholder="Ex: Criatividade guiada por tecnologia"
                 />
                 <div>
                   <label className="block text-sm font-medium mb-2">Descrição</label>

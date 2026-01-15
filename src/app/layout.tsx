@@ -47,7 +47,7 @@ async function getSiteDescription(): Promise<string> {
   }
 
   // Descrição padrão caso não encontre no banco
-  return 'Plataforma inteligente e autônoma baseada em agentes de IA.'
+  return 'Criatividade guiada por tecnologia. Agentes de IA para criação de conteúdo.'
 }
 
 // Função para buscar nome do site do banco de dados
@@ -111,22 +111,22 @@ async function getSiteTitle(): Promise<string | null> {
       }
       // Se não tiver site_title, usar site_name + sufixo
       if (fallbackData?.site_name) {
-        return `${fallbackData.site_name} - Plataforma inteligente e autônoma baseada em agentes de IA.`
+        return `${fallbackData.site_name} - Criatividade guiada por tecnologia`
       }
     }
 
     if (data?.site_title) {
       return data.site_title
     }
-    // Se não tiver site_title, usar site_name + sufixo
+    // Se não tiver site_title, usar site_name + sufixo padrão
     if (data?.site_name) {
-      return `${data.site_name} - Plataforma inteligente e autônoma baseada em agentes de IA.`
+      return `${data.site_name} - Criatividade guiada por tecnologia`
     }
   } catch (error) {
     console.error('Erro ao buscar título do site:', error)
   }
 
-  return null
+  return 'Gogh Lab - Criatividade guiada por tecnologia'
 }
 
 // Função para buscar logo do site do banco de dados
@@ -163,7 +163,7 @@ async function getSiteLogo(): Promise<string | null> {
 export async function generateMetadata(): Promise<Metadata> {
   const siteDescription = await getSiteDescription()
   const siteName = await getSiteName()
-  const siteTitle = await getSiteTitle() || `${siteName} - Plataforma inteligente e autônoma baseada em agentes de IA.`
+  const siteTitle = await getSiteTitle() || `${siteName} - Criatividade guiada por tecnologia`
   const siteUrl = getSiteUrl()
   const siteLogo = await getSiteLogo()
 
