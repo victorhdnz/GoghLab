@@ -50,7 +50,7 @@ export default function CoursesPage() {
 
       try {
         // Buscar cursos ativos
-        const { data: coursesData, error } = await supabase
+        const { data: coursesData, error } = await (supabase as any)
           .from('courses')
           .select('*')
           .eq('is_active', true)
@@ -60,7 +60,7 @@ export default function CoursesPage() {
         setCourses(coursesData || [])
 
         // Buscar progresso do usuário
-        const { data: progressData } = await supabase
+        const { data: progressData } = await (supabase as any)
           .from('user_course_progress')
           .select('course_id, completed')
           .eq('user_id', user.id)
@@ -70,8 +70,8 @@ export default function CoursesPage() {
           const progressMap: Record<string, CourseProgress> = {}
           
           for (const course of coursesData || []) {
-            const courseProgress = progressData.filter(p => p.course_id === course.id)
-            const completedLessons = courseProgress.filter(p => p.completed).length
+            const courseProgress = (progressData as any[]).filter((p: any) => p.course_id === course.id)
+            const completedLessons = courseProgress.filter((p: any) => p.completed).length
             
             progressMap[course.id] = {
               course_id: course.id,
