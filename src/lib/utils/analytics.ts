@@ -20,7 +20,7 @@ interface TrackEventParams {
  */
 export async function trackEvent(params: TrackEventParams): Promise<void> {
   try {
-    const supabase = createClient()
+    const supabase = createClient() as any
     
     // Gerar ou recuperar session_id
     let sessionId: string | null = null
