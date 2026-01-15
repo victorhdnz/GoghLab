@@ -5,6 +5,9 @@ import { HomepageSections } from '@/components/homepage/HomepageSections'
 import { FixedLogo } from '@/components/layout/FixedLogo'
 import { NavigationTabs } from '@/components/ui/NavigationTabs'
 
+// Forçar renderização dinâmica (usa cookies)
+export const dynamic = 'force-dynamic'
+
 async function getServices(): Promise<Service[]> {
   try {
     const supabase = createServerClient()
