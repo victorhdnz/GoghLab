@@ -11,16 +11,26 @@ export const dynamic = 'force-dynamic'
 async function getServices(): Promise<Service[]> {
   try {
     const supabase = createServerClient()
-    const { data, error } = await supabase
+    
+    // Query com timeout de 3 segundos
+    const queryPromise = supabase
       .from('services')
       .select('*')
       .eq('is_active', true)
       .order('is_featured', { ascending: false })
       .order('created_at', { ascending: false })
 
-    if (error) {
+    const timeoutPromise = new Promise<{ data: Service[] | null; error: { message: string } }>((resolve) => {
+      setTimeout(() => {
+        console.warn('⚠️ Timeout ao buscar serviços - retornando array vazio')
+        resolve({ data: [], error: { message: 'Timeout' } })
+      }, 3000) // 3 segundos de timeout
+    })
+
+    const { data, error } = await Promise.race([queryPromise, timeoutPromise])
+
+    if (error && error.message !== 'Timeout') {
       console.error('Erro ao buscar serviços:', error)
-      return []
     }
 
     return data || []
@@ -33,15 +43,49 @@ async function getServices(): Promise<Service[]> {
 async function getSiteSettings() {
   try {
     const supabase = createServerClient()
-    const { data, error } = await supabase
+    
+    // Query com timeout de 3 segundos
+    const queryPromise = supabase
       .from('site_settings')
       .select('site_name, site_description, contact_email, contact_whatsapp, instagram_url, site_logo, homepage_content')
       .eq('key', 'general')
       .maybeSingle()
 
+    // Valores padrão caso dê timeout ou erro
+    const defaultSettings = {
+      site_name: 'Gogh Lab',
+      site_description: 'Plataforma inteligente e autônoma baseada em agentes de IA',
+      contact_email: 'contato.goghlab@gmail.com',
+      contact_whatsapp: null,
+      instagram_url: null,
+      site_logo: null,
+      homepage_content: {}
+    }
+
+    const timeoutPromise = new Promise<{ data: typeof defaultSettings | null; error: { message: string } }>((resolve) => {
+      setTimeout(() => {
+        console.warn('⚠️ Timeout ao buscar configurações - usando valores padrão')
+        resolve({ data: defaultSettings, error: { message: 'Timeout' } })
+      }, 3000) // 3 segundos de timeout
+    })
+
+    const { data, error } = await Promise.race([queryPromise, timeoutPromise])
+
+    // Se deu timeout, retornar valores padrão
+    if (error?.message === 'Timeout') {
+      console.warn('⚠️ Timeout ao buscar site_settings - usando valores padrão')
+      return defaultSettings
+    }
+
+    // Se houver erro (não timeout), retornar valores padrão
     if (error) {
       console.error('Error fetching site settings:', error)
-      return null
+      return defaultSettings
+    }
+
+    // Se não há dados, retornar valores padrão
+    if (!data) {
+      return defaultSettings
     }
     
     // Garantir que homepage_content seja um objeto válido
@@ -72,14 +116,35 @@ async function getSiteSettings() {
     }
   } catch (error) {
     console.error('Error fetching site settings:', error)
-    return null
+    // Retornar valores padrão em caso de erro
+    return {
+      site_name: 'Gogh Lab',
+      site_description: 'Plataforma inteligente e autônoma baseada em agentes de IA',
+      contact_email: 'contato.goghlab@gmail.com',
+      contact_whatsapp: null,
+      instagram_url: null,
+      site_logo: null,
+      homepage_content: {}
+    }
   }
 }
 
 export default async function Home() {
   const services = await getServices()
   const siteSettings = await getSiteSettings()
-  const homepageContent = siteSettings?.homepage_content || {}
+  
+  // Garantir que siteSettings nunca seja null
+  const safeSiteSettings = siteSettings || {
+    site_name: 'Gogh Lab',
+    site_description: 'Plataforma inteligente e autônoma baseada em agentes de IA',
+    contact_email: 'contato.goghlab@gmail.com',
+    contact_whatsapp: null,
+    instagram_url: null,
+    site_logo: null,
+    homepage_content: {}
+  }
+  
+  const homepageContent = safeSiteSettings.homepage_content || {}
   
   // Garantir que arrays sejam sempre arrays válidos
   if (!Array.isArray(homepageContent.notifications_items)) {
@@ -176,11 +241,11 @@ export default async function Home() {
   const pricingEnabled = sectionVisibility.pricing === true && pricing.pricing_enabled === true
 
   // Extrair logo do siteSettings para passar como prop (carregamento imediato)
-  let siteLogo = siteSettings?.site_logo || null
+  let siteLogo = safeSiteSettings.site_logo || null
   if (!siteLogo && homepageContent?.hero_logo) {
     siteLogo = homepageContent.hero_logo
   }
-  const siteName = siteSettings?.site_name || 'Gogh Lab'
+  const siteName = safeSiteSettings.site_name || 'Gogh Lab'
 
   return (
     <HomepageTracker>
@@ -188,7 +253,7 @@ export default async function Home() {
       <div className="min-h-screen bg-black">
         <HomepageSections
           homepageContent={homepageContent}
-          siteSettings={siteSettings}
+          siteSettings={safeSiteSettings}
           services={services}
           sectionVisibility={sectionVisibility}
           sectionOrder={sectionOrder}

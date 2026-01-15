@@ -18,25 +18,24 @@ const inter = Inter({ subsets: ['latin'] })
 async function getSiteDescription(): Promise<string> {
   try {
     const supabase = createServerClient()
-    const { data, error } = await supabase
+    
+    const queryPromise = supabase
       .from('site_settings')
       .select('site_description, site_name')
       .order('updated_at', { ascending: false })
       .limit(1)
       .maybeSingle()
 
-    if (error && error.code !== 'PGRST116') {
-      console.error('Erro ao buscar descrição do site:', error)
-      // Tentar buscar qualquer registro como fallback
-      const { data: fallbackData } = await supabase
-        .from('site_settings')
-        .select('site_description, site_name')
-        .limit(1)
-        .maybeSingle()
+    const timeoutPromise = new Promise<{ data: null; error: { message: string } }>((resolve) => {
+      setTimeout(() => {
+        resolve({ data: null, error: { message: 'Timeout' } })
+      }, 3000)
+    })
 
-      if (fallbackData?.site_description) {
-        return fallbackData.site_description
-      }
+    const { data, error } = await Promise.race([queryPromise, timeoutPromise])
+
+    if (error && error.code !== 'PGRST116' && error.message !== 'Timeout') {
+      console.error('Erro ao buscar descrição do site:', error)
     }
 
     if (data?.site_description) {
@@ -46,33 +45,32 @@ async function getSiteDescription(): Promise<string> {
     console.error('Erro ao buscar descrição do site:', error)
   }
 
-  // Descrição padrão caso não encontre no banco
-  return 'Toda sua gestão digital em um só lugar.'
+  // Descrição padrão caso não encontre no banco ou dê timeout
+  return 'Plataforma inteligente e autônoma baseada em agentes de IA'
 }
 
 // Função para buscar nome do site do banco de dados
 async function getSiteName(): Promise<string> {
   try {
     const supabase = createServerClient()
-    const { data, error } = await supabase
+    
+    const queryPromise = supabase
       .from('site_settings')
       .select('site_name')
       .order('updated_at', { ascending: false })
       .limit(1)
       .maybeSingle()
 
-    if (error && error.code !== 'PGRST116') {
-      console.error('Erro ao buscar nome do site:', error)
-      // Tentar buscar qualquer registro como fallback
-      const { data: fallbackData } = await supabase
-        .from('site_settings')
-        .select('site_name')
-        .limit(1)
-        .maybeSingle()
+    const timeoutPromise = new Promise<{ data: null; error: { message: string } }>((resolve) => {
+      setTimeout(() => {
+        resolve({ data: null, error: { message: 'Timeout' } })
+      }, 3000)
+    })
 
-      if (fallbackData?.site_name) {
-        return fallbackData.site_name
-      }
+    const { data, error } = await Promise.race([queryPromise, timeoutPromise])
+
+    if (error && error.code !== 'PGRST116' && error.message !== 'Timeout') {
+      console.error('Erro ao buscar nome do site:', error)
     }
 
     if (data?.site_name) {
@@ -82,7 +80,7 @@ async function getSiteName(): Promise<string> {
     console.error('Erro ao buscar nome do site:', error)
   }
 
-  // Nome padrão caso não encontre no banco
+  // Nome padrão caso não encontre no banco ou dê timeout
   return 'Gogh Lab'
 }
 
