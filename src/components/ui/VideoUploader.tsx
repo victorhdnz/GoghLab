@@ -90,7 +90,7 @@ export function VideoUploader({
         throw new Error('Usuário não autenticado')
       }
 
-      const { data: profile, error: profileError } = await supabase
+      const { data: profile, error: profileError } = await (supabase as any)
         .from('profiles')
         .select('role')
         .eq('id', user.id)
@@ -100,7 +100,7 @@ export function VideoUploader({
         throw new Error('Erro ao verificar permissões')
       }
 
-      if (profile.role !== 'admin' && profile.role !== 'editor') {
+      if ((profile as any).role !== 'admin' && (profile as any).role !== 'editor') {
         throw new Error('Apenas administradores e editores podem fazer upload de vídeos')
       }
 
