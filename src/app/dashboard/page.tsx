@@ -23,58 +23,14 @@ import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { createClient } from '@/lib/supabase/client'
 import toast from 'react-hot-toast'
 import { GoogleLoginButton } from '@/components/auth/GoogleLoginButton'
+import { isAdminEmail } from '@/lib/utils/admin'
 
 interface DashboardStats {
   totalServices: number
 }
 
-// Componente de Login
+// Componente de Login - Apenas Google
 function LoginForm() {
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [showPassword, setShowPassword] = useState(false)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const supabase = createClient()
-
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
-    setError(null)
-
-    try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      })
-
-      if (error) {
-        if (error.message === 'Invalid login credentials') {
-          setError('Email ou senha incorretos')
-          toast.error('Email ou senha incorretos')
-        } else if (error.message.includes('fetch')) {
-          setError('Erro de conexão. Verifique sua internet e tente novamente.')
-          toast.error('Erro de conexão com o servidor')
-        } else {
-          setError(error.message)
-          toast.error(error.message)
-        }
-        return
-      }
-
-      toast.success('Login realizado com sucesso!')
-      // O useAuth vai detectar a mudança e atualizar o estado
-    } catch (err: any) {
-      const errorMessage = err?.message?.includes('fetch') 
-        ? 'Erro de conexão. Verifique sua internet e tente novamente.'
-        : 'Erro ao fazer login. Tente novamente.'
-      setError(errorMessage)
-      toast.error(errorMessage)
-    } finally {
-      setLoading(false)
-    }
-  }
-
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
       <motion.div
@@ -87,92 +43,14 @@ function LoginForm() {
             <Lock className="text-white" size={32} />
           </div>
           <h1 className="text-2xl font-bold text-gray-900">Acesso Administrativo</h1>
-          <p className="text-gray-500 mt-2">Entre com suas credenciais</p>
+          <p className="text-gray-500 mt-2">Entre com sua conta Google autorizada</p>
         </div>
 
-        {error && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
-            {error}
-          </div>
-        )}
-
-        <form onSubmit={handleLogin} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Email
-            </label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent transition-all"
-              placeholder="seu@email.com"
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Senha
-            </label>
-            <div className="relative">
-              <input
-                type={showPassword ? 'text' : 'password'}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent transition-all"
-                placeholder="••••••••"
-                required
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 transition-colors p-1"
-                tabIndex={-1}
-              >
-                {showPassword ? (
-                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
-                    <line x1="1" y1="1" x2="23" y2="23"/>
-                  </svg>
-                ) : (
-                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                    <circle cx="12" cy="12" r="3"/>
-                  </svg>
-                )}
-              </button>
-            </div>
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-black text-white py-3 rounded-lg hover:bg-gray-800 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-          >
-            {loading ? (
-              <>
-                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                Entrando...
-              </>
-            ) : (
-              'Entrar'
-            )}
-          </button>
-        </form>
-
-        {/* Divisor */}
-        <div className="relative my-6">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-gray-300"></div>
-          </div>
-          <div className="relative flex justify-center text-sm">
-            <span className="px-2 bg-white text-gray-500">ou</span>
-          </div>
-        </div>
-
-        {/* Botão Google */}
         <GoogleLoginButton />
+        
+        <p className="text-xs text-gray-400 text-center mt-6">
+          Apenas contas autorizadas podem acessar esta área.
+        </p>
       </motion.div>
     </div>
   )
@@ -433,16 +311,18 @@ function DashboardContent() {
 
 // Componente Principal com Lógica de Autenticação
 export default function DashboardPage() {
-  const { isAuthenticated, isEditor, loading, profile } = useAuth()
+  const { isAuthenticated, isEditor, loading, profile, user } = useAuth()
   const [profileLoadingTimeout, setProfileLoadingTimeout] = useState(false)
 
-  // Timeout de segurança: se após 1 segundo o profile ainda não carregou, permitir acesso
-  // Isso evita loading infinito se houver algum problema ao carregar o profile
+  // Verificar se o email do usuário está na lista de admins
+  const userEmailIsAdmin = isAdminEmail(user?.email)
+
+  // Timeout de segurança: se após 1 segundo o profile ainda não carregou
   useEffect(() => {
     if (isAuthenticated && profile === null && !loading) {
       const timeout = setTimeout(() => {
         setProfileLoadingTimeout(true)
-      }, 1000) // Reduzido para 1 segundo
+      }, 1000)
       return () => clearTimeout(timeout)
     } else {
       setProfileLoadingTimeout(false)
@@ -450,7 +330,6 @@ export default function DashboardPage() {
   }, [isAuthenticated, profile, loading])
 
   // Loading - aguardar até que o profile seja carregado completamente
-  // Isso evita mostrar "Access Denied" antes do profile ser carregado
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -465,9 +344,7 @@ export default function DashboardPage() {
   }
 
   // Se está autenticado mas ainda não temos profile carregado, aguardar
-  // Mas com timeout de segurança para não ficar infinito
   if (isAuthenticated && profile === null && !profileLoadingTimeout) {
-    // Profile ainda não foi carregado, aguardar um pouco mais
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <LoadingSpinner size="md" />
@@ -475,20 +352,21 @@ export default function DashboardPage() {
     )
   }
 
-  // Se passou do timeout e ainda não tem profile, tentar carregar o dashboard mesmo assim
-  // (pode ser que o profile seja criado depois ou haja algum problema temporário)
+  // Se passou do timeout e ainda não tem profile, verificar pelo email
   if (isAuthenticated && profile === null && profileLoadingTimeout) {
-    // Tentar mostrar o dashboard mesmo sem profile (pode ser que seja criado depois)
-    // O DashboardContent vai verificar permissões internamente
-    return <DashboardContent />
-  }
-
-  // Autenticado mas não é admin/editor - mostrar acesso negado
-  // Só mostrar isso se tivermos certeza que o profile foi carregado e não tem permissão
-  if (!isEditor && profile !== null) {
+    // Se o email está na lista de admins, permitir acesso
+    if (userEmailIsAdmin) {
+      return <DashboardContent />
+    }
+    // Caso contrário, acesso negado
     return <AccessDenied />
   }
 
-  // Autenticado e autorizado - mostrar dashboard
+  // Autenticado mas não é admin/editor E email não está na lista - mostrar acesso negado
+  if (!isEditor && !userEmailIsAdmin && profile !== null) {
+    return <AccessDenied />
+  }
+
+  // Autenticado e autorizado (por role ou por email) - mostrar dashboard
   return <DashboardContent />
 }
