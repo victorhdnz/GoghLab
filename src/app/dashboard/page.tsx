@@ -7,12 +7,9 @@ import { motion } from 'framer-motion'
 import {
   GitCompare,
   Layers,
-  Eye,
   Palette,
-  Package,
   LogOut,
   Lock,
-  Plus,
   ArrowRight,
   BarChart3,
   Sparkles,
@@ -137,7 +134,7 @@ function DashboardContent() {
   const mainSections = [
     {
       title: 'Páginas',
-      description: 'Edite a homepage e gerencie seus serviços',
+      description: 'Edite a homepage e configure os planos',
       icon: Layers,
       items: [
         {
@@ -148,32 +145,11 @@ function DashboardContent() {
           color: 'bg-indigo-500',
         },
         {
-          title: 'Gerenciar Serviços',
-          description: 'Criar, editar e configurar layout das páginas de serviços',
-          href: '/dashboard/portfolio',
-          icon: Package,
-          color: 'bg-blue-500',
-        },
-        {
           title: 'Planos de Assinatura',
-          description: 'Configure planos, preços, categorias e integração com Stripe',
+          description: 'Configure planos, preços e integração com Stripe',
           href: '/dashboard/pricing',
           icon: Sparkles,
           color: 'bg-yellow-500',
-        },
-      ],
-    },
-    {
-      title: 'Comparador de Empresas',
-      description: 'Configure empresas e tópicos para o comparador público',
-      icon: GitCompare,
-      items: [
-        {
-          title: 'Gerenciar Comparações',
-          description: 'Adicionar, editar e organizar comparações de empresas',
-          href: '/dashboard/comparador',
-          icon: GitCompare,
-          color: 'bg-orange-500',
         },
       ],
     },
@@ -192,6 +168,20 @@ function DashboardContent() {
       ],
     },
     {
+      title: 'Comparador de Empresas',
+      description: 'Configure empresas e tópicos para o comparador público',
+      icon: GitCompare,
+      items: [
+        {
+          title: 'Gerenciar Comparações',
+          description: 'Adicionar, editar e organizar comparações de empresas',
+          href: '/dashboard/comparador',
+          icon: GitCompare,
+          color: 'bg-orange-500',
+        },
+      ],
+    },
+    {
       title: 'Analytics',
       description: 'Acompanhe o desempenho das suas páginas',
       icon: BarChart3,
@@ -202,20 +192,6 @@ function DashboardContent() {
           href: '/dashboard/analytics',
           icon: BarChart3,
           color: 'bg-green-500',
-        },
-      ],
-    },
-    {
-      title: 'Desenvolvimento',
-      description: 'Ferramentas e testes para desenvolvimento',
-      icon: Sparkles,
-      items: [
-        {
-          title: 'Testes de Efeitos',
-          description: 'Área experimental para testar bibliotecas e efeitos',
-          href: '/dashboard/testes-efeitos',
-          icon: Sparkles,
-          color: 'bg-purple-500',
         },
       ],
     },
