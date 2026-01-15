@@ -15,6 +15,7 @@ import {
   Sparkles,
   Link as LinkIcon,
   Users,
+  Package,
 } from 'lucide-react'
 import Link from 'next/link'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
