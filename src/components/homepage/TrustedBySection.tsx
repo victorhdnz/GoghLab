@@ -103,28 +103,49 @@ function MetaIcon(props: SVGProps<SVGSVGElement>) {
   )
 }
 
-// Lista de logos das plataformas
-const platformLogos = [
-  { name: "Canva Pro", id: 1, img: CanvaIcon },
-  { name: "CapCut Pro", id: 2, img: CapCutIcon },
-  { name: "OpenAI", id: 3, img: OpenAIIcon },
-  { name: "Stripe", id: 4, img: StripeIcon },
-  { name: "Google", id: 5, img: GoogleIcon },
-  { name: "Automação", id: 6, img: AutomationIcon },
-  { name: "Meta", id: 7, img: MetaIcon },
-]
+// Lista de logos das plataformas com nomes para referência
+const allPlatformLogos: Record<string, { name: string; id: number; img: React.ComponentType<React.SVGProps<SVGSVGElement>> }> = {
+  'Canva Pro': { name: "Canva Pro", id: 1, img: CanvaIcon },
+  'CapCut Pro': { name: "CapCut Pro", id: 2, img: CapCutIcon },
+  'OpenAI': { name: "OpenAI", id: 3, img: OpenAIIcon },
+  'Stripe': { name: "Stripe", id: 4, img: StripeIcon },
+  'Google': { name: "Google", id: 5, img: GoogleIcon },
+  'Automação': { name: "Automação", id: 6, img: AutomationIcon },
+  'Meta': { name: "Meta", id: 7, img: MetaIcon },
+}
+
+// Lista padrão de logos
+const defaultPlatformLogos = Object.values(allPlatformLogos)
+
+export interface TrustedByPlatform {
+  id: string
+  name: string
+  enabled: boolean
+}
 
 interface TrustedBySectionProps {
   title?: string
   subtitle?: string
+  platforms?: TrustedByPlatform[]
   className?: string
 }
 
 export function TrustedBySection({
   title = "Utilizamos as melhores ferramentas",
   subtitle = "Tecnologias de ponta para entregar resultados excepcionais",
+  platforms,
   className,
 }: TrustedBySectionProps) {
+  // Filtrar logos baseado nas plataformas habilitadas
+  const logosToShow = platforms 
+    ? platforms
+        .filter(p => p.enabled && allPlatformLogos[p.name])
+        .map(p => allPlatformLogos[p.name])
+    : defaultPlatformLogos
+
+  // Garantir que há pelo menos alguns logos para exibir
+  const finalLogos = logosToShow.length > 0 ? logosToShow : defaultPlatformLogos
+
   return (
     <section className={`py-16 md:py-24 px-4 bg-gogh-beige ${className || ''}`}>
       <div className="mx-auto flex w-full max-w-screen-lg flex-col items-center space-y-8">
@@ -142,7 +163,7 @@ export function TrustedBySection({
         </div>
 
         <FadeInElement delay={0.2}>
-          <LogoCarousel columnCount={4} logos={platformLogos} />
+          <LogoCarousel columnCount={Math.min(finalLogos.length, 4)} logos={finalLogos} />
         </FadeInElement>
       </div>
     </section>

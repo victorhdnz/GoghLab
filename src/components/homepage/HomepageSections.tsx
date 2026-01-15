@@ -61,7 +61,7 @@ export function HomepageSections({
     if (homepageContent.video_enabled === false || sectionVisibility.video === false) return null
     
     // Verificar se o award deve ser mostrado ao lado do vídeo
-    const showAwardWithVideo = homepageContent.award_with_video_enabled !== false
+    const showAwardWithVideo = homepageContent.award_with_video_enabled !== false && homepageContent.award_enabled !== false
     
     return (
       <section className="py-16 md:py-24 px-4 bg-gogh-beige">
@@ -78,7 +78,14 @@ export function HomepageSections({
             </div>
             {showAwardWithVideo && (
               <div className="lg:w-1/3">
-                <AwardSection variant="alongside-video" />
+                <AwardSection 
+                  variant="alongside-video"
+                  title={homepageContent.award_title || "PIONEIROS"}
+                  subtitle={homepageContent.award_subtitle || "Plataforma Completa de IA para Criadores"}
+                  recipient={homepageContent.award_recipient || "Gogh Lab"}
+                  date={homepageContent.award_date || "Brasil 2025"}
+                  level={homepageContent.award_level || "gold"}
+                />
               </div>
             )}
           </div>
@@ -95,6 +102,7 @@ export function HomepageSections({
       <TrustedBySection
         title={homepageContent.trusted_by_title || "Utilizamos as melhores ferramentas"}
         subtitle={homepageContent.trusted_by_subtitle || "Tecnologias de ponta para entregar resultados excepcionais"}
+        platforms={homepageContent.trusted_by_platforms}
       />
     )
   }
@@ -103,7 +111,18 @@ export function HomepageSections({
   const renderAwardSection = () => {
     if (homepageContent.award_enabled === false || sectionVisibility.award === false) return null
     
-    return <AwardSection variant="standalone" />
+    return (
+      <AwardSection 
+        variant="standalone"
+        title={homepageContent.award_title || "PIONEIROS"}
+        subtitle={homepageContent.award_subtitle || "Plataforma Completa de IA para Criadores"}
+        recipient={homepageContent.award_recipient || "Gogh Lab"}
+        date={homepageContent.award_date || "Brasil 2025"}
+        level={homepageContent.award_level || "gold"}
+        standaloneTitle={homepageContent.award_standalone_title || "Primeira plataforma do Brasil"}
+        standaloneDescription={homepageContent.award_standalone_description || "A Gogh Lab é pioneira em oferecer uma solução completa com agentes de IA, cursos profissionais e acesso às melhores ferramentas de criação — tudo em uma única assinatura."}
+      />
+    )
   }
 
   // Função para renderizar seção Hero
@@ -385,8 +404,9 @@ export function HomepageSections({
     
     return (
       <FeaturesSectionWithHoverEffects
-        title={homepageContent.features_title || "Tudo o que você precisa em um só lugar"}
-        subtitle={homepageContent.features_subtitle || "Ferramentas profissionais, agentes de IA e cursos completos para transformar sua presença digital"}
+        title={homepageContent.features_title || "O que oferecemos"}
+        subtitle={homepageContent.features_description || "Ferramentas profissionais, agentes de IA e cursos completos para transformar sua presença digital"}
+        features={homepageContent.features_items}
       />
     )
   }

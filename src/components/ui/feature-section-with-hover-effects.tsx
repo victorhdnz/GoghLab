@@ -10,67 +10,90 @@ import {
   IconSpeakerphone,
   IconVideo,
   IconSparkles,
+  IconSettings,
+  IconTarget,
 } from "@tabler/icons-react"
+
+// Mapeamento de string para componentes de ícone
+const iconMap: Record<string, React.ReactNode> = {
+  scissors: <IconScissors className="w-6 h-6" />,
+  palette: <IconPalette className="w-6 h-6" />,
+  robot: <IconRobot className="w-6 h-6" />,
+  video: <IconVideo className="w-6 h-6" />,
+  instagram: <IconBrandInstagram className="w-6 h-6" />,
+  megaphone: <IconSpeakerphone className="w-6 h-6" />,
+  school: <IconSchool className="w-6 h-6" />,
+  sparkles: <IconSparkles className="w-6 h-6" />,
+  settings: <IconSettings className="w-6 h-6" />,
+  target: <IconTarget className="w-6 h-6" />,
+}
 
 export interface FeatureItem {
   title: string
   description: string
-  icon: React.ReactNode
+  icon: React.ReactNode | string
 }
 
-const defaultFeatures: FeatureItem[] = [
+export interface FeatureItemData {
+  id: string
+  title: string
+  description: string
+  icon: string
+}
+
+const defaultFeatures: FeatureItemData[] = [
   {
+    id: '1',
     title: "Acesso ao CapCut Pro",
-    description:
-      "Edite vídeos profissionais com todas as funcionalidades premium do CapCut incluídas na sua assinatura.",
-    icon: <IconScissors className="w-6 h-6" />,
+    description: "Edite vídeos profissionais com todas as funcionalidades premium do CapCut incluídas na sua assinatura.",
+    icon: 'scissors',
   },
   {
+    id: '2',
     title: "Acesso ao Canva Pro",
-    description:
-      "Crie artes incríveis com acesso completo ao Canva Pro, templates exclusivos e recursos premium.",
-    icon: <IconPalette className="w-6 h-6" />,
+    description: "Crie artes incríveis com acesso completo ao Canva Pro, templates exclusivos e recursos premium.",
+    icon: 'palette',
   },
   {
+    id: '3',
     title: "Agente de IA para Vídeos",
-    description:
-      "Crie roteiros, ganchos, ideias de takes e legendas para seus vídeos com inteligência artificial.",
-    icon: <IconVideo className="w-6 h-6" />,
+    description: "Crie roteiros, ganchos, ideias de takes e legendas para seus vídeos com inteligência artificial.",
+    icon: 'video',
   },
   {
+    id: '4',
     title: "Agente de IA para Redes Sociais",
-    description:
-      "Ideias de posts, legendas, hashtags e adaptação de linguagem para cada persona e público.",
-    icon: <IconBrandInstagram className="w-6 h-6" />,
+    description: "Ideias de posts, legendas, hashtags e adaptação de linguagem para cada persona e público.",
+    icon: 'instagram',
   },
   {
+    id: '5',
     title: "Agente de IA para Anúncios",
-    description:
-      "Copies, criativos e direcionamento estratégico para Meta Ads, YouTube Ads, TikTok e Shopee.",
-    icon: <IconSpeakerphone className="w-6 h-6" />,
+    description: "Copies, criativos e direcionamento estratégico para Meta Ads, YouTube Ads, TikTok e Shopee.",
+    icon: 'megaphone',
   },
   {
+    id: '6',
     title: "Cursos de Edição Completos",
-    description:
-      "Aprenda edição de fotos e vídeos com cursos práticos e avançados de Canva e CapCut.",
-    icon: <IconSchool className="w-6 h-6" />,
+    description: "Aprenda edição de fotos e vídeos com cursos práticos e avançados de Canva e CapCut.",
+    icon: 'school',
   },
   {
+    id: '7',
     title: "Agentes Treinados para Seu Nicho",
-    description:
-      "Os agentes aprendem sobre seu negócio e criam conteúdo personalizado para sua audiência.",
-    icon: <IconRobot className="w-6 h-6" />,
+    description: "Os agentes aprendem sobre seu negócio e criam conteúdo personalizado para sua audiência.",
+    icon: 'settings',
   },
   {
+    id: '8',
     title: "Crie com Autonomia Total",
-    description:
-      "Faça sozinho o que antes dependia de social media, editor ou gestor de tráfego.",
-    icon: <IconSparkles className="w-6 h-6" />,
+    description: "Faça sozinho o que antes dependia de social media, editor ou gestor de tráfego.",
+    icon: 'sparkles',
   },
 ]
 
 interface FeaturesSectionWithHoverEffectsProps {
-  features?: FeatureItem[]
+  features?: FeatureItemData[]
   title?: string
   subtitle?: string
   className?: string
@@ -78,7 +101,7 @@ interface FeaturesSectionWithHoverEffectsProps {
 
 export function FeaturesSectionWithHoverEffects({
   features = defaultFeatures,
-  title = "Tudo o que você precisa em um só lugar",
+  title = "O que oferecemos",
   subtitle = "Ferramentas profissionais, agentes de IA e cursos completos para transformar sua presença digital",
   className,
 }: FeaturesSectionWithHoverEffectsProps) {
@@ -98,7 +121,13 @@ export function FeaturesSectionWithHoverEffects({
         {/* Features Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 relative z-10">
           {features.map((feature, index) => (
-            <Feature key={feature.title} {...feature} index={index} />
+            <Feature 
+              key={feature.id || feature.title} 
+              title={feature.title}
+              description={feature.description}
+              icon={typeof feature.icon === 'string' ? iconMap[feature.icon] || <IconSparkles className="w-6 h-6" /> : feature.icon}
+              index={index} 
+            />
           ))}
         </div>
       </div>
@@ -111,7 +140,7 @@ const Feature = ({
   description,
   icon,
   index,
-}: FeatureItem & { index: number }) => {
+}: { title: string; description: string; icon: React.ReactNode; index: number }) => {
   return (
     <div
       className={cn(

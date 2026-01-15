@@ -101,15 +101,33 @@ interface HomepageSettings {
   features_enabled?: boolean
   features_title?: string
   features_description?: string
+  features_items?: Array<{
+    id: string
+    title: string
+    description: string
+    icon: 'scissors' | 'palette' | 'robot' | 'video' | 'instagram' | 'megaphone' | 'school' | 'sparkles' | 'settings' | 'target'
+  }>
 
   // Seção Trusted By (Plataformas que utilizamos)
   trusted_by_enabled?: boolean
   trusted_by_title?: string
   trusted_by_subtitle?: string
+  trusted_by_platforms?: Array<{
+    id: string
+    name: string
+    enabled: boolean
+  }>
 
   // Seção Award (Medalha de pioneiros)
   award_enabled?: boolean
   award_with_video_enabled?: boolean
+  award_title?: string
+  award_subtitle?: string
+  award_recipient?: string
+  award_date?: string
+  award_level?: 'bronze' | 'silver' | 'gold' | 'platinum'
+  award_standalone_title?: string
+  award_standalone_description?: string
 
   section_order?: string[]
   section_visibility?: Record<string, boolean>
@@ -231,16 +249,42 @@ export default function HomepageEditorPage() {
     // Features - O que oferecemos
     features_enabled: true,
     features_title: 'O que oferecemos',
-    features_description: 'Ferramentas e recursos completos para criadores de conteúdo',
+    features_description: 'Ferramentas profissionais, agentes de IA e cursos completos para transformar sua presença digital',
+    features_items: [
+      { id: '1', title: 'Acesso ao CapCut Pro', description: 'Edite vídeos profissionais com todas as funcionalidades premium do CapCut incluídas na sua assinatura.', icon: 'scissors' },
+      { id: '2', title: 'Acesso ao Canva Pro', description: 'Crie artes incríveis com acesso completo ao Canva Pro, templates exclusivos e recursos premium.', icon: 'palette' },
+      { id: '3', title: 'Agente de IA para Vídeos', description: 'Crie roteiros, ganchos, ideias de takes e legendas para seus vídeos com inteligência artificial.', icon: 'video' },
+      { id: '4', title: 'Agente de IA para Redes Sociais', description: 'Ideias de posts, legendas, hashtags e adaptação de linguagem para cada persona e público.', icon: 'instagram' },
+      { id: '5', title: 'Agente de IA para Anúncios', description: 'Copies, criativos e direcionamento estratégico para Meta Ads, YouTube Ads, TikTok e Shopee.', icon: 'megaphone' },
+      { id: '6', title: 'Cursos de Edição Completos', description: 'Aprenda edição de fotos e vídeos com cursos práticos e avançados de Canva e CapCut.', icon: 'school' },
+      { id: '7', title: 'Agentes Treinados para Seu Nicho', description: 'Os agentes aprendem sobre seu negócio e criam conteúdo personalizado para sua audiência.', icon: 'settings' },
+      { id: '8', title: 'Crie com Autonomia Total', description: 'Faça sozinho o que antes dependia de social media, editor ou gestor de tráfego.', icon: 'sparkles' },
+    ],
 
     // Trusted By - Plataformas que utilizamos
     trusted_by_enabled: true,
     trusted_by_title: 'Utilizamos as melhores ferramentas',
     trusted_by_subtitle: 'Tecnologias de ponta para entregar resultados excepcionais',
+    trusted_by_platforms: [
+      { id: '1', name: 'Canva Pro', enabled: true },
+      { id: '2', name: 'CapCut Pro', enabled: true },
+      { id: '3', name: 'OpenAI', enabled: true },
+      { id: '4', name: 'Stripe', enabled: true },
+      { id: '5', name: 'Google', enabled: true },
+      { id: '6', name: 'Automação', enabled: true },
+      { id: '7', name: 'Meta', enabled: true },
+    ],
 
     // Award - Medalha de pioneiros
     award_enabled: true,
     award_with_video_enabled: true,
+    award_title: 'PIONEIROS',
+    award_subtitle: 'Plataforma Completa de IA para Criadores',
+    award_recipient: 'Gogh Lab',
+    award_date: 'Brasil 2025',
+    award_level: 'gold',
+    award_standalone_title: 'Primeira plataforma do Brasil',
+    award_standalone_description: 'A Gogh Lab é pioneira em oferecer uma solução completa com agentes de IA, cursos profissionais e acesso às melhores ferramentas de criação — tudo em uma única assinatura.',
   })
 
   useEffect(() => {
@@ -922,6 +966,18 @@ export default function HomepageEditorPage() {
           </div>
         )
       case 'features':
+        const featureIconOptions = [
+          { value: 'scissors', label: '✂️ Tesoura (CapCut)' },
+          { value: 'palette', label: '🎨 Paleta (Canva)' },
+          { value: 'robot', label: '🤖 Robô (IA)' },
+          { value: 'video', label: '🎬 Vídeo' },
+          { value: 'instagram', label: '📷 Instagram' },
+          { value: 'megaphone', label: '📢 Megafone (Anúncios)' },
+          { value: 'school', label: '🎓 Escola (Cursos)' },
+          { value: 'sparkles', label: '✨ Estrelas' },
+          { value: 'settings', label: '⚙️ Configurações' },
+          { value: 'target', label: '🎯 Alvo' },
+        ]
         return (
           <div className="space-y-4">
             <Switch
@@ -947,11 +1003,92 @@ export default function HomepageEditorPage() {
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
-                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-                  <p className="text-sm text-amber-800">
-                    <strong>✨ Dica:</strong> Esta seção exibe automaticamente os principais recursos da plataforma:
-                    CapCut Pro, Canva Pro, Agentes de IA, Cursos e mais.
-                  </p>
+
+                {/* Lista de Features Editáveis */}
+                <div className="border-t pt-4 mt-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <label className="block text-sm font-medium">Features ({formData.features_items?.length || 0})</label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const newItem = {
+                          id: Date.now().toString(),
+                          title: 'Nova Feature',
+                          description: 'Descrição da feature',
+                          icon: 'sparkles' as const,
+                        }
+                        setFormData({
+                          ...formData,
+                          features_items: [...(formData.features_items || []), newItem],
+                        })
+                      }}
+                      className="text-sm bg-gogh-yellow text-gogh-black px-3 py-1 rounded-lg hover:bg-gogh-yellow-dark transition-colors"
+                    >
+                      + Adicionar Feature
+                    </button>
+                  </div>
+
+                  <div className="space-y-3 max-h-96 overflow-y-auto">
+                    {formData.features_items?.map((item, index) => (
+                      <div key={item.id} className="bg-gray-50 p-3 rounded-lg border">
+                        <div className="flex items-start gap-2">
+                          <span className="text-lg font-bold text-gray-400">{index + 1}</span>
+                          <div className="flex-1 space-y-2">
+                            <Input
+                              label="Título"
+                              value={item.title}
+                              onChange={(e) => {
+                                const updated = [...(formData.features_items || [])]
+                                updated[index] = { ...updated[index], title: e.target.value }
+                                setFormData({ ...formData, features_items: updated })
+                              }}
+                              placeholder="Título da feature"
+                            />
+                            <div>
+                              <label className="block text-xs font-medium mb-1">Descrição</label>
+                              <textarea
+                                value={item.description}
+                                onChange={(e) => {
+                                  const updated = [...(formData.features_items || [])]
+                                  updated[index] = { ...updated[index], description: e.target.value }
+                                  setFormData({ ...formData, features_items: updated })
+                                }}
+                                rows={2}
+                                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-medium mb-1">Ícone</label>
+                              <select
+                                value={item.icon}
+                                onChange={(e) => {
+                                  const updated = [...(formData.features_items || [])]
+                                  updated[index] = { ...updated[index], icon: e.target.value as any }
+                                  setFormData({ ...formData, features_items: updated })
+                                }}
+                                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              >
+                                {featureIconOptions.map((opt) => (
+                                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                ))}
+                              </select>
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const updated = formData.features_items?.filter((_, i) => i !== index) || []
+                              setFormData({ ...formData, features_items: updated })
+                            }}
+                            className="text-red-500 hover:text-red-700 p-1"
+                            title="Remover feature"
+                          >
+                            🗑️
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </>
             )}
@@ -979,10 +1116,33 @@ export default function HomepageEditorPage() {
                   onChange={(e) => setFormData({ ...formData, trusted_by_subtitle: e.target.value })}
                   placeholder="Ex: Tecnologias de ponta para entregar resultados excepcionais"
                 />
+
+                {/* Lista de Plataformas */}
+                <div className="border-t pt-4 mt-4">
+                  <label className="block text-sm font-medium mb-3">Plataformas Exibidas</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {formData.trusted_by_platforms?.map((platform, index) => (
+                      <div key={platform.id} className="flex items-center gap-2 bg-gray-50 p-2 rounded-lg">
+                        <input
+                          type="checkbox"
+                          checked={platform.enabled}
+                          onChange={(e) => {
+                            const updated = [...(formData.trusted_by_platforms || [])]
+                            updated[index] = { ...updated[index], enabled: e.target.checked }
+                            setFormData({ ...formData, trusted_by_platforms: updated })
+                          }}
+                          className="w-4 h-4 text-gogh-yellow rounded border-gray-300 focus:ring-gogh-yellow"
+                        />
+                        <span className="text-sm">{platform.name}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
                 <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
                   <p className="text-sm text-amber-800">
-                    <strong>🤝 Informação:</strong> Esta seção exibe um carrossel animado com os logos das 
-                    plataformas e tecnologias utilizadas: Canva, CapCut, OpenAI, Stripe, Google, etc.
+                    <strong>🤝 Dica:</strong> Desmarque as plataformas que não deseja exibir no carrossel.
+                    Os logos são exibidos em um carrossel animado.
                   </p>
                 </div>
               </>
@@ -990,6 +1150,12 @@ export default function HomepageEditorPage() {
           </div>
         )
       case 'award':
+        const awardLevelOptions = [
+          { value: 'bronze', label: '🥉 Bronze' },
+          { value: 'silver', label: '🥈 Prata' },
+          { value: 'gold', label: '🥇 Ouro' },
+          { value: 'platinum', label: '💎 Platina' },
+        ]
         return (
           <div className="space-y-4">
             <Switch
@@ -1004,18 +1170,83 @@ export default function HomepageEditorPage() {
                   checked={formData.award_with_video_enabled ?? true}
                   onCheckedChange={(checked) => setFormData({ ...formData, award_with_video_enabled: checked })}
                 />
-                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-                  <p className="text-sm text-amber-800">
-                    <strong>🏆 Informação:</strong> A medalha destaca a Gogh Lab como pioneira no Brasil em oferecer 
-                    uma plataforma completa com agentes de IA, cursos profissionais e acesso às melhores ferramentas 
-                    de criação em uma única assinatura.
-                  </p>
+
+                {/* Configurações da Medalha */}
+                <div className="border-t pt-4 mt-4">
+                  <h4 className="font-medium text-sm mb-3">🏆 Configurações da Medalha</h4>
+                  
+                  <div className="grid grid-cols-2 gap-3">
+                    <Input
+                      label="Título da Medalha"
+                      value={formData.award_title || ''}
+                      onChange={(e) => setFormData({ ...formData, award_title: e.target.value })}
+                      placeholder="Ex: PIONEIROS"
+                    />
+                    <div>
+                      <label className="block text-sm font-medium mb-2">Nível</label>
+                      <select
+                        value={formData.award_level || 'gold'}
+                        onChange={(e) => setFormData({ ...formData, award_level: e.target.value as any })}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        {awardLevelOptions.map((opt) => (
+                          <option key={opt.value} value={opt.value}>{opt.label}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <Input
+                    label="Subtítulo"
+                    value={formData.award_subtitle || ''}
+                    onChange={(e) => setFormData({ ...formData, award_subtitle: e.target.value })}
+                    placeholder="Ex: Plataforma Completa de IA para Criadores"
+                  />
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <Input
+                      label="Recipient (Nome)"
+                      value={formData.award_recipient || ''}
+                      onChange={(e) => setFormData({ ...formData, award_recipient: e.target.value })}
+                      placeholder="Ex: Gogh Lab"
+                    />
+                    <Input
+                      label="Data/Local"
+                      value={formData.award_date || ''}
+                      onChange={(e) => setFormData({ ...formData, award_date: e.target.value })}
+                      placeholder="Ex: Brasil 2025"
+                    />
+                  </div>
                 </div>
+
+                {/* Seção Standalone */}
+                {!formData.award_with_video_enabled && (
+                  <div className="border-t pt-4 mt-4">
+                    <h4 className="font-medium text-sm mb-3">📄 Seção Standalone (sem vídeo)</h4>
+                    <Input
+                      label="Título da Seção"
+                      value={formData.award_standalone_title || ''}
+                      onChange={(e) => setFormData({ ...formData, award_standalone_title: e.target.value })}
+                      placeholder="Ex: Primeira plataforma do Brasil"
+                    />
+                    <div>
+                      <label className="block text-sm font-medium mb-2">Descrição</label>
+                      <textarea
+                        value={formData.award_standalone_description || ''}
+                        onChange={(e) => setFormData({ ...formData, award_standalone_description: e.target.value })}
+                        placeholder="Descrição que aparece ao lado da medalha..."
+                        rows={3}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                  </div>
+                )}
+
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                   <p className="text-sm text-blue-800">
-                    <strong>💡 Dica:</strong> Se a opção "Mostrar ao lado do vídeo" estiver ativa, a medalha 
-                    aparecerá ao lado direito da seção de vídeo (Sobre Nós). Caso contrário, aparecerá como 
-                    uma seção standalone.
+                    <strong>💡 Dica:</strong> {formData.award_with_video_enabled 
+                      ? 'A medalha aparecerá ao lado direito da seção de vídeo (Sobre Nós).' 
+                      : 'A medalha aparecerá como uma seção standalone com título e descrição.'}
                   </p>
                 </div>
               </>

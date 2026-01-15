@@ -4,12 +4,31 @@ import { Awards } from "@/components/ui/award"
 import { FadeInElement } from "@/components/ui/FadeInElement"
 import { cn } from "@/lib/utils"
 
-interface AwardSectionProps {
+export interface AwardSectionProps {
   className?: string
   variant?: "standalone" | "alongside-video"
+  // Dados editáveis da medalha
+  title?: string
+  subtitle?: string
+  recipient?: string
+  date?: string
+  level?: 'bronze' | 'silver' | 'gold' | 'platinum'
+  // Dados da seção standalone
+  standaloneTitle?: string
+  standaloneDescription?: string
 }
 
-export function AwardSection({ className, variant = "standalone" }: AwardSectionProps) {
+export function AwardSection({ 
+  className, 
+  variant = "standalone",
+  title = "PIONEIROS",
+  subtitle = "Plataforma Completa de IA para Criadores",
+  recipient = "Gogh Lab",
+  date = "Brasil 2025",
+  level = "gold",
+  standaloneTitle = "Primeira plataforma do Brasil",
+  standaloneDescription = "A Gogh Lab é pioneira em oferecer uma solução completa com agentes de IA, cursos profissionais e acesso às melhores ferramentas de criação — tudo em uma única assinatura.",
+}: AwardSectionProps) {
   if (variant === "alongside-video") {
     // Versão compacta para ficar ao lado do vídeo
     return (
@@ -17,11 +36,11 @@ export function AwardSection({ className, variant = "standalone" }: AwardSection
         <div className={cn("flex items-center justify-center", className)}>
           <Awards
             variant="award"
-            title="PIONEIROS"
-            subtitle="Plataforma Completa de IA para Criadores"
-            recipient="Gogh Lab"
-            date="Brasil 2025"
-            level="gold"
+            title={title}
+            subtitle={subtitle}
+            recipient={recipient}
+            date={date}
+            level={level}
             className="scale-75 md:scale-90"
           />
         </div>
@@ -37,12 +56,10 @@ export function AwardSection({ className, variant = "standalone" }: AwardSection
           <FadeInElement>
             <div className="text-center md:text-left max-w-md">
               <h2 className="text-3xl md:text-4xl font-bold text-gogh-black mb-4">
-                Primeira plataforma do Brasil
+                {standaloneTitle}
               </h2>
               <p className="text-gogh-grayDark text-lg">
-                A Gogh Lab é pioneira em oferecer uma solução completa com agentes de IA, 
-                cursos profissionais e acesso às melhores ferramentas de criação — 
-                tudo em uma única assinatura.
+                {standaloneDescription}
               </p>
             </div>
           </FadeInElement>
@@ -50,11 +67,11 @@ export function AwardSection({ className, variant = "standalone" }: AwardSection
           <FadeInElement delay={0.2}>
             <Awards
               variant="award"
-              title="PIONEIROS"
-              subtitle="Plataforma Completa de IA para Criadores"
-              recipient="Gogh Lab"
-              date="Brasil 2025"
-              level="gold"
+              title={title}
+              subtitle={subtitle}
+              recipient={recipient}
+              date={date}
+              level={level}
             />
           </FadeInElement>
         </div>
