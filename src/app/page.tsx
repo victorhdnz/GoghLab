@@ -12,25 +12,16 @@ async function getServices(): Promise<Service[]> {
   try {
     const supabase = createServerClient()
     
-    // Query com timeout de 3 segundos
-    const queryPromise = supabase
+    const { data, error } = await supabase
       .from('services')
       .select('*')
       .eq('is_active', true)
       .order('is_featured', { ascending: false })
       .order('created_at', { ascending: false })
 
-    const timeoutPromise = new Promise<{ data: Service[] | null; error: { message: string } }>((resolve) => {
-      setTimeout(() => {
-        console.warn('⚠️ Timeout ao buscar serviços - retornando array vazio')
-        resolve({ data: [], error: { message: 'Timeout' } })
-      }, 3000) // 3 segundos de timeout
-    })
-
-    const { data, error } = await Promise.race([queryPromise, timeoutPromise])
-
-    if (error && error.message !== 'Timeout') {
+    if (error) {
       console.error('Erro ao buscar serviços:', error)
+      return []
     }
 
     return data || []
@@ -44,14 +35,13 @@ async function getSiteSettings() {
   try {
     const supabase = createServerClient()
     
-    // Query com timeout de 3 segundos
-    const queryPromise = supabase
+    const { data, error } = await supabase
       .from('site_settings')
       .select('site_name, site_description, contact_email, contact_whatsapp, instagram_url, site_logo, homepage_content')
       .eq('key', 'general')
       .maybeSingle()
 
-    // Valores padrão caso dê timeout ou erro
+    // Valores padrão caso dê erro ou não encontre dados
     const defaultSettings = {
       site_name: 'Gogh Lab',
       site_description: 'Plataforma inteligente e autônoma baseada em agentes de IA',
@@ -62,28 +52,11 @@ async function getSiteSettings() {
       homepage_content: {}
     }
 
-    const timeoutPromise = new Promise<{ data: typeof defaultSettings | null; error: { message: string } }>((resolve) => {
-      setTimeout(() => {
-        console.warn('⚠️ Timeout ao buscar configurações - usando valores padrão')
-        resolve({ data: defaultSettings, error: { message: 'Timeout' } })
-      }, 3000) // 3 segundos de timeout
-    })
-
-    const { data, error } = await Promise.race([queryPromise, timeoutPromise])
-
-    // Se deu timeout, retornar valores padrão
-    if (error?.message === 'Timeout') {
-      console.warn('⚠️ Timeout ao buscar site_settings - usando valores padrão')
-      return defaultSettings
-    }
-
-    // Se houver erro (não timeout), retornar valores padrão
     if (error) {
       console.error('Error fetching site settings:', error)
       return defaultSettings
     }
 
-    // Se não há dados, retornar valores padrão
     if (!data) {
       return defaultSettings
     }
