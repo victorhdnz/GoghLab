@@ -56,8 +56,8 @@ export default function PricingEditorPage() {
         id: 'gogh-essencial',
         name: 'Gogh Essencial',
         description: 'Acesso a todos os agentes de IA para criar conteúdos de vídeo, redes sociais e anúncios.',
-        priceMonthly: 97,
-        priceAnnually: 931,
+        priceMonthly: 67.90,
+        priceAnnually: 651.90,
         isPopular: false,
         buttonLabel: 'Começar agora',
         features: [
@@ -76,8 +76,8 @@ export default function PricingEditorPage() {
         id: 'gogh-pro',
         name: 'Gogh Pro',
         description: 'Tudo do Essencial + cursos completos de edição + acesso ao Canva Pro e CapCut Pro.',
-        priceMonthly: 197,
-        priceAnnually: 1891,
+        priceMonthly: 127.90,
+        priceAnnually: 1226.90,
         isPopular: true,
         buttonLabel: 'Assinar Pro',
         features: [

@@ -179,27 +179,35 @@ export const PricingComponent: React.FC<PricingComponentProps> = ({
               </div>
               <CardDescription className="text-sm mt-1 text-gray-600">{plan.description}</CardDescription>
               <div className="mt-4">
-                <p className="text-4xl font-extrabold text-[#0A0A0A]">
-                  R$ {currentPrice.toLocaleString('pt-BR')}
-                  <span className="text-base font-normal text-gray-500 ml-1">{priceSuffix}</span>
-                </p>
-                {billingCycle === 'annually' && (
+                {billingCycle === 'monthly' ? (
                   <>
-                    <p className="text-xs text-gray-500 mt-1">
-                      Cobrado anualmente (R$ {plan.priceAnnually.toLocaleString('pt-BR')})
+                    <p className="text-4xl font-extrabold text-[#0A0A0A]">
+                      R$ {currentPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      <span className="text-base font-normal text-gray-500 ml-1">/mês</span>
                     </p>
-                    <p className="text-sm text-[#0A0A0A] font-semibold mt-2">
-                      Equivale a R$ {(plan.priceAnnually / 12).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/mês
-                    </p>
-                    <p className="text-xs text-gray-400 line-through opacity-70 mt-1">
-                      R$ {originalMonthlyPrice.toLocaleString('pt-BR')}/mês
+                    <p className="text-xs text-gray-500 mt-2">
+                      Economize {annualDiscountPercent}% com o plano anual
                     </p>
                   </>
-                )}
-                {billingCycle === 'monthly' && (
-                  <p className="text-xs text-gray-500 mt-2">
-                    Economize {annualDiscountPercent}% com o plano anual
-                  </p>
+                ) : (
+                  <>
+                    {/* Destaque: parcela mensal equivalente */}
+                    <p className="text-4xl font-extrabold text-[#0A0A0A]">
+                      R$ {(plan.priceAnnually / 12).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      <span className="text-base font-normal text-gray-500 ml-1">/mês</span>
+                    </p>
+                    {/* Preço mensal original riscado */}
+                    <p className="text-sm text-gray-400 line-through mt-1">
+                      R$ {originalMonthlyPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/mês
+                    </p>
+                    {/* Total anual menor */}
+                    <p className="text-xs text-gray-500 mt-2">
+                      Cobrado anualmente: R$ {plan.priceAnnually.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </p>
+                    <p className="text-xs text-green-600 font-semibold mt-1">
+                      Economia de R$ {((originalMonthlyPrice * 12) - plan.priceAnnually).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/ano
+                    </p>
+                  </>
                 )}
               </div>
             </CardHeader>
