@@ -123,6 +123,7 @@ function EditCatalogContent() {
   }, [versionId, isAuthenticated, isEditor, authLoading, router])
 
   const loadCatalog = async () => {
+    if (!versionId) return
     try {
       const { data, error } = await supabase
         .from('product_catalogs')
@@ -279,6 +280,7 @@ function EditCatalogContent() {
   }
 
   const handleSave = async () => {
+    if (!versionId) return
     setSaving(true)
     try {
       const content = {
