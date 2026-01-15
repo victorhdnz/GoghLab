@@ -60,10 +60,10 @@ export default function MembrosPage() {
   
   useEffect(() => {
     // Só carregar dados se tiver acesso
-    if (!authLoading && isAuthenticated && hasAccess) {
+    if (!authLoading && hasAccess) {
       loadMembers()
     }
-  }, [isAuthenticated, hasAccess, authLoading])
+  }, [hasAccess, authLoading])
 
   const loadMembers = async () => {
     try {
@@ -238,18 +238,6 @@ export default function MembrosPage() {
           <div className="flex items-center justify-center py-20">
             <LoadingSpinner size="md" />
           </div>
-        </div>
-      </div>
-    )
-  }
-
-  // Não autenticado
-  if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <p className="text-gray-600 mb-4">Você precisa estar logado.</p>
-          <a href="/dashboard" className="text-blue-600 hover:underline">Ir para o login</a>
         </div>
       </div>
     )

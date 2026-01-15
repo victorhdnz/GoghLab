@@ -21,10 +21,10 @@ export default function LinkAggregatorsDashboard() {
   const hasAccess = isEditor || emailIsAdmin;
 
   useEffect(() => {
-    if (!authLoading && isAuthenticated && hasAccess) {
+    if (!authLoading && hasAccess) {
       loadAggregators();
     }
-  }, [isAuthenticated, hasAccess, authLoading]);
+  }, [hasAccess, authLoading]);
 
   const loadAggregators = async () => {
     try {
@@ -93,18 +93,6 @@ export default function LinkAggregatorsDashboard() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <LoadingSpinner size="md" />
-      </div>
-    );
-  }
-
-  // Não autenticado
-  if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <p className="text-gray-600 mb-4">Você precisa estar logado.</p>
-          <a href="/dashboard" className="text-blue-600 hover:underline">Ir para o login</a>
-        </div>
       </div>
     );
   }

@@ -394,10 +394,10 @@ export default function HomepageEditorPage() {
   
   useEffect(() => {
     // Só carregar settings se tiver acesso e não estiver carregando auth
-    if (!authLoading && isAuthenticated && hasAccess) {
+    if (!authLoading && hasAccess) {
       loadSettings()
     }
-  }, [isAuthenticated, hasAccess, authLoading])
+  }, [hasAccess, authLoading])
 
   const loadSettings = async () => {
     setLoading(true)
@@ -1550,18 +1550,6 @@ export default function HomepageEditorPage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black"></div>
-      </div>
-    )
-  }
-
-  // Não autenticado - mostrar mensagem (não redirecionar)
-  if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <p className="text-gray-600 mb-4">Você precisa estar logado para acessar esta página.</p>
-          <a href="/dashboard" className="text-blue-600 hover:underline">Ir para o login</a>
-        </div>
       </div>
     )
   }
