@@ -24,7 +24,7 @@ export const Header = () => {
   useEffect(() => {
     const loadSiteSettings = async () => {
       try {
-        const supabase = createClient()
+        const supabase = createClient() as any
         // Buscar registro com key = 'general' (correto)
         const { data, error } = await supabase
           .from('site_settings')
