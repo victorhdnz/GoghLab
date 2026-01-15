@@ -103,8 +103,8 @@ function MetaIcon(props: SVGProps<SVGSVGElement>) {
   )
 }
 
-// Lista de logos das plataformas com nomes para referência
-const allPlatformLogos: Record<string, { name: string; id: number; img: React.ComponentType<React.SVGProps<SVGSVGElement>> }> = {
+// Lista de logos padrão das plataformas (fallback quando não há logo customizada)
+const defaultPlatformLogos: Record<string, { name: string; id: number; img: React.ComponentType<React.SVGProps<SVGSVGElement>> }> = {
   'Canva Pro': { name: "Canva Pro", id: 1, img: CanvaIcon },
   'CapCut Pro': { name: "CapCut Pro", id: 2, img: CapCutIcon },
   'OpenAI': { name: "OpenAI", id: 3, img: OpenAIIcon },
@@ -114,12 +114,35 @@ const allPlatformLogos: Record<string, { name: string; id: number; img: React.Co
   'Meta': { name: "Meta", id: 7, img: MetaIcon },
 }
 
-// Lista padrão de logos
-const defaultPlatformLogos = Object.values(allPlatformLogos)
+// Factory para criar componente de logo a partir de URL
+function createImageLogoComponent(src: string, alt: string): React.ComponentType<SVGProps<SVGSVGElement>> {
+  const ImageLogoComponent = (props: SVGProps<SVGSVGElement>) => (
+    <img 
+      src={src} 
+      alt={alt} 
+      className="w-full h-full object-contain"
+      {...(props as any)}
+    />
+  )
+  ImageLogoComponent.displayName = `ImageLogo_${alt}`
+  return ImageLogoComponent
+}
+
+// Factory para criar placeholder
+function createPlaceholderComponent(name: string): React.ComponentType<SVGProps<SVGSVGElement>> {
+  const PlaceholderComponent = (_props: SVGProps<SVGSVGElement>) => (
+    <div className="w-full h-full flex items-center justify-center bg-gogh-beige-light rounded-lg border border-gogh-yellow/20">
+      <span className="text-2xl font-bold text-gogh-yellow">{name.charAt(0).toUpperCase()}</span>
+    </div>
+  )
+  PlaceholderComponent.displayName = `Placeholder_${name}`
+  return PlaceholderComponent
+}
 
 export interface TrustedByPlatform {
   id: string
   name: string
+  logoUrl?: string
   enabled: boolean
 }
 
@@ -136,15 +159,39 @@ export function TrustedBySection({
   platforms,
   className,
 }: TrustedBySectionProps) {
-  // Filtrar logos baseado nas plataformas habilitadas
-  const logosToShow = platforms 
-    ? platforms
-        .filter(p => p.enabled && allPlatformLogos[p.name])
-        .map(p => allPlatformLogos[p.name])
-    : defaultPlatformLogos
+  // Construir lista de logos baseado nas plataformas
+  const logosToShow = React.useMemo(() => {
+    if (!platforms || platforms.length === 0) {
+      // Se não há plataformas configuradas, usar os padrões
+      return Object.values(defaultPlatformLogos)
+    }
+
+    return platforms
+      .filter(p => p.enabled)
+      .map((p, index) => {
+        // Se tem logo customizada, usar ela
+        if (p.logoUrl) {
+          return {
+            name: p.name,
+            id: parseInt(p.id) || index + 100,
+            img: createImageLogoComponent(p.logoUrl, p.name),
+          }
+        }
+        // Se não tem logo customizada, tentar usar o padrão pelo nome
+        if (defaultPlatformLogos[p.name]) {
+          return defaultPlatformLogos[p.name]
+        }
+        // Se não tem nenhum, criar um placeholder
+        return {
+          name: p.name,
+          id: parseInt(p.id) || index + 100,
+          img: createPlaceholderComponent(p.name),
+        }
+      })
+  }, [platforms])
 
   // Garantir que há pelo menos alguns logos para exibir
-  const finalLogos = logosToShow.length > 0 ? logosToShow : defaultPlatformLogos
+  const finalLogos = logosToShow.length > 0 ? logosToShow : Object.values(defaultPlatformLogos)
 
   return (
     <section className={`py-16 md:py-24 px-4 bg-gogh-beige ${className || ''}`}>
