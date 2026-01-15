@@ -46,10 +46,10 @@ export default function PricingEditorPage() {
   const [categoriesExpanded, setCategoriesExpanded] = useState(true)
   const [featureCategories, setFeatureCategories] = useState<FeatureCategory[]>([])
   const [formData, setFormData] = useState<PricingSettings>({
-    pricing_enabled: false,
+    pricing_enabled: true,
     pricing_title: 'Escolha seu plano e comece a criar',
     pricing_description: 'Acesse todos os agentes de IA, crie conteúdos incríveis e transforme sua presença digital com autonomia total.',
-    pricing_annual_discount: 20,
+    pricing_annual_discount: 20, // 20% de desconto no plano anual
     pricing_whatsapp_number: '',
     pricing_plans: [
       {
@@ -135,6 +135,8 @@ export default function PricingEditorPage() {
           return {
             ...prev,
             ...pricing,
+            // Forçar desconto de 20% se for planos Gogh (valores corretos)
+            pricing_annual_discount: hasGoghPlans ? (pricing.pricing_annual_discount || 20) : 20,
             pricing_plans: plans && plans.length === 2 ? plans : prev.pricing_plans,
           }
         })
