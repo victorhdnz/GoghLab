@@ -315,7 +315,7 @@ export default function ServiceDetailLayoutPage() {
                         label="Endereço de E-mail"
                         value={formData.cta_email_address || ''}
                         onChange={(e) => setFormData({ ...formData, cta_email_address: e.target.value })}
-                        placeholder="Ex: contato@mvcompany.com"
+                        placeholder="Ex: contato.goghlab@gmail.com"
                         type="email"
                       />
                       <Input

@@ -15,6 +15,6 @@ export function getSiteUrl(): string {
   }
 
   // Fallback para domínio personalizado (configurar NEXT_PUBLIC_SITE_URL na Vercel)
-  return 'https://www.smarttimeprime.com.br'
+  return 'https://goghlab.com.br'
 }
 

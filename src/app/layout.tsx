@@ -83,7 +83,7 @@ async function getSiteName(): Promise<string> {
   }
 
   // Nome padrão caso não encontre no banco
-  return 'MV Company'
+  return 'Gogh Lab'
 }
 
 // Função para buscar título do site do banco de dados
@@ -191,7 +191,7 @@ export async function generateMetadata(): Promise<Metadata> {
     metadataBase: new URL(siteUrl),
     title: siteTitle,
     description: siteDescription,
-    keywords: ['serviços digitais', 'criação de sites', 'tráfego pago', 'marketing digital', 'gestão de redes sociais', 'MV Company', siteName],
+    keywords: ['agentes de IA', 'criação de conteúdo', 'marketing digital', 'automação com IA', 'Gogh Lab', siteName],
     authors: [{ name: siteName }],
     creator: siteName,
     publisher: siteName,

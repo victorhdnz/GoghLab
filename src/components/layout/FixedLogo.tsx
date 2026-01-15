@@ -12,7 +12,7 @@ interface FixedLogoProps {
 
 export function FixedLogo({ logo: initialLogo, siteName: initialSiteName }: FixedLogoProps) {
   const [siteLogo, setSiteLogo] = useState<string | null>(initialLogo || null)
-  const [siteName, setSiteName] = useState<string>(initialSiteName || 'MV Company')
+  const [siteName, setSiteName] = useState<string>(initialSiteName || 'Gogh Lab')
   const [opacity, setOpacity] = useState<number>(1)
 
   useEffect(() => {

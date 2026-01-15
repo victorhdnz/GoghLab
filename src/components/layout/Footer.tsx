@@ -153,8 +153,8 @@ export const Footer = () => {
               </li>
               <li className="flex items-center space-x-2 text-gray-400">
                 <Mail size={18} />
-                <a href={`mailto:${siteSettings?.contact_email || 'contato@smarttimeprime.com.br'}`} className="hover:text-white transition-colors">
-                  {siteSettings?.contact_email || 'contato@smarttimeprime.com.br'}
+                <a href={`mailto:${siteSettings?.contact_email || 'contato.goghlab@gmail.com'}`} className="hover:text-white transition-colors">
+                  {siteSettings?.contact_email || 'contato.goghlab@gmail.com'}
                 </a>
               </li>
             </ul>

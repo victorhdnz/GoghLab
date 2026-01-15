@@ -699,7 +699,7 @@ export default function ComparadorDashboardPage() {
                           label="Endereço de E-mail"
                           value={footerContent.email_address}
                           onChange={(e) => setFooterContent({ ...footerContent, email_address: e.target.value })}
-                          placeholder="Ex: contato@mvcompany.com.br"
+                          placeholder="Ex: contato.goghlab@gmail.com"
                         />
                         <Input
                           label="Texto do Botão"

@@ -24,7 +24,12 @@ export function ServiceScrollAnimation({
   const mainTitle = subtitle || title || serviceName;
 
   return (
-    <div className="flex flex-col overflow-hidden bg-black">
+    <div 
+      className="flex flex-col overflow-hidden bg-black"
+      style={{
+        touchAction: 'pan-y pinch-zoom',
+      }}
+    >
       <ContainerScroll
         titleComponent={
           <>

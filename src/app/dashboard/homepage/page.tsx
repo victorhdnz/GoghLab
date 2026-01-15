@@ -835,7 +835,7 @@ export default function HomepageEditorPage() {
                         label="Endereço de E-mail"
                         value={formData.contact_email_address || ''}
                         onChange={(e) => setFormData({ ...formData, contact_email_address: e.target.value })}
-                        placeholder="Ex: contato@mvcompany.com"
+                        placeholder="Ex: contato.goghlab@gmail.com"
                         type="email"
                       />
                       <Input

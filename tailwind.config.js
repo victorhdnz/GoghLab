@@ -9,6 +9,18 @@ module.exports = {
   theme: {
   	extend: {
   		colors: {
+  			// Gogh Lab - Cores Principais
+  			gogh: {
+  				yellow: '#F7C948',
+  				'yellow-dark': '#E5A800',
+  				'yellow-light': '#FDE68A',
+  				black: '#0A0A0A',
+  				'gray-dark': '#1A1A1A',
+  				gray: '#2A2A2A',
+  				beige: '#F5F1E8',
+  				'beige-light': '#FBF8F3',
+  				white: '#FFFFFF',
+  			},
   			primary: {
   				DEFAULT: 'hsl(var(--primary))',
   				light: '#1a1a1a',
@@ -22,8 +34,8 @@ module.exports = {
   			},
   			accent: {
   				DEFAULT: 'hsl(var(--accent))',
-  				light: '#FFE44D',
-  				dark: '#CCB000',
+  				light: '#FDE68A',
+  				dark: '#E5A800',
   				foreground: 'hsl(var(--accent-foreground))'
   			},
   			background: 'hsl(var(--background))',

@@ -3,7 +3,7 @@
  */
 const ADMIN_EMAILS = [
   'victorhugo10diniz@gmail.com',
-  'contato@smarttimeprime.com.br',
+  'contato.goghlab@gmail.com',
 ]
 
 /**

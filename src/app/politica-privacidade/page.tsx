@@ -56,7 +56,7 @@ Podemos atualizar esta política de privacidade periodicamente. Notificaremos vo
 
 Se você tiver dúvidas sobre esta política de privacidade, entre em contato conosco:
 
-**Email:** contato@smarttimeprime.com.br
+**Email:** contato.goghlab@gmail.com
 
 **Telefone:** (34) 98413-6291`
 

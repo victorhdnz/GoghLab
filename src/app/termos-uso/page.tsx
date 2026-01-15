@@ -61,7 +61,7 @@ Estes termos são regidos e interpretados de acordo com as leis do Brasil. Qualq
 
 Se você tiver dúvidas sobre estes termos de uso, entre em contato conosco:
 
-**Email:** contato@smarttimeprime.com.br
+**Email:** contato.goghlab@gmail.com
 
 **Telefone:** (34) 98413-6291`
 

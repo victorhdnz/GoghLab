@@ -106,7 +106,7 @@ export default function EditServicePage({ params }: EditServicePageProps) {
     hero_subtitle: '',
 
     benefits_enabled: true,
-    benefits_title: 'O que você receberá dentro da MV Company',
+    benefits_title: 'O que você receberá dentro da Gogh Lab',
     benefits_items: [],
 
     stats_enabled: false,
@@ -510,7 +510,7 @@ export default function EditServicePage({ params }: EditServicePageProps) {
                   label="Título da Seção"
                   value={layoutData.benefits_title || ''}
                   onChange={(e) => setLayoutData({ ...layoutData, benefits_title: e.target.value })}
-                  placeholder="Ex: O que você receberá dentro da MV Company"
+                  placeholder="Ex: O que você receberá dentro da Gogh Lab"
                 />
                 <BenefitsManager
                   value={layoutData.benefits_items || []}
@@ -659,7 +659,7 @@ export default function EditServicePage({ params }: EditServicePageProps) {
                         label="Endereço de E-mail"
                         value={layoutData.cta_email_address || ''}
                         onChange={(e) => setLayoutData({ ...layoutData, cta_email_address: e.target.value })}
-                        placeholder="Ex: contato@mvcompany.com"
+                        placeholder="Ex: contato.goghlab@gmail.com"
                         type="email"
                       />
                       <Input

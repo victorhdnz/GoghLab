@@ -254,12 +254,12 @@ export default async function ServicePage({ params }: { params: { slug: string }
   if (!siteLogo && siteSettings?.homepage_content?.hero_logo) {
     siteLogo = siteSettings.homepage_content.hero_logo
   }
-  const siteName = siteSettings?.site_name || 'MV Company'
+  const siteName = siteSettings?.site_name || 'Gogh Lab'
 
   return (
     <ServicePageTracker serviceId={service.id} serviceSlug={service.slug}>
       <FixedLogo logo={siteLogo} siteName={siteName} />
-      <div className="min-h-screen bg-black">
+      <div className="min-h-screen bg-black" style={{ touchAction: 'pan-y pinch-zoom' }}>
         {/* Botão para voltar à homepage */}
         <div className="bg-black text-white py-8 md:py-12 px-4 relative">
           <div className="container mx-auto max-w-7xl">

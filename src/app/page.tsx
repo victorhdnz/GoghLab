@@ -177,7 +177,7 @@ export default async function Home() {
   if (!siteLogo && homepageContent?.hero_logo) {
     siteLogo = homepageContent.hero_logo
   }
-  const siteName = siteSettings?.site_name || 'MV Company'
+  const siteName = siteSettings?.site_name || 'Gogh Lab'
 
   return (
     <HomepageTracker>
