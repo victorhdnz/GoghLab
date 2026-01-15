@@ -108,7 +108,8 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   }
 
   // Buscar detalhes da assinatura no Stripe
-  const subscription = await stripe.subscriptions.retrieve(subscriptionId)
+  const subscriptionResponse = await stripe.subscriptions.retrieve(subscriptionId)
+  const subscription = subscriptionResponse as Stripe.Subscription
   const priceId = subscription.items.data[0]?.price.id
   const planInfo = PRICE_TO_PLAN[priceId]
 
@@ -128,8 +129,8 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
       plan_id: planInfo.plan_id,
       billing_cycle: planInfo.billing_cycle,
       status: subscription.status,
-      current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
-      current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+      current_period_start: new Date((subscription as any).current_period_start * 1000).toISOString(),
+      current_period_end: new Date((subscription as any).current_period_end * 1000).toISOString(),
       cancel_at_period_end: subscription.cancel_at_period_end,
     }, {
       onConflict: 'stripe_subscription_id'
@@ -152,6 +153,7 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
     return
   }
 
+  const sub = subscription as any
   const { error } = await supabaseAdmin
     .from('subscriptions')
     .update({
@@ -159,11 +161,11 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
       plan_id: planInfo.plan_id,
       billing_cycle: planInfo.billing_cycle,
       status: subscription.status,
-      current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
-      current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+      current_period_start: new Date(sub.current_period_start * 1000).toISOString(),
+      current_period_end: new Date(sub.current_period_end * 1000).toISOString(),
       cancel_at_period_end: subscription.cancel_at_period_end,
-      canceled_at: subscription.canceled_at 
-        ? new Date(subscription.canceled_at * 1000).toISOString() 
+      canceled_at: sub.canceled_at 
+        ? new Date(sub.canceled_at * 1000).toISOString() 
         : null,
     })
     .eq('stripe_subscription_id', subscription.id)
@@ -199,14 +201,15 @@ async function handleInvoicePaid(invoice: Stripe.Invoice) {
   if (!subscriptionId) return
 
   // Atualizar período da assinatura
-  const subscription = await stripe.subscriptions.retrieve(subscriptionId)
+  const subscriptionResponse = await stripe.subscriptions.retrieve(subscriptionId)
+  const sub = subscriptionResponse as any
   
   const { error } = await supabaseAdmin
     .from('subscriptions')
     .update({
       status: 'active',
-      current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
-      current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+      current_period_start: new Date(sub.current_period_start * 1000).toISOString(),
+      current_period_end: new Date(sub.current_period_end * 1000).toISOString(),
     })
     .eq('stripe_subscription_id', subscriptionId)
 
