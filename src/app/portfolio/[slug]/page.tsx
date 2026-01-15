@@ -15,9 +15,6 @@ import { ServiceCardSwap } from '@/components/service-detail/ServiceCardSwap'
 import { FixedLogo } from '@/components/layout/FixedLogo'
 import { NavigationTabs } from '@/components/ui/NavigationTabs'
 
-// Forçar renderização dinâmica (usa cookies)
-export const dynamic = 'force-dynamic'
-
 async function getService(slug: string): Promise<Service | null> {
   try {
     const supabase = createServerClient()
