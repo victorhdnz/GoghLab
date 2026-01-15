@@ -45,7 +45,7 @@ export function PricingSection({
 
   return (
     <FadeInSection>
-      <section id="pricing-section" className="py-16 md:py-24 px-4 bg-black">
+      <section id="pricing-section" className="py-16 md:py-24 px-4 bg-[#F5F1E8]">
         <PricingComponent
           plans={plans}
           billingCycle={billingCycle}

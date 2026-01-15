@@ -70,12 +70,12 @@ export interface PricingComponentProps extends React.HTMLAttributes<HTMLDivEleme
 /** Renders a single feature row with an icon. */
 const FeatureItem: React.FC<{ feature: Feature }> = ({ feature }) => {
   const Icon = feature.isIncluded ? Check : X
-  const iconColor = feature.isIncluded ? "text-[#F7C948]" : "text-gray-500" // Amarelo Gogh Lab
+  const iconColor = feature.isIncluded ? "text-[#F7C948]" : "text-gray-400" // Amarelo Gogh Lab
 
   return (
     <li className="flex items-start space-x-3 py-2">
       <Icon className={cn("h-4 w-4 flex-shrink-0 mt-0.5", iconColor)} aria-hidden="true" />
-      <span className={cn("text-sm", feature.isIncluded ? "text-white" : "text-gray-500")}>
+      <span className={cn("text-sm", feature.isIncluded ? "text-[#0A0A0A]" : "text-gray-400")}>
         {feature.name}
       </span>
     </li>
@@ -116,19 +116,19 @@ export const PricingComponent: React.FC<PricingComponentProps> = ({
           }
         }}
         aria-label="Select billing cycle"
-        className="border border-gray-700 rounded-lg p-1 bg-gray-900/50"
+        className="border border-[#F7C948]/30 rounded-lg p-1 bg-white/80"
       >
         <ToggleGroupItem
           value="monthly"
           aria-label="Cobrança Mensal"
-          className="px-6 py-1.5 text-sm font-medium text-gray-300 data-[state=on]:bg-[#F7C948] data-[state=on]:text-[#0A0A0A] data-[state=on]:shadow-sm data-[state=on]:border data-[state=on]:border-[#E5A800] rounded-md transition-colors"
+          className="px-6 py-1.5 text-sm font-medium text-gray-600 data-[state=on]:bg-[#F7C948] data-[state=on]:text-[#0A0A0A] data-[state=on]:shadow-sm data-[state=on]:border data-[state=on]:border-[#E5A800] rounded-md transition-colors"
         >
           Mensal
         </ToggleGroupItem>
         <ToggleGroupItem
           value="annually"
           aria-label="Cobrança Anual"
-          className="px-6 py-1.5 text-sm font-medium text-gray-300 data-[state=on]:bg-[#F7C948] data-[state=on]:text-[#0A0A0A] data-[state=on]:shadow-sm data-[state=on]:border data-[state=on]:border-[#E5A800] rounded-md transition-colors relative"
+          className="px-6 py-1.5 text-sm font-medium text-gray-600 data-[state=on]:bg-[#F7C948] data-[state=on]:text-[#0A0A0A] data-[state=on]:shadow-sm data-[state=on]:border data-[state=on]:border-[#E5A800] rounded-md transition-colors relative"
         >
           Anual
           <span className="absolute -top-3 right-0 text-xs font-semibold text-[#0A0A0A] bg-[#F7C948] border border-[#E5A800] px-1.5 rounded-full whitespace-nowrap">
@@ -159,48 +159,48 @@ export const PricingComponent: React.FC<PricingComponentProps> = ({
           <Card
             key={plan.id}
             className={cn(
-              "flex flex-col transition-all duration-300 shadow-md hover:shadow-xl bg-[#0A0A0A] border border-gray-800 text-white",
+              "flex flex-col transition-all duration-300 shadow-md hover:shadow-xl bg-white border border-[#F7C948]/30 text-[#0A0A0A]",
               "transform hover:scale-[1.02] hover:-translate-y-1",
               isFeatured && "ring-2 ring-[#F7C948] shadow-xl md:scale-[1.02] hover:scale-[1.05] border-[#F7C948]"
             )}
           >
             <CardHeader className="p-6 pb-4">
               <div className="flex justify-between items-start">
-                <CardTitle className="text-2xl font-bold text-white">{plan.name}</CardTitle>
+                <CardTitle className="text-2xl font-bold text-[#0A0A0A]">{plan.name}</CardTitle>
                 {isFeatured && (
                   <span className="text-xs font-semibold px-3 py-1 bg-[#F7C948] text-[#0A0A0A] rounded-full">
                     Mais Popular
                   </span>
                 )}
               </div>
-              <CardDescription className="text-sm mt-1 text-gray-300">{plan.description}</CardDescription>
+              <CardDescription className="text-sm mt-1 text-gray-600">{plan.description}</CardDescription>
               <div className="mt-4">
-                <p className="text-4xl font-extrabold text-white">
+                <p className="text-4xl font-extrabold text-[#0A0A0A]">
                   R$ {currentPrice.toLocaleString('pt-BR')}
-                  <span className="text-base font-normal text-gray-400 ml-1">{priceSuffix}</span>
+                  <span className="text-base font-normal text-gray-500 ml-1">{priceSuffix}</span>
                 </p>
                 {billingCycle === 'annually' && (
                   <>
-                    <p className="text-xs text-gray-400 mt-1">
+                    <p className="text-xs text-gray-500 mt-1">
                       Cobrado anualmente (R$ {plan.priceAnnually.toLocaleString('pt-BR')})
                     </p>
-                    <p className="text-sm text-white font-semibold mt-2">
+                    <p className="text-sm text-[#0A0A0A] font-semibold mt-2">
                       Equivale a R$ {(plan.priceAnnually / 12).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/mês
                     </p>
-                    <p className="text-xs text-gray-500 line-through opacity-70 mt-1">
+                    <p className="text-xs text-gray-400 line-through opacity-70 mt-1">
                       R$ {originalMonthlyPrice.toLocaleString('pt-BR')}/mês
                     </p>
                   </>
                 )}
                 {billingCycle === 'monthly' && (
-                  <p className="text-xs text-gray-400 mt-2">
+                  <p className="text-xs text-gray-500 mt-2">
                     Economize {annualDiscountPercent}% com o plano anual
                   </p>
                 )}
               </div>
             </CardHeader>
             <CardContent className="flex-grow p-6 pt-0">
-              <h4 className="text-sm font-semibold mb-2 mt-4 text-gray-300">Recursos Incluídos:</h4>
+              <h4 className="text-sm font-semibold mb-2 mt-4 text-gray-600">Recursos Incluídos:</h4>
               <ul className="list-none space-y-0">
                 {featureCategories.length > 0 ? (
                   // Usar categorias - mostrar apenas as que têm texto preenchido
@@ -212,7 +212,7 @@ export const PricingComponent: React.FC<PricingComponentProps> = ({
                     
                     if (availableCategories.length === 0) {
                       return (
-                        <li className="text-sm text-gray-400 py-2">
+                        <li className="text-sm text-gray-500 py-2">
                           Nenhuma categoria configurada
                         </li>
                       )
@@ -223,11 +223,11 @@ export const PricingComponent: React.FC<PricingComponentProps> = ({
                         {availableCategories.slice(0, 5).map((category) => (
                           <li key={category.id} className="flex items-start space-x-3 py-2">
                             <Check className="h-4 w-4 flex-shrink-0 mt-0.5 text-[#F7C948]" aria-hidden="true" />
-                            <span className="text-sm text-white">{category.name}</span>
+                            <span className="text-sm text-[#0A0A0A]">{category.name}</span>
                           </li>
                         ))}
                         {availableCategories.length > 5 && (
-                          <li className="text-sm text-gray-400 mt-2">
+                          <li className="text-sm text-[#F7C948] font-medium mt-2">
                             +{availableCategories.length - 5} Categorias
                           </li>
                         )}
@@ -240,7 +240,7 @@ export const PricingComponent: React.FC<PricingComponentProps> = ({
                     const includedFeatures = plan.features.filter(f => f.isIncluded)
                     if (includedFeatures.length === 0) {
                       return (
-                        <li className="text-sm text-gray-400 py-2">
+                        <li className="text-sm text-gray-500 py-2">
                           Nenhum recurso configurado
                         </li>
                       )
@@ -251,7 +251,7 @@ export const PricingComponent: React.FC<PricingComponentProps> = ({
                           <FeatureItem key={feature.name} feature={feature} />
                         ))}
                         {includedFeatures.length > 5 && (
-                          <li className="text-sm text-gray-400 mt-2">
+                          <li className="text-sm text-[#F7C948] font-medium mt-2">
                             +{includedFeatures.length - 5} Recursos
                           </li>
                         )}
@@ -268,7 +268,7 @@ export const PricingComponent: React.FC<PricingComponentProps> = ({
                   "w-full transition-all duration-200",
                   isFeatured
                     ? "bg-[#F7C948] hover:bg-[#E5A800] text-[#0A0A0A] shadow-lg font-semibold"
-                    : "bg-transparent text-white hover:bg-[#F7C948] hover:text-[#0A0A0A] border-2 border-gray-600 hover:border-[#F7C948]"
+                    : "bg-transparent text-[#0A0A0A] hover:bg-[#F7C948] hover:text-[#0A0A0A] border-2 border-[#F7C948]/50 hover:border-[#F7C948]"
                 )}
                 size="lg"
                 aria-label={`Select ${plan.name} plan for ${currentPrice} ${priceSuffix}`}
@@ -293,11 +293,11 @@ export const PricingComponent: React.FC<PricingComponentProps> = ({
   }, [featureCategories])
 
   const ComparisonTable = (
-    <div className="mt-16 hidden md:block border border-gray-700 rounded-lg overflow-x-auto shadow-sm bg-gray-900">
-      <table className="min-w-full divide-y divide-gray-700">
+    <div className="mt-16 hidden md:block border border-[#F7C948]/30 rounded-lg overflow-x-auto shadow-sm bg-white">
+      <table className="min-w-full divide-y divide-[#F7C948]/20">
         <thead>
-          <tr className="bg-gray-800">
-            <th scope="col" className="px-6 py-4 text-left text-sm font-semibold text-white w-[200px] whitespace-nowrap">
+          <tr className="bg-[#F7C948]/10">
+            <th scope="col" className="px-6 py-4 text-left text-sm font-semibold text-[#0A0A0A] w-[200px] whitespace-nowrap">
               Recurso
             </th>
             {plans.map((plan) => (
@@ -305,8 +305,8 @@ export const PricingComponent: React.FC<PricingComponentProps> = ({
                 key={`th-${plan.id}`}
                 scope="col"
                 className={cn(
-                  "px-6 py-4 text-center text-sm font-semibold text-white whitespace-nowrap",
-                  plan.isPopular && "bg-gray-800"
+                  "px-6 py-4 text-center text-sm font-semibold text-[#0A0A0A] whitespace-nowrap",
+                  plan.isPopular && "bg-[#F7C948]/20"
                 )}
               >
                 {plan.name}
@@ -314,7 +314,7 @@ export const PricingComponent: React.FC<PricingComponentProps> = ({
             ))}
           </tr>
         </thead>
-        <tbody className="divide-y divide-gray-700 bg-gray-900">
+        <tbody className="divide-y divide-[#F7C948]/10 bg-white">
           {sortedCategories.length > 0 ? (
             // Renderizar categorias
             sortedCategories.map((category, index) => {
@@ -331,9 +331,9 @@ export const PricingComponent: React.FC<PricingComponentProps> = ({
               const allHaveCategory = planValues.every(pv => pv.hasCategory)
 
               return (
-                <tr key={category.id} className={cn("transition-colors hover:bg-gray-800", index % 2 === 0 ? "bg-gray-900" : "bg-gray-800/50")}>
+                <tr key={category.id} className={cn("transition-colors hover:bg-[#F7C948]/5", index % 2 === 0 ? "bg-white" : "bg-[#F5F1E8]/50")}>
                   {/* Nome da categoria (título principal) */}
-                  <td className="px-6 py-3 text-left text-sm font-semibold text-white">
+                  <td className="px-6 py-3 text-left text-sm font-semibold text-[#0A0A0A]">
                     {category.name}
                   </td>
                   {planValues.map(({ plan, hasCategory, text }) => {
@@ -344,12 +344,12 @@ export const PricingComponent: React.FC<PricingComponentProps> = ({
                           key={`${plan.id}-${category.id}`}
                           className={cn(
                             "px-6 py-3 text-left transition-all duration-150",
-                            plan.isPopular && "bg-gray-800/30"
+                            plan.isPopular && "bg-[#F7C948]/10"
                           )}
                         >
                           <div className="flex items-start gap-2">
                             <Check className="h-4 w-4 flex-shrink-0 text-[#F7C948] mt-0.5" aria-hidden="true" />
-                            <span className="text-sm text-gray-300 leading-relaxed">{text}</span>
+                            <span className="text-sm text-gray-600 leading-relaxed">{text}</span>
                           </div>
                         </td>
                       )
@@ -361,16 +361,16 @@ export const PricingComponent: React.FC<PricingComponentProps> = ({
                           className={cn(
                             "px-6 py-3 transition-all duration-150",
                             hasCategory ? "text-left" : "text-center",
-                            plan.isPopular && "bg-gray-800/30"
+                            plan.isPopular && "bg-[#F7C948]/10"
                           )}
                         >
                           {hasCategory && text ? (
                             <div className="flex items-start gap-2">
                               <Check className="h-4 w-4 flex-shrink-0 text-[#F7C948] mt-0.5" aria-hidden="true" />
-                              <span className="text-sm text-gray-300 leading-relaxed">{text}</span>
+                              <span className="text-sm text-gray-600 leading-relaxed">{text}</span>
                             </div>
                           ) : (
-                            <X className="h-5 w-5 mx-auto text-gray-500" aria-hidden="true" />
+                            <X className="h-5 w-5 mx-auto text-gray-400" aria-hidden="true" />
                           )}
                         </td>
                       )
@@ -383,8 +383,8 @@ export const PricingComponent: React.FC<PricingComponentProps> = ({
             // Fallback: mostrar lista simples sem categorias (features antigas)
             allCategories.length > 0 ? (
               allCategories.map((categoryName, index) => (
-                <tr key={categoryName} className={cn("transition-colors hover:bg-gray-800", index % 2 === 0 ? "bg-gray-900" : "bg-gray-800/50")}>
-                  <td className="px-6 py-3 text-left text-sm font-medium text-white">
+                <tr key={categoryName} className={cn("transition-colors hover:bg-[#F7C948]/5", index % 2 === 0 ? "bg-white" : "bg-[#F5F1E8]/50")}>
+                  <td className="px-6 py-3 text-left text-sm font-medium text-[#0A0A0A]">
                     {categoryName}
                   </td>
                   {plans.map((plan) => {
@@ -400,7 +400,7 @@ export const PricingComponent: React.FC<PricingComponentProps> = ({
                         key={`${plan.id}-${categoryName}`}
                         className={cn(
                           "px-6 py-3 text-center transition-all duration-150",
-                          plan.isPopular && "bg-gray-800/30"
+                          plan.isPopular && "bg-[#F7C948]/10"
                         )}
                       >
                         <Icon className={cn("h-5 w-5 mx-auto", iconColor)} aria-hidden="true" />
@@ -411,7 +411,7 @@ export const PricingComponent: React.FC<PricingComponentProps> = ({
               ))
             ) : (
               <tr>
-                <td colSpan={4} className="px-6 py-4 text-center text-sm text-gray-400">
+                <td colSpan={4} className="px-6 py-4 text-center text-sm text-gray-500">
                   Nenhuma categoria configurada
                 </td>
               </tr>
@@ -426,10 +426,10 @@ export const PricingComponent: React.FC<PricingComponentProps> = ({
   return (
     <div className={cn("w-full py-12 md:py-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8", className)} {...props}>
       <header className="text-center mb-10">
-        <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-white">
+        <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-[#0A0A0A]">
           {title}
         </h2>
-        <p className="mt-3 text-lg text-gray-300 max-w-2xl mx-auto">
+        <p className="mt-3 text-lg text-gray-600 max-w-2xl mx-auto">
           {description}
         </p>
       </header>
@@ -444,14 +444,14 @@ export const PricingComponent: React.FC<PricingComponentProps> = ({
       {/* Comparison Table (Desktop/Tablet visibility) */}
       <section aria-label="Feature Comparison Table" className="mt-16">
         <div className="flex flex-col md:flex-row items-center justify-between mb-6">
-          <h3 className="text-2xl font-bold hidden md:block text-center text-white w-full">
+          <h3 className="text-2xl font-bold hidden md:block text-center text-[#0A0A0A] w-full">
             Comparação Detalhada de Recursos
           </h3>
           {/* Botão para mobile */}
           <Button
             onClick={() => setIsComparisonModalOpen(true)}
             variant="outline"
-            className="md:hidden w-full max-w-sm bg-gray-800 border-gray-700 text-white hover:bg-gray-700"
+            className="md:hidden w-full max-w-sm bg-[#F7C948] border-[#E5A800] text-[#0A0A0A] hover:bg-[#E5A800] font-semibold"
           >
             <BarChart3 size={18} className="mr-2" />
             Ver Comparação Detalhada
@@ -467,11 +467,11 @@ export const PricingComponent: React.FC<PricingComponentProps> = ({
         title="Comparação Detalhada de Recursos"
         size="xl"
       >
-        <div className="border border-gray-700 rounded-lg overflow-x-auto shadow-sm bg-gray-900">
-          <table className="min-w-full divide-y divide-gray-700">
+        <div className="border border-[#F7C948]/30 rounded-lg overflow-x-auto shadow-sm bg-white">
+          <table className="min-w-full divide-y divide-[#F7C948]/20">
             <thead>
-              <tr className="bg-gray-800">
-                <th scope="col" className="px-4 py-3 text-left text-sm font-semibold text-white w-[150px] whitespace-nowrap">
+              <tr className="bg-[#F7C948]/10">
+                <th scope="col" className="px-4 py-3 text-left text-sm font-semibold text-[#0A0A0A] w-[150px] whitespace-nowrap">
                   Recurso
                 </th>
                 {plans.map((plan) => (
@@ -479,8 +479,8 @@ export const PricingComponent: React.FC<PricingComponentProps> = ({
                     key={`th-modal-${plan.id}`}
                     scope="col"
                     className={cn(
-                      "px-4 py-3 text-center text-sm font-semibold text-white whitespace-nowrap",
-                      plan.isPopular && "bg-gray-800"
+                      "px-4 py-3 text-center text-sm font-semibold text-[#0A0A0A] whitespace-nowrap",
+                      plan.isPopular && "bg-[#F7C948]/20"
                     )}
                   >
                     {plan.name}
@@ -488,7 +488,7 @@ export const PricingComponent: React.FC<PricingComponentProps> = ({
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-700 bg-gray-900">
+            <tbody className="divide-y divide-[#F7C948]/10 bg-white">
               {sortedCategories.length > 0 ? (
                 sortedCategories.map((category, index) => {
                   const planValues = plans.map(plan => {
@@ -503,8 +503,8 @@ export const PricingComponent: React.FC<PricingComponentProps> = ({
                   const allHaveCategory = planValues.every(pv => pv.hasCategory)
 
                   return (
-                    <tr key={`modal-${category.id}`} className={cn("transition-colors hover:bg-gray-800", index % 2 === 0 ? "bg-gray-900" : "bg-gray-800/50")}>
-                      <td className="px-4 py-3 text-left text-sm font-semibold text-white">
+                    <tr key={`modal-${category.id}`} className={cn("transition-colors hover:bg-[#F7C948]/5", index % 2 === 0 ? "bg-white" : "bg-[#F5F1E8]/50")}>
+                      <td className="px-4 py-3 text-left text-sm font-semibold text-[#0A0A0A]">
                         {category.name}
                       </td>
                       {planValues.map(({ plan, hasCategory, text }) => {
@@ -514,12 +514,12 @@ export const PricingComponent: React.FC<PricingComponentProps> = ({
                               key={`modal-${plan.id}-${category.id}`}
                               className={cn(
                                 "px-4 py-3 text-left transition-all duration-150",
-                                plan.isPopular && "bg-gray-800/30"
+                                plan.isPopular && "bg-[#F7C948]/10"
                               )}
                             >
                               <div className="flex items-start gap-2">
                                 <Check className="h-4 w-4 flex-shrink-0 text-[#F7C948] mt-0.5" aria-hidden="true" />
-                                <span className="text-sm text-gray-300 leading-relaxed">{text}</span>
+                                <span className="text-sm text-gray-600 leading-relaxed">{text}</span>
                               </div>
                             </td>
                           )
@@ -530,16 +530,16 @@ export const PricingComponent: React.FC<PricingComponentProps> = ({
                               className={cn(
                                 "px-4 py-3 transition-all duration-150",
                                 hasCategory ? "text-left" : "text-center",
-                                plan.isPopular && "bg-gray-800/30"
+                                plan.isPopular && "bg-[#F7C948]/10"
                               )}
                             >
                               {hasCategory && text ? (
                                 <div className="flex items-start gap-2">
                                   <Check className="h-4 w-4 flex-shrink-0 text-[#F7C948] mt-0.5" aria-hidden="true" />
-                                  <span className="text-sm text-gray-300 leading-relaxed">{text}</span>
+                                  <span className="text-sm text-gray-600 leading-relaxed">{text}</span>
                                 </div>
                               ) : (
-                                <X className="h-5 w-5 mx-auto text-gray-500" aria-hidden="true" />
+                                <X className="h-5 w-5 mx-auto text-gray-400" aria-hidden="true" />
                               )}
                             </td>
                           )
@@ -550,7 +550,7 @@ export const PricingComponent: React.FC<PricingComponentProps> = ({
                 })
               ) : (
                 <tr>
-                  <td colSpan={4} className="px-4 py-4 text-center text-sm text-gray-400">
+                  <td colSpan={4} className="px-4 py-4 text-center text-sm text-gray-500">
                     Nenhuma categoria configurada
                   </td>
                 </tr>

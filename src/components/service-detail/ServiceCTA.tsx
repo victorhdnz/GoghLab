@@ -35,13 +35,13 @@ export function ServiceCTA({ content, siteSettings }: ServiceCTAProps) {
 
   return (
     <FadeInSection>
-      <section id="contact-section" className="py-16 md:py-24 px-4 bg-[#0A0A0A]/50">
+      <section id="contact-section" className="py-16 md:py-24 px-4 bg-[#F5F1E8]">
         <div className="container mx-auto max-w-4xl text-center">
-          <h2 className="text-3xl md:text-5xl font-semibold text-white mb-4 tracking-tight">
+          <h2 className="text-3xl md:text-5xl font-semibold text-[#0A0A0A] mb-4 tracking-tight">
             {contactTitle}
           </h2>
           {contactDescription && (
-            <p className="text-gray-400 text-lg md:text-xl mb-12 font-light max-w-2xl mx-auto">
+            <p className="text-gray-600 text-lg md:text-xl mb-12 font-light max-w-2xl mx-auto">
               {contactDescription}
             </p>
           )}
