@@ -120,22 +120,22 @@ export default function PricingEditorPage() {
         const pricing = data.homepage_content.pricing
         
         setFormData(prev => {
-          // Garantir que apenas 2 planos sejam carregados
-          let plans = pricing.pricing_plans || []
+          // Verificar se os planos do banco são os novos (Gogh)
+          const dbPlans = pricing.pricing_plans || []
+          const hasGoghPlans = dbPlans.some((p: PriceTier) => 
+            p.id === 'gogh-essencial' || p.id === 'gogh-pro'
+          )
           
-          // Se tiver mais de 2 planos, manter apenas os 2 primeiros
-          if (plans.length > 2) {
-            plans = plans.slice(0, 2)
-          }
-          // Se tiver menos de 2, usar os padrões
-          if (plans.length < 2) {
-            plans = prev.pricing_plans
-          }
+          // Se não tiver os planos Gogh, usar os padrões
+          // Isso força a substituição dos planos antigos pelos novos
+          const plans = hasGoghPlans 
+            ? dbPlans.filter((p: PriceTier) => p.id === 'gogh-essencial' || p.id === 'gogh-pro')
+            : prev.pricing_plans
           
           return {
             ...prev,
             ...pricing,
-            pricing_plans: plans,
+            pricing_plans: plans && plans.length === 2 ? plans : prev.pricing_plans,
           }
         })
       }
