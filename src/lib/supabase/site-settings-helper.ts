@@ -41,7 +41,7 @@ export async function saveSiteSettings({
   forceUpdate = false
 }: SaveSettingsOptions): Promise<{ success: boolean; error?: any }> {
   try {
-    const supabase = createClient()
+    const supabase = createClient() as any
     
     // 1. Buscar dados existentes do banco
     const { data: existing, error: fetchError } = await supabase
@@ -175,7 +175,7 @@ export async function saveSiteSettings({
     // 6. Salvar no banco
     if (existing) {
       // Atualizar registro existente
-      const { error: updateError } = await supabase
+      const { error: updateError } = await (supabase as any)
         .from('site_settings')
         .update(updatePayload)
         .eq('key', 'general')
@@ -194,7 +194,7 @@ export async function saveSiteSettings({
         description: 'Configurações gerais do site',
       }
 
-      const { error: insertError } = await supabase
+      const { error: insertError } = await (supabase as any)
         .from('site_settings')
         .insert(insertPayload)
 
@@ -219,7 +219,7 @@ export async function saveSiteSettings({
  */
 export async function getSiteSettings(): Promise<{ data: any | null; error: any }> {
   try {
-    const supabase = createClient()
+    const supabase = createClient() as any
     
     const { data, error } = await supabase
       .from('site_settings')
