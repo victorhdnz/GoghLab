@@ -28,7 +28,7 @@ export function FixedLogo({ logo: initialLogo, siteName: initialSiteName }: Fixe
     // Só buscar do cliente se não foi passado como prop
     const loadLogo = async () => {
       try {
-        const supabase = createClient()
+        const supabase = createClient() as any
         const { data, error } = await supabase
           .from('site_settings')
           .select('site_logo, site_name, homepage_content')
