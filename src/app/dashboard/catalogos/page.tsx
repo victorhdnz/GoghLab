@@ -72,7 +72,7 @@ function CatalogsContent() {
 
   const loadVersions = async () => {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('product_catalogs')
         .select('*')
         .order('created_at', { ascending: false })
@@ -155,7 +155,7 @@ function CatalogsContent() {
       }
 
       if (editingVersion) {
-        const { error } = await supabase
+        const { error } = await (supabase as any)
           .from('product_catalogs')
           .update(catalogData)
           .eq('id', editingVersion.id)
@@ -163,7 +163,7 @@ function CatalogsContent() {
         if (error) throw error
         toast.success('Catálogo atualizado!')
       } else {
-        const { error } = await supabase
+        const { error } = await (supabase as any)
           .from('product_catalogs')
           .insert(catalogData)
 
@@ -185,7 +185,7 @@ function CatalogsContent() {
     if (!confirm('Tem certeza que deseja excluir este catálogo?')) return
 
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('product_catalogs')
         .delete()
         .eq('id', id)
