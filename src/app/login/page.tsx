@@ -26,7 +26,7 @@ export default function LoginPage() {
     const fetchSiteSettings = async () => {
       try {
         const supabase = createClient()
-        const { data } = await supabase
+        const { data } = await (supabase as any)
           .from('site_settings')
           .select('site_logo, site_name, homepage_content')
           .eq('key', 'general')
