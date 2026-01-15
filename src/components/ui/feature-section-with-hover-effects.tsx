@@ -2,7 +2,7 @@
 
 import { cn } from "@/lib/utils"
 import {
-  IconBrandCapcut,
+  IconScissors,
   IconPalette,
   IconRobot,
   IconSchool,
@@ -23,7 +23,7 @@ const defaultFeatures: FeatureItem[] = [
     title: "Acesso ao CapCut Pro",
     description:
       "Edite vídeos profissionais com todas as funcionalidades premium do CapCut incluídas na sua assinatura.",
-    icon: <IconBrandCapcut className="w-6 h-6" />,
+    icon: <IconScissors className="w-6 h-6" />,
   },
   {
     title: "Acesso ao Canva Pro",

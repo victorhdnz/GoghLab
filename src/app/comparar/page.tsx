@@ -7,7 +7,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { getSiteSettings } from '@/lib/supabase/site-settings-helper'
 import {
-  IconBrandCapcut,
+  IconScissors,
   IconPalette,
   IconRobot,
   IconSchool,
@@ -33,7 +33,7 @@ interface MVCompany {
 // Mapear nomes de tópicos para ícones automaticamente
 const getTopicIcon = (topicName: string) => {
   const name = topicName.toLowerCase()
-  if (name.includes('capcut')) return <IconBrandCapcut className="w-5 h-5" />
+  if (name.includes('capcut')) return <IconScissors className="w-5 h-5" />
   if (name.includes('canva')) return <IconPalette className="w-5 h-5" />
   if (name.includes('ia') || name.includes('agente') || name.includes('inteligência')) return <IconRobot className="w-5 h-5" />
   if (name.includes('curso') || name.includes('edição') || name.includes('aula')) return <IconSchool className="w-5 h-5" />
