@@ -316,51 +316,19 @@ function DashboardContent() {
   )
 }
 
-// Componente Principal com Lógica de Autenticação
+// Componente Principal com Lógica de Autenticação Simplificada
 export default function DashboardPage() {
   const { isAuthenticated, isEditor, loading, profile, user } = useAuth()
-  const [profileLoadingTimeout, setProfileLoadingTimeout] = useState(false)
-  const [sessionLostTimeout, setSessionLostTimeout] = useState(false)
-  const [wasAuthenticated, setWasAuthenticated] = useState(false)
-
+  
   // Verificar se o email do usuário está na lista de admins
   const userEmailIsAdmin = isAdminEmail(user?.email)
+  
+  // Verificar se tem acesso (por role ou por email)
+  const hasAccess = isEditor || userEmailIsAdmin
 
-  // Rastrear se já foi autenticado para evitar redirecionamento durante refresh de token
-  useEffect(() => {
-    if (isAuthenticated) {
-      setWasAuthenticated(true)
-      setSessionLostTimeout(false)
-    }
-  }, [isAuthenticated])
-
-  // Timeout de segurança: se após 1 segundo o profile ainda não carregou
-  useEffect(() => {
-    if (isAuthenticated && profile === null && !loading) {
-      const timeout = setTimeout(() => {
-        setProfileLoadingTimeout(true)
-      }, 1000)
-      return () => clearTimeout(timeout)
-    } else {
-      setProfileLoadingTimeout(false)
-    }
-  }, [isAuthenticated, profile, loading])
-
-  // Se a sessão foi perdida mas já estava autenticado antes, aguardar um pouco
-  // (pode ser apenas um refresh de token)
-  useEffect(() => {
-    if (wasAuthenticated && !isAuthenticated && !loading) {
-      const timeout = setTimeout(() => {
-        setSessionLostTimeout(true)
-      }, 2000) // Aguardar 2 segundos antes de considerar sessão perdida
-      return () => clearTimeout(timeout)
-    } else if (isAuthenticated) {
-      setSessionLostTimeout(false)
-    }
-  }, [wasAuthenticated, isAuthenticated, loading])
-
-  // Loading - aguardar até que o profile seja carregado completamente
-  if (loading) {
+  // Loading inicial - aguardar apenas o carregamento inicial
+  // Não bloquear durante navegação
+  if (loading && !isAuthenticated && !user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <LoadingSpinner size="md" />
@@ -368,45 +336,33 @@ export default function DashboardPage() {
     )
   }
 
-  // Não autenticado - mostrar login apenas se realmente perdeu a sessão
-  // (não durante refresh de token)
-  if (!isAuthenticated && (sessionLostTimeout || !wasAuthenticated)) {
+  // Não autenticado - mostrar login
+  // Confiar no middleware para proteger rotas, mas mostrar login se não autenticado
+  if (!isAuthenticated && !user) {
     return <LoginForm />
   }
 
-  // Se estava autenticado mas perdeu temporariamente, aguardar um pouco
-  if (!isAuthenticated && wasAuthenticated && !sessionLostTimeout) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <LoadingSpinner size="md" />
-      </div>
-    )
+  // Autenticado mas não tem acesso - mostrar acesso negado
+  // Só verificar se temos profile OU se o email é admin
+  if (isAuthenticated && profile !== null && !hasAccess) {
+    return <AccessDenied />
   }
 
-  // Se está autenticado mas ainda não temos profile carregado, aguardar
-  if (isAuthenticated && profile === null && !profileLoadingTimeout) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <LoadingSpinner size="md" />
-      </div>
-    )
-  }
-
-  // Se passou do timeout e ainda não tem profile, verificar pelo email
-  if (isAuthenticated && profile === null && profileLoadingTimeout) {
-    // Se o email está na lista de admins, permitir acesso
+  // Se está autenticado mas ainda não temos profile, verificar pelo email
+  // Se o email é admin, permitir acesso mesmo sem profile
+  if (isAuthenticated && profile === null) {
     if (userEmailIsAdmin) {
       return <DashboardContent />
     }
-    // Caso contrário, acesso negado
-    return <AccessDenied />
-  }
-
-  // Autenticado mas não é admin/editor E email não está na lista - mostrar acesso negado
-  if (!isEditor && !userEmailIsAdmin && profile !== null) {
-    return <AccessDenied />
+    // Se não é admin por email e não tem profile, aguardar um pouco
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <LoadingSpinner size="md" />
+      </div>
+    )
   }
 
   // Autenticado e autorizado (por role ou por email) - mostrar dashboard
+  // Confiar no middleware para proteção, apenas verificar permissões para UI
   return <DashboardContent />
 }
