@@ -39,12 +39,16 @@ END $$;
 
 -- 3. Adicionar configuração de vídeo tutorial (opcional)
 -- =====================================================
-INSERT INTO site_settings (key, value, description, is_public) 
-VALUES ('tools_tutorial_video', 'https://www.youtube.com/embed/VIDEO_ID_AQUI', 'URL do vídeo tutorial para ativar ferramentas (Canva/CapCut). Use formato embed do YouTube/Vimeo.', TRUE)
+-- Nota: A tabela site_settings usa value como JSONB, então vamos armazenar como string JSON
+INSERT INTO site_settings (key, value, description) 
+VALUES (
+  'tools_tutorial_video', 
+  '"https://www.youtube.com/embed/VIDEO_ID_AQUI"'::jsonb, 
+  'URL do vídeo tutorial para ativar ferramentas (Canva/CapCut). Use formato embed do YouTube/Vimeo.'
+)
 ON CONFLICT (key) DO UPDATE SET 
   value = EXCLUDED.value, 
-  description = EXCLUDED.description, 
-  is_public = EXCLUDED.is_public;
+  description = EXCLUDED.description;
 
 -- =====================================================
 -- FIM DA MIGRAÇÃO
