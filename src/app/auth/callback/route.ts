@@ -8,13 +8,19 @@ export const dynamic = 'force-dynamic'
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url)
   const code = requestUrl.searchParams.get('code')
-  const next = requestUrl.searchParams.get('next') || '/dashboard'
+  const next = requestUrl.searchParams.get('next') || '/membro'
   
   // Usar a origem da request para o redirect (mais confiável)
   const origin = requestUrl.origin
   
   if (!code) {
-    return NextResponse.redirect(`${origin}/dashboard?error=no_code`)
+    // Se não tem código, redirecionar para login com o redirect original
+    const loginUrl = new URL('/login', origin)
+    if (next && next !== '/membro') {
+      loginUrl.searchParams.set('redirect', next)
+    }
+    loginUrl.searchParams.set('error', 'no_code')
+    return NextResponse.redirect(loginUrl)
   }
 
   const cookieStore = cookies()
@@ -49,10 +55,16 @@ export async function GET(request: Request) {
   
   if (error) {
     console.error('[Auth Callback] Error:', error.message)
-    return NextResponse.redirect(`${origin}/dashboard?error=auth_failed`)
+    // Se der erro, redirecionar para login com o redirect original
+    const loginUrl = new URL('/login', origin)
+    if (next && next !== '/membro') {
+      loginUrl.searchParams.set('redirect', next)
+    }
+    loginUrl.searchParams.set('error', 'auth_failed')
+    return NextResponse.redirect(loginUrl)
   }
 
-  // Redirect simples para o destino
+  // Redirect simples para o destino (respeitando o next que foi passado)
   return NextResponse.redirect(`${origin}${next}`)
 }
 
