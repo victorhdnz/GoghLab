@@ -19,12 +19,15 @@ interface EditAvaliacaoPageProps {
 
 export default function EditAvaliacaoPage({ params }: EditAvaliacaoPageProps) {
   const router = useRouter()
-  const { isAuthenticated, isEditor, loading: authLoading } = useAuth()
+  const { isEditor, emailIsAdmin } = useAuth()
   const [testimonial, setTestimonial] = useState<ServiceTestimonial | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [services, setServices] = useState<Service[]>([])
   const supabase = createClient()
+
+  // Verificar se tem acesso - emailIsAdmin funciona mesmo sem profile carregado
+  const hasAccess = emailIsAdmin || isEditor
 
   const [formData, setFormData] = useState({
     service_id: '',
@@ -38,15 +41,11 @@ export default function EditAvaliacaoPage({ params }: EditAvaliacaoPageProps) {
   })
 
   useEffect(() => {
-    if (!authLoading) {
-      if (!isAuthenticated || !isEditor) {
-        router.push('/dashboard')
-      } else {
-        loadTestimonial()
-        loadServices()
-      }
+    if (hasAccess) {
+      loadTestimonial()
+      loadServices()
     }
-  }, [isAuthenticated, isEditor, authLoading, router, params.id])
+  }, [hasAccess, params.id])
 
   const loadTestimonial = async () => {
     try {

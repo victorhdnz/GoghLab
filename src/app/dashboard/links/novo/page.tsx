@@ -17,11 +17,14 @@ import toast from 'react-hot-toast';
 import Link from 'next/link';
 
 export default function NewLinkAggregatorPage() {
-  const { isAuthenticated, isEditor, loading: authLoading } = useAuth();
+  const { isEditor, emailIsAdmin } = useAuth();
   const router = useRouter();
   const supabase = createClient();
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  // Verificar se tem acesso - emailIsAdmin funciona mesmo sem profile carregado
+  const hasAccess = emailIsAdmin || isEditor
 
   const [formData, setFormData] = useState({
     name: '',
@@ -36,12 +39,6 @@ export default function NewLinkAggregatorPage() {
     links: [] as LinkItem[],
     social_links: [] as SocialLink[],
   });
-
-  useEffect(() => {
-    if (!authLoading && (!isAuthenticated || !isEditor)) {
-      router.push('/dashboard');
-    }
-  }, [isAuthenticated, isEditor, authLoading, router]);
 
   // Gerar slug automaticamente a partir do nome
   useEffect(() => {

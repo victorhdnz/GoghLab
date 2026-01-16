@@ -174,7 +174,7 @@ Em caso de devolução, o reembolso será processado no mesmo método de pagamen
 
 export default function DashboardTermsPage() {
   const router = useRouter()
-  const { isAuthenticated, isEditor, loading: authLoading } = useAuth()
+  const { isEditor, emailIsAdmin } = useAuth()
   const supabase = createClient()
   
   const [terms, setTerms] = useState<Term[]>([])
@@ -194,15 +194,14 @@ export default function DashboardTermsPage() {
     }
   ])
 
+  // Verificar se tem acesso - emailIsAdmin funciona mesmo sem profile carregado
+  const hasAccess = emailIsAdmin || isEditor
+
   useEffect(() => {
-    if (!authLoading) {
-      if (!isAuthenticated || !isEditor) {
-        router.push('/dashboard')
-        return
-      }
+    if (hasAccess) {
       loadTerms()
     }
-  }, [isAuthenticated, isEditor, authLoading])
+  }, [hasAccess])
 
   // Parsear conteúdo em seções quando termo é selecionado
   useEffect(() => {
@@ -587,7 +586,20 @@ export default function DashboardTermsPage() {
     }
   }
 
-  if (authLoading || loading) {
+  // Verificar apenas permissão - autenticação é feita pelo middleware
+  // Se emailIsAdmin é true, sempre permitir acesso mesmo sem profile
+  if (!emailIsAdmin && !hasAccess) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <p className="text-gray-600 mb-4">Você não tem permissão para acessar esta página.</p>
+          <a href="/dashboard" className="text-blue-600 hover:underline">Voltar ao Dashboard</a>
+        </div>
+      </div>
+    )
+  }
+
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-black"></div>

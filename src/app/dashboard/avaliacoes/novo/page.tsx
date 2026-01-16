@@ -15,8 +15,11 @@ import { BackButton } from '@/components/ui/BackButton'
 
 export default function NovaAvaliacao() {
   const router = useRouter()
-  const { isAuthenticated, isEditor, loading: authLoading } = useAuth()
+  const { isEditor, emailIsAdmin } = useAuth()
   const supabase = createClient()
+
+  // Verificar se tem acesso - emailIsAdmin funciona mesmo sem profile carregado
+  const hasAccess = emailIsAdmin || isEditor
 
   const [loading, setLoading] = useState(false)
   const [services, setServices] = useState<Service[]>([])
@@ -32,14 +35,10 @@ export default function NovaAvaliacao() {
   })
 
   useEffect(() => {
-    if (!authLoading) {
-      if (!isAuthenticated || !isEditor) {
-        router.push('/dashboard')
-      } else {
-        loadServices()
-      }
+    if (hasAccess) {
+      loadServices()
     }
-  }, [isAuthenticated, isEditor, authLoading, router])
+  }, [hasAccess])
 
   const loadServices = async () => {
     try {

@@ -14,7 +14,7 @@ import Link from 'next/link'
 
 export default function DashboardAvaliacoesPage() {
   const router = useRouter()
-  const { isAuthenticated, isEditor, loading: authLoading } = useAuth()
+  const { isEditor, emailIsAdmin } = useAuth()
   const [testimonials, setTestimonials] = useState<ServiceTestimonial[]>([])
   const [services, setServices] = useState<Service[]>([])
   const [filteredTestimonials, setFilteredTestimonials] = useState<ServiceTestimonial[]>([])
@@ -25,27 +25,20 @@ export default function DashboardAvaliacoesPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 20
 
+  // Verificar se tem acesso - emailIsAdmin funciona mesmo sem profile carregado
+  const hasAccess = emailIsAdmin || isEditor
+
   const supabase = createClient()
 
   useEffect(() => {
-    let mounted = true
-
-    if (!authLoading) {
-      if (!isAuthenticated || !isEditor) {
-        router.push('/dashboard')
-      } else if (mounted) {
-        loadData()
-      }
+    if (hasAccess) {
+      loadData()
     }
-
-    return () => {
-      mounted = false
-    }
-  }, [isAuthenticated, isEditor, authLoading, router])
+  }, [hasAccess])
 
   // Recarregar quando a página receber foco
   useEffect(() => {
-    if (!isAuthenticated || !isEditor) return
+    if (!hasAccess) return
     
     const handleFocus = () => {
       loadData()

@@ -38,7 +38,7 @@ interface PricingSettings {
 
 export default function PricingEditorPage() {
   const router = useRouter()
-  const { isAuthenticated, isEditor, loading: authLoading } = useAuth()
+  const { isEditor, emailIsAdmin } = useAuth()
   const supabase = createClient()
 
   const [loading, setLoading] = useState(true)
@@ -95,15 +95,14 @@ export default function PricingEditorPage() {
     ],
   })
 
+  // Verificar se tem acesso - emailIsAdmin funciona mesmo sem profile carregado
+  const hasAccess = emailIsAdmin || isEditor
+
   useEffect(() => {
-    if (!authLoading) {
-      if (!isAuthenticated || !isEditor) {
-        router.push('/dashboard')
-      } else {
-        loadSettings()
-      }
+    if (hasAccess) {
+      loadSettings()
     }
-  }, [isAuthenticated, isEditor, authLoading, router])
+  }, [hasAccess])
 
   const loadSettings = async () => {
     setLoading(true)

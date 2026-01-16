@@ -17,13 +17,16 @@ import toast from 'react-hot-toast';
 import Link from 'next/link';
 
 export default function EditLinkAggregatorPage() {
-  const { isAuthenticated, isEditor, loading: authLoading } = useAuth();
+  const { isEditor, emailIsAdmin } = useAuth();
   const router = useRouter();
   const params = useParams();
   const id = params.id as string;
   const supabase = createClient();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+
+  // Verificar se tem acesso - emailIsAdmin funciona mesmo sem profile carregado
+  const hasAccess = emailIsAdmin || isEditor
 
   const [formData, setFormData] = useState({
     name: '',
@@ -40,15 +43,10 @@ export default function EditLinkAggregatorPage() {
   });
 
   useEffect(() => {
-    if (!authLoading && (!isAuthenticated || !isEditor)) {
-      router.push('/dashboard');
-      return;
-    }
-
-    if (isAuthenticated && isEditor && id) {
+    if (hasAccess && id) {
       loadAggregator();
     }
-  }, [isAuthenticated, isEditor, authLoading, router, id]);
+  }, [hasAccess, id]);
 
   const loadAggregator = async () => {
     try {

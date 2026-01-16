@@ -19,11 +19,14 @@ interface EditComparacaoPageProps {
 
 export default function EditComparacaoPage({ params }: EditComparacaoPageProps) {
   const router = useRouter()
-  const { isAuthenticated, isEditor, loading: authLoading } = useAuth()
+  const { isEditor, emailIsAdmin } = useAuth()
   const [comparison, setComparison] = useState<CompanyComparison | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const supabase = createClient()
+
+  // Verificar se tem acesso - emailIsAdmin funciona mesmo sem profile carregado
+  const hasAccess = emailIsAdmin || isEditor
 
   const [formData, setFormData] = useState({
     name: '',
@@ -35,14 +38,10 @@ export default function EditComparacaoPage({ params }: EditComparacaoPageProps) 
   const [topics, setTopics] = useState<ComparisonTopic[]>([])
 
   useEffect(() => {
-    if (!authLoading) {
-      if (!isAuthenticated || !isEditor) {
-        router.push('/dashboard')
-      } else {
-        loadComparison()
-      }
+    if (hasAccess) {
+      loadComparison()
     }
-  }, [isAuthenticated, isEditor, authLoading, router, params.id])
+  }, [hasAccess])
 
   const loadComparison = async () => {
     try {
