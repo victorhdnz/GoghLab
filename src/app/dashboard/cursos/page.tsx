@@ -291,8 +291,8 @@ export default function CursosPage() {
       setEditingCourse(course)
       setCourseForm({
         title: course.title,
-        description: course.description,
-        course_type: course.course_type
+        description: course.description || '',
+        course_type: course.course_type || 'canva'
       })
     } else {
       setEditingCourse(null)
@@ -306,7 +306,7 @@ export default function CursosPage() {
       setEditingLesson(lesson)
       setLessonForm({
         title: lesson.title,
-        description: lesson.description,
+        description: lesson.description || '',
         video_url: lesson.video_url
       })
     } else {
