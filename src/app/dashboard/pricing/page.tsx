@@ -101,11 +101,23 @@ export default function PricingEditorPage() {
   const loadSettings = async () => {
     setLoading(true)
     try {
-      const { data, error } = await getSiteSettings()
+      // Timeout de segurança
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Timeout')), 10000)
+      )
+
+      const settingsPromise = getSiteSettings()
+      const { data, error } = await Promise.race([
+        settingsPromise,
+        timeoutPromise
+      ]) as { data: any, error: any }
 
       if (error) {
         console.error('Erro ao carregar configurações:', error)
-        toast.error('Erro ao carregar configurações de pricing.')
+        if (error?.message !== 'Timeout') {
+          toast.error('Erro ao carregar configurações de pricing.')
+        }
+        setLoading(false)
         return
       }
 
@@ -140,9 +152,11 @@ export default function PricingEditorPage() {
         const categories = data.homepage_content.pricing.feature_categories as FeatureCategory[]
         setFeatureCategories(categories.sort((a, b) => a.order - b.order))
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro ao carregar configurações:', error)
-      toast.error('Erro ao carregar configurações de pricing.')
+      if (error?.message !== 'Timeout') {
+        toast.error('Erro ao carregar configurações de pricing.')
+      }
     } finally {
       setLoading(false)
     }

@@ -10,53 +10,19 @@ import {
   Palette,
   LogOut,
   ArrowRight,
-  BarChart3,
   Sparkles,
   Link as LinkIcon,
   Users,
-  Package,
 } from 'lucide-react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import toast from 'react-hot-toast'
 
-interface DashboardStats {
-  totalServices: number
-}
 
 // Dashboard Principal
 function DashboardContent() {
   const { profile } = useAuth()
-  const [stats, setStats] = useState<DashboardStats>({
-    totalServices: 0,
-  })
-  const [loadingData, setLoadingData] = useState(true)
   const supabase = createClient()
-
-  useEffect(() => {
-    loadDashboardData()
-    const dataInterval = setInterval(loadDashboardData, 60000)
-    return () => clearInterval(dataInterval)
-  }, [])
-
-  const loadDashboardData = async () => {
-    try {
-      setLoadingData(true)
-
-      const { count } = await supabase
-        .from('services')
-        .select('id', { count: 'exact' })
-        .eq('is_active', true)
-
-      setStats({
-        totalServices: count || 0,
-      })
-    } catch (error) {
-      console.error('Erro ao carregar dados do dashboard:', error)
-    } finally {
-      setLoadingData(false)
-    }
-  }
 
   const handleLogout = async () => {
     try {
@@ -70,16 +36,6 @@ function DashboardContent() {
       window.location.href = '/'
     }
   }
-
-  const statsCards = [
-    {
-      title: 'Serviços',
-      value: stats.totalServices.toString(),
-      icon: Package,
-      color: 'bg-blue-500',
-      description: 'Serviços ativos',
-    },
-  ]
 
   const mainSections = [
     {
@@ -132,20 +88,6 @@ function DashboardContent() {
       ],
     },
     {
-      title: 'Analytics',
-      description: 'Acompanhe o desempenho das suas páginas',
-      icon: BarChart3,
-      items: [
-        {
-          title: 'Ver Analytics',
-          description: 'Visualizações, cliques, scroll e métricas detalhadas',
-          href: '/dashboard/analytics',
-          icon: BarChart3,
-          color: 'bg-green-500',
-        },
-      ],
-    },
-    {
       title: 'Agregadores de Links',
       description: 'Crie e gerencie agregadores de links (link-in-bio)',
       icon: LinkIcon,
@@ -179,28 +121,6 @@ function DashboardContent() {
             <LogOut size={18} />
             Sair
           </button>
-        </div>
-
-        {/* Stats Grid */}
-        <div className="mb-8">
-          {statsCards.map((stat, index) => (
-            <motion.div
-              key={stat.title}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
-              className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 max-w-xs"
-            >
-              <div className="flex items-center justify-between mb-3">
-                <div className={`${stat.color} w-10 h-10 rounded-lg flex items-center justify-center text-white`}>
-                  <stat.icon size={20} />
-                </div>
-              </div>
-              <p className="text-2xl font-bold text-gray-900">{loadingData ? '...' : stat.value}</p>
-              <p className="text-sm text-gray-500">{stat.title}</p>
-              <p className="text-xs text-gray-400 mt-1">{stat.description}</p>
-            </motion.div>
-          ))}
         </div>
 
         {/* Main Sections */}

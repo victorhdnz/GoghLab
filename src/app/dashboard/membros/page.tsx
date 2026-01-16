@@ -59,30 +59,51 @@ export default function MembrosPage() {
   }, [])
 
   const loadMembers = async () => {
+    setLoading(true)
     try {
-      setLoading(true)
-      
+      // Timeout de segurança
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Timeout')), 10000)
+      )
+
       // Buscar todos os profiles
-      const { data: profiles, error: profilesError } = await (supabase as any)
+      const profilesPromise = (supabase as any)
         .from('profiles')
         .select('*')
         .order('created_at', { ascending: false })
 
+      const { data: profiles, error: profilesError } = await Promise.race([
+        profilesPromise,
+        timeoutPromise
+      ]) as { data: any, error: any }
+
       if (profilesError) throw profilesError
 
       // Buscar todas as assinaturas ativas
-      const { data: subscriptions, error: subsError } = await (supabase as any)
+      const subscriptionsPromise = (supabase as any)
         .from('subscriptions')
         .select('*')
         .in('status', ['active', 'trialing'])
 
-      if (subsError && subsError.code !== 'PGRST116') {
-        console.error('Error fetching subscriptions:', subsError)
+      let subscriptions = []
+      try {
+        const result = await Promise.race([
+          subscriptionsPromise,
+          timeoutPromise
+        ]) as { data: any, error: any }
+        
+        if (result.error && result.error.code !== 'PGRST116') {
+          console.error('Error fetching subscriptions:', result.error)
+        } else {
+          subscriptions = result.data || []
+        }
+      } catch (error) {
+        console.error('Timeout ao buscar assinaturas:', error)
       }
 
       // Combinar dados
       const membersWithSubs: Member[] = (profiles || []).map((profile: any) => {
-        const subscription = (subscriptions || []).find(
+        const subscription = subscriptions.find(
           (sub: any) => sub.user_id === profile.id
         )
         
@@ -104,9 +125,11 @@ export default function MembrosPage() {
       })
 
       setMembers(membersWithSubs)
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error loading members:', error)
-      toast.error('Erro ao carregar membros')
+      if (error?.message !== 'Timeout') {
+        toast.error('Erro ao carregar membros')
+      }
     } finally {
       setLoading(false)
     }
