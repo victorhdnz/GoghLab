@@ -30,9 +30,14 @@ export async function POST(request: Request) {
     }
 
     // Criar sessão do portal de gerenciamento do Stripe
+    // Usar a configuração do portal criada no Dashboard
     const portalSession = await stripe.billingPortal.sessions.create({
       customer: subscription.stripe_customer_id,
-      return_url: `${process.env.NEXT_PUBLIC_SITE_URL}/membro`,
+      return_url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://goghlab.com.br'}/membro/conta`,
+      // Usar a configuração do portal se especificada
+      ...(process.env.STRIPE_PORTAL_CONFIGURATION_ID && {
+        configuration: process.env.STRIPE_PORTAL_CONFIGURATION_ID,
+      }),
     })
 
     return NextResponse.json({ url: portalSession.url })
