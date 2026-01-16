@@ -303,9 +303,15 @@ export default function MembrosPage() {
       
       // Se o usuário editado for o usuário atual logado, atualizar o AuthContext
       // Isso garante que a área de membros mostre o plano atualizado
-      if (memberId === (await supabase.auth.getUser()).data.user?.id) {
-        // Disparar evento customizado para atualizar o AuthContext
-        window.dispatchEvent(new CustomEvent('subscription-updated'))
+      try {
+        const { data: { user: currentUser } } = await supabase.auth.getUser()
+        if (currentUser && memberId === currentUser.id) {
+          // Disparar evento customizado para atualizar o AuthContext
+          window.dispatchEvent(new CustomEvent('subscription-updated'))
+        }
+      } catch (error) {
+        // Ignorar erro se não conseguir verificar usuário atual
+        console.warn('Não foi possível verificar usuário atual para atualizar AuthContext')
       }
     } catch (error: any) {
       console.error('Error saving plan:', error)
