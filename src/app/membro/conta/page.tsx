@@ -190,7 +190,12 @@ export default function AccountPage() {
       if (data.url) {
         window.location.href = data.url
       } else {
-        toast.error(data.error || 'Erro ao abrir portal de assinatura')
+        // Se for assinatura manual, mostrar mensagem mais amigável
+        if (data.isManual) {
+          toast.error(data.error || 'Esta assinatura foi criada manualmente. Entre em contato com o suporte.')
+        } else {
+          toast.error(data.error || 'Erro ao abrir portal de assinatura')
+        }
       }
     } catch (error: any) {
       console.error('Erro ao abrir portal:', error)

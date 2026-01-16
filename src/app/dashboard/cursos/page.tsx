@@ -83,7 +83,6 @@ export default function CursosPage() {
         `)
         .order('course_type', { ascending: true, nullsLast: true })
         .order('order_position', { ascending: true, nullsLast: true })
-        .order('order', { ascending: true, nullsLast: true })
 
       if (error) throw error
       

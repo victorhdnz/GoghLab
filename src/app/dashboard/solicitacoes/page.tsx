@@ -290,14 +290,21 @@ export default function SolicitacoesPage() {
       }
 
       // Atualizar status do ticket para "resolved" se ambos os links foram enviados
-      if (canvaLink.trim() && capcutLink.trim()) {
-        await updateTicketStatus(selectedTicket.id, 'resolved')
-      } else {
-        await updateTicketStatus(selectedTicket.id, 'in_progress')
+      // Não atualizar status aqui se o usuário já mudou manualmente
+      // O status será atualizado apenas se ainda estiver como "open"
+      if (selectedTicket.status === 'open') {
+        if (canvaLink.trim() && capcutLink.trim()) {
+          await updateTicketStatus(selectedTicket.id, 'resolved')
+        } else if (canvaLink.trim() || capcutLink.trim()) {
+          await updateTicketStatus(selectedTicket.id, 'in_progress')
+        }
       }
 
       toast.success('Links salvos com sucesso! O cliente já pode ver os links na página de ferramentas.')
       await loadToolAccess(selectedTicket.user_id)
+      
+      // Recarregar tickets para garantir que tudo está sincronizado
+      await loadTickets()
     } catch (error: any) {
       console.error('Erro ao salvar links:', error)
       toast.error('Erro ao salvar links')
@@ -308,35 +315,44 @@ export default function SolicitacoesPage() {
 
   const updateTicketStatus = async (ticketId: string, status: string) => {
     try {
-      const { error } = await (supabase as any)
+      const { data, error } = await (supabase as any)
         .from('support_tickets')
         .update({ 
           status: status,
           updated_at: new Date().toISOString()
         })
         .eq('id', ticketId)
+        .select()
+        .single()
 
       if (error) {
         console.error('Erro ao atualizar status:', error)
-        toast.error('Erro ao atualizar status do ticket')
-        return
+        toast.error(`Erro ao atualizar status: ${error.message || 'Erro desconhecido'}`)
+        return false
       }
 
-      // Atualizar o ticket na lista local
+      // Atualizar o ticket na lista local imediatamente
       setTickets(prev => prev.map(t => 
-        t.id === ticketId ? { ...t, status: status as any } : t
+        t.id === ticketId ? { ...t, status: status as any, updated_at: new Date().toISOString() } : t
       ))
 
       // Se houver um ticket selecionado, atualizar também
       if (selectedTicket && selectedTicket.id === ticketId) {
-        setSelectedTicket({ ...selectedTicket, status: status as any })
+        setSelectedTicket({ ...selectedTicket, status: status as any, updated_at: new Date().toISOString() })
       }
 
       toast.success('Status atualizado com sucesso!')
-      await loadTickets() // Recarregar para garantir sincronização
+      
+      // Recarregar após um pequeno delay para garantir que o banco foi atualizado
+      setTimeout(async () => {
+        await loadTickets()
+      }, 500)
+      
+      return true
     } catch (error: any) {
       console.error('Erro ao atualizar status:', error)
-      toast.error('Erro ao atualizar status do ticket')
+      toast.error(`Erro ao atualizar status: ${error.message || 'Erro desconhecido'}`)
+      return false
     }
   }
 

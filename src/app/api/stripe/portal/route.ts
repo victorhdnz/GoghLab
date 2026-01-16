@@ -36,9 +36,10 @@ export async function POST(request: Request) {
 
     // Se não tem stripe_customer_id, é uma assinatura manual
     // Não pode usar o portal do Stripe
-    if (!subscription.stripe_customer_id || subscription.stripe_customer_id.startsWith('manual_')) {
+    if (!subscription.stripe_customer_id || subscription.stripe_customer_id.startsWith('manual_') || subscription.stripe_customer_id === null) {
       return NextResponse.json({ 
-        error: 'Esta assinatura foi criada manualmente. Entre em contato com o suporte para gerenciar sua assinatura.' 
+        error: 'Esta assinatura foi criada manualmente e não pode ser gerenciada através do portal do Stripe. Entre em contato com o suporte através do WhatsApp para gerenciar sua assinatura.',
+        isManual: true
       }, { status: 400 })
     }
 
