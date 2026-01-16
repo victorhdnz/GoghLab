@@ -9,7 +9,6 @@ import {
   Layers,
   Palette,
   LogOut,
-  Lock,
   ArrowRight,
   BarChart3,
   Sparkles,
@@ -18,76 +17,11 @@ import {
   Package,
 } from 'lucide-react'
 import Link from 'next/link'
-import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { createClient } from '@/lib/supabase/client'
 import toast from 'react-hot-toast'
-import { GoogleLoginButton } from '@/components/auth/GoogleLoginButton'
-import { isAdminEmail } from '@/lib/utils/admin'
 
 interface DashboardStats {
   totalServices: number
-}
-
-// Componente de Login - Apenas Google
-function LoginForm() {
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md"
-      >
-        <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-black rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <Lock className="text-white" size={32} />
-          </div>
-          <h1 className="text-2xl font-bold text-gray-900">Acesso Administrativo</h1>
-          <p className="text-gray-500 mt-2">Entre com sua conta Google autorizada</p>
-        </div>
-
-        <GoogleLoginButton />
-        
-        <p className="text-xs text-gray-400 text-center mt-6">
-          Apenas contas autorizadas podem acessar esta área.
-        </p>
-      </motion.div>
-    </div>
-  )
-}
-
-// Componente de Acesso Negado
-function AccessDenied() {
-  const supabase = createClient()
-
-  const handleLogout = async () => {
-    try {
-      await supabase.auth.signOut()
-      // Forçar redirecionamento completo para limpar estado
-      window.location.href = '/'
-    } catch (error) {
-      console.error('Erro ao fazer logout:', error)
-      // Mesmo com erro, redirecionar
-      window.location.href = '/'
-    }
-  }
-
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
-      <div className="text-center">
-        <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-          <Lock className="text-red-600" size={32} />
-        </div>
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">Acesso Negado</h1>
-        <p className="text-gray-500 mb-6">Você não tem permissão para acessar esta área.</p>
-        <button
-          onClick={handleLogout}
-          className="px-6 py-2.5 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors"
-        >
-          Sair e tentar outra conta
-        </button>
-      </div>
-    </div>
-  )
 }
 
 // Dashboard Principal
@@ -316,53 +250,11 @@ function DashboardContent() {
   )
 }
 
-// Componente Principal com Lógica de Autenticação Simplificada
+// Componente Principal - Sem verificações de autenticação
+// O middleware já protege todas as rotas /dashboard/*
+// Esta página apenas exibe o conteúdo
 export default function DashboardPage() {
-  const { isAuthenticated, isEditor, loading, profile, user } = useAuth()
-  
-  // Verificar se o email do usuário está na lista de admins
-  const userEmailIsAdmin = isAdminEmail(user?.email)
-  
-  // Verificar se tem acesso (por role ou por email)
-  const hasAccess = isEditor || userEmailIsAdmin
-
-  // Loading inicial - aguardar apenas o carregamento inicial
-  // Não bloquear durante navegação
-  if (loading && !isAuthenticated && !user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <LoadingSpinner size="md" />
-      </div>
-    )
-  }
-
-  // Não autenticado - mostrar login
-  // Confiar no middleware para proteger rotas, mas mostrar login se não autenticado
-  if (!isAuthenticated && !user) {
-    return <LoginForm />
-  }
-
-  // Autenticado mas não tem acesso - mostrar acesso negado
-  // Só verificar se temos profile OU se o email é admin
-  if (isAuthenticated && profile !== null && !hasAccess) {
-    return <AccessDenied />
-  }
-
-  // Se está autenticado mas ainda não temos profile, verificar pelo email
-  // Se o email é admin, permitir acesso mesmo sem profile
-  if (isAuthenticated && profile === null) {
-    if (userEmailIsAdmin) {
-      return <DashboardContent />
-    }
-    // Se não é admin por email e não tem profile, aguardar um pouco
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <LoadingSpinner size="md" />
-      </div>
-    )
-  }
-
-  // Autenticado e autorizado (por role ou por email) - mostrar dashboard
-  // Confiar no middleware para proteção, apenas verificar permissões para UI
+  // Sem verificações - confiar totalmente no middleware
+  // Se chegou aqui, o middleware já verificou a autenticação
   return <DashboardContent />
 }

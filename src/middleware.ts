@@ -58,8 +58,12 @@ export async function middleware(req: NextRequest) {
   // Atualizar sessão (isso é necessário para manter os cookies de auth válidos)
   const { data: { session } } = await supabase.auth.getSession()
   
-  // Se não há sessão e está tentando acessar área protegida, não bloquear aqui
-  // Deixar as páginas decidirem o que fazer (algumas podem ser públicas)
+  // Se não há sessão e está tentando acessar área protegida, redirecionar para login
+  if (!session && req.nextUrl.pathname.startsWith('/dashboard')) {
+    const loginUrl = new URL('/login', req.url)
+    loginUrl.searchParams.set('redirect', req.nextUrl.pathname)
+    return NextResponse.redirect(loginUrl)
+  }
   
   return res
 }
