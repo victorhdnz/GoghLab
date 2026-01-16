@@ -16,7 +16,11 @@ import {
   Search,
   Link as LinkIcon,
   Save,
-  ExternalLink
+  ExternalLink,
+  AlertTriangle,
+  Video,
+  Upload,
+  X
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import Link from 'next/link'
