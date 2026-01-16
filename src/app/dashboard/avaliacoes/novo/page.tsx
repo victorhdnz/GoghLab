@@ -90,10 +90,15 @@ export default function NovaAvaliacao() {
     }
   }
 
-  if (authLoading) {
+  // Verificar apenas permissão - autenticação é feita pelo middleware
+  // Se emailIsAdmin é true, sempre permitir acesso mesmo sem profile
+  if (!emailIsAdmin && !hasAccess) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-black"></div>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <p className="text-gray-600 mb-4">Você não tem permissão para acessar esta página.</p>
+          <a href="/dashboard" className="text-blue-600 hover:underline">Voltar ao Dashboard</a>
+        </div>
       </div>
     )
   }
