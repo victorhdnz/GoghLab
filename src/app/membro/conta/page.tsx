@@ -31,14 +31,12 @@ export default function AccountPage() {
   
   // Form state
   const [fullName, setFullName] = useState('')
-  const [phone, setPhone] = useState('')
 
   const supabase = createClient()
 
   useEffect(() => {
     if (profile) {
       setFullName(profile.full_name || '')
-      setPhone(profile.phone || '')
     }
   }, [profile])
 
@@ -50,29 +48,42 @@ export default function AccountPage() {
     
     setSaving(true)
     try {
+      // Timeout de segurança
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Timeout')), 10000)
+      )
+
       // Tentar update primeiro
-      const { data, error } = await (supabase as any)
+      const updatePromise = (supabase as any)
         .from('profiles')
         .update({
           full_name: fullName || null,
-          phone: phone || null,
           updated_at: new Date().toISOString()
-        })
+        } as any)
         .eq('id', user.id)
         .select()
         .single()
 
+      const { data, error } = await Promise.race([
+        updatePromise,
+        timeoutPromise
+      ]) as { data: any, error: any }
+
       if (error) {
         // Se não encontrou o profile, criar um novo
         if (error.code === 'PGRST116') {
-          const { error: insertError } = await (supabase as any)
+          const insertPromise = (supabase as any)
             .from('profiles')
             .insert({
               id: user.id,
               email: user.email || '',
-              full_name: fullName || null,
-              phone: phone || null
-            })
+              full_name: fullName || null
+            } as any)
+          
+          const { error: insertError } = await Promise.race([
+            insertPromise,
+            timeoutPromise
+          ]) as { error: any }
           
           if (insertError) {
             console.error('Erro ao inserir:', insertError)
@@ -87,7 +98,11 @@ export default function AccountPage() {
       toast.success('Perfil atualizado com sucesso!')
     } catch (error: any) {
       console.error('Erro ao salvar:', error)
-      toast.error(error?.message || 'Erro ao salvar perfil')
+      if (error?.message === 'Timeout') {
+        toast.error('Tempo limite excedido. Tente novamente.')
+      } else {
+        toast.error(error?.message || 'Erro ao salvar perfil')
+      }
     } finally {
       setSaving(false)
     }
@@ -184,27 +199,6 @@ export default function AccountPage() {
             </div>
 
             <div className="space-y-6">
-              {/* Avatar */}
-              <div className="flex items-center gap-4">
-                {profile?.avatar_url ? (
-                  <Image
-                    src={profile.avatar_url}
-                    alt="Avatar"
-                    width={64}
-                    height={64}
-                    className="rounded-full"
-                  />
-                ) : (
-                  <div className="w-16 h-16 bg-gogh-yellow rounded-full flex items-center justify-center">
-                    <User className="w-8 h-8 text-gogh-black" />
-                  </div>
-                )}
-                <div>
-                  <p className="font-medium text-gogh-black">Foto do perfil</p>
-                  <p className="text-sm text-gogh-grayDark">Vinculada à sua conta Google</p>
-                </div>
-              </div>
-
               {/* Name */}
               <div>
                 <label className="block text-sm font-medium text-gogh-black mb-2">
@@ -229,20 +223,6 @@ export default function AccountPage() {
                   value={profile?.email || user?.email || ''}
                   disabled
                   className="w-full px-4 py-3 border border-gogh-grayLight rounded-xl bg-gogh-grayLight/30 text-gogh-grayDark cursor-not-allowed"
-                />
-              </div>
-
-              {/* Phone */}
-              <div>
-                <label className="block text-sm font-medium text-gogh-black mb-2">
-                  Telefone <span className="text-gogh-grayDark font-normal">(opcional)</span>
-                </label>
-                <input
-                  type="tel"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder="(00) 00000-0000"
-                  className="w-full px-4 py-3 border border-gogh-grayLight rounded-xl focus:outline-none focus:border-gogh-yellow transition-colors"
                 />
               </div>
 

@@ -166,13 +166,23 @@ export default function MemberLayout({ children }: MemberLayoutProps) {
     return null
   }
 
-  const handleSignOut = () => {
+  const handleSignOut = async () => {
     setSigningOut(true)
-    // Fazer signOut e redirecionar de forma síncrona
-    supabase.auth.signOut().finally(() => {
-      // Forçar redirect após signOut (mesmo se der erro)
+    try {
+      // Timeout de segurança
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Timeout')), 5000)
+      )
+
+      const signOutPromise = supabase.auth.signOut()
+      await Promise.race([signOutPromise, timeoutPromise])
+    } catch (error: any) {
+      console.error('Erro ao fazer logout:', error)
+      // Continuar mesmo com erro
+    } finally {
+      // Sempre redirecionar, mesmo se der erro ou timeout
       window.location.href = '/'
-    })
+    }
   }
 
   return (
@@ -235,7 +245,7 @@ export default function MemberLayout({ children }: MemberLayoutProps) {
               )}
               <div className="flex-1 min-w-0">
                 <p className="font-medium text-gogh-black truncate">
-                  {profile?.full_name || profile?.email?.split('@')[0] || 'Usuário'}
+                  {profile?.full_name || profile?.email?.split('@')[0] || 'Membro'}
                 </p>
                 <div className="flex items-center gap-1">
                   {subscription?.plan_id === 'gogh_pro' ? (
