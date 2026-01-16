@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerClient } from '@/lib/supabase/server'
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
+import { cookies } from 'next/headers'
+import { Database } from '@/types/database.types'
 
 export async function POST(request: NextRequest) {
   try {
@@ -25,8 +27,8 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
 
-    // Obter cliente Supabase autenticado
-    const supabase = createServerClient()
+    // Obter cliente Supabase autenticado usando createRouteHandlerClient para API routes
+    const supabase = createRouteHandlerClient<Database>({ cookies })
 
     // Verificar autenticação
     const { data: { session }, error: sessionError } = await supabase.auth.getSession()

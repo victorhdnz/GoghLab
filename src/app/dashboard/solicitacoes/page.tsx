@@ -315,15 +315,14 @@ export default function SolicitacoesPage() {
 
   const updateTicketStatus = async (ticketId: string, status: string) => {
     try {
-      const { data, error } = await (supabase as any)
+      // Atualizar sem usar .single() para evitar erro PGRST116
+      const { error } = await (supabase as any)
         .from('support_tickets')
         .update({ 
           status: status,
           updated_at: new Date().toISOString()
         })
         .eq('id', ticketId)
-        .select()
-        .single()
 
       if (error) {
         console.error('Erro ao atualizar status:', error)
