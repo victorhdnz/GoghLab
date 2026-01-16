@@ -243,14 +243,18 @@ export default function MembrosPage() {
     )
   }
 
-  // Se não está autenticado, redirecionar para login
-  if (!isAuthenticated) {
-    router.push('/dashboard')
+  // Se não está autenticado E auth já carregou, redirecionar para login
+  if (!authLoading && !isAuthenticated) {
+    // Usar window.location para evitar problemas de navegação do Next.js
+    if (typeof window !== 'undefined') {
+      window.location.href = '/dashboard'
+    }
     return null
   }
 
   // Sem permissão - mostrar mensagem (só verificar após auth carregar e user estar disponível)
-  if (!hasAccess && user) {
+  // Se emailIsAdmin é true, sempre permitir acesso mesmo sem profile
+  if (!emailIsAdmin && !hasAccess && user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">

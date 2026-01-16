@@ -59,7 +59,11 @@ export const useAuth = () => {
     const getUser = async (retry = 0) => {
       if (!mounted) return
       
-      setLoading(true)
+      // Só setar loading como true se ainda não temos user (primeira carga)
+      // Isso evita "flash" de loading durante navegação
+      if (!user) {
+        setLoading(true)
+      }
       
       try {
         // Pequeno delay para garantir que cookies foram atualizados pelo middleware
