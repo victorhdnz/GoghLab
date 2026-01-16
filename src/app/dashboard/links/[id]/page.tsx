@@ -93,23 +93,13 @@ export default function EditLinkAggregatorPage() {
     try {
       setSaving(true);
 
-      // Timeout de segurança
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Timeout')), 15000)
-      )
-
       // Verificar se o slug já existe (exceto o atual)
-      const checkSlugPromise = (supabase as any)
+      const { data: existing } = await (supabase as any)
         .from('link_aggregators')
         .select('id')
         .eq('slug', formData.slug)
         .neq('id', id)
         .maybeSingle();
-
-      const { data: existing } = await Promise.race([
-        checkSlugPromise,
-        timeoutPromise
-      ]) as { data: any }
 
       if (existing) {
         toast.error('Este slug já está em uso. Escolha outro.');
@@ -118,7 +108,7 @@ export default function EditLinkAggregatorPage() {
       }
 
       // Atualizar agregador
-      const updatePromise = (supabase as any)
+      const { error } = await (supabase as any)
         .from('link_aggregators')
         .update({
           name: formData.name,
@@ -135,22 +125,13 @@ export default function EditLinkAggregatorPage() {
         } as any)
         .eq('id', id);
 
-      const { error } = await Promise.race([
-        updatePromise,
-        timeoutPromise
-      ]) as { error: any }
-
       if (error) throw error;
 
       toast.success('Agregador atualizado com sucesso!');
       router.push('/dashboard/links');
     } catch (error: any) {
       console.error('Erro ao atualizar agregador:', error);
-      if (error?.message === 'Timeout') {
-        toast.error('Tempo limite excedido. Tente novamente.');
-      } else {
-        toast.error(error?.message || 'Erro ao atualizar agregador');
-      }
+      toast.error(error?.message || 'Erro ao atualizar agregador');
     } finally {
       setSaving(false);
     }

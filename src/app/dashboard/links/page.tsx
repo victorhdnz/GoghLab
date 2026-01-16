@@ -23,32 +23,18 @@ export default function LinkAggregatorsDashboard() {
   const loadAggregators = async () => {
     setLoading(true);
     try {
-      // Timeout de segurança
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Timeout')), 10000)
-      )
-
-      const userPromise = supabase.auth.getUser();
-      const { data: { user } } = await Promise.race([
-        userPromise,
-        timeoutPromise
-      ]) as { data: { user: any } }
+      const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) {
         setLoading(false);
         return;
       }
 
-      const queryPromise = (supabase as any)
+      const { data, error } = await (supabase as any)
         .from('link_aggregators')
         .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
-
-      const { data, error } = await Promise.race([
-        queryPromise,
-        timeoutPromise
-      ]) as { data: any, error: any };
 
       if (error) throw error;
 
@@ -69,9 +55,7 @@ export default function LinkAggregatorsDashboard() {
       })));
     } catch (error: any) {
       console.error('Erro ao carregar agregadores:', error);
-      if (error?.message !== 'Timeout') {
-        toast.error('Erro ao carregar agregadores');
-      }
+      toast.error('Erro ao carregar agregadores');
     } finally {
       setLoading(false);
     }

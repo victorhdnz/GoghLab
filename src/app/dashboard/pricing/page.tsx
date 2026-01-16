@@ -101,22 +101,11 @@ export default function PricingEditorPage() {
   const loadSettings = async () => {
     setLoading(true)
     try {
-      // Timeout de segurança
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Timeout')), 10000)
-      )
-
-      const settingsPromise = getSiteSettings()
-      const { data, error } = await Promise.race([
-        settingsPromise,
-        timeoutPromise
-      ]) as { data: any, error: any }
+      const { data, error } = await getSiteSettings()
 
       if (error) {
         console.error('Erro ao carregar configurações:', error)
-        if (error?.message !== 'Timeout') {
-          toast.error('Erro ao carregar configurações de pricing.')
-        }
+        toast.error('Erro ao carregar configurações de pricing.')
         setLoading(false)
         return
       }
@@ -167,9 +156,7 @@ export default function PricingEditorPage() {
       }
     } catch (error: any) {
       console.error('Erro ao carregar configurações:', error)
-      if (error?.message !== 'Timeout') {
-        toast.error('Erro ao carregar configurações de pricing.')
-      }
+      toast.error('Erro ao carregar configurações de pricing.')
     } finally {
       setLoading(false)
     }

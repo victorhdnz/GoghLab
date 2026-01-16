@@ -179,7 +179,7 @@ export const useAuth = () => {
       }
     }
 
-    // Timeout de segurança: se passar de 5 segundos, forçar loading = false
+    // Timeout de segurança: se passar de 30 segundos, forçar loading = false
     // Mas não logar warning para não poluir o console
     timeoutId = setTimeout(() => {
       if (mounted) {
@@ -187,7 +187,7 @@ export const useAuth = () => {
         setLoading(false)
         timeoutId = null
       }
-    }, 5000)
+    }, 30000) // 30 segundos
 
     getUser().then(() => {
       if (timeoutId) {

@@ -112,20 +112,10 @@ export default function ComparadorDashboardPage() {
   const loadData = async () => {
     setLoading(true)
     try {
-      // Timeout de segurança
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Timeout')), 10000)
-      )
-
-      await Promise.race([
-        Promise.all([loadGlobalTopics(), loadMVCompany(), loadCompanies()]),
-        timeoutPromise
-      ])
+      await Promise.all([loadGlobalTopics(), loadMVCompany(), loadCompanies()])
     } catch (error: any) {
       console.error('Erro ao carregar dados:', error)
-      if (error?.message !== 'Timeout') {
-        toast.error('Erro ao carregar dados do comparador')
-      }
+      toast.error('Erro ao carregar dados do comparador')
     } finally {
       setLoading(false)
     }

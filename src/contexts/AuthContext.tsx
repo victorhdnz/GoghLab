@@ -153,13 +153,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let retryCount = 0
     const maxRetries = 3
     
-    // Timeout de segurança para não ficar loading infinito
+    // Timeout de segurança para não ficar loading infinito (aumentado para 30s)
     const timeoutId = setTimeout(() => {
       if (isMounted && loading) {
         console.warn('Auth loading timeout - forcing completion')
         setLoading(false)
       }
-    }, 10000) // 10 segundos de timeout
+    }, 30000) // 30 segundos de timeout
 
     // Buscar sessão inicial com retry
     const initializeAuth = async (retry = 0) => {

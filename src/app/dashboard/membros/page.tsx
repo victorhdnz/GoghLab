@@ -61,44 +61,29 @@ export default function MembrosPage() {
   const loadMembers = async () => {
     setLoading(true)
     try {
-      // Timeout de segurança
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Timeout')), 10000)
-      )
-
       // Buscar todos os profiles
-      const profilesPromise = (supabase as any)
+      const { data: profiles, error: profilesError } = await (supabase as any)
         .from('profiles')
         .select('*')
         .order('created_at', { ascending: false })
 
-      const { data: profiles, error: profilesError } = await Promise.race([
-        profilesPromise,
-        timeoutPromise
-      ]) as { data: any, error: any }
-
       if (profilesError) throw profilesError
 
       // Buscar todas as assinaturas ativas
-      const subscriptionsPromise = (supabase as any)
-        .from('subscriptions')
-        .select('*')
-        .in('status', ['active', 'trialing'])
-
       let subscriptions = []
       try {
-        const result = await Promise.race([
-          subscriptionsPromise,
-          timeoutPromise
-        ]) as { data: any, error: any }
+        const { data: subsData, error: subsError } = await (supabase as any)
+          .from('subscriptions')
+          .select('*')
+          .in('status', ['active', 'trialing'])
         
-        if (result.error && result.error.code !== 'PGRST116') {
-          console.error('Error fetching subscriptions:', result.error)
+        if (subsError && subsError.code !== 'PGRST116') {
+          console.error('Error fetching subscriptions:', subsError)
         } else {
-          subscriptions = result.data || []
+          subscriptions = subsData || []
         }
       } catch (error) {
-        console.error('Timeout ao buscar assinaturas:', error)
+        console.error('Erro ao buscar assinaturas:', error)
       }
 
       // Combinar dados
@@ -127,9 +112,7 @@ export default function MembrosPage() {
       setMembers(membersWithSubs)
     } catch (error: any) {
       console.error('Error loading members:', error)
-      if (error?.message !== 'Timeout') {
-        toast.error('Erro ao carregar membros')
-      }
+      toast.error('Erro ao carregar membros')
     } finally {
       setLoading(false)
     }

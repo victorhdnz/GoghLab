@@ -400,22 +400,12 @@ export default function HomepageEditorPage() {
   const loadSettings = async () => {
     setLoading(true)
     try {
-      // Timeout de segurança para evitar carregamento infinito (5 segundos)
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Timeout ao carregar configurações')), 5000)
-      )
-
       // Buscar dados diretamente do banco para garantir que temos site_logo
-      const queryPromise = (supabase as any)
+      const { data: rawData, error: rawError } = await (supabase as any)
         .from('site_settings')
         .select('*')
         .eq('key', 'general')
         .maybeSingle()
-
-      const { data: rawData, error: rawError } = await Promise.race([
-        queryPromise,
-        timeoutPromise
-      ]) as { data: any, error: any }
       
       console.log('🔍 Dados brutos do banco:', rawData)
       console.log('🔍 site_logo do banco:', rawData?.site_logo)
