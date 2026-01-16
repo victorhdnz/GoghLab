@@ -150,53 +150,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Inicialização e listeners
   useEffect(() => {
     let isMounted = true
-    let retryCount = 0
-    const maxRetries = 3
     
-    // Timeout de segurança para não ficar loading infinito (aumentado para 30s)
+    // Timeout de segurança para não ficar loading infinito
     const timeoutId = setTimeout(() => {
       if (isMounted && loading) {
         console.warn('Auth loading timeout - forcing completion')
         setLoading(false)
       }
-    }, 30000) // 30 segundos de timeout
+    }, 5000) // 5 segundos de timeout
 
-    // Buscar sessão inicial com retry
-    const initializeAuth = async (retry = 0) => {
+    // Buscar sessão inicial de forma simples
+    const initializeAuth = async () => {
       try {
-        // Pequeno delay para garantir que cookies foram atualizados pelo middleware
-        if (retry > 0) {
-          await new Promise(resolve => setTimeout(resolve, 500 * retry))
-        }
-        
         const { data: { session: currentSession }, error } = await supabase.auth.getSession()
+        
+        if (!isMounted) return
         
         if (error) {
           console.error('Error getting session:', error)
-          // Se der erro e ainda tiver tentativas, tentar novamente
-          if (retry < maxRetries && isMounted) {
-            setTimeout(() => initializeAuth(retry + 1), 1000)
-            return
-          }
+          setLoading(false)
+          return
         }
         
-        if (isMounted) {
-          setSession(currentSession)
-          setUser(currentSession?.user || null)
-          
-          if (currentSession?.user) {
-            await updateUserData(currentSession.user)
-          }
+        setSession(currentSession)
+        setUser(currentSession?.user || null)
+        
+        if (currentSession?.user) {
+          // Buscar dados do usuário de forma assíncrona (não bloqueia)
+          updateUserData(currentSession.user).finally(() => {
+            if (isMounted) {
+              setLoading(false)
+            }
+          })
+        } else {
+          setLoading(false)
         }
       } catch (error) {
         console.error('Error initializing auth:', error)
-        // Se der erro e ainda tiver tentativas, tentar novamente
-        if (retry < maxRetries && isMounted) {
-          setTimeout(() => initializeAuth(retry + 1), 1000)
-          return
-        }
-      } finally {
-        if (isMounted && retry === 0) {
+        if (isMounted) {
           setLoading(false)
         }
       }
@@ -214,8 +205,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setSession(currentSession)
         setUser(currentSession?.user || null)
         
-        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-          await updateUserData(currentSession?.user || null)
+        if (event === 'SIGNED_IN') {
+          // Quando faz login, buscar dados do usuário
+          if (currentSession?.user) {
+            updateUserData(currentSession.user)
+          }
+        } else if (event === 'TOKEN_REFRESHED') {
+          // Durante refresh, apenas atualizar se tiver user
+          if (currentSession?.user) {
+            // Não bloquear com await - fazer de forma assíncrona
+            updateUserData(currentSession.user)
+          }
         } else if (event === 'SIGNED_OUT') {
           setProfile(null)
           setSubscription(null)
