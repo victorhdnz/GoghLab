@@ -24,11 +24,17 @@ import {
 
 type TabType = 'profile' | 'plan'
 
+interface UsageStats {
+  ai_messages: { current: number; limit: number | null }
+}
+
 export default function AccountPage() {
   const { user, profile, subscription, hasActiveSubscription, isPro, refreshSubscription } = useAuth()
   const [activeTab, setActiveTab] = useState<TabType>('profile')
   const [saving, setSaving] = useState(false)
   const [openingPortal, setOpeningPortal] = useState(false)
+  const [usageStats, setUsageStats] = useState<UsageStats | null>(null)
+  const [loadingUsage, setLoadingUsage] = useState(false)
   
   // Form state
   const [fullName, setFullName] = useState('')
@@ -40,6 +46,46 @@ export default function AccountPage() {
       setFullName(profile.full_name || '')
     }
   }, [profile])
+
+  // Buscar uso do usuário
+  useEffect(() => {
+    const fetchUsage = async () => {
+      if (!user || !hasActiveSubscription) {
+        setUsageStats(null)
+        return
+      }
+
+      setLoadingUsage(true)
+      try {
+        const periodStart = new Date()
+        periodStart.setDate(1)
+        periodStart.setHours(0, 0, 0, 0)
+
+        const { data: usageData } = await (supabase as any)
+          .from('user_usage')
+          .select('usage_count')
+          .eq('user_id', user.id)
+          .eq('feature_key', 'ai_messages')
+          .gte('period_start', periodStart.toISOString().split('T')[0])
+          .maybeSingle()
+
+        const limit = isPro ? 2000 : 500
+
+        setUsageStats({
+          ai_messages: {
+            current: usageData?.usage_count || 0,
+            limit: limit
+          }
+        })
+      } catch (error) {
+        console.error('Erro ao buscar uso:', error)
+      } finally {
+        setLoadingUsage(false)
+      }
+    }
+
+    fetchUsage()
+  }, [user, hasActiveSubscription, isPro])
 
   // Listener para atualização de assinatura
   useEffect(() => {
@@ -142,11 +188,11 @@ export default function AccountPage() {
       if (data.url) {
         window.location.href = data.url
       } else {
-        toast.error('Erro ao abrir portal de assinatura')
+        toast.error(data.error || 'Erro ao abrir portal de assinatura')
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro ao abrir portal:', error)
-      toast.error('Erro ao abrir portal')
+      toast.error(error.message || 'Erro ao abrir portal')
     } finally {
       setOpeningPortal(false)
     }
@@ -339,47 +385,87 @@ export default function AccountPage() {
               </div>
             </div>
 
-            {/* Features / Usage */}
-            <div className="bg-white rounded-2xl border border-gogh-grayLight p-6 lg:p-8">
-              <div className="flex items-center gap-3 mb-6">
-                <Sparkles className="w-5 h-5 text-gogh-grayDark" />
-                <h2 className="text-xl font-bold text-gogh-black">
-                  {hasActiveSubscription ? 'Recursos do Plano' : 'O que você terá'}
-                </h2>
-              </div>
-
-              {hasActiveSubscription ? (
-                <ul className="space-y-4">
-                  {planFeatures.map((feature, index) => (
-                    <li key={index} className="flex items-center gap-3">
-                      <div className="w-8 h-8 bg-gogh-yellow/20 rounded-lg flex items-center justify-center">
-                        <feature.icon className="w-4 h-4 text-gogh-black" />
-                      </div>
-                      <span className="text-gogh-black">{feature.text}</span>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <ul className="space-y-4">
-                  {[
-                    { text: 'Agentes de IA especializados', icon: MessageSquare },
-                    { text: 'Cursos completos', icon: BookOpen },
-                    { text: 'Acesso Canva Pro', icon: Palette },
-                    { text: 'Acesso CapCut Pro', icon: Scissors },
-                  ].map((feature, index) => (
-                    <li key={index} className="flex items-center gap-3">
-                      <div className="w-8 h-8 bg-gogh-grayLight rounded-lg flex items-center justify-center">
-                        <feature.icon className="w-4 h-4 text-gogh-grayDark" />
-                      </div>
-                      <span className="text-gogh-grayDark">{feature.text}</span>
-                    </li>
-                  ))}
-                </ul>
+            {/* Usage & Features */}
+            <div className="bg-white rounded-2xl border border-gogh-grayLight p-6 lg:p-8 space-y-6">
+              {/* Uso de Mensagens de IA */}
+              {hasActiveSubscription && usageStats && (
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      <Zap className="w-5 h-5 text-gogh-grayDark" />
+                      <h3 className="text-lg font-bold text-gogh-black">Uso de Mensagens de IA</h3>
+                    </div>
+                    <span className="text-sm text-gogh-grayDark">Este mês</span>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-2xl font-bold text-gogh-black">
+                        {usageStats.ai_messages.current}
+                      </span>
+                      <span className="text-sm text-gogh-grayDark">
+                        / {usageStats.ai_messages.limit} mensagens
+                      </span>
+                    </div>
+                    <div className="h-2 bg-gogh-grayLight rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-gradient-to-r from-purple-500 to-indigo-500 rounded-full transition-all duration-500"
+                        style={{ 
+                          width: `${Math.min(
+                            (usageStats.ai_messages.current / (usageStats.ai_messages.limit || 1)) * 100, 
+                            100
+                          )}%` 
+                        }}
+                      />
+                    </div>
+                    <p className="text-xs text-gogh-grayDark">
+                      {Math.round((usageStats.ai_messages.current / (usageStats.ai_messages.limit || 1)) * 100)}% do limite utilizado
+                    </p>
+                  </div>
+                </div>
               )}
+
+              {/* Recursos do Plano */}
+              <div>
+                <div className="flex items-center gap-3 mb-4">
+                  <Sparkles className="w-5 h-5 text-gogh-grayDark" />
+                  <h3 className="text-lg font-bold text-gogh-black">
+                    {hasActiveSubscription ? 'Recursos do Plano' : 'O que você terá'}
+                  </h3>
+                </div>
+
+                {hasActiveSubscription ? (
+                  <ul className="space-y-3">
+                    {planFeatures.map((feature, index) => (
+                      <li key={index} className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-gogh-yellow/20 rounded-lg flex items-center justify-center">
+                          <feature.icon className="w-4 h-4 text-gogh-black" />
+                        </div>
+                        <span className="text-gogh-black">{feature.text}</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <ul className="space-y-3">
+                    {[
+                      { text: 'Agentes de IA especializados', icon: MessageSquare },
+                      { text: 'Cursos completos', icon: BookOpen },
+                      { text: 'Acesso Canva Pro', icon: Palette },
+                      { text: 'Acesso CapCut Pro', icon: Scissors },
+                    ].map((feature, index) => (
+                      <li key={index} className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-gogh-grayLight rounded-lg flex items-center justify-center">
+                          <feature.icon className="w-4 h-4 text-gogh-grayDark" />
+                        </div>
+                        <span className="text-gogh-grayDark">{feature.text}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
 
               {/* Subscription Period */}
               {hasActiveSubscription && subscription && (
-                <div className="mt-6 pt-6 border-t border-gogh-grayLight">
+                <div className="pt-6 border-t border-gogh-grayLight">
                   <p className="text-sm text-gogh-grayDark">
                     Ciclo atual: {subscription.billing_cycle === 'annual' ? 'Anual' : 'Mensal'}
                   </p>

@@ -31,12 +31,6 @@ interface MemberLayoutProps {
 // Itens do menu que requerem assinatura
 const subscriberMenuItems = [
   { 
-    href: '/membro', 
-    label: 'Dashboard', 
-    icon: Home,
-    description: 'Visão geral da sua conta'
-  },
-  { 
     href: '/membro/agentes', 
     label: 'Agentes de IA', 
     icon: MessageSquare,
@@ -77,27 +71,40 @@ export default function MemberLayout({ children }: MemberLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [openingPortal, setOpeningPortal] = useState(false)
   const [siteLogo, setSiteLogo] = useState<string | null>(null)
+  const [whatsappNumber, setWhatsappNumber] = useState<string>('5534999999999')
   const [signingOut, setSigningOut] = useState(false)
   const supabase = createClient()
 
-  // Carregar logo do site
+  // Carregar logo e WhatsApp do site
   useEffect(() => {
-    const loadLogo = async () => {
+    const loadSiteData = async () => {
       try {
-        const { data } = await (supabase as any)
+        const { data: logoData } = await (supabase as any)
           .from('site_settings')
           .select('value')
           .eq('key', 'hero_logo')
           .single()
         
-        if (data?.value) {
-          setSiteLogo(data.value)
+        if (logoData?.value) {
+          setSiteLogo(logoData.value)
+        }
+
+        const { data: whatsappData } = await (supabase as any)
+          .from('site_settings')
+          .select('value')
+          .eq('key', 'contact_whatsapp')
+          .single()
+        
+        if (whatsappData?.value) {
+          // Remover caracteres não numéricos e garantir formato internacional
+          const number = whatsappData.value.replace(/\D/g, '')
+          setWhatsappNumber(number || '5534999999999')
         }
       } catch (error) {
-        console.error('Erro ao carregar logo:', error)
+        console.error('Erro ao carregar dados do site:', error)
       }
     }
-    loadLogo()
+    loadSiteData()
   }, [supabase])
 
   // Abrir portal de gerenciamento do Stripe
@@ -323,22 +330,17 @@ export default function MemberLayout({ children }: MemberLayoutProps) {
 
           {/* Bottom Actions */}
           <div className="p-4 border-t border-gogh-grayLight space-y-2">
-            {/* Gerenciar Assinatura */}
-            {hasActiveSubscription && (
-              <button
-                onClick={handleManageSubscription}
-                disabled={openingPortal}
-                className="w-full flex items-center gap-3 px-4 py-2 text-gogh-grayDark hover:text-gogh-black hover:bg-gogh-grayLight rounded-lg transition-colors disabled:opacity-50"
-              >
-                <CreditCard className="w-5 h-5" />
-                <span className="flex-1 text-left">Gerenciar Assinatura</span>
-                {openingPortal ? (
-                  <div className="w-4 h-4 border-2 border-gogh-grayDark border-t-transparent rounded-full animate-spin" />
-                ) : (
-                  <ExternalLink className="w-4 h-4" />
-                )}
-              </button>
-            )}
+            {/* Suporte WhatsApp */}
+            <a
+              href={`https://wa.me/${whatsappNumber}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full flex items-center gap-3 px-4 py-2 text-gogh-grayDark hover:text-gogh-black hover:bg-gogh-grayLight rounded-lg transition-colors"
+            >
+              <MessageSquare className="w-5 h-5" />
+              <span className="flex-1 text-left">Suporte</span>
+              <ExternalLink className="w-4 h-4" />
+            </a>
             <button
               onClick={handleSignOut}
               disabled={signingOut}

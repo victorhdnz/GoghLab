@@ -20,13 +20,23 @@ export async function POST(request: Request) {
     // Buscar a assinatura ativa do usuário
     const { data: subscription, error: subError } = await supabase
       .from('subscriptions')
-      .select('stripe_customer_id')
+      .select('stripe_customer_id, plan_id')
       .eq('user_id', user.id)
       .eq('status', 'active')
-      .single()
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
 
-    if (subError || !subscription?.stripe_customer_id) {
+    if (subError || !subscription) {
       return NextResponse.json({ error: 'Assinatura não encontrada' }, { status: 404 })
+    }
+
+    // Se não tem stripe_customer_id, é uma assinatura manual
+    // Não pode usar o portal do Stripe
+    if (!subscription.stripe_customer_id || subscription.stripe_customer_id.startsWith('manual_')) {
+      return NextResponse.json({ 
+        error: 'Esta assinatura foi criada manualmente. Entre em contato com o suporte para gerenciar sua assinatura.' 
+      }, { status: 400 })
     }
 
     // Criar sessão do portal de gerenciamento do Stripe

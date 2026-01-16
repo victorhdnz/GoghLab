@@ -80,56 +80,51 @@ export default function ToolsPage() {
   const hasPendingCanva = pendingTickets.some(t => t.ticket_type === 'canva_access')
   const hasPendingCapcut = pendingTickets.some(t => t.ticket_type === 'capcut_access')
 
-  // Solicitar acesso
-  const requestAccess = async (toolType: 'canva' | 'capcut') => {
+  // Solicitar acesso para ambas as ferramentas
+  const requestToolsAccess = async () => {
     if (!user) return
-    setSubmitting(toolType)
+    setSubmitting('both')
 
     try {
-      const toolName = toolType === 'canva' ? 'Canva Pro' : 'CapCut Pro'
-      
-      // Criar ticket de suporte
-      const { error } = await (supabase as any)
+      // Criar ticket único para ambas as ferramentas
+      const { data: ticketData, error: ticketError } = await (supabase as any)
         .from('support_tickets')
         .insert({
           user_id: user.id,
-          ticket_type: `${toolType}_access`,
-          subject: `Solicitação de acesso ao ${toolName}`,
+          ticket_type: 'tools_access',
+          subject: 'Solicitação de acesso às ferramentas Pro (Canva e CapCut)',
           status: 'open',
           priority: 'normal'
         })
+        .select()
+        .single()
 
-      if (error) throw error
+      if (ticketError) throw ticketError
 
       // Criar mensagem inicial
-      await (supabase as any)
+      const { error: messageError } = await (supabase as any)
         .from('support_messages')
         .insert({
-          ticket_id: (await (supabase as any)
-            .from('support_tickets')
-            .select('id')
-            .eq('user_id', user.id)
-            .eq('ticket_type', `${toolType}_access`)
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .single()).data?.id,
+          ticket_id: ticketData.id,
           sender_id: user.id,
-          content: `Olá! Gostaria de solicitar acesso ao ${toolName}. Aguardo instruções para receber as credenciais.`
+          content: 'Olá! Gostaria de solicitar acesso às ferramentas Canva Pro e CapCut Pro. Aguardo instruções para receber as credenciais.'
         })
 
-      toast.success(`Solicitação enviada! Você receberá o acesso em até 24 horas.`)
+      if (messageError) throw messageError
+
+      toast.success('Solicitação enviada! Você receberá o acesso em até 24 horas.')
       
       // Atualizar lista de tickets pendentes
       const { data: ticketsData } = await (supabase as any)
         .from('support_tickets')
         .select('*')
         .eq('user_id', user.id)
-        .in('ticket_type', ['canva_access', 'capcut_access'])
+        .eq('ticket_type', 'tools_access')
         .in('status', ['open', 'in_progress'])
 
       setPendingTickets(ticketsData || [])
     } catch (error) {
-      console.error('Error requesting access:', error)
+      console.error('Error requesting tools access:', error)
       toast.error('Erro ao enviar solicitação. Tente novamente.')
     } finally {
       setSubmitting(null)
@@ -330,33 +325,6 @@ export default function ToolsPage() {
         ))}
       </div>
 
-      {/* Support Section */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3 }}
-        className="bg-white rounded-xl p-6 border border-gogh-grayLight shadow-sm"
-      >
-        <div className="flex items-start gap-4">
-          <div className="p-3 bg-gogh-grayLight rounded-xl">
-            <MessageSquare className="w-6 h-6 text-gogh-grayDark" />
-          </div>
-          <div>
-            <h3 className="font-semibold text-gogh-black mb-1">Precisa de ajuda?</h3>
-            <p className="text-sm text-gogh-grayDark mb-3">
-              Se você está tendo problemas com o acesso ou tem dúvidas sobre as ferramentas, 
-              entre em contato com nosso suporte.
-            </p>
-            <a
-              href="/membro/suporte"
-              className="inline-flex items-center gap-2 text-gogh-yellow hover:underline text-sm font-medium"
-            >
-              Abrir ticket de suporte
-              <ExternalLink className="w-4 h-4" />
-            </a>
-          </div>
-        </div>
-      </motion.div>
     </div>
   )
 }
