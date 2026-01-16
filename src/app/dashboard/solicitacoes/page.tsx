@@ -190,6 +190,35 @@ export default function SolicitacoesPage() {
         }
       }
 
+      // Limpar erros reportados quando novos links são salvos
+      if (canvaLink.trim()) {
+        const canvaAccess = toolAccess.find(t => t.tool_type === 'canva')
+        if (canvaAccess && canvaAccess.error_reported) {
+          await (supabase as any)
+            .from('tool_access_credentials')
+            .update({
+              error_reported: false,
+              error_message: null,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', canvaAccess.id)
+        }
+      }
+
+      if (capcutLink.trim()) {
+        const capcutAccess = toolAccess.find(t => t.tool_type === 'capcut')
+        if (capcutAccess && capcutAccess.error_reported) {
+          await (supabase as any)
+            .from('tool_access_credentials')
+            .update({
+              error_reported: false,
+              error_message: null,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', capcutAccess.id)
+        }
+      }
+
       // Atualizar status do ticket para "resolved" se ambos os links foram enviados
       if (canvaLink.trim() && capcutLink.trim()) {
         await updateTicketStatus(selectedTicket.id, 'resolved')
@@ -377,6 +406,45 @@ export default function SolicitacoesPage() {
 
                 {/* Links Form */}
                 <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                  {/* Alertas de Erro Reportado */}
+                  {toolAccess.some(t => t.tool_type === 'canva' && t.error_reported) && (
+                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                      <div className="flex items-start gap-3">
+                        <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                        <div className="flex-1">
+                          <h4 className="font-medium text-amber-800 mb-1">
+                            Erro Reportado - Canva Pro
+                          </h4>
+                          <p className="text-sm text-amber-700 mb-2">
+                            {toolAccess.find(t => t.tool_type === 'canva' && t.error_reported)?.error_message || 'Cliente reportou problema com o link'}
+                          </p>
+                          <p className="text-xs text-amber-600">
+                            Atualize o link abaixo para resolver o problema.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {toolAccess.some(t => t.tool_type === 'capcut' && t.error_reported) && (
+                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                      <div className="flex items-start gap-3">
+                        <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                        <div className="flex-1">
+                          <h4 className="font-medium text-amber-800 mb-1">
+                            Erro Reportado - CapCut Pro
+                          </h4>
+                          <p className="text-sm text-amber-700 mb-2">
+                            {toolAccess.find(t => t.tool_type === 'capcut' && t.error_reported)?.error_message || 'Cliente reportou problema com o link'}
+                          </p>
+                          <p className="text-xs text-amber-600">
+                            Atualize o link abaixo para resolver o problema.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       <div className="flex items-center gap-2">

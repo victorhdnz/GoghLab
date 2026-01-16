@@ -27,6 +27,8 @@ interface ToolAccess {
   access_link?: string
   access_granted_at: string
   is_active: boolean
+  error_reported?: boolean
+  error_message?: string
 }
 
 interface SupportTicket {
@@ -44,6 +46,9 @@ export default function ToolsPage() {
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [tutorialVideoUrl, setTutorialVideoUrl] = useState<string | null>(null)
+  const [reportingError, setReportingError] = useState<string | null>(null)
+  const [errorMessage, setErrorMessage] = useState('')
+  const [showErrorModal, setShowErrorModal] = useState(false)
   
   const supabase = createClient()
 
@@ -144,6 +149,52 @@ export default function ToolsPage() {
       toast.error('Erro ao enviar solicitação. Tente novamente.')
     } finally {
       setSubmitting(false)
+    }
+  }
+
+  const reportLinkError = async (toolType: 'canva' | 'capcut') => {
+    if (!user) return
+    setReportingError(toolType)
+    setShowErrorModal(true)
+  }
+
+  const submitErrorReport = async () => {
+    if (!user || !reportingError || !errorMessage.trim()) return
+
+    try {
+      const toolAccessData = toolAccess.find(t => t.tool_type === reportingError)
+      if (!toolAccessData) {
+        toast.error('Acesso não encontrado')
+        return
+      }
+
+      const { error } = await (supabase as any)
+        .from('tool_access_credentials')
+        .update({
+          error_reported: true,
+          error_message: errorMessage.trim(),
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', toolAccessData.id)
+
+      if (error) throw error
+
+      toast.success('Erro reportado! Nossa equipe irá verificar e enviar um novo link.')
+      setShowErrorModal(false)
+      setErrorMessage('')
+      setReportingError(null)
+
+      // Recarregar dados
+      const { data: accessData } = await (supabase as any)
+        .from('tool_access_credentials')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('is_active', true)
+
+      setToolAccess(accessData || [])
+    } catch (error) {
+      console.error('Error reporting link error:', error)
+      toast.error('Erro ao reportar problema. Tente novamente.')
     }
   }
 
@@ -288,16 +339,43 @@ export default function ToolsPage() {
                   
                   {/* Link de Ativação */}
                   {tool.accessData.access_link && (
-                    <a
-                      href={tool.accessData.access_link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gogh-yellow text-gogh-black font-medium rounded-lg hover:bg-gogh-yellow/90 transition-colors"
-                    >
-                      <LinkIcon className="w-4 h-4" />
-                      Link de Ativação {tool.name}
-                      <ExternalLink className="w-4 h-4" />
-                    </a>
+                    <div className="space-y-2">
+                      {/* Alerta de Erro Reportado */}
+                      {tool.accessData.error_reported && (
+                        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                          <div className="flex items-start gap-2">
+                            <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+                            <div className="flex-1">
+                              <p className="text-sm font-medium text-amber-800">
+                                Erro reportado
+                              </p>
+                              <p className="text-xs text-amber-600 mt-1">
+                                Nossa equipe está verificando e enviará um novo link em breve.
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      
+                      <a
+                        href={tool.accessData.access_link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gogh-yellow text-gogh-black font-medium rounded-lg hover:bg-gogh-yellow/90 transition-colors"
+                      >
+                        <LinkIcon className="w-4 h-4" />
+                        Link de Ativação {tool.name}
+                        <ExternalLink className="w-4 h-4" />
+                      </a>
+                      
+                      <button
+                        onClick={() => reportLinkError(tool.id as 'canva' | 'capcut')}
+                        className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg border border-red-200 transition-colors"
+                      >
+                        <AlertTriangle className="w-4 h-4" />
+                        Reportar Erro no Link
+                      </button>
+                    </div>
                   )}
                   
                   <a
