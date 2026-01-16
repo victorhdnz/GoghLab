@@ -23,9 +23,11 @@ import Link from 'next/link'
 interface Course {
   id: string
   title: string
-  description: string
-  course_type: 'canva' | 'capcut'
-  order: number
+  description: string | null
+  course_type?: 'canva' | 'capcut' | 'strategy' | 'other'
+  order?: number
+  order_position?: number
+  slug?: string
   created_at: string
   updated_at: string
   lessons?: Lesson[]
@@ -78,15 +80,16 @@ export default function CursosPage() {
           *,
           lessons:course_lessons(*)
         `)
-        .order('course_type', { ascending: true })
-        .order('order', { ascending: true })
+        .order('course_type', { ascending: true, nullsLast: true })
+        .order('order_position', { ascending: true, nullsLast: true })
+        .order('order', { ascending: true, nullsLast: true })
 
       if (error) throw error
       
       // Ordenar lessons dentro de cada curso
       const coursesWithOrderedLessons = (data || []).map((course: Course) => ({
         ...course,
-        lessons: (course.lessons || []).sort((a: Lesson, b: Lesson) => a.order - b.order)
+        lessons: (course.lessons || []).sort((a: Lesson, b: Lesson) => (a.order || a.order_position || 0) - (b.order || b.order_position || 0))
       }))
       
       setCourses(coursesWithOrderedLessons)
@@ -103,13 +106,16 @@ export default function CursosPage() {
       // Pegar o próximo order
       const maxOrder = courses
         .filter(c => c.course_type === courseForm.course_type)
-        .reduce((max, c) => Math.max(max, c.order || 0), 0)
+        .reduce((max, c) => Math.max(max, c.order || c.order_position || 0), 0)
 
       const { error } = await (supabase as any)
         .from('courses')
         .insert({
           ...courseForm,
-          order: maxOrder + 1
+          order_position: maxOrder + 1,
+          order: maxOrder + 1,
+          slug: courseForm.title.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''),
+          is_published: true
         })
 
       if (error) throw error
@@ -169,14 +175,14 @@ export default function CursosPage() {
     if (!selectedCourse) return
 
     try {
-      const maxOrder = (selectedCourse.lessons || []).reduce((max, l) => Math.max(max, l.order || 0), 0)
+      const maxOrder = (selectedCourse.lessons || []).reduce((max, l) => Math.max(max, l.order_position || l.order || 0), 0)
 
       const { error } = await (supabase as any)
         .from('course_lessons')
         .insert({
           ...lessonForm,
           course_id: selectedCourse.id,
-          order: maxOrder + 1
+          order_position: maxOrder + 1
         })
 
       if (error) throw error
@@ -247,7 +253,7 @@ export default function CursosPage() {
   const handleReorderLesson = async (lessonId: string, direction: 'up' | 'down') => {
     if (!selectedCourse) return
 
-    const lessons = [...(selectedCourse.lessons || [])].sort((a, b) => a.order - b.order)
+    const lessons = [...(selectedCourse.lessons || [])].sort((a, b) => (a.order || a.order_position || 0) - (b.order || b.order_position || 0))
     const index = lessons.findIndex(l => l.id === lessonId)
     
     if (index === -1) return
@@ -263,7 +269,7 @@ export default function CursosPage() {
       for (let i = 0; i < lessons.length; i++) {
         await (supabase as any)
           .from('course_lessons')
-          .update({ order: i + 1 })
+          .update({ order_position: i + 1 })
           .eq('id', lessons[i].id)
       }
 
@@ -309,8 +315,8 @@ export default function CursosPage() {
     setShowLessonForm(true)
   }
 
-  const canvaCourses = courses.filter(c => c.course_type === 'canva')
-  const capcutCourses = courses.filter(c => c.course_type === 'capcut')
+  const canvaCourses = courses.filter(c => c.course_type === 'canva' || (!c.course_type && c.title?.toLowerCase().includes('canva')))
+  const capcutCourses = courses.filter(c => c.course_type === 'capcut' || (!c.course_type && c.title?.toLowerCase().includes('capcut')))
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -454,7 +460,7 @@ export default function CursosPage() {
                       <div className="flex items-center gap-2 mb-1">
                         <Video className="w-4 h-4 text-gray-400" />
                         <h4 className="font-medium text-gray-900">{lesson.title}</h4>
-                        <span className="text-xs text-gray-500">#{lesson.order}</span>
+                        <span className="text-xs text-gray-500">#{lesson.order_position || lesson.order || 0}</span>
                       </div>
                       <p className="text-sm text-gray-600">{lesson.description}</p>
                     </div>

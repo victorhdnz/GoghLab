@@ -18,9 +18,10 @@ import Link from 'next/link'
 interface Course {
   id: string
   title: string
-  description: string
-  course_type: 'canva' | 'capcut'
-  order: number
+  description: string | null
+  course_type?: 'canva' | 'capcut' | 'strategy' | 'other'
+  order?: number
+  order_position?: number
   lessons?: Lesson[]
 }
 
@@ -28,9 +29,10 @@ interface Lesson {
   id: string
   course_id: string
   title: string
-  description: string
-  video_url: string
-  order: number
+  description: string | null
+  video_url: string | null
+  order?: number
+  order_position?: number
 }
 
 export default function CoursesPage() {
@@ -51,15 +53,17 @@ export default function CoursesPage() {
             *,
             lessons:course_lessons(*)
           `)
-          .order('course_type', { ascending: true })
-          .order('order', { ascending: true })
+          .eq('is_published', true)
+          .order('course_type', { ascending: true, nullsLast: true })
+          .order('order_position', { ascending: true, nullsLast: true })
+          .order('order', { ascending: true, nullsLast: true })
 
         if (error) throw error
         
         // Ordenar lessons dentro de cada curso
         const coursesWithOrderedLessons = (data || []).map((course: Course) => ({
           ...course,
-          lessons: (course.lessons || []).sort((a: Lesson, b: Lesson) => a.order - b.order)
+          lessons: (course.lessons || []).sort((a: Lesson, b: Lesson) => (a.order_position || a.order || 0) - (b.order_position || b.order || 0))
         }))
         
         setCourses(coursesWithOrderedLessons)
@@ -84,8 +88,8 @@ export default function CoursesPage() {
     )
   }
 
-  const canvaCourses = courses.filter(c => c.course_type === 'canva')
-  const capcutCourses = courses.filter(c => c.course_type === 'capcut')
+  const canvaCourses = courses.filter(c => c.course_type === 'canva' || (!c.course_type && c.title?.toLowerCase().includes('canva')))
+  const capcutCourses = courses.filter(c => c.course_type === 'capcut' || (!c.course_type && c.title?.toLowerCase().includes('capcut')))
 
   return (
     <div className="max-w-6xl mx-auto space-y-8">
