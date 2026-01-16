@@ -148,9 +148,22 @@ export default function PricingEditorPage() {
       }
 
       // Carregar categorias de recursos
+      // Verificar em múltiplos locais possíveis
+      let categories: FeatureCategory[] = []
+      
       if (data?.homepage_content?.pricing?.feature_categories) {
-        const categories = data.homepage_content.pricing.feature_categories as FeatureCategory[]
+        categories = data.homepage_content.pricing.feature_categories as FeatureCategory[]
+      } else if (data?.pricing?.feature_categories) {
+        categories = data.pricing.feature_categories as FeatureCategory[]
+      } else if ((data as any)?.feature_categories) {
+        categories = (data as any).feature_categories as FeatureCategory[]
+      }
+      
+      if (categories && categories.length > 0) {
+        console.log('📦 Categorias carregadas:', categories.length)
         setFeatureCategories(categories.sort((a, b) => a.order - b.order))
+      } else {
+        console.log('⚠️ Nenhuma categoria encontrada nos dados:', data)
       }
     } catch (error: any) {
       console.error('Erro ao carregar configurações:', error)

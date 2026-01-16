@@ -46,8 +46,6 @@ export default function ComparadorDashboardPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   
-  const [footerExpanded, setFooterExpanded] = useState(false)
-  const [savingFooter, setSavingFooter] = useState(false)
   const [editingCompany, setEditingCompany] = useState<number | null>(null)
   const [editingMVCompany, setEditingMVCompany] = useState(false)
   const [topicsExpanded, setTopicsExpanded] = useState(true)
@@ -62,20 +60,6 @@ export default function ComparadorDashboardPage() {
   // Global topics
   const [globalTopics, setGlobalTopics] = useState<GlobalTopic[]>([])
 
-  const [footerContent, setFooterContent] = useState({
-    title: 'Pronto para trabalhar com o Gogh Lab?',
-    subtitle: 'Entre em contato e descubra como podemos transformar seu negócio',
-    whatsapp_enabled: true,
-    whatsapp_number: '',
-    whatsapp_text: 'WhatsApp',
-    email_enabled: true,
-    email_address: '',
-    email_text: 'E-mail',
-    instagram_enabled: true,
-    instagram_url: '',
-    instagram_text: 'Instagram',
-  })
-  
   // Função auxiliar para gerar UUID válido
   const generateUUID = () => {
     return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
@@ -134,7 +118,7 @@ export default function ComparadorDashboardPage() {
       )
 
       await Promise.race([
-        Promise.all([loadGlobalTopics(), loadMVCompany(), loadCompanies(), loadFooterContent()]),
+        Promise.all([loadGlobalTopics(), loadMVCompany(), loadCompanies()]),
         timeoutPromise
       ])
     } catch (error: any) {
@@ -235,20 +219,6 @@ export default function ComparadorDashboardPage() {
     }
   }
 
-  const loadFooterContent = async () => {
-    try {
-      const { data, error } = await getSiteSettings()
-      if (error) {
-        console.error('Erro ao carregar rodapé:', error)
-        return
-      }
-      if (data?.comparison_footer) {
-        setFooterContent(prev => ({ ...prev, ...data.comparison_footer }))
-      }
-    } catch (error) {
-      console.error('Erro ao carregar rodapé:', error)
-    }
-  }
 
   const handleAddTopic = () => {
     const newTopic: GlobalTopic = {
@@ -451,17 +421,6 @@ export default function ComparadorDashboardPage() {
         }
       }
 
-      // 4. Salvar rodapé
-      const { success: footerSuccess, error: footerError } = await saveSiteSettings({
-        fieldsToUpdate: {
-          comparison_footer: footerContent,
-        },
-      })
-
-      if (!footerSuccess) {
-        toast.error(footerError?.message || 'Erro ao salvar rodapé')
-        return
-      }
 
       toast.success('Todas as alterações foram salvas com sucesso!')
       setEditingMVCompany(false)
@@ -515,28 +474,6 @@ export default function ComparadorDashboardPage() {
     }
   }
 
-  const handleSaveFooter = async () => {
-    setSavingFooter(true)
-    try {
-      const { success, error } = await saveSiteSettings({
-        fieldsToUpdate: {
-          comparison_footer: footerContent,
-        },
-      })
-
-      if (!success) {
-        toast.error(error?.message || 'Erro ao salvar rodapé')
-        return
-      }
-
-      toast.success('Rodapé salvo com sucesso!')
-    } catch (error) {
-      console.error('Erro ao salvar rodapé:', error)
-      toast.error('Erro ao salvar rodapé')
-    } finally {
-      setSavingFooter(false)
-    }
-  }
 
   if (loading) {
     return (
@@ -644,125 +581,7 @@ export default function ComparadorDashboardPage() {
           )}
         </div>
 
-        {/* Footer Editor */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6 overflow-hidden">
-          <button
-            onClick={() => setFooterExpanded(!footerExpanded)}
-            className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors"
-          >
-            <div className="flex items-center gap-3">
-              <h2 className="text-lg font-semibold text-gray-900">Rodapé do Comparador</h2>
-              <span className="text-sm text-gray-500">(Editar textos e links de contato)</span>
-            </div>
-            {footerExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
-          </button>
-
-          {footerExpanded && (
-            <div className="p-6 border-t border-gray-200 space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Input
-                  label="Título do Rodapé"
-                  value={footerContent.title}
-                  onChange={(e) => setFooterContent({ ...footerContent, title: e.target.value })}
-                  placeholder="Ex: Pronto para trabalhar com a Gogh Lab?"
-                />
-                <div>
-                  <label className="block text-sm font-medium mb-2">Subtítulo</label>
-                  <textarea
-                    value={footerContent.subtitle}
-                    onChange={(e) => setFooterContent({ ...footerContent, subtitle: e.target.value })}
-                    placeholder="Ex: Entre em contato e descubra como podemos transformar seu negócio"
-                    rows={2}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
-                  />
-                </div>
-              </div>
-
-              <div className="border-t border-gray-200 pt-6">
-                <h3 className="font-semibold mb-4">Contatos</h3>
-                <div className="space-y-4">
-                  {/* WhatsApp */}
-                  <div className="bg-gray-50 rounded-lg p-4 space-y-3">
-                    <Switch
-                      label="Habilitar WhatsApp"
-                      checked={footerContent.whatsapp_enabled}
-                      onCheckedChange={(checked) => setFooterContent({ ...footerContent, whatsapp_enabled: checked })}
-                    />
-                    {footerContent.whatsapp_enabled && (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <Input
-                          label="Número do WhatsApp (com DDD, ex: 5534984136291)"
-                          value={footerContent.whatsapp_number}
-                          onChange={(e) => setFooterContent({ ...footerContent, whatsapp_number: e.target.value })}
-                          placeholder="Ex: 5534984136291"
-                        />
-                        <Input
-                          label="Texto do Botão"
-                          value={footerContent.whatsapp_text}
-                          onChange={(e) => setFooterContent({ ...footerContent, whatsapp_text: e.target.value })}
-                          placeholder="Ex: WhatsApp"
-                        />
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Email */}
-                  <div className="bg-gray-50 rounded-lg p-4 space-y-3">
-                    <Switch
-                      label="Habilitar E-mail"
-                      checked={footerContent.email_enabled}
-                      onCheckedChange={(checked) => setFooterContent({ ...footerContent, email_enabled: checked })}
-                    />
-                    {footerContent.email_enabled && (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <Input
-                          label="Endereço de E-mail"
-                          value={footerContent.email_address}
-                          onChange={(e) => setFooterContent({ ...footerContent, email_address: e.target.value })}
-                          placeholder="Ex: contato.goghlab@gmail.com"
-                        />
-                        <Input
-                          label="Texto do Botão"
-                          value={footerContent.email_text}
-                          onChange={(e) => setFooterContent({ ...footerContent, email_text: e.target.value })}
-                          placeholder="Ex: E-mail"
-                        />
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Instagram */}
-                  <div className="bg-gray-50 rounded-lg p-4 space-y-3">
-                    <Switch
-                      label="Habilitar Instagram"
-                      checked={footerContent.instagram_enabled}
-                      onCheckedChange={(checked) => setFooterContent({ ...footerContent, instagram_enabled: checked })}
-                    />
-                    {footerContent.instagram_enabled && (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <Input
-                          label="URL do Instagram"
-                          value={footerContent.instagram_url}
-                          onChange={(e) => setFooterContent({ ...footerContent, instagram_url: e.target.value })}
-                          placeholder="Ex: https://instagram.com/mvcompany"
-                        />
-                        <Input
-                          label="Texto do Botão"
-                          value={footerContent.instagram_text}
-                          onChange={(e) => setFooterContent({ ...footerContent, instagram_text: e.target.value })}
-                          placeholder="Ex: Instagram"
-                        />
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-            </div>
-          )}
-        </div>
-
-        {/* Companies Editor - Gogh Lab + 2 Competitors */}
+        {/* Companies Editor - Gogh Lab + 3 Competitors */}
         <div className="space-y-6">
           {/* Gogh Lab - Now Editable */}
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">

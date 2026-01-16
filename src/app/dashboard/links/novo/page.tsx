@@ -66,18 +66,31 @@ export default function NewLinkAggregatorPage() {
       }
 
       // Verificar se o slug já existe
-      const { data: existing } = await (supabase as any)
+      // Timeout de segurança
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Timeout')), 15000)
+      )
+
+      // Verificar slug existente
+      const checkSlugPromise = (supabase as any)
         .from('link_aggregators')
         .select('id')
         .eq('slug', formData.slug)
-        .single();
+        .maybeSingle();
+
+      const { data: existing } = await Promise.race([
+        checkSlugPromise,
+        timeoutPromise
+      ]) as { data: any }
 
       if (existing) {
         toast.error('Este slug já está em uso. Escolha outro.');
+        setSaving(false);
         return;
       }
 
-      const { error } = await (supabase as any)
+      // Inserir agregador
+      const insertPromise = (supabase as any)
         .from('link_aggregators')
         .insert({
           user_id: user.id,
@@ -92,7 +105,12 @@ export default function NewLinkAggregatorPage() {
           homepage_button_url: formData.homepage_button_url || null,
           links: formData.links,
           social_links: formData.social_links,
-        });
+        } as any);
+
+      const { error } = await Promise.race([
+        insertPromise,
+        timeoutPromise
+      ]) as { error: any }
 
       if (error) throw error;
 
@@ -100,7 +118,11 @@ export default function NewLinkAggregatorPage() {
       router.push('/dashboard/links');
     } catch (error: any) {
       console.error('Erro ao criar agregador:', error);
-      toast.error(error.message || 'Erro ao criar agregador');
+      if (error?.message === 'Timeout') {
+        toast.error('Tempo limite excedido. Tente novamente.');
+      } else {
+        toast.error(error?.message || 'Erro ao criar agregador');
+      }
     } finally {
       setSaving(false);
     }

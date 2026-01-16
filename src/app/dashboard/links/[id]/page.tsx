@@ -93,20 +93,32 @@ export default function EditLinkAggregatorPage() {
     try {
       setSaving(true);
 
+      // Timeout de segurança
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Timeout')), 15000)
+      )
+
       // Verificar se o slug já existe (exceto o atual)
-      const { data: existing } = await (supabase as any)
+      const checkSlugPromise = (supabase as any)
         .from('link_aggregators')
         .select('id')
         .eq('slug', formData.slug)
         .neq('id', id)
-        .single();
+        .maybeSingle();
+
+      const { data: existing } = await Promise.race([
+        checkSlugPromise,
+        timeoutPromise
+      ]) as { data: any }
 
       if (existing) {
         toast.error('Este slug já está em uso. Escolha outro.');
+        setSaving(false);
         return;
       }
 
-      const { error } = await (supabase as any)
+      // Atualizar agregador
+      const updatePromise = (supabase as any)
         .from('link_aggregators')
         .update({
           name: formData.name,
@@ -120,8 +132,13 @@ export default function EditLinkAggregatorPage() {
           homepage_button_url: formData.homepage_button_url || null,
           links: formData.links,
           social_links: formData.social_links,
-        })
+        } as any)
         .eq('id', id);
+
+      const { error } = await Promise.race([
+        updatePromise,
+        timeoutPromise
+      ]) as { error: any }
 
       if (error) throw error;
 
@@ -129,7 +146,11 @@ export default function EditLinkAggregatorPage() {
       router.push('/dashboard/links');
     } catch (error: any) {
       console.error('Erro ao atualizar agregador:', error);
-      toast.error(error.message || 'Erro ao atualizar agregador');
+      if (error?.message === 'Timeout') {
+        toast.error('Tempo limite excedido. Tente novamente.');
+      } else {
+        toast.error(error?.message || 'Erro ao atualizar agregador');
+      }
     } finally {
       setSaving(false);
     }
