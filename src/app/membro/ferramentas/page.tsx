@@ -368,8 +368,8 @@ export default function ToolsPage() {
         </motion.div>
       )}
 
-      {/* Tutorial Video */}
-      {tutorialVideoUrl && (
+      {/* Tutorial Video - Mostrar apenas quando tiver links de acesso */}
+      {hasBothAccess && tutorialVideoUrl && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
