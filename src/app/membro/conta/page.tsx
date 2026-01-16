@@ -18,13 +18,14 @@ import {
   BookOpen,
   Palette,
   Scissors,
-  Sparkles
+  Sparkles,
+  RefreshCw
 } from 'lucide-react'
 
 type TabType = 'profile' | 'plan'
 
 export default function AccountPage() {
-  const { user, profile, subscription, hasActiveSubscription, isPro } = useAuth()
+  const { user, profile, subscription, hasActiveSubscription, isPro, refreshSubscription } = useAuth()
   const [activeTab, setActiveTab] = useState<TabType>('profile')
   const [saving, setSaving] = useState(false)
   const [openingPortal, setOpeningPortal] = useState(false)
@@ -39,6 +40,26 @@ export default function AccountPage() {
       setFullName(profile.full_name || '')
     }
   }, [profile])
+
+  // Listener para atualização de assinatura
+  useEffect(() => {
+    const handleSubscriptionUpdate = () => {
+      console.log('[AccountPage] Subscription update event received, refreshing...')
+      refreshSubscription()
+    }
+    
+    window.addEventListener('subscription-updated', handleSubscriptionUpdate)
+    
+    // Também verificar periodicamente se a assinatura mudou (fallback)
+    const interval = setInterval(() => {
+      refreshSubscription()
+    }, 30000) // A cada 30 segundos
+    
+    return () => {
+      window.removeEventListener('subscription-updated', handleSubscriptionUpdate)
+      clearInterval(interval)
+    }
+  }, [refreshSubscription])
 
   const handleSaveProfile = async () => {
     if (!user) {
@@ -244,9 +265,21 @@ export default function AccountPage() {
           <div className="grid lg:grid-cols-2 gap-6">
             {/* Current Plan */}
             <div className="bg-white rounded-2xl border border-gogh-grayLight p-6 lg:p-8">
-              <div className="flex items-center gap-3 mb-6">
-                <CreditCard className="w-5 h-5 text-gogh-grayDark" />
-                <h2 className="text-xl font-bold text-gogh-black">Plano Atual</h2>
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                  <CreditCard className="w-5 h-5 text-gogh-grayDark" />
+                  <h2 className="text-xl font-bold text-gogh-black">Plano Atual</h2>
+                </div>
+                <button
+                  onClick={() => {
+                    refreshSubscription()
+                    toast.success('Plano atualizado!')
+                  }}
+                  className="p-2 text-gogh-grayDark hover:text-gogh-black hover:bg-gogh-grayLight rounded-lg transition-colors"
+                  title="Atualizar informações do plano"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                </button>
               </div>
 
               <div className="text-center py-6">

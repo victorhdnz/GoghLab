@@ -68,15 +68,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Buscar assinatura ativa
   const fetchSubscription = async (userId: string): Promise<UserSubscription | null> => {
     try {
-      const { data, error } = await (supabase as any)
+      // Tentar primeiro com estrutura nova (plan_id, billing_cycle)
+      let { data, error } = await (supabase as any)
         .from('subscriptions')
-        .select('id, plan_id, status, billing_cycle, current_period_end, cancel_at_period_end')
+        .select('*')
         .eq('user_id', userId)
         .eq('status', 'active')
         .gte('current_period_end', new Date().toISOString())
         .order('created_at', { ascending: false })
         .limit(1)
-        .single()
+        .maybeSingle()
 
       if (error) {
         // PGRST116 = not found, que é esperado se não tem assinatura
@@ -85,7 +86,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
         return null
       }
-      return data as UserSubscription | null
+
+      if (!data) {
+        return null
+      }
+
+      // Converter estrutura antiga para nova se necessário
+      let planId = data.plan_id
+      if (!planId && data.plan_type) {
+        planId = data.plan_type === 'premium' ? 'gogh_pro' :
+                 data.plan_type === 'essential' ? 'gogh_essencial' : null
+      }
+
+      // Garantir billing_cycle
+      const billingCycle = data.billing_cycle || 'monthly'
+
+      return {
+        id: data.id,
+        plan_id: planId as PlanId,
+        status: data.status as SubscriptionStatus,
+        billing_cycle: billingCycle as 'monthly' | 'annual',
+        current_period_end: data.current_period_end,
+        cancel_at_period_end: data.cancel_at_period_end || false
+      } as UserSubscription
     } catch (err) {
       console.error('Exception fetching subscription:', err)
       return null
@@ -197,8 +220,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Listener para atualização manual de assinatura (do dashboard)
     const handleSubscriptionUpdate = async () => {
-      if (user) {
-        await updateUserData(user)
+      console.log('[AuthContext] Subscription update event received')
+      // Buscar usuário atual do Supabase
+      const { data: { user: currentUser } } = await supabase.auth.getUser()
+      if (currentUser) {
+        console.log('[AuthContext] Refreshing subscription for user:', currentUser.id)
+        await updateUserData(currentUser)
       }
     }
     
