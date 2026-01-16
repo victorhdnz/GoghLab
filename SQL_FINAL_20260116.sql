@@ -1,6 +1,7 @@
 -- =====================================================
 -- MIGRAÇÃO FINAL - SISTEMA DE FERRAMENTAS E CURSOS
 -- Execute este SQL no Supabase SQL Editor
+-- Data: 2026-01-16
 -- =====================================================
 
 -- 1. Adicionar campos na tabela tool_access_credentials
@@ -39,7 +40,7 @@ END $$;
 -- 3. Adicionar configuração de vídeo tutorial (opcional)
 -- =====================================================
 INSERT INTO site_settings (key, value, description, is_public) 
-VALUES ('tools_tutorial_video', 'https://www.youtube.com/embed/VIDEO_ID_AQUI', 'URL do vídeo tutorial para ativar ferramentas (Canva/CapCut)', TRUE)
+VALUES ('tools_tutorial_video', 'https://www.youtube.com/embed/VIDEO_ID_AQUI', 'URL do vídeo tutorial para ativar ferramentas (Canva/CapCut). Use formato embed do YouTube/Vimeo.', TRUE)
 ON CONFLICT (key) DO UPDATE SET 
   value = EXCLUDED.value, 
   description = EXCLUDED.description, 
@@ -52,4 +53,3 @@ ON CONFLICT (key) DO UPDATE SET
 -- SELECT column_name, data_type FROM information_schema.columns 
 -- WHERE table_name = 'tool_access_credentials' 
 -- ORDER BY ordinal_position;
-
