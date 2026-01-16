@@ -307,7 +307,7 @@ export default function CursosPage() {
       setLessonForm({
         title: lesson.title,
         description: lesson.description || '',
-        video_url: lesson.video_url
+        video_url: lesson.video_url || ''
       })
     } else {
       setEditingLesson(null)
