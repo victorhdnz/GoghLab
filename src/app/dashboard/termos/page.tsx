@@ -701,6 +701,16 @@ export default function DashboardTermsPage() {
   const loadTerms = async () => {
     try {
       setLoading(true)
+      
+      // Primeiro, deletar termos antigos que não devem mais existir
+      const oldTermKeys = ['politica-entrega', 'trocas-devolucoes']
+      for (const key of oldTermKeys) {
+        await (supabase as any)
+          .from('site_terms')
+          .delete()
+          .eq('key', key)
+      }
+      
       const { data, error } = await (supabase as any)
         .from('site_terms')
         .select('*')
