@@ -22,6 +22,11 @@ BEGIN
   IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'tool_access_credentials' AND column_name = 'error_message') THEN
     ALTER TABLE tool_access_credentials ADD COLUMN error_message TEXT;
   END IF;
+  
+  -- Adicionar tutorial_video_url se não existir
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'tool_access_credentials' AND column_name = 'tutorial_video_url') THEN
+    ALTER TABLE tool_access_credentials ADD COLUMN tutorial_video_url TEXT;
+  END IF;
 END $$;
 
 -- 2. Garantir que support_tickets aceita 'tools_access'
@@ -37,18 +42,10 @@ BEGIN
   END IF;
 END $$;
 
--- 3. Adicionar configuração de vídeo tutorial (opcional)
+-- 3. Garantir que o bucket 'videos' existe no Storage (opcional)
 -- =====================================================
--- Nota: A tabela site_settings usa value como JSONB, então vamos armazenar como string JSON
-INSERT INTO site_settings (key, value, description) 
-VALUES (
-  'tools_tutorial_video', 
-  '"https://www.youtube.com/embed/VIDEO_ID_AQUI"'::jsonb, 
-  'URL do vídeo tutorial para ativar ferramentas (Canva/CapCut). Use formato embed do YouTube/Vimeo.'
-)
-ON CONFLICT (key) DO UPDATE SET 
-  value = EXCLUDED.value, 
-  description = EXCLUDED.description;
+-- Nota: O bucket 'videos' deve ser criado manualmente no Supabase Storage
+-- se ainda não existir. Os vídeos serão armazenados lá.
 
 -- =====================================================
 -- FIM DA MIGRAÇÃO

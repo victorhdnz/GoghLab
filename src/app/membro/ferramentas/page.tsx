@@ -25,6 +25,7 @@ interface ToolAccess {
   tool_type: 'canva' | 'capcut'
   email: string
   access_link?: string
+  tutorial_video_url?: string
   access_granted_at: string
   is_active: boolean
   error_reported?: boolean
@@ -75,15 +76,14 @@ export default function ToolsPage() {
 
         setPendingTickets(ticketsData || [])
 
-        // Buscar URL do vídeo tutorial
-        const { data: videoData } = await (supabase as any)
-          .from('site_settings')
-          .select('value')
-          .eq('key', 'tools_tutorial_video')
-          .maybeSingle()
-
-        if (videoData?.value) {
-          setTutorialVideoUrl(videoData.value)
+        // Buscar URL do vídeo tutorial dos acessos
+        const canvaAccess = accessData?.find((t: ToolAccess) => t.tool_type === 'canva')
+        const capcutAccess = accessData?.find((t: ToolAccess) => t.tool_type === 'capcut')
+        
+        // Priorizar vídeo do Canva, se não tiver, usar do CapCut
+        const videoUrl = canvaAccess?.tutorial_video_url || capcutAccess?.tutorial_video_url || null
+        if (videoUrl) {
+          setTutorialVideoUrl(videoUrl)
         }
       } catch (error) {
         console.error('Error fetching tools data:', error)

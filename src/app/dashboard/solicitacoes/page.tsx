@@ -62,6 +62,9 @@ export default function SolicitacoesPage() {
   // Form states para links
   const [canvaLink, setCanvaLink] = useState('')
   const [capcutLink, setCapcutLink] = useState('')
+  const [tutorialVideo, setTutorialVideo] = useState<File | null>(null)
+  const [tutorialVideoUrl, setTutorialVideoUrl] = useState<string | null>(null)
+  const [uploadingVideo, setUploadingVideo] = useState(false)
 
   useEffect(() => {
     loadTickets()
@@ -118,6 +121,33 @@ export default function SolicitacoesPage() {
     }
   }
 
+  const uploadVideo = async (file: File): Promise<string | null> => {
+    setUploadingVideo(true)
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+
+      const response = await fetch('/api/upload/video', {
+        method: 'POST',
+        body: formData
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Erro ao fazer upload do vídeo')
+      }
+
+      const data = await response.json()
+      return data.url || null
+    } catch (error: any) {
+      console.error('Erro ao fazer upload do vídeo:', error)
+      toast.error(error.message || 'Erro ao fazer upload do vídeo')
+      return null
+    } finally {
+      setUploadingVideo(false)
+    }
+  }
+
   const saveLinks = async () => {
     if (!selectedTicket) return
 
@@ -125,6 +155,17 @@ export default function SolicitacoesPage() {
     try {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error('Usuário não autenticado')
+
+      // Upload do vídeo se houver
+      let videoUrl = tutorialVideoUrl
+      if (tutorialVideo) {
+        const uploadedUrl = await uploadVideo(tutorialVideo)
+        if (uploadedUrl) {
+          videoUrl = uploadedUrl
+          setTutorialVideoUrl(uploadedUrl)
+          setTutorialVideo(null)
+        }
+      }
 
       // Salvar/atualizar link do Canva
       if (canvaLink.trim()) {
@@ -137,6 +178,7 @@ export default function SolicitacoesPage() {
             .update({
               access_link: canvaLink.trim(),
               email: selectedTicket.user?.email || 'noreply@example.com',
+              tutorial_video_url: videoUrl,
               updated_at: new Date().toISOString()
             })
             .eq('id', canvaAccess.id)
@@ -151,6 +193,7 @@ export default function SolicitacoesPage() {
               tool_type: 'canva',
               email: selectedTicket.user?.email || 'noreply@example.com',
               access_link: canvaLink.trim(),
+              tutorial_video_url: videoUrl,
               is_active: true
             })
 
@@ -169,6 +212,7 @@ export default function SolicitacoesPage() {
             .update({
               access_link: capcutLink.trim(),
               email: selectedTicket.user?.email || 'noreply@example.com',
+              tutorial_video_url: videoUrl,
               updated_at: new Date().toISOString()
             })
             .eq('id', capcutAccess.id)
@@ -183,6 +227,7 @@ export default function SolicitacoesPage() {
               tool_type: 'capcut',
               email: selectedTicket.user?.email || 'noreply@example.com',
               access_link: capcutLink.trim(),
+              tutorial_video_url: videoUrl,
               is_active: true
             })
 
