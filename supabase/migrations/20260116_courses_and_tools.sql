@@ -6,43 +6,80 @@
 -- ==========================================
 -- COURSES (Cursos)
 -- ==========================================
-CREATE TABLE IF NOT EXISTS courses (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  title TEXT NOT NULL,
-  description TEXT NOT NULL,
-  course_type TEXT NOT NULL CHECK (course_type IN ('canva', 'capcut')),
-  order INTEGER DEFAULT 0,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
-);
+-- A tabela já existe, mas vamos garantir que tenha os campos necessários
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'courses') THEN
+    -- Adicionar campos se não existirem
+    ALTER TABLE courses ADD COLUMN IF NOT EXISTS course_type TEXT;
+    ALTER TABLE courses ADD COLUMN IF NOT EXISTS "order" INTEGER DEFAULT 0;
+    -- Atualizar constraint se necessário
+    ALTER TABLE courses DROP CONSTRAINT IF EXISTS courses_course_type_check;
+    ALTER TABLE courses ADD CONSTRAINT courses_course_type_check 
+      CHECK (course_type IS NULL OR course_type IN ('canva', 'capcut', 'strategy', 'other'));
+  ELSE
+    CREATE TABLE courses (
+      id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+      title TEXT NOT NULL,
+      description TEXT NOT NULL,
+      course_type TEXT CHECK (course_type IN ('canva', 'capcut', 'strategy', 'other')),
+      "order" INTEGER DEFAULT 0,
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      updated_at TIMESTAMPTZ DEFAULT NOW()
+    );
+  END IF;
+END $$;
 
 -- ==========================================
 -- COURSE_LESSONS (Aulas dos Cursos)
 -- ==========================================
-CREATE TABLE IF NOT EXISTS course_lessons (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  course_id UUID REFERENCES courses(id) ON DELETE CASCADE,
-  title TEXT NOT NULL,
-  description TEXT,
-  video_url TEXT NOT NULL,
-  order INTEGER DEFAULT 0,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
-);
+-- A tabela já existe, apenas garantir que tenha os campos necessários
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'course_lessons') THEN
+    -- Adicionar campos se não existirem
+    ALTER TABLE course_lessons ADD COLUMN IF NOT EXISTS "order" INTEGER DEFAULT 0;
+    ALTER TABLE course_lessons ADD COLUMN IF NOT EXISTS video_url TEXT;
+  ELSE
+    CREATE TABLE course_lessons (
+      id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+      course_id UUID REFERENCES courses(id) ON DELETE CASCADE,
+      title TEXT NOT NULL,
+      description TEXT,
+      video_url TEXT NOT NULL,
+      "order" INTEGER DEFAULT 0,
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      updated_at TIMESTAMPTZ DEFAULT NOW()
+    );
+  END IF;
+END $$;
 
 -- ==========================================
 -- SUPPORT_TICKETS (Tickets de Suporte)
 -- ==========================================
-CREATE TABLE IF NOT EXISTS support_tickets (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
-  ticket_type TEXT NOT NULL,
-  subject TEXT NOT NULL,
-  status TEXT DEFAULT 'open' CHECK (status IN ('open', 'in_progress', 'resolved', 'closed')),
-  priority TEXT DEFAULT 'normal' CHECK (priority IN ('low', 'normal', 'high', 'urgent')),
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
-);
+-- A tabela já existe, apenas adicionar 'tools_access' ao CHECK se necessário
+-- Verificar se ticket_type aceita 'tools_access'
+DO $$
+BEGIN
+  -- Adicionar 'tools_access' ao enum se a tabela já existir
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'support_tickets') THEN
+    -- Remover constraint antiga se existir e recriar com 'tools_access'
+    ALTER TABLE support_tickets DROP CONSTRAINT IF EXISTS support_tickets_ticket_type_check;
+    ALTER TABLE support_tickets ADD CONSTRAINT support_tickets_ticket_type_check 
+      CHECK (ticket_type IN ('canva_access', 'capcut_access', 'tools_access', 'general', 'bug_report', 'feature_request'));
+  ELSE
+    CREATE TABLE support_tickets (
+      id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+      user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+      ticket_type TEXT NOT NULL CHECK (ticket_type IN ('canva_access', 'capcut_access', 'tools_access', 'general', 'bug_report', 'feature_request')),
+      subject TEXT NOT NULL,
+      status TEXT DEFAULT 'open' CHECK (status IN ('open', 'in_progress', 'resolved', 'closed', 'waiting_response')),
+      priority TEXT DEFAULT 'normal' CHECK (priority IN ('low', 'normal', 'high', 'urgent')),
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      updated_at TIMESTAMPTZ DEFAULT NOW()
+    );
+  END IF;
+END $$;
 
 -- ==========================================
 -- SUPPORT_MESSAGES (Mensagens dos Tickets)
