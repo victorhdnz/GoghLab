@@ -1554,13 +1554,17 @@ export default function HomepageEditorPage() {
     )
   }
 
-  // Se não está autenticado E auth já carregou, redirecionar para login
+  // Se não está autenticado E auth já carregou, mostrar mensagem (não redirecionar automaticamente)
+  // O middleware ou a página principal do dashboard vai lidar com o redirecionamento
   if (!authLoading && !isAuthenticated) {
-    // Usar window.location para evitar problemas de navegação do Next.js
-    if (typeof window !== 'undefined') {
-      window.location.href = '/dashboard'
-    }
-    return null
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <p className="text-gray-600 mb-4">Você precisa estar logado para acessar esta página.</p>
+          <a href="/dashboard" className="text-blue-600 hover:underline">Voltar ao Dashboard</a>
+        </div>
+      </div>
+    )
   }
 
   // Sem permissão - mostrar mensagem (só verificar após auth carregar e user estar disponível)
