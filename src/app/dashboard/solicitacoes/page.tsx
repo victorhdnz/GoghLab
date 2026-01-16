@@ -42,6 +42,7 @@ interface ToolAccess {
   tool_type: 'canva' | 'capcut'
   email: string
   access_link?: string
+  tutorial_video_url?: string
   access_granted_at: string
   is_active: boolean
   error_reported?: boolean
@@ -116,6 +117,10 @@ export default function SolicitacoesPage() {
       
       setCanvaLink(canvaAccess?.access_link || '')
       setCapcutLink(capcutAccess?.access_link || '')
+      
+      // Buscar vídeo tutorial (pode estar em qualquer um dos acessos)
+      const videoUrl = canvaAccess?.tutorial_video_url || capcutAccess?.tutorial_video_url || null
+      setTutorialVideoUrl(videoUrl)
     } catch (error: any) {
       console.error('Erro ao carregar acessos:', error)
     }
