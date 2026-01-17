@@ -163,15 +163,14 @@ export default function SolicitacoesPage() {
       const formData = new FormData()
       formData.append('file', file)
 
-      // Fazer upload com cookies e token de acesso
+      // Fazer upload - os cookies serão enviados automaticamente
+      // IMPORTANTE: Não definir headers quando usar FormData, o browser define automaticamente
       const response = await fetch('/api/upload/video', {
         method: 'POST',
-        credentials: 'include', // Incluir cookies na requisição
-        headers: {
-          // Não definir Content-Type - o browser define automaticamente com boundary para FormData
-          'Authorization': `Bearer ${session.access_token}` // Passar token explicitamente
-        },
+        credentials: 'include', // Incluir cookies na requisição (essencial!)
         body: formData
+        // Não definir Content-Type - o browser define automaticamente com boundary para FormData
+        // Não definir Authorization header - os cookies já contêm a sessão
       })
 
       if (!response.ok) {
