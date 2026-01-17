@@ -402,7 +402,7 @@ export async function POST(request: Request) {
     const tomorrow = new Date(todayForUsage)
     tomorrow.setDate(tomorrow.getDate() + 1)
 
-    const { error: usageError } = await supabase
+    const { error: usageError } = await (supabase as any)
       .from('user_usage')
       .upsert({
         user_id: user.id,
