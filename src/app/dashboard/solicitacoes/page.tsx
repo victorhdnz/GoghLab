@@ -137,7 +137,9 @@ export default function SolicitacoesPage() {
       const capcutAccess = data?.find((t: ToolAccess) => t.tool_type === 'capcut')
       
       setCanvaLink(canvaAccess?.access_link || '')
-      setCapcutLink(capcutAccess?.access_link || '')
+      // Para CapCut, access_link contém o email/usuário e precisamos buscar a senha separadamente
+      setCapcutEmail(capcutAccess?.access_link || capcutAccess?.email || '')
+      setCapcutPassword(capcutAccess?.password || '')
       
       // Buscar vídeo tutorial (pode estar em qualquer um dos acessos)
       const videoUrl = canvaAccess?.tutorial_video_url || capcutAccess?.tutorial_video_url || null
@@ -666,22 +668,39 @@ export default function SolicitacoesPage() {
                     </p>
                   </div>
 
-                  <div>
+                  <div className="space-y-3">
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       <div className="flex items-center gap-2">
                         <LinkIcon className="w-4 h-4" />
                         Credenciais de Login do CapCut Pro
                       </div>
                     </label>
-                    <input
-                      type="text"
-                      value={capcutLink}
-                      onChange={(e) => setCapcutLink(e.target.value)}
-                      placeholder="Email ou usuário para login no CapCut"
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                    <p className="text-xs text-gray-500 mt-1">
-                      Cole aqui o email ou usuário de login do CapCut Pro para este cliente (não é um link, são credenciais de acesso)
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">
+                        Email / Usuário:
+                      </label>
+                      <input
+                        type="text"
+                        value={capcutEmail}
+                        onChange={(e) => setCapcutEmail(e.target.value)}
+                        placeholder="Email ou usuário para login no CapCut"
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">
+                        Senha:
+                      </label>
+                      <input
+                        type="text"
+                        value={capcutPassword}
+                        onChange={(e) => setCapcutPassword(e.target.value)}
+                        placeholder="Senha de acesso ao CapCut"
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                    <p className="text-xs text-gray-500">
+                      Cole aqui as credenciais de login do CapCut Pro para este cliente. Você pode copiar cada campo separadamente.
                     </p>
                   </div>
 
@@ -782,7 +801,7 @@ export default function SolicitacoesPage() {
                 <div className="p-4 border-t border-gray-200">
                   <button
                     onClick={saveLinks}
-                    disabled={saving || (!canvaLink.trim() && !capcutLink.trim())}
+                    disabled={saving || (!canvaLink.trim() && !capcutEmail.trim())}
                     className="w-full px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
                     {saving ? (
