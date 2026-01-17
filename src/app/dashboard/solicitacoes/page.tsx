@@ -209,7 +209,7 @@ export default function SolicitacoesPage() {
         
         if (canvaAccess) {
           // Atualizar existente
-          const { error } = await (supabase as any)
+          const { data, error } = await (supabase as any)
             .from('tool_access_credentials')
             .update({
               access_link: canvaLink.trim(),
@@ -218,11 +218,19 @@ export default function SolicitacoesPage() {
               updated_at: new Date().toISOString()
             })
             .eq('id', canvaAccess.id)
+            .select()
 
-          if (error) throw error
+          if (error) {
+            console.error('Erro ao atualizar link do Canva:', error)
+            throw new Error(`Erro ao atualizar link do Canva: ${error.message || 'Erro desconhecido'}`)
+          }
+          
+          if (!data || data.length === 0) {
+            throw new Error('Erro ao atualizar link do Canva: nenhuma linha foi atualizada. Verifique as políticas RLS.')
+          }
         } else {
           // Criar novo
-          const { error } = await (supabase as any)
+          const { data, error } = await (supabase as any)
             .from('tool_access_credentials')
             .insert({
               user_id: selectedTicket.user_id,
@@ -232,8 +240,16 @@ export default function SolicitacoesPage() {
               tutorial_video_url: videoUrl,
               is_active: true
             })
+            .select()
 
-          if (error) throw error
+          if (error) {
+            console.error('Erro ao criar link do Canva:', error)
+            throw new Error(`Erro ao criar link do Canva: ${error.message || 'Erro desconhecido'}`)
+          }
+          
+          if (!data || data.length === 0) {
+            throw new Error('Erro ao criar link do Canva: nenhuma linha foi inserida. Verifique as políticas RLS.')
+          }
         }
       }
 
@@ -243,7 +259,7 @@ export default function SolicitacoesPage() {
         
         if (capcutAccess) {
           // Atualizar existente
-          const { error } = await (supabase as any)
+          const { data, error } = await (supabase as any)
             .from('tool_access_credentials')
             .update({
               access_link: capcutLink.trim(),
@@ -252,11 +268,19 @@ export default function SolicitacoesPage() {
               updated_at: new Date().toISOString()
             })
             .eq('id', capcutAccess.id)
+            .select()
 
-          if (error) throw error
+          if (error) {
+            console.error('Erro ao atualizar link do CapCut:', error)
+            throw new Error(`Erro ao atualizar link do CapCut: ${error.message || 'Erro desconhecido'}`)
+          }
+          
+          if (!data || data.length === 0) {
+            throw new Error('Erro ao atualizar link do CapCut: nenhuma linha foi atualizada. Verifique as políticas RLS.')
+          }
         } else {
           // Criar novo
-          const { error } = await (supabase as any)
+          const { data, error } = await (supabase as any)
             .from('tool_access_credentials')
             .insert({
               user_id: selectedTicket.user_id,
@@ -266,8 +290,16 @@ export default function SolicitacoesPage() {
               tutorial_video_url: videoUrl,
               is_active: true
             })
+            .select()
 
-          if (error) throw error
+          if (error) {
+            console.error('Erro ao criar link do CapCut:', error)
+            throw new Error(`Erro ao criar link do CapCut: ${error.message || 'Erro desconhecido'}`)
+          }
+          
+          if (!data || data.length === 0) {
+            throw new Error('Erro ao criar link do CapCut: nenhuma linha foi inserida. Verifique as políticas RLS.')
+          }
         }
       }
 
