@@ -4,6 +4,9 @@ import { cookies } from 'next/headers'
 import OpenAI from 'openai'
 import { Database } from '@/types/database.types'
 
+// Forçar renderização dinâmica para garantir que cookies sejam lidos corretamente
+export const dynamic = 'force-dynamic'
+
 export async function POST(request: Request) {
   try {
     // IMPORTANTE: Criar cliente Supabase PRIMEIRO para ler cookies corretamente
