@@ -49,7 +49,7 @@ export default function ChatPage() {
   const router = useRouter()
   const conversationId = params.conversationId as string
   
-  const { user, profile, subscription, isPro } = useAuth()
+  const { user, profile, subscription, isPro, loading: authLoading } = useAuth()
   const [conversation, setConversation] = useState<Conversation | null>(null)
   const [messages, setMessages] = useState<Message[]>([])
   const [inputValue, setInputValue] = useState('')
