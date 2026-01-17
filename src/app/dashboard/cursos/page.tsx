@@ -110,20 +110,21 @@ export default function CursosPage() {
             course_type: 'canva',
             slug: 'canva-do-zero-ao-avancado',
             order_position: 1,
-            is_published: false,
+            is_published: true, // Publicar automaticamente
             plan_required: 'all',
             lessons_count: 0,
             duration_hours: 0,
             instructor_name: 'Gogh Lab'
           })
       } else {
-        // Atualizar título e descrição do curso de Canva se necessário
+        // Atualizar título, descrição e garantir que está publicado
         await (supabase as any)
           .from('courses')
           .update({
             title: 'Canva do Zero ao Avançado',
             description: 'Aprenda a criar designs profissionais no Canva, desde o básico até técnicas avançadas.',
-            slug: 'canva-do-zero-ao-avancado'
+            slug: 'canva-do-zero-ao-avancado',
+            is_published: true // Garantir que está publicado
           })
           .eq('id', canvaCourse.id)
       }
@@ -138,20 +139,21 @@ export default function CursosPage() {
             course_type: 'capcut',
             slug: 'capcut-do-zero-ao-avancado',
             order_position: 1,
-            is_published: false,
+            is_published: true, // Publicar automaticamente
             plan_required: 'all',
             lessons_count: 0,
             duration_hours: 0,
             instructor_name: 'Gogh Lab'
           })
       } else {
-        // Atualizar título e descrição do curso de CapCut se necessário
+        // Atualizar título, descrição e garantir que está publicado
         await (supabase as any)
           .from('courses')
           .update({
             title: 'CapCut do Zero ao Avançado',
             description: 'Domine a edição de vídeos para redes sociais usando o CapCut Pro, desde o básico até técnicas avançadas.',
-            slug: 'capcut-do-zero-ao-avancado'
+            slug: 'capcut-do-zero-ao-avancado',
+            is_published: true // Garantir que está publicado
           })
           .eq('id', capcutCourse.id)
       }

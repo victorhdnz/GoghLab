@@ -231,19 +231,31 @@ function CourseCard({
                         )}
                       </div>
                     </div>
-                    <span className="text-xs text-gogh-grayDark">#{lesson.order}</span>
+                    <span className="text-xs text-gogh-grayDark">#{lesson.order_position || lesson.order || 0}</span>
                   </button>
                   
                   {selectedLesson?.id === lesson.id && lesson.video_url && (
                     <div className="mt-3 p-4 bg-gogh-grayLight rounded-lg">
                       <div className="aspect-video rounded-lg overflow-hidden bg-black">
-                        <iframe
-                          src={embedVideoUrl(lesson.video_url)}
-                          title={lesson.title}
-                          className="w-full h-full"
-                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                          allowFullScreen
-                        />
+                        {/* Verificar se é URL do Supabase Storage (vídeo direto) ou URL externa (YouTube/Vimeo) */}
+                        {lesson.video_url.includes('supabase.co') || lesson.video_url.includes('storage.googleapis.com') || lesson.video_url.endsWith('.mp4') || lesson.video_url.endsWith('.webm') || lesson.video_url.endsWith('.mov') ? (
+                          <video
+                            src={lesson.video_url}
+                            controls
+                            className="w-full h-full"
+                            title={lesson.title}
+                          >
+                            Seu navegador não suporta a reprodução de vídeo.
+                          </video>
+                        ) : (
+                          <iframe
+                            src={embedVideoUrl(lesson.video_url)}
+                            title={lesson.title}
+                            className="w-full h-full"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowFullScreen
+                          />
+                        )}
                       </div>
                     </div>
                   )}
