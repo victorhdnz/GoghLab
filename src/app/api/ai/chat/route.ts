@@ -7,10 +7,11 @@ import { Database } from '@/types/database.types'
 export async function POST(request: Request) {
   try {
     // IMPORTANTE: Criar cliente Supabase PRIMEIRO para ler cookies corretamente
-    const cookieStore = cookies()
-    const supabase = createRouteHandlerClient<Database>({ cookies: () => cookieStore })
+    // Usar o mesmo padrão das outras APIs que funcionam
+    const supabase = createRouteHandlerClient<Database>({ cookies })
     
-    // Verificar cookies recebidos
+    // Verificar cookies recebidos (opcional, apenas para debug)
+    const cookieStore = cookies()
     const hasAuthCookies = cookieStore.has('sb-access-token') || cookieStore.has('sb-refresh-token')
     console.log('[AI Chat] Cookies de autenticação presentes:', hasAuthCookies)
     
