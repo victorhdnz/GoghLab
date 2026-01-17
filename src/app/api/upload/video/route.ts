@@ -69,26 +69,6 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
 
-    // Verificar autenticação usando getUser() que é mais confiável em API routes
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    
-    if (authError) {
-      console.error('Erro de autenticação no upload:', authError)
-      console.error('Código do erro:', authError.status)
-      console.error('Mensagem:', authError.message)
-      return NextResponse.json({ 
-        error: 'Erro de autenticação. Faça login novamente.',
-        details: process.env.NODE_ENV === 'development' ? authError.message : undefined
-      }, { status: 401 })
-    }
-    
-    if (!user) {
-      console.error('Usuário não autenticado no upload de vídeo')
-      return NextResponse.json({ 
-        error: 'Não autenticado. Faça login para fazer upload de vídeos.' 
-      }, { status: 401 })
-    }
-    
     console.log('Usuário autenticado para upload:', user.id)
 
     // Criar cliente com service_role_key para fazer upload (bypass RLS)
