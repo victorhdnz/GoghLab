@@ -335,6 +335,33 @@ export default function SolicitacoesPage() {
 
   const updateTicketStatus = async (ticketId: string, status: string) => {
     try {
+      // Verificar autenticação e permissões antes de atualizar
+      const { data: { user }, error: authError } = await supabase.auth.getUser()
+      
+      if (authError || !user) {
+        console.error('Erro de autenticação:', authError)
+        toast.error('Erro de autenticação. Faça login novamente.')
+        return false
+      }
+
+      // Verificar se o usuário é admin ou editor
+      const { data: profile, error: profileError } = await (supabase as any)
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single()
+
+      if (profileError || !profile) {
+        console.error('Erro ao verificar permissões:', profileError)
+        toast.error('Erro ao verificar permissões')
+        return false
+      }
+
+      if (profile.role !== 'admin' && profile.role !== 'editor') {
+        toast.error('Apenas administradores podem atualizar tickets')
+        return false
+      }
+
       // Atualizar e verificar se foi bem-sucedido
       const { data, error } = await (supabase as any)
         .from('support_tickets')
@@ -347,6 +374,7 @@ export default function SolicitacoesPage() {
 
       if (error) {
         console.error('Erro ao atualizar status:', error)
+        console.error('Detalhes do erro:', JSON.stringify(error, null, 2))
         toast.error(`Erro ao atualizar status: ${error.message || 'Erro desconhecido'}`)
         return false
       }
@@ -354,7 +382,11 @@ export default function SolicitacoesPage() {
       // Verificar se realmente atualizou
       if (!data || data.length === 0) {
         console.error('Nenhum ticket foi atualizado')
-        toast.error('Erro ao atualizar status: ticket não encontrado ou sem permissão')
+        console.error('Ticket ID:', ticketId)
+        console.error('Status desejado:', status)
+        console.error('User ID:', user.id)
+        console.error('Profile role:', profile.role)
+        toast.error('Erro ao atualizar status: ticket não encontrado ou sem permissão. Verifique as políticas RLS no Supabase.')
         return false
       }
 
@@ -368,7 +400,7 @@ export default function SolicitacoesPage() {
       // Se houver um ticket selecionado, atualizar também
       if (selectedTicket && selectedTicket.id === ticketId) {
         // Buscar perfil do usuário para manter os dados completos
-        const { data: profile } = await (supabase as any)
+        const { data: userProfile } = await (supabase as any)
           .from('profiles')
           .select('id, email, full_name')
           .eq('id', updatedTicket.user_id)
@@ -376,7 +408,7 @@ export default function SolicitacoesPage() {
         
         setSelectedTicket({
           ...updatedTicket,
-          user: profile || selectedTicket.user
+          user: userProfile || selectedTicket.user
         })
       }
 

@@ -34,17 +34,22 @@ export async function POST(request: NextRequest) {
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     
     if (authError) {
-      console.error('Erro de autenticação:', authError)
+      console.error('Erro de autenticação no upload:', authError)
+      console.error('Detalhes:', JSON.stringify(authError, null, 2))
       return NextResponse.json({ 
-        error: 'Erro de autenticação. Faça login novamente.' 
+        error: 'Erro de autenticação. Faça login novamente.',
+        details: process.env.NODE_ENV === 'development' ? authError.message : undefined
       }, { status: 401 })
     }
     
     if (!user) {
+      console.error('Usuário não autenticado no upload de vídeo')
       return NextResponse.json({ 
         error: 'Não autenticado. Faça login para fazer upload de vídeos.' 
       }, { status: 401 })
     }
+    
+    console.log('Usuário autenticado para upload:', user.id)
 
     // Verificar se o usuário tem permissão (admin ou editor)
     const { data: profile, error: profileError } = await supabase
