@@ -6,6 +6,27 @@ import { Database } from '@/types/database.types'
 
 export async function POST(request: Request) {
   try {
+    // IMPORTANTE: Criar cliente Supabase PRIMEIRO para ler cookies corretamente
+    const supabase = createRouteHandlerClient<Database>({ cookies })
+    
+    // Verificar autenticação ANTES de qualquer outra coisa
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    
+    if (authError) {
+      console.error('[AI Chat] Erro de autenticação:', authError)
+      return NextResponse.json({ 
+        error: 'Erro de autenticação. Faça login novamente.',
+        details: process.env.NODE_ENV === 'development' ? authError.message : undefined
+      }, { status: 401 })
+    }
+    
+    if (!user) {
+      console.error('[AI Chat] Usuário não autenticado')
+      return NextResponse.json({ 
+        error: 'Usuário não autenticado. Faça login novamente.' 
+      }, { status: 401 })
+    }
+
     // Verificar se a chave da OpenAI está configurada
     if (!process.env.OPENAI_API_KEY) {
       console.error('OPENAI_API_KEY não configurada')
@@ -19,8 +40,6 @@ export async function POST(request: Request) {
     const openai = new OpenAI({
       apiKey: process.env.OPENAI_API_KEY,
     })
-
-    const supabase = createRouteHandlerClient<Database>({ cookies })
     
     // Verificar autenticação
     const { data: { user }, error: authError } = await supabase.auth.getUser()

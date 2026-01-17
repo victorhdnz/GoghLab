@@ -121,8 +121,8 @@ export default function ChatPage() {
         if (!nicheData && (!messagesData || messagesData.length === 0)) {
           setShowNicheModal(true)
         } else if (nicheData && (!messagesData || messagesData.length === 0)) {
-          // Se tem perfil mas não há mensagens, marcar para enviar contexto na primeira mensagem
-          setShouldSendNicheContext(true)
+          // Se tem perfil mas não há mensagens, enviar automaticamente o contexto
+          sendInitialNicheContext(convData, nicheData)
         }
 
         // Buscar uso diário (hoje)
@@ -169,15 +169,7 @@ export default function ChatPage() {
       return
     }
 
-    let userMessage = inputValue.trim()
-    
-    // Se for a primeira mensagem e tiver perfil de nicho, adicionar contexto
-    if (shouldSendNicheContext && nicheProfile && messages.length === 0) {
-      const nicheContext = buildNicheContext(nicheProfile)
-      userMessage = `${nicheContext}\n\nAgora, sobre minha solicitação: ${userMessage}`
-      setShouldSendNicheContext(false)
-    }
-    
+    const userMessage = inputValue.trim()
     setInputValue('')
     setIsSending(true)
     setError(null)
@@ -261,8 +253,50 @@ export default function ChatPage() {
       context += `Contexto adicional: ${profile.additional_context}\n`
     }
     
-    context += '\nUse essas informações para personalizar suas respostas e sugestões.'
+    context += '\nUse essas informações para personalizar suas respostas e sugestões. Agora estou pronto para começar a trabalhar com você!'
     return context
+  }
+
+  // Função para enviar contexto do nicho automaticamente na primeira mensagem
+  const sendInitialNicheContext = async (conv: any, profile: any) => {
+    if (!user || !conv || isSending) return
+
+    const nicheContext = buildNicheContext(profile)
+    setIsSending(true)
+    setError(null)
+
+    try {
+      // Chamar API de chat
+      const response = await fetch('/api/ai/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          conversationId: conv.id,
+          message: nicheContext,
+          agentId: conv.agent_id
+        })
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Erro ao enviar contexto do perfil')
+      }
+
+      // Atualizar mensagens
+      setMessages([data.userMessage, data.assistantMessage])
+
+      // Atualizar uso
+      if (usageInfo) {
+        setUsageInfo(prev => prev ? { ...prev, current: prev.current + 1 } : null)
+      }
+    } catch (error: any) {
+      console.error('Error sending niche context:', error)
+      setError(error.message || 'Erro ao enviar contexto do perfil')
+    } finally {
+      setIsSending(false)
+    }
   }
 
   // Handler para Enter

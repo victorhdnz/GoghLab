@@ -9,8 +9,7 @@ import {
   MessageSquare, 
   Crown, 
   Lock, 
-  Sparkles,
-  Plus
+  Sparkles
 } from 'lucide-react'
 
 interface AIAgent {
@@ -150,12 +149,8 @@ export default function AgentsPage() {
                     </p>
                   </div>
                 </div>
-                <div className="mt-4 flex items-center justify-between">
+                <div className="mt-4 flex items-center justify-end">
                   <span className="text-xs text-gogh-grayDark">Clique para conversar</span>
-                  <div className="flex items-center gap-1 text-gogh-yellow text-sm font-medium">
-                    <Plus className="w-4 h-4" />
-                    Nova conversa
-                  </div>
                 </div>
               </button>
             </motion.div>
@@ -206,12 +201,8 @@ export default function AgentsPage() {
                         </p>
                       </div>
                     </div>
-                    <div className="mt-4 flex items-center justify-between">
+                    <div className="mt-4 flex items-center justify-end">
                       <span className="text-xs text-gogh-grayDark">Agente exclusivo Pro</span>
-                      <div className="flex items-center gap-1 text-amber-600 text-sm font-medium">
-                        <Plus className="w-4 h-4" />
-                        Nova conversa
-                      </div>
                     </div>
                   </button>
                 ) : (
