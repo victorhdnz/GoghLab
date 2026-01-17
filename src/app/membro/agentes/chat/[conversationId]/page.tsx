@@ -252,10 +252,17 @@ export default function ChatPage() {
         // Se não tem perfil configurado e não há mensagens, mostrar modal
         if (!nicheData && (!messagesData || messagesData.length === 0)) {
           setShowNicheModal(true)
+        } else if (nicheData && (!messagesData || messagesData.length === 0) && !nicheContextSentRef.current) {
+          // Se tem perfil mas não há mensagens, enviar automaticamente o contexto
+          // Aguardar um pouco para garantir que autenticação esteja completa
+          console.log('[Chat] Preparando para enviar contexto do nicho automaticamente...')
+          setTimeout(() => {
+            if (user && convData && nicheData && !nicheContextSentRef.current) {
+              console.log('[Chat] Enviando contexto do nicho agora...')
+              sendInitialNicheContext(convData, nicheData)
+            }
+          }, 1500) // Aguardar 1.5 segundos para garantir que tudo está pronto
         }
-        // REMOVIDO: Envio automático do contexto do nicho
-        // O contexto será incluído automaticamente na primeira mensagem do usuário
-        // Isso evita problemas de autenticação ao tentar enviar automaticamente
 
         // Buscar uso diário (hoje)
         const today = new Date()

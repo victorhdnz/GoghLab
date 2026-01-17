@@ -9,34 +9,29 @@ export const dynamic = 'force-dynamic'
 
 export async function POST(request: Request) {
   try {
-    // Criar cliente Supabase - versão simplificada
+    // IMPORTANTE: Autenticar PRIMEIRO antes de ler o body
+    // Isso garante que os cookies sejam lidos corretamente
     const supabase = createRouteHandlerClient<Database>({ cookies })
+
+    // Verificar autenticação usando getUser() - mesma abordagem das APIs que funcionam
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
     
-    // Verificação simplificada de autenticação
-    // Tentar getUser diretamente - se falhar, tentar getSession como fallback
-    let user = null
-    let authError = null
-    
-    const { data: { user: userData }, error: userError } = await supabase.auth.getUser()
-    
-    if (userError || !userData) {
-      // Se getUser falhar, tentar getSession como fallback
-      const { data: { session } } = await supabase.auth.getSession()
-      if (session?.user) {
-        user = session.user
-      } else {
-        authError = userError
-      }
-    } else {
-      user = userData
-    }
-    
-    // Se ainda não tem usuário, retornar erro
-    if (!user) {
+    if (authError) {
+      console.error('[AI Chat] Erro de autenticação:', authError.message)
       return NextResponse.json({ 
-        error: 'Erro de autenticação. Faça login novamente.'
+        error: 'Erro de autenticação. Faça login novamente.',
+        details: process.env.NODE_ENV === 'development' ? authError.message : undefined
       }, { status: 401 })
     }
+    
+    if (!user) {
+      console.error('[AI Chat] Usuário não autenticado')
+      return NextResponse.json({ 
+        error: 'Usuário não autenticado. Faça login novamente.' 
+      }, { status: 401 })
+    }
+    
+    console.log('[AI Chat] Usuário autenticado:', user.id)
 
     // Verificar se a chave da OpenAI está configurada
     if (!process.env.OPENAI_API_KEY) {
