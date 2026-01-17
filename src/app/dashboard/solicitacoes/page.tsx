@@ -667,18 +667,18 @@ export default function SolicitacoesPage() {
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       <div className="flex items-center gap-2">
                         <LinkIcon className="w-4 h-4" />
-                        Link de Ativação do CapCut Pro
+                        Credenciais de Login do CapCut Pro
                       </div>
                     </label>
                     <input
-                      type="url"
+                      type="text"
                       value={capcutLink}
                       onChange={(e) => setCapcutLink(e.target.value)}
-                      placeholder="https://..."
+                      placeholder="Email ou usuário para login no CapCut"
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                     <p className="text-xs text-gray-500 mt-1">
-                      Cole aqui o link de ativação do CapCut Pro para este cliente
+                      Cole aqui o email ou usuário de login do CapCut Pro para este cliente (não é um link, são credenciais de acesso)
                     </p>
                   </div>
 

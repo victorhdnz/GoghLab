@@ -322,23 +322,9 @@ export default function ToolsPage() {
                 ))}
               </ul>
 
-              {/* Access Status */}
+              {/* Link de Ativação / Credenciais */}
               {tool.hasAccess && tool.accessData && (
                 <div className="space-y-3">
-                  <div className="bg-emerald-50 rounded-lg p-4 border border-emerald-200">
-                    <div className="flex items-center gap-2 text-emerald-700 mb-2">
-                      <CheckCircle2 className="w-5 h-5" />
-                      <span className="font-medium">Acesso Ativo</span>
-                    </div>
-                    <p className="text-sm text-emerald-600">
-                      Email: <span className="font-mono">{tool.accessData.email}</span>
-                    </p>
-                    <p className="text-xs text-emerald-500 mt-1">
-                      Liberado em {new Date(tool.accessData.access_granted_at || '').toLocaleDateString('pt-BR')}
-                    </p>
-                  </div>
-                  
-                  {/* Link de Ativação / Credenciais */}
                   {tool.accessData.access_link && (
                     <div className="space-y-2">
                       {/* Alerta de Erro Reportado */}
