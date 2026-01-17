@@ -46,6 +46,7 @@ interface ToolAccess {
   tool_type: 'canva' | 'capcut'
   email: string
   access_link?: string
+  password?: string
   tutorial_video_url?: string
   access_granted_at: string
   is_active: boolean
@@ -152,23 +153,25 @@ export default function SolicitacoesPage() {
   const uploadVideo = async (file: File): Promise<string | null> => {
     setUploadingVideo(true)
     try {
-      const formData = new FormData()
-      formData.append('file', file)
-
-      // Verificar autenticação antes de fazer upload
-      const { data: { user }, error: authError } = await supabase.auth.getUser()
+      // Obter token de acesso atualizado
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession()
       
-      if (authError || !user) {
+      if (sessionError || !session) {
         throw new Error('Não autenticado. Faça login para fazer upload de vídeos.')
       }
 
-      // Fazer upload - os cookies serão enviados automaticamente
+      const formData = new FormData()
+      formData.append('file', file)
+
+      // Fazer upload com cookies e token de acesso
       const response = await fetch('/api/upload/video', {
         method: 'POST',
-        credentials: 'include', // Incluir cookies na requisição (importante!)
+        credentials: 'include', // Incluir cookies na requisição
+        headers: {
+          // Não definir Content-Type - o browser define automaticamente com boundary para FormData
+          'Authorization': `Bearer ${session.access_token}` // Passar token explicitamente
+        },
         body: formData
-        // Não definir Content-Type - o browser define automaticamente com boundary para FormData
-        // Não definir Authorization header - os cookies já contêm a sessão
       })
 
       if (!response.ok) {
