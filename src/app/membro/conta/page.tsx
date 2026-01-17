@@ -25,8 +25,15 @@ import {
 
 type TabType = 'profile' | 'plan'
 
+interface AgentUsage {
+  agentId: string
+  agentName: string
+  current: number
+  limit: number
+}
+
 interface UsageStats {
-  ai_messages: { current: number; limit: number | null }
+  agents: AgentUsage[]
 }
 
 export default function AccountPage() {
@@ -48,7 +55,7 @@ export default function AccountPage() {
     }
   }, [profile])
 
-  // Buscar uso do usuário
+  // Buscar uso do usuário POR AGENTE
   useEffect(() => {
     const fetchUsage = async () => {
       if (!user || !hasActiveSubscription) {
@@ -58,26 +65,54 @@ export default function AccountPage() {
 
       setLoadingUsage(true)
       try {
-        // Buscar uso diário (hoje)
+        // Buscar todos os agentes ativos
+        const { data: agentsData, error: agentsError } = await (supabase as any)
+          .from('ai_agents')
+          .select('id, name, is_premium')
+          .eq('is_active', true)
+          .order('order_position', { ascending: true })
+
+        if (agentsError) throw agentsError
+
+        // Filtrar apenas agentes que o usuário tem acesso
+        const accessibleAgents = agentsData.filter((agent: any) => {
+          // Se for premium, só mostra se o usuário for Pro
+          if (agent.is_premium && !isPro) return false
+          return true
+        })
+
+        // Buscar uso diário POR AGENTE (hoje)
         const today = new Date()
         today.setHours(0, 0, 0, 0)
+        const todayStr = today.toISOString().split('T')[0]
 
-        const { data: usageData } = await (supabase as any)
-          .from('user_usage')
-          .select('usage_count')
-          .eq('user_id', user.id)
-          .eq('feature_key', 'ai_interactions')
-          .gte('period_start', today.toISOString().split('T')[0])
-          .maybeSingle()
-
-        // Limites diários: Essencial = 8, Pro = 20
+        // Limite diário POR AGENTE: Essencial = 8, Pro = 20
         const limit = isPro ? 20 : 8
 
+        // Buscar uso de cada agente
+        const agentUsages: AgentUsage[] = await Promise.all(
+          accessibleAgents.map(async (agent: any) => {
+            const featureKeyForAgent = `ai_interactions_${agent.id}`
+            
+            const { data: usageData } = await (supabase as any)
+              .from('user_usage')
+              .select('usage_count')
+              .eq('user_id', user.id)
+              .eq('feature_key', featureKeyForAgent)
+              .gte('period_start', todayStr)
+              .maybeSingle()
+
+            return {
+              agentId: agent.id,
+              agentName: agent.name,
+              current: usageData?.usage_count || 0,
+              limit: limit
+            }
+          })
+        )
+
         setUsageStats({
-          ai_messages: {
-            current: usageData?.usage_count || 0,
-            limit: limit
-          }
+          agents: agentUsages
         })
       } catch (error) {
         console.error('Erro ao buscar uso:', error)
@@ -87,6 +122,16 @@ export default function AccountPage() {
     }
 
     fetchUsage()
+    
+    // Atualizar uso quando a página ganha foco (usuário volta para a aba)
+    const handleFocus = () => {
+      fetchUsage()
+    }
+    window.addEventListener('focus', handleFocus)
+    
+    return () => {
+      window.removeEventListener('focus', handleFocus)
+    }
   }, [user, hasActiveSubscription, isPro])
 
   // Listener para atualização de assinatura
@@ -426,39 +471,54 @@ export default function AccountPage() {
 
             {/* Usage & Features */}
             <div className="bg-white rounded-2xl border border-gogh-grayLight p-6 lg:p-8 space-y-6">
-              {/* Uso de Mensagens de IA */}
-              {hasActiveSubscription && usageStats && (
+              {/* Uso de Mensagens de IA POR AGENTE */}
+              {hasActiveSubscription && usageStats && usageStats.agents && usageStats.agents.length > 0 && (
                 <div>
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-3">
                       <Zap className="w-5 h-5 text-gogh-grayDark" />
-                      <h3 className="text-lg font-bold text-gogh-black">Interações de IA</h3>
+                      <h3 className="text-lg font-bold text-gogh-black">Interações de IA por Agente</h3>
                     </div>
                     <span className="text-sm text-gogh-grayDark">Hoje</span>
                   </div>
-                  <div className="space-y-2">
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-2xl font-bold text-gogh-black">
-                        {usageStats.ai_messages.current}
-                      </span>
-                      <span className="text-sm text-gogh-grayDark">
-                        / {usageStats.ai_messages.limit} interações
-                      </span>
-                    </div>
-                    <div className="h-2 bg-gogh-grayLight rounded-full overflow-hidden">
-                      <div 
-                        className="h-full bg-gradient-to-r from-purple-500 to-indigo-500 rounded-full transition-all duration-500"
-                        style={{ 
-                          width: `${Math.min(
-                            (usageStats.ai_messages.current / (usageStats.ai_messages.limit || 1)) * 100, 
-                            100
-                          )}%` 
-                        }}
-                      />
-                    </div>
-                    <p className="text-xs text-gogh-grayDark">
-                      {Math.round((usageStats.ai_messages.current / (usageStats.ai_messages.limit || 1)) * 100)}% do limite utilizado
-                    </p>
+                  <div className="space-y-4">
+                    {usageStats.agents.map((agentUsage) => {
+                      const percentage = Math.min(
+                        (agentUsage.current / agentUsage.limit) * 100,
+                        100
+                      )
+                      const isLimitReached = agentUsage.current >= agentUsage.limit
+                      
+                      return (
+                        <div key={agentUsage.agentId} className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium text-gogh-black">
+                              {agentUsage.agentName}
+                            </span>
+                            <span className={`text-sm font-medium ${
+                              isLimitReached ? 'text-amber-700' : 'text-gogh-grayDark'
+                            }`}>
+                              {agentUsage.current} / {agentUsage.limit}
+                            </span>
+                          </div>
+                          <div className="h-2 bg-gogh-grayLight rounded-full overflow-hidden">
+                            <div 
+                              className={`h-full rounded-full transition-all duration-500 ${
+                                isLimitReached
+                                  ? 'bg-gradient-to-r from-amber-500 to-amber-600'
+                                  : 'bg-gradient-to-r from-purple-500 to-indigo-500'
+                              }`}
+                              style={{ width: `${percentage}%` }}
+                            />
+                          </div>
+                          {isLimitReached && (
+                            <p className="text-xs text-amber-700 font-medium">
+                              Limite atingido para hoje
+                            </p>
+                          )}
+                        </div>
+                      )
+                    })}
                   </div>
                 </div>
               )}

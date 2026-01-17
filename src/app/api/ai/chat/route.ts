@@ -58,7 +58,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Erro ao processar requisição' }, { status: 400 })
     }
     
-    const { conversationId, message, agentId } = body
+    const { conversationId, message, agentId, skipUsageCount } = body
 
     if (!conversationId || !message) {
       return NextResponse.json({ error: 'Parâmetros inválidos' }, { status: 400 })
@@ -187,9 +187,14 @@ export async function POST(request: Request) {
       console.log('[AI Chat] Nenhuma assinatura ativa encontrada - permitindo uso com limite padrão')
     }
 
-    // Verificar limite de uso diário
+    // Verificar limite de uso diário POR AGENTE
+    // IMPORTANTE: Cada agente tem seu próprio limite diário
     const today = new Date()
     today.setHours(0, 0, 0, 0)
+
+    // Usar agent_id da conversa para rastrear uso por agente
+    const agentIdForUsage = conversationData.ai_agents.id
+    const featureKeyForAgent = `ai_interactions_${agentIdForUsage}`
 
     type UsageData = {
       usage_count: number
@@ -199,26 +204,30 @@ export async function POST(request: Request) {
       .from('user_usage')
       .select('usage_count')
       .eq('user_id', user.id)
-      .eq('feature_key', 'ai_interactions')
+      .eq('feature_key', featureKeyForAgent)
       .gte('period_start', today.toISOString().split('T')[0])
       .maybeSingle()
 
     const usageDataTyped = usageData as UsageData | null
     const currentUsage = usageDataTyped?.usage_count || 0
-    // Limites diários: Pro = 20, Essencial ou sem assinatura = 8
+    // Limites diários POR AGENTE: Pro = 20, Essencial ou sem assinatura = 8
     // Aceita planos manuais e Stripe
     const limit = (hasValidSubscription && subscriptionData?.plan_id === 'gogh_pro') ? 20 : 8
     
-    console.log('[AI Chat] Limite de uso:', {
+    console.log('[AI Chat] Limite de uso por agente:', {
+      agentId: agentIdForUsage,
+      agentName: conversationData.ai_agents.name,
       currentUsage,
       limit,
       planId: subscriptionData?.plan_id,
-      hasValidSubscription
+      hasValidSubscription,
+      skipUsageCount: skipUsageCount || false
     })
 
-    if (currentUsage >= limit) {
+    // Verificar limite apenas se não for mensagem de contexto do nicho (que não conta)
+    if (!skipUsageCount && currentUsage >= limit) {
       return NextResponse.json({ 
-        error: 'Você atingiu o limite de interações de hoje. Volte amanhã ou faça upgrade para aumentar o limite.' 
+        error: `Você atingiu o limite de interações de hoje para o agente "${conversationData.ai_agents.name}". Volte amanhã ou faça upgrade para aumentar o limite.` 
       }, { status: 429 })
     }
 
@@ -398,26 +407,39 @@ export async function POST(request: Request) {
         .eq('id', conversationId)
     }
 
-    // Atualizar ou criar registro de uso diário
-    const todayForUsage = new Date()
-    todayForUsage.setHours(0, 0, 0, 0)
-    const tomorrow = new Date(todayForUsage)
-    tomorrow.setDate(tomorrow.getDate() + 1)
+    // Atualizar ou criar registro de uso diário POR AGENTE
+    // IMPORTANTE: Não incrementar uso se for mensagem de contexto do nicho (skipUsageCount = true)
+    // A primeira mensagem automática do nicho não deve contar no limite
+    if (!skipUsageCount) {
+      const todayForUsage = new Date()
+      todayForUsage.setHours(0, 0, 0, 0)
+      const tomorrow = new Date(todayForUsage)
+      tomorrow.setDate(tomorrow.getDate() + 1)
 
-    const { error: usageError } = await (supabase as any)
-      .from('user_usage')
-      .upsert({
-        user_id: user.id,
-        feature_key: 'ai_interactions',
-        usage_count: currentUsage + 1,
-        period_start: todayForUsage.toISOString().split('T')[0],
-        period_end: tomorrow.toISOString().split('T')[0]
-      }, {
-        onConflict: 'user_id,feature_key,period_start'
+      const { error: usageError } = await (supabase as any)
+        .from('user_usage')
+        .upsert({
+          user_id: user.id,
+          feature_key: featureKeyForAgent, // Limite POR AGENTE: ai_interactions_{agent_id}
+          usage_count: currentUsage + 1,
+          period_start: todayForUsage.toISOString().split('T')[0],
+          period_end: tomorrow.toISOString().split('T')[0]
+        }, {
+          onConflict: 'user_id,feature_key,period_start'
+        })
+
+      if (usageError) {
+        console.error('Error updating usage:', usageError)
+      }
+      
+      console.log('[AI Chat] Uso incrementado para agente:', {
+        agentId: agentIdForUsage,
+        agentName: conversationData.ai_agents.name,
+        newUsage: currentUsage + 1,
+        limit: limit
       })
-
-    if (usageError) {
-      console.error('Error updating usage:', usageError)
+    } else {
+      console.log('[AI Chat] Uso NÃO incrementado (mensagem de contexto do nicho)')
     }
 
     return NextResponse.json({

@@ -146,6 +146,7 @@ export default function ChatPage() {
       console.log('[Niche Context] Enviando requisição para API...')
       
       // Chamar API de chat
+      // IMPORTANTE: skipUsageCount = true para não contar a primeira mensagem do nicho
       const response = await fetch('/api/ai/chat', {
         method: 'POST',
         headers: { 
@@ -155,7 +156,8 @@ export default function ChatPage() {
         body: JSON.stringify({
           conversationId: conv.id,
           message: nicheContext,
-          agentId: conv.agent_id
+          agentId: conv.agent_id,
+          skipUsageCount: true // Não contar como uso - é apenas configuração do agente
         })
       })
 
@@ -188,8 +190,9 @@ export default function ChatPage() {
       // Atualizar mensagens
       setMessages([data.userMessage, data.assistantMessage])
 
-      // Atualizar uso
-      setUsageInfo(prev => prev ? { ...prev, current: (prev.current || 0) + 1 } : { current: 1, limit: isPro ? 20 : 8 })
+      // NÃO atualizar uso - a mensagem de contexto do nicho não conta como uso
+      // O usoInfo já está correto, não precisa incrementar
+      console.log('[Niche Context] Uso não incrementado - mensagem de contexto não conta')
     } catch (error: any) {
       console.error('[Niche Context] Erro ao enviar contexto:', error)
       setError(error.message || 'Erro ao enviar contexto do perfil')
@@ -277,19 +280,24 @@ export default function ChatPage() {
           waitForAuth()
         }
 
-        // Buscar uso diário (hoje)
+        // Buscar uso diário POR AGENTE (hoje)
+        // IMPORTANTE: Cada agente tem seu próprio limite
         const today = new Date()
         today.setHours(0, 0, 0, 0)
+
+        // Usar agent_id da conversa para buscar uso específico do agente
+        const agentIdForUsage = convData.agent_id
+        const featureKeyForAgent = `ai_interactions_${agentIdForUsage}`
 
         const { data: usageData } = await (supabase as any)
           .from('user_usage')
           .select('usage_count')
           .eq('user_id', user.id)
-          .eq('feature_key', 'ai_interactions')
+          .eq('feature_key', featureKeyForAgent)
           .gte('period_start', today.toISOString().split('T')[0])
           .maybeSingle()
 
-        // Limites diários: Essencial = 8, Pro = 20
+        // Limites diários POR AGENTE: Essencial = 8, Pro = 20
         const limit = isPro ? 20 : 8
         setUsageInfo({
           current: usageData?.usage_count || 0,
@@ -378,7 +386,8 @@ export default function ChatPage() {
         body: JSON.stringify({
           conversationId: conversation.id,
           message: userMessage,
-          agentId: conversation.agent_id
+          agentId: conversation.agent_id,
+          skipUsageCount: false // Mensagens normais contam como uso
         })
       })
       
@@ -440,7 +449,7 @@ export default function ChatPage() {
         
         // Se atingiu o limite, mostrar mensagem
         if (newUsage >= usageInfo.limit) {
-          setError('Você atingiu o limite de interações de hoje. Volte amanhã ou faça upgrade para aumentar o limite.')
+          setError(`Você atingiu o limite de interações de hoje para o agente "${conversation.ai_agents.name}". Volte amanhã ou faça upgrade para aumentar o limite.`)
         }
       }
     } catch (error: any) {
