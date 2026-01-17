@@ -275,7 +275,14 @@ export default function ChatPage() {
       return
     }
 
-    const userMessage = inputValue.trim()
+    let userMessage = inputValue.trim()
+    
+    // Se for a primeira mensagem e tiver perfil de nicho, adicionar contexto automaticamente
+    if (nicheProfile && messages.length === 0) {
+      const nicheContext = buildNicheContext(nicheProfile)
+      userMessage = `${nicheContext}\n\nAgora, sobre minha solicitação: ${userMessage}`
+    }
+    
     setInputValue('')
     setIsSending(true)
     setError(null)
