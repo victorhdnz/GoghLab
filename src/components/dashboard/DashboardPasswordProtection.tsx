@@ -21,8 +21,10 @@ export function DashboardPasswordProtection({ children }: DashboardPasswordProte
   const router = useRouter()
 
   useEffect(() => {
-    // Verificar se já foi autenticado nesta sessão
-    const verified = sessionStorage.getItem(STORAGE_KEY) === 'true'
+    // Verificar se já foi autenticado (usando localStorage para persistir após login)
+    // IMPORTANTE: A senha é pedida apenas UMA VEZ após o login do Google
+    // Depois disso, fica salva no localStorage até o usuário fazer logout
+    const verified = localStorage.getItem(STORAGE_KEY) === 'true'
     setIsVerified(verified)
     setIsChecking(false)
   }, [])
@@ -32,8 +34,9 @@ export function DashboardPasswordProtection({ children }: DashboardPasswordProte
     setError('')
 
     if (password === DASHBOARD_PASSWORD) {
-      // Salvar verificação na sessão
-      sessionStorage.setItem(STORAGE_KEY, 'true')
+      // Salvar verificação no localStorage (persiste entre sessões)
+      // IMPORTANTE: Será limpa apenas quando o usuário fizer logout do Google
+      localStorage.setItem(STORAGE_KEY, 'true')
       setIsVerified(true)
       setPassword('')
     } else {
@@ -44,7 +47,7 @@ export function DashboardPasswordProtection({ children }: DashboardPasswordProte
 
   const handleLogout = () => {
     // Limpar verificação e redirecionar
-    sessionStorage.removeItem(STORAGE_KEY)
+    localStorage.removeItem(STORAGE_KEY)
     router.push('/')
   }
 

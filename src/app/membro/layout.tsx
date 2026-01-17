@@ -176,6 +176,9 @@ export default function MemberLayout({ children }: MemberLayoutProps) {
   const handleSignOut = async () => {
     setSigningOut(true)
     try {
+      // Limpar senha do dashboard ao fazer logout
+      localStorage.removeItem('dashboard_password_verified')
+      
       // Timeout de segurança
       const timeoutPromise = new Promise((_, reject) => 
         setTimeout(() => reject(new Error('Timeout')), 5000)

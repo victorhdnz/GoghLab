@@ -168,6 +168,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setProfile(null)
     setSubscription(null)
     setSession(null)
+    // Limpar senha do dashboard ao fazer logout
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('dashboard_password_verified')
+    }
   }
 
   // Inicialização e listeners

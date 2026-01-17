@@ -340,6 +340,11 @@ export const useAuth = () => {
       setUser(null)
       setProfile(null)
       
+      // Limpar senha do dashboard ao fazer logout
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('dashboard_password_verified')
+      }
+      
       // Recarregar a página para limpar qualquer cache
       if (typeof window !== 'undefined') {
         window.location.href = '/'
