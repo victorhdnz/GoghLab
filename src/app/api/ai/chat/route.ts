@@ -107,6 +107,14 @@ export async function POST(request: Request) {
 
     // Verificar assinatura ativa (aceita planos Stripe e manuais)
     // Planos manuais não têm stripe_subscription_id (é NULL), então aceitamos ambos
+    type SubscriptionData = {
+      plan_id: string
+      status: string
+      current_period_end: string
+      current_period_start: string
+      stripe_subscription_id: string | null
+    }
+    
     const { data: subscription, error: subError } = await supabase
       .from('subscriptions')
       .select('plan_id, status, current_period_end, current_period_start, stripe_subscription_id')
@@ -114,32 +122,35 @@ export async function POST(request: Request) {
       .eq('status', 'active')
       .maybeSingle()
 
+    const subscriptionData = subscription as SubscriptionData | null
+
     console.log('[AI Chat] Verificação de assinatura:', {
-      found: !!subscription,
-      planId: subscription?.plan_id,
-      status: subscription?.status,
-      hasStripeId: !!subscription?.stripe_subscription_id,
-      currentPeriodEnd: subscription?.current_period_end,
-      isManual: !subscription?.stripe_subscription_id,
+      found: !!subscriptionData,
+      planId: subscriptionData?.plan_id,
+      status: subscriptionData?.status,
+      hasStripeId: !!subscriptionData?.stripe_subscription_id,
+      currentPeriodEnd: subscriptionData?.current_period_end,
+      isManual: !subscriptionData?.stripe_subscription_id,
       error: subError ? subError.message : null
     })
 
     // Se encontrou assinatura, verificar se está dentro do período válido
     let hasValidSubscription = false
-    if (subscription) {
+    if (subscriptionData) {
       // Planos manuais não têm stripe_subscription_id (é NULL), então são sempre válidos
-      if (subscription.stripe_subscription_id === null) {
+      if (subscriptionData.stripe_subscription_id === null) {
         hasValidSubscription = true
         console.log('[AI Chat] Assinatura manual detectada - sempre válida')
       } else {
         // Para planos Stripe, verificar se está dentro do período válido
         const now = new Date()
-        const periodEnd = new Date(subscription.current_period_end)
+        const periodEnd = new Date(subscriptionData.current_period_end)
         hasValidSubscription = periodEnd >= now
         
         console.log('[AI Chat] Validação de período:', {
           now: now.toISOString(),
           periodEnd: periodEnd.toISOString(),
+          isManual: subscriptionData.stripe_subscription_id === null,
           isValid: hasValidSubscription
         })
         
@@ -166,12 +177,12 @@ export async function POST(request: Request) {
     const currentUsage = usageData?.usage_count || 0
     // Limites diários: Pro = 20, Essencial ou sem assinatura = 8
     // Aceita planos manuais e Stripe
-    const limit = (hasValidSubscription && subscription?.plan_id === 'gogh_pro') ? 20 : 8
+    const limit = (hasValidSubscription && subscriptionData?.plan_id === 'gogh_pro') ? 20 : 8
     
     console.log('[AI Chat] Limite de uso:', {
       currentUsage,
       limit,
-      planId: subscription?.plan_id,
+      planId: subscriptionData?.plan_id,
       hasValidSubscription
     })
 
