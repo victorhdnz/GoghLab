@@ -29,37 +29,21 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
 
-    // Verificar autenticação via header Authorization primeiro (mais confiável para uploads)
-    const authHeader = request.headers.get('authorization')
-    let user = null
+    // Obter cliente Supabase autenticado usando createRouteHandlerClient para API routes
+    // IMPORTANTE: Criar o cliente DEPOIS de ler o FormData
+    const supabase = createRouteHandlerClient<Database>({ cookies })
+
+    // Verificar autenticação usando getUser() que é mais confiável em API routes
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
     
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      const token = authHeader.substring(7)
-      // Obter cliente Supabase autenticado usando createRouteHandlerClient para API routes
-      const supabase = createRouteHandlerClient<Database>({ cookies })
-      
-      // Verificar token
-      const { data: { user: userFromToken }, error: tokenError } = await supabase.auth.getUser(token)
-      
-      if (!tokenError && userFromToken) {
-        user = userFromToken
-      }
-    }
-    
-    // Se não autenticou via token, tentar via cookies
-    if (!user) {
-      const supabase = createRouteHandlerClient<Database>({ cookies })
-      const { data: { user: userFromCookies }, error: authError } = await supabase.auth.getUser()
-      
-      if (authError) {
-        console.error('Erro de autenticação no upload:', authError)
-        return NextResponse.json({ 
-          error: 'Erro de autenticação. Faça login novamente.',
-          details: process.env.NODE_ENV === 'development' ? authError.message : undefined
-        }, { status: 401 })
-      }
-      
-      user = userFromCookies
+    if (authError) {
+      console.error('Erro de autenticação no upload:', authError)
+      console.error('Código do erro:', authError.status)
+      console.error('Mensagem:', authError.message)
+      return NextResponse.json({ 
+        error: 'Erro de autenticação. Faça login novamente.',
+        details: process.env.NODE_ENV === 'development' ? authError.message : undefined
+      }, { status: 401 })
     }
     
     if (!user) {
@@ -70,9 +54,6 @@ export async function POST(request: NextRequest) {
     }
     
     console.log('Usuário autenticado para upload:', user.id)
-    
-    // Obter cliente Supabase para verificar permissões
-    const supabase = createRouteHandlerClient<Database>({ cookies })
 
     // Verificar se o usuário tem permissão (admin ou editor)
     const { data: profile, error: profileError } = await supabase
