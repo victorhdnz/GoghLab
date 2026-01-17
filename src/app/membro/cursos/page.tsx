@@ -47,33 +47,58 @@ export default function CoursesPage() {
       if (!user) return
 
       try {
-        const { data, error } = await (supabase as any)
+        // Primeiro, buscar apenas os cursos para verificar se há algum
+        const { data: coursesData, error: coursesError } = await (supabase as any)
           .from('courses')
-          .select(`
-            *,
-            lessons:course_lessons(*)
-          `)
+          .select('*')
           .eq('is_published', true)
           .order('course_type', { ascending: true, nullsLast: true })
           .order('order_position', { ascending: true, nullsLast: true })
-          .order('order', { ascending: true, nullsLast: true })
 
-        if (error) {
-          console.error('Erro ao buscar cursos:', error)
-          throw error
+        if (coursesError) {
+          console.error('Erro ao buscar cursos:', coursesError)
+          console.error('Detalhes do erro:', JSON.stringify(coursesError, null, 2))
+          throw coursesError
         }
         
-        console.log('Cursos encontrados:', data?.length || 0, data)
+        console.log('Cursos encontrados (sem lessons):', coursesData?.length || 0, coursesData)
         
-        // Ordenar lessons dentro de cada curso
-        const coursesWithOrderedLessons = (data || []).map((course: Course) => ({
-          ...course,
-          lessons: (course.lessons || []).sort((a: Lesson, b: Lesson) => (a.order_position || a.order || 0) - (b.order_position || b.order || 0))
-        }))
+        if (!coursesData || coursesData.length === 0) {
+          setCourses([])
+          return
+        }
+
+        // Buscar lessons separadamente para cada curso
+        const courseIds = coursesData.map((c: Course) => c.id)
+        const { data: lessonsData, error: lessonsError } = await (supabase as any)
+          .from('course_lessons')
+          .select('*')
+          .in('course_id', courseIds)
+          .order('order_position', { ascending: true, nullsLast: true })
+          .order('order', { ascending: true, nullsLast: true })
+
+        if (lessonsError) {
+          console.error('Erro ao buscar lessons:', lessonsError)
+          // Continuar mesmo se houver erro nas lessons
+        }
         
+        console.log('Lessons encontradas:', lessonsData?.length || 0)
+        
+        // Combinar cursos com suas lessons
+        const coursesWithOrderedLessons = coursesData.map((course: Course) => {
+          const courseLessons = (lessonsData || []).filter((l: Lesson) => l.course_id === course.id)
+          return {
+            ...course,
+            lessons: courseLessons.sort((a: Lesson, b: Lesson) => (a.order_position || a.order || 0) - (b.order_position || b.order || 0))
+          }
+        })
+        
+        console.log('Cursos finais:', coursesWithOrderedLessons.length, coursesWithOrderedLessons)
         setCourses(coursesWithOrderedLessons)
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error fetching courses:', error)
+        console.error('Error details:', JSON.stringify(error, null, 2))
+        setCourses([])
       } finally {
         setLoading(false)
       }
