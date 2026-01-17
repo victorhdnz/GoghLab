@@ -84,12 +84,13 @@ export function VideoUploader({
       const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 15)}.${finalExt}`
       const filePath = fileName
 
-      // Verificar se o usuário tem permissão (verificar novamente do lado do cliente)
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
-        throw new Error('Usuário não autenticado')
+      // Verificar autenticação
+      const { data: { user }, error: authError } = await supabase.auth.getUser()
+      if (authError || !user) {
+        throw new Error('Faça login para fazer upload de vídeos')
       }
 
+      // Verificar permissões (admin ou editor)
       const { data: profile, error: profileError } = await (supabase as any)
         .from('profiles')
         .select('role')
@@ -104,43 +105,47 @@ export function VideoUploader({
         throw new Error('Apenas administradores e editores podem fazer upload de vídeos')
       }
 
-      // Usar API route para upload (evita problemas de RLS)
-      const formData = new FormData()
-      formData.append('file', file)
+      // Fazer upload DIRETO para Supabase Storage (seguindo o guia)
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('videos') // Nome do bucket
+        .upload(filePath, file, {
+          cacheControl: '3600', // Cache de 1 hora
+          upsert: false, // Não sobrescrever se existir
+          contentType: file.type || `video/${finalExt}`, // Tipo MIME
+        })
 
-      const uploadResponse = await fetch('/api/upload/video', {
-        method: 'POST',
-        body: formData,
-      })
-
-      if (!uploadResponse.ok) {
-        const errorData = await uploadResponse.json().catch(() => ({ error: 'Erro desconhecido' }))
-        let errorMessage = errorData.error || 'Erro ao fazer upload do vídeo'
+      if (uploadError) {
+        console.error('Erro no upload:', uploadError)
         
-        // Tratar erros específicos
-        if (errorMessage.includes('row-level security') || errorMessage.includes('RLS')) {
-          errorMessage = 'Erro de permissão. Verifique se você tem permissão para fazer upload de vídeos.'
-        } else if (errorMessage.includes('pattern') || errorMessage.includes('match')) {
+        // Tratar erros comuns
+        let errorMessage = uploadError.message || 'Erro ao fazer upload do vídeo'
+        
+        if (errorMessage.includes('pattern') || errorMessage.includes('match')) {
           errorMessage = 'Formato de arquivo inválido. Verifique se o arquivo é um vídeo válido.'
         } else if (errorMessage.includes('duplicate') || errorMessage.includes('exists')) {
           errorMessage = 'Um arquivo com este nome já existe. Tente novamente.'
         } else if (errorMessage.includes('413') || errorMessage.includes('too large')) {
           errorMessage = 'Arquivo muito grande. Tamanho máximo: 100MB'
+        } else if (errorMessage.includes('new row violates row-level security') || errorMessage.includes('row-level security')) {
+          errorMessage = 'Erro de permissão. Verifique as políticas RLS do bucket. Execute o SQL em supabase/storage_videos_rls.sql'
         }
         
         throw new Error(errorMessage)
       }
 
-      const uploadData = await uploadResponse.json()
-      
-      if (!uploadData.url) {
-        throw new Error('Erro ao obter URL do vídeo após upload')
+      // Obter URL pública do vídeo
+      const { data: urlData } = supabase.storage
+        .from('videos')
+        .getPublicUrl(filePath)
+
+      if (!urlData?.publicUrl) {
+        throw new Error('Erro ao obter URL do vídeo')
       }
 
       setUploadProgress(100)
 
-      setPreview(uploadData.url)
-      onChange(uploadData.url)
+      setPreview(urlData.publicUrl)
+      onChange(urlData.publicUrl)
       toast.success('Vídeo carregado com sucesso!')
     } catch (error: any) {
       console.error('Erro no upload:', error)

@@ -71,42 +71,24 @@ export async function POST(request: NextRequest) {
 
     console.log('Usuário autenticado para upload:', user.id)
 
-    // Criar cliente com service_role_key para fazer upload (bypass RLS)
-    const { createClient: createSupabaseClient } = await import('@supabase/supabase-js')
-    const supabaseAdmin = createSupabaseClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false
-        }
-      }
-    )
-
     // Gerar nome único para o arquivo (sanitizado)
-    // Remover caracteres especiais e espaços do nome do arquivo original
     const sanitizedName = file.name
-      .replace(/[^a-zA-Z0-9.-]/g, '_') // Substituir caracteres inválidos por underscore
-      .replace(/\s+/g, '_') // Substituir espaços por underscore
+      .replace(/[^a-zA-Z0-9.-]/g, '_')
+      .replace(/\s+/g, '_')
       .toLowerCase()
     
     const fileExt = sanitizedName.split('.').pop() || 'mp4'
-    // Validar extensão de vídeo
     const validExtensions = ['mp4', 'webm', 'ogg', 'mov', 'avi', 'mkv']
     const finalExt = validExtensions.includes(fileExt.toLowerCase()) ? fileExt.toLowerCase() : 'mp4'
     
-    // Gerar nome único: timestamp + random + extensão (apenas caracteres alfanuméricos e underscore)
+    // Gerar nome único: timestamp + random + extensão
     const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 15)}.${finalExt}`
     const filePath = fileName
 
-    // Converter File para ArrayBuffer para upload
-    const arrayBuffer = await file.arrayBuffer()
-    
-    // Fazer upload para Supabase Storage usando service_role_key (bypass RLS)
-    const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
+    // Fazer upload para Supabase Storage usando o cliente autenticado (RLS será aplicado)
+    const { data: uploadData, error: uploadError } = await supabase.storage
       .from('videos')
-      .upload(filePath, arrayBuffer, {
+      .upload(filePath, file, {
         cacheControl: '3600',
         upsert: false,
         contentType: file.type || `video/${finalExt}`,
@@ -132,7 +114,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Obter URL pública do vídeo
-    const { data: urlData } = supabaseAdmin.storage
+    const { data: urlData } = supabase.storage
       .from('videos')
       .getPublicUrl(filePath)
 

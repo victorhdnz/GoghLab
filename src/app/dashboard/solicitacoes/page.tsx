@@ -153,33 +153,72 @@ export default function SolicitacoesPage() {
   const uploadVideo = async (file: File): Promise<string | null> => {
     setUploadingVideo(true)
     try {
-      // Obter token de acesso atualizado
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+      // 1. VALIDAÇÕES
+      if (!file.type.startsWith('video/')) {
+        throw new Error('Apenas arquivos de vídeo são permitidos')
+      }
+
+      const MAX_SIZE = 100 * 1024 * 1024 // 100MB
+      if (file.size > MAX_SIZE) {
+        throw new Error('Arquivo muito grande. Máximo: 100MB')
+      }
+
+      // 2. VERIFICAR AUTENTICAÇÃO
+      const { data: { user }, error: authError } = await supabase.auth.getUser()
+      if (authError || !user) {
+        throw new Error('Faça login para fazer upload de vídeos')
+      }
+
+      // 3. GERAR NOME ÚNICO
+      const sanitizedName = file.name
+        .replace(/[^a-zA-Z0-9.-]/g, '_')
+        .replace(/\s+/g, '_')
+        .toLowerCase()
       
-      if (sessionError || !session) {
-        throw new Error('Não autenticado. Faça login para fazer upload de vídeos.')
+      const fileExt = sanitizedName.split('.').pop() || 'mp4'
+      const validExtensions = ['mp4', 'webm', 'ogg', 'mov', 'avi', 'mkv']
+      const finalExt = validExtensions.includes(fileExt.toLowerCase()) ? fileExt.toLowerCase() : 'mp4'
+      const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 15)}.${finalExt}`
+      const filePath = fileName
+
+      // 4. UPLOAD DIRETO PARA SUPABASE STORAGE (seguindo o guia)
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('videos') // Nome do bucket
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false,
+          contentType: file.type || `video/${finalExt}`,
+        })
+
+      if (uploadError) {
+        console.error('Erro no upload:', uploadError)
+        
+        // Tratar erros comuns
+        let errorMessage = uploadError.message || 'Erro ao fazer upload do vídeo'
+        
+        if (errorMessage.includes('pattern') || errorMessage.includes('match')) {
+          errorMessage = 'Formato de arquivo inválido. Verifique se o arquivo é um vídeo válido.'
+        } else if (errorMessage.includes('duplicate') || errorMessage.includes('exists')) {
+          errorMessage = 'Um arquivo com este nome já existe. Tente novamente.'
+        } else if (errorMessage.includes('413') || errorMessage.includes('too large')) {
+          errorMessage = 'Arquivo muito grande. Tamanho máximo: 100MB'
+        } else if (errorMessage.includes('new row violates row-level security') || errorMessage.includes('row-level security')) {
+          errorMessage = 'Erro de permissão. Verifique as políticas RLS do bucket. Execute o SQL em supabase/storage_videos_rls.sql'
+        }
+        
+        throw new Error(errorMessage)
       }
 
-      const formData = new FormData()
-      formData.append('file', file)
+      // 5. OBTER URL PÚBLICA
+      const { data: urlData } = supabase.storage
+        .from('videos')
+        .getPublicUrl(filePath)
 
-      // Fazer upload - os cookies serão enviados automaticamente
-      // IMPORTANTE: Não definir headers quando usar FormData, o browser define automaticamente
-      const response = await fetch('/api/upload/video', {
-        method: 'POST',
-        credentials: 'include', // Incluir cookies na requisição (essencial!)
-        body: formData
-        // Não definir Content-Type - o browser define automaticamente com boundary para FormData
-        // Não definir Authorization header - os cookies já contêm a sessão
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Erro desconhecido' }))
-        throw new Error(errorData.error || 'Erro ao fazer upload do vídeo')
+      if (!urlData?.publicUrl) {
+        throw new Error('Erro ao obter URL do vídeo')
       }
 
-      const data = await response.json()
-      return data.url || null
+      return urlData.publicUrl
     } catch (error: any) {
       console.error('Erro ao fazer upload do vídeo:', error)
       toast.error(error.message || 'Erro ao fazer upload do vídeo')
