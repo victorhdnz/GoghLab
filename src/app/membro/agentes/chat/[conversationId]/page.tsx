@@ -146,6 +146,14 @@ export default function ChatPage() {
       const data = await response.json()
 
       if (!response.ok) {
+        // Se for erro de assinatura, não mostrar como erro de autenticação
+        if (response.status === 403) {
+          setError('Assinatura não encontrada. Configure sua assinatura para usar os agentes de IA.')
+        } else if (response.status === 401) {
+          setError('Erro de autenticação. Faça login novamente.')
+        } else {
+          setError(data.error || 'Erro ao enviar contexto do perfil')
+        }
         throw new Error(data.error || 'Erro ao enviar contexto do perfil')
       }
 

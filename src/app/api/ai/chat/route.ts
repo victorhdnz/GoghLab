@@ -59,18 +59,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Conversa não encontrada' }, { status: 404 })
     }
 
-    // Verificar assinatura ativa
+    // Verificar assinatura ativa (opcional - permite uso mesmo sem assinatura)
     const { data: subscription } = await supabase
       .from('subscriptions')
       .select('plan_id, status, current_period_end')
       .eq('user_id', user.id)
       .eq('status', 'active')
       .gte('current_period_end', new Date().toISOString())
-      .single()
-
-    if (!subscription) {
-      return NextResponse.json({ error: 'Assinatura não encontrada ou expirada' }, { status: 403 })
-    }
+      .maybeSingle()
 
     // Verificar limite de uso diário
     const today = new Date()
@@ -85,8 +81,8 @@ export async function POST(request: Request) {
       .maybeSingle()
 
     const currentUsage = usageData?.usage_count || 0
-    // Limites diários: Essencial = 8, Pro = 20
-    const limit = subscription.plan_id === 'gogh_pro' ? 20 : 8
+    // Limites diários: Pro = 20, Essencial ou sem assinatura = 8
+    const limit = subscription?.plan_id === 'gogh_pro' ? 20 : 8
 
     if (currentUsage >= limit) {
       return NextResponse.json({ 
