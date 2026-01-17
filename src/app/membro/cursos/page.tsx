@@ -36,11 +36,14 @@ interface Lesson {
 }
 
 export default function CoursesPage() {
-  const { user, hasActiveSubscription } = useAuth()
+  const { user, hasActiveSubscription, subscription, isPro } = useAuth()
   const [courses, setCourses] = useState<Course[]>([])
   const [loading, setLoading] = useState(true)
   
   const supabase = createClient()
+  
+  // Verificar se tem acesso aos cursos (apenas Pro)
+  const hasCourseAccess = isPro && hasActiveSubscription
 
   useEffect(() => {
     const fetchCourses = async () => {
@@ -135,6 +138,18 @@ export default function CoursesPage() {
         </p>
       </div>
 
+      {!hasCourseAccess && hasActiveSubscription && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200 rounded-xl p-6"
+        >
+          <p className="text-amber-800">
+            Os cursos são exclusivos para o plano Pro. <Link href="/#pricing" className="font-medium underline">Faça upgrade agora</Link>
+          </p>
+        </motion.div>
+      )}
+      
       {!hasActiveSubscription && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -154,9 +169,28 @@ export default function CoursesPage() {
             <Palette className="w-5 h-5 text-purple-600" />
             <h2 className="text-xl font-bold text-gogh-black">Cursos de Canva</h2>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className={`grid grid-cols-1 md:grid-cols-2 gap-6 ${!hasCourseAccess ? 'relative' : ''}`}>
+            {!hasCourseAccess && (
+              <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-10 rounded-xl flex items-center justify-center">
+                <div className="text-center p-8">
+                  <BookOpen className="w-16 h-16 text-gogh-grayDark mx-auto mb-4 opacity-50" />
+                  <h3 className="text-xl font-bold text-gogh-black mb-2">
+                    Cursos Exclusivos do Plano Pro
+                  </h3>
+                  <p className="text-gogh-grayDark mb-6 max-w-md">
+                    Faça upgrade para o plano Pro e tenha acesso completo a todos os nossos cursos de Canva e CapCut.
+                  </p>
+                  <Link
+                    href="/#pricing"
+                    className="inline-flex items-center gap-2 px-6 py-3 bg-gogh-yellow text-gogh-black font-medium rounded-xl hover:bg-gogh-yellow/90 transition-colors"
+                  >
+                    Fazer Upgrade
+                  </Link>
+                </div>
+              </div>
+            )}
             {canvaCourses.map((course, index) => (
-              <CourseCard key={course.id} course={course} index={index} hasAccess={hasActiveSubscription} />
+              <CourseCard key={course.id} course={course} index={index} hasAccess={hasCourseAccess} />
             ))}
           </div>
         </div>
@@ -169,9 +203,28 @@ export default function CoursesPage() {
             <Scissors className="w-5 h-5 text-emerald-600" />
             <h2 className="text-xl font-bold text-gogh-black">Cursos de CapCut</h2>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className={`grid grid-cols-1 md:grid-cols-2 gap-6 ${!hasCourseAccess ? 'relative' : ''}`}>
+            {!hasCourseAccess && (
+              <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-10 rounded-xl flex items-center justify-center">
+                <div className="text-center p-8">
+                  <BookOpen className="w-16 h-16 text-gogh-grayDark mx-auto mb-4 opacity-50" />
+                  <h3 className="text-xl font-bold text-gogh-black mb-2">
+                    Cursos Exclusivos do Plano Pro
+                  </h3>
+                  <p className="text-gogh-grayDark mb-6 max-w-md">
+                    Faça upgrade para o plano Pro e tenha acesso completo a todos os nossos cursos de Canva e CapCut.
+                  </p>
+                  <Link
+                    href="/#pricing"
+                    className="inline-flex items-center gap-2 px-6 py-3 bg-gogh-yellow text-gogh-black font-medium rounded-xl hover:bg-gogh-yellow/90 transition-colors"
+                  >
+                    Fazer Upgrade
+                  </Link>
+                </div>
+              </div>
+            )}
             {capcutCourses.map((course, index) => (
-              <CourseCard key={course.id} course={course} index={index} hasAccess={hasActiveSubscription} />
+              <CourseCard key={course.id} course={course} index={index} hasAccess={hasCourseAccess} />
             ))}
           </div>
         </div>

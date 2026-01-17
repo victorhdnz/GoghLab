@@ -9,48 +9,34 @@ export const dynamic = 'force-dynamic'
 
 export async function POST(request: Request) {
   try {
-    // IMPORTANTE: Criar cliente Supabase PRIMEIRO para ler cookies corretamente
-    // Usar o mesmo padrão das outras APIs que funcionam
+    // Criar cliente Supabase - versão simplificada
     const supabase = createRouteHandlerClient<Database>({ cookies })
     
-    // Verificar cookies recebidos (opcional, apenas para debug)
-    const cookieStore = cookies()
-    const hasAuthCookies = cookieStore.has('sb-access-token') || cookieStore.has('sb-refresh-token')
-    console.log('[AI Chat] Cookies de autenticação presentes:', hasAuthCookies)
+    // Verificação simplificada de autenticação
+    // Tentar getUser diretamente - se falhar, tentar getSession como fallback
+    let user = null
+    let authError = null
     
-    // Tentar obter sessão primeiro
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession()
-    console.log('[AI Chat] Sessão obtida:', session ? 'Sim' : 'Não', sessionError ? `Erro: ${sessionError.message}` : '')
+    const { data: { user: userData }, error: userError } = await supabase.auth.getUser()
     
-    // Verificar autenticação ANTES de qualquer outra coisa
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    
-    console.log('[AI Chat] Tentativa de autenticação:', {
-      hasUser: !!user,
-      userId: user?.id,
-      userEmail: user?.email,
-      authError: authError ? {
-        message: authError.message,
-        status: authError.status
-      } : null
-    })
-    
-    if (authError) {
-      console.error('[AI Chat] Erro de autenticação completo:', JSON.stringify(authError, null, 2))
-      return NextResponse.json({ 
-        error: 'Erro de autenticação. Faça login novamente.',
-        details: process.env.NODE_ENV === 'development' ? authError.message : undefined
-      }, { status: 401 })
+    if (userError || !userData) {
+      // Se getUser falhar, tentar getSession como fallback
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session?.user) {
+        user = session.user
+      } else {
+        authError = userError
+      }
+    } else {
+      user = userData
     }
     
+    // Se ainda não tem usuário, retornar erro
     if (!user) {
-      console.error('[AI Chat] Usuário não autenticado')
       return NextResponse.json({ 
-        error: 'Usuário não autenticado. Faça login novamente.' 
+        error: 'Erro de autenticação. Faça login novamente.'
       }, { status: 401 })
     }
-    
-    console.log('[AI Chat] Usuário autenticado com sucesso:', user.id)
 
     // Verificar se a chave da OpenAI está configurada
     if (!process.env.OPENAI_API_KEY) {
