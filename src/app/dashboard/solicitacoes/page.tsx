@@ -262,50 +262,99 @@ export default function SolicitacoesPage() {
       if (capcutEmail.trim()) {
         const capcutAccess = toolAccess.find(t => t.tool_type === 'capcut')
         
+        // Preparar objeto de atualização/inserção
+        const capcutData: any = {
+          access_link: capcutEmail.trim(), // Armazena email/usuário no access_link
+          email: selectedTicket.user?.email || 'noreply@example.com',
+          tutorial_video_url: videoUrl,
+          updated_at: new Date().toISOString()
+        }
+        
+        // Adicionar password apenas se a coluna existir (pode não existir se o SQL não foi executado)
+        // Tentar adicionar password, mas não falhar se a coluna não existir
+        if (capcutPassword.trim()) {
+          capcutData.password = capcutPassword.trim()
+        }
+        
         if (capcutAccess) {
           // Atualizar existente
           const { data, error } = await (supabase as any)
             .from('tool_access_credentials')
-            .update({
-              access_link: capcutEmail.trim(), // Armazena email/usuário no access_link
-              password: capcutPassword.trim() || null, // Armazena senha separadamente
-              email: selectedTicket.user?.email || 'noreply@example.com',
-              tutorial_video_url: videoUrl,
-              updated_at: new Date().toISOString()
-            })
+            .update(capcutData)
             .eq('id', capcutAccess.id)
             .select()
 
           if (error) {
             console.error('Erro ao atualizar credenciais do CapCut:', error)
-            throw new Error(`Erro ao atualizar credenciais do CapCut: ${error.message || 'Erro desconhecido'}`)
-          }
-          
-          if (!data || data.length === 0) {
-            throw new Error('Erro ao atualizar credenciais do CapCut: nenhuma linha foi atualizada. Verifique as políticas RLS.')
+            // Se o erro for sobre coluna não encontrada, tentar sem password
+            if (error.message?.includes('password') || error.message?.includes('column')) {
+              delete capcutData.password
+              const { data: retryData, error: retryError } = await (supabase as any)
+                .from('tool_access_credentials')
+                .update(capcutData)
+                .eq('id', capcutAccess.id)
+                .select()
+              
+              if (retryError) {
+                throw new Error(`Erro ao atualizar credenciais do CapCut: ${retryError.message || 'Erro desconhecido'}`)
+              }
+              
+              if (!retryData || retryData.length === 0) {
+                throw new Error('Erro ao atualizar credenciais do CapCut: nenhuma linha foi atualizada. Verifique as políticas RLS.')
+              }
+            } else {
+              throw new Error(`Erro ao atualizar credenciais do CapCut: ${error.message || 'Erro desconhecido'}`)
+            }
+          } else {
+            if (!data || data.length === 0) {
+              throw new Error('Erro ao atualizar credenciais do CapCut: nenhuma linha foi atualizada. Verifique as políticas RLS.')
+            }
           }
         } else {
           // Criar novo
+          const insertData: any = {
+            user_id: selectedTicket.user_id,
+            tool_type: 'capcut',
+            email: selectedTicket.user?.email || 'noreply@example.com',
+            access_link: capcutEmail.trim(),
+            tutorial_video_url: videoUrl,
+            is_active: true
+          }
+          
+          // Adicionar password apenas se fornecido
+          if (capcutPassword.trim()) {
+            insertData.password = capcutPassword.trim()
+          }
+          
           const { data, error } = await (supabase as any)
             .from('tool_access_credentials')
-            .insert({
-              user_id: selectedTicket.user_id,
-              tool_type: 'capcut',
-              email: selectedTicket.user?.email || 'noreply@example.com',
-              access_link: capcutEmail.trim(), // Armazena email/usuário no access_link
-              password: capcutPassword.trim() || null, // Armazena senha separadamente
-              tutorial_video_url: videoUrl,
-              is_active: true
-            })
+            .insert(insertData)
             .select()
 
           if (error) {
             console.error('Erro ao criar credenciais do CapCut:', error)
-            throw new Error(`Erro ao criar credenciais do CapCut: ${error.message || 'Erro desconhecido'}`)
-          }
-          
-          if (!data || data.length === 0) {
-            throw new Error('Erro ao criar credenciais do CapCut: nenhuma linha foi inserida. Verifique as políticas RLS.')
+            // Se o erro for sobre coluna não encontrada, tentar sem password
+            if (error.message?.includes('password') || error.message?.includes('column')) {
+              delete insertData.password
+              const { data: retryData, error: retryError } = await (supabase as any)
+                .from('tool_access_credentials')
+                .insert(insertData)
+                .select()
+              
+              if (retryError) {
+                throw new Error(`Erro ao criar credenciais do CapCut: ${retryError.message || 'Erro desconhecido'}`)
+              }
+              
+              if (!retryData || retryData.length === 0) {
+                throw new Error('Erro ao criar credenciais do CapCut: nenhuma linha foi inserida. Verifique as políticas RLS.')
+              }
+            } else {
+              throw new Error(`Erro ao criar credenciais do CapCut: ${error.message || 'Erro desconhecido'}`)
+            }
+          } else {
+            if (!data || data.length === 0) {
+              throw new Error('Erro ao criar credenciais do CapCut: nenhuma linha foi inserida. Verifique as políticas RLS.')
+            }
           }
         }
       }

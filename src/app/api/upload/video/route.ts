@@ -5,8 +5,48 @@ import { Database } from '@/types/database.types'
 
 export async function POST(request: NextRequest) {
   try {
-    // IMPORTANTE: Ler o FormData ANTES de tentar autenticar
-    // Isso evita problemas com o stream do request
+    // IMPORTANTE: Autenticar PRIMEIRO antes de ler o FormData
+    // Isso garante que os cookies sejam lidos corretamente
+    const supabase = createRouteHandlerClient<Database>({ cookies })
+
+    // Verificar autenticação usando getUser() que é mais confiável em API routes
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    
+    if (authError) {
+      console.error('Erro de autenticação no upload:', authError)
+      return NextResponse.json({ 
+        error: 'Erro de autenticação. Faça login novamente.',
+        details: process.env.NODE_ENV === 'development' ? authError.message : undefined
+      }, { status: 401 })
+    }
+    
+    if (!user) {
+      console.error('Usuário não autenticado no upload de vídeo')
+      return NextResponse.json({ 
+        error: 'Não autenticado. Faça login para fazer upload de vídeos.' 
+      }, { status: 401 })
+    }
+
+    // Verificar se o usuário tem permissão (admin ou editor)
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+
+    if (profileError || !profile) {
+      return NextResponse.json({ 
+        error: 'Erro ao verificar permissões' 
+      }, { status: 500 })
+    }
+
+    if (profile.role !== 'admin' && profile.role !== 'editor') {
+      return NextResponse.json({ 
+        error: 'Apenas administradores podem fazer upload de vídeos' 
+      }, { status: 403 })
+    }
+
+    // AGORA ler o FormData após autenticação
     const formData = await request.formData()
     const file = formData.get('file') as File
 
@@ -29,10 +69,6 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
 
-    // Obter cliente Supabase autenticado usando createRouteHandlerClient para API routes
-    // IMPORTANTE: Criar o cliente DEPOIS de ler o FormData
-    const supabase = createRouteHandlerClient<Database>({ cookies })
-
     // Verificar autenticação usando getUser() que é mais confiável em API routes
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     
@@ -54,25 +90,6 @@ export async function POST(request: NextRequest) {
     }
     
     console.log('Usuário autenticado para upload:', user.id)
-
-    // Verificar se o usuário tem permissão (admin ou editor)
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
-
-    if (profileError || !profile) {
-      return NextResponse.json({ 
-        error: 'Erro ao verificar permissões' 
-      }, { status: 500 })
-    }
-
-    if (profile.role !== 'admin' && profile.role !== 'editor') {
-      return NextResponse.json({ 
-        error: 'Apenas administradores podem fazer upload de vídeos' 
-      }, { status: 403 })
-    }
 
     // Criar cliente com service_role_key para fazer upload (bypass RLS)
     const { createClient: createSupabaseClient } = await import('@supabase/supabase-js')
