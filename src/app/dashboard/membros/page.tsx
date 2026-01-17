@@ -242,14 +242,15 @@ export default function MembrosPage() {
           const manualId = `manual_${memberId.slice(0, 8)}_${Date.now()}`
           
           // Tentar primeiro com estrutura nova (plan_id, billing_cycle)
+          // Planos manuais NÃO têm stripe_subscription_id (deve ser NULL)
           let insertData: any = {
             user_id: memberId,
             plan_id: editingPlan,
             status: 'active',
             billing_cycle: 'monthly',
-            stripe_customer_id: manualId,
-            stripe_subscription_id: `sub_${manualId}`,
-            stripe_price_id: `price_${editingPlan}_manual`,
+            stripe_customer_id: null, // Planos manuais não têm customer do Stripe
+            stripe_subscription_id: null, // Planos manuais não têm subscription do Stripe
+            stripe_price_id: null, // Planos manuais não têm price do Stripe
             current_period_start: now.toISOString(),
             current_period_end: oneYearLater.toISOString(),
             cancel_at_period_end: false,
@@ -273,8 +274,8 @@ export default function MembrosPage() {
                 user_id: memberId,
                 plan_type: planType,
                 status: 'active',
-                stripe_customer_id: manualId,
-                stripe_subscription_id: `sub_${manualId}`,
+                stripe_customer_id: null, // Planos manuais não têm customer do Stripe
+                stripe_subscription_id: null, // Planos manuais não têm subscription do Stripe
                 current_period_start: now.toISOString(),
                 current_period_end: oneYearLater.toISOString(),
                 cancel_at_period_end: false,
