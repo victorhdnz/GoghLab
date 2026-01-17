@@ -356,21 +356,14 @@ export async function POST(request: Request) {
     const tokensUsed = completion.usage?.total_tokens || 0
 
     // Salvar mensagem do usuário
-    type AiMessageInsert = {
-      conversation_id: string
-      role: 'user' | 'assistant' | 'system'
-      content: string
-      tokens_used?: number
-    }
-
-    const { data: userMessageData, error: userMsgError } = await supabase
+    const { data: userMessageData, error: userMsgError } = await (supabase as any)
       .from('ai_messages')
       .insert({
         conversation_id: conversationId,
-        role: 'user' as const,
+        role: 'user',
         content: message,
         tokens_used: 0
-      } as AiMessageInsert)
+      })
       .select()
       .single()
 
@@ -379,14 +372,14 @@ export async function POST(request: Request) {
     }
 
     // Salvar resposta do assistente
-    const { data: assistantMessageData, error: assistantMsgError } = await supabase
+    const { data: assistantMessageData, error: assistantMsgError } = await (supabase as any)
       .from('ai_messages')
       .insert({
         conversation_id: conversationId,
-        role: 'assistant' as const,
+        role: 'assistant',
         content: assistantResponse,
         tokens_used: tokensUsed
-      } as AiMessageInsert)
+      })
       .select()
       .single()
 
