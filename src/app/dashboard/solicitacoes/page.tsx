@@ -69,8 +69,10 @@ export default function SolicitacoesPage() {
   const [canvaLink, setCanvaLink] = useState('')
   const [capcutEmail, setCapcutEmail] = useState('')
   const [capcutPassword, setCapcutPassword] = useState('')
-  const [tutorialVideo, setTutorialVideo] = useState<File | null>(null)
-  const [tutorialVideoUrl, setTutorialVideoUrl] = useState<string | null>(null)
+  const [canvaTutorialVideo, setCanvaTutorialVideo] = useState<File | null>(null)
+  const [canvaTutorialVideoUrl, setCanvaTutorialVideoUrl] = useState<string | null>(null)
+  const [capcutTutorialVideo, setCapcutTutorialVideo] = useState<File | null>(null)
+  const [capcutTutorialVideoUrl, setCapcutTutorialVideoUrl] = useState<string | null>(null)
   const [uploadingVideo, setUploadingVideo] = useState(false)
 
   useEffect(() => {
@@ -142,9 +144,9 @@ export default function SolicitacoesPage() {
       setCapcutEmail(capcutAccess?.access_link || capcutAccess?.email || '')
       setCapcutPassword(capcutAccess?.password || '')
       
-      // Buscar vídeo tutorial (pode estar em qualquer um dos acessos)
-      const videoUrl = canvaAccess?.tutorial_video_url || capcutAccess?.tutorial_video_url || null
-      setTutorialVideoUrl(videoUrl)
+      // Buscar vídeos tutorial separadamente
+      setCanvaTutorialVideoUrl(canvaAccess?.tutorial_video_url || null)
+      setCapcutTutorialVideoUrl(capcutAccess?.tutorial_video_url || null)
     } catch (error: any) {
       console.error('Erro ao carregar acessos:', error)
     }
@@ -236,14 +238,25 @@ export default function SolicitacoesPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error('Usuário não autenticado')
 
-      // Upload do vídeo se houver
-      let videoUrl = tutorialVideoUrl
-      if (tutorialVideo) {
-        const uploadedUrl = await uploadVideo(tutorialVideo)
+      // Upload do vídeo do Canva se houver
+      let canvaVideoUrl = canvaTutorialVideoUrl
+      if (canvaTutorialVideo) {
+        const uploadedUrl = await uploadVideo(canvaTutorialVideo)
         if (uploadedUrl) {
-          videoUrl = uploadedUrl
-          setTutorialVideoUrl(uploadedUrl)
-          setTutorialVideo(null)
+          canvaVideoUrl = uploadedUrl
+          setCanvaTutorialVideoUrl(uploadedUrl)
+          setCanvaTutorialVideo(null)
+        }
+      }
+
+      // Upload do vídeo do CapCut se houver
+      let capcutVideoUrl = capcutTutorialVideoUrl
+      if (capcutTutorialVideo) {
+        const uploadedUrl = await uploadVideo(capcutTutorialVideo)
+        if (uploadedUrl) {
+          capcutVideoUrl = uploadedUrl
+          setCapcutTutorialVideoUrl(uploadedUrl)
+          setCapcutTutorialVideo(null)
         }
       }
 
@@ -258,7 +271,7 @@ export default function SolicitacoesPage() {
             .update({
               access_link: canvaLink.trim(),
               email: selectedTicket.user?.email || 'noreply@example.com',
-              tutorial_video_url: videoUrl,
+              tutorial_video_url: canvaVideoUrl, // Vídeo específico do Canva
               updated_at: new Date().toISOString()
             })
             .eq('id', canvaAccess.id)
@@ -281,7 +294,7 @@ export default function SolicitacoesPage() {
               tool_type: 'canva',
               email: selectedTicket.user?.email || 'noreply@example.com',
               access_link: canvaLink.trim(),
-              tutorial_video_url: videoUrl,
+              tutorial_video_url: canvaVideoUrl, // Vídeo específico do Canva
               is_active: true
             })
             .select()
@@ -305,7 +318,7 @@ export default function SolicitacoesPage() {
         const capcutData: any = {
           access_link: capcutEmail.trim(), // Armazena email/usuário no access_link
           email: selectedTicket.user?.email || 'noreply@example.com',
-          tutorial_video_url: videoUrl,
+          tutorial_video_url: capcutVideoUrl, // Vídeo específico do CapCut
           updated_at: new Date().toISOString()
         }
         
@@ -356,7 +369,7 @@ export default function SolicitacoesPage() {
             tool_type: 'capcut',
             email: selectedTicket.user?.email || 'noreply@example.com',
             access_link: capcutEmail.trim(),
-            tutorial_video_url: videoUrl,
+            tutorial_video_url: capcutVideoUrl, // Vídeo específico do CapCut
             is_active: true
           }
           
@@ -794,16 +807,16 @@ export default function SolicitacoesPage() {
                     </p>
                   </div>
 
-                  {/* Upload de Vídeo Tutorial */}
+                  {/* Upload de Vídeo Tutorial - Canva */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       <div className="flex items-center gap-2">
                         <Video className="w-4 h-4" />
-                        Vídeo Tutorial de Ativação
+                        Vídeo Tutorial de Ativação - Canva Pro
                       </div>
                     </label>
                     <div className="space-y-3">
-                      {tutorialVideoUrl && (
+                      {canvaTutorialVideoUrl && (
                         <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
@@ -812,8 +825,8 @@ export default function SolicitacoesPage() {
                             </div>
                             <button
                               onClick={() => {
-                                setTutorialVideoUrl(null)
-                                setTutorialVideo(null)
+                                setCanvaTutorialVideoUrl(null)
+                                setCanvaTutorialVideo(null)
                               }}
                               className="text-emerald-600 hover:text-emerald-800"
                             >
@@ -821,14 +834,14 @@ export default function SolicitacoesPage() {
                             </button>
                           </div>
                           <video
-                            src={tutorialVideoUrl}
+                            src={canvaTutorialVideoUrl}
                             controls
                             className="w-full mt-2 rounded-lg max-h-48"
                           />
                         </div>
                       )}
                       
-                      {!tutorialVideoUrl && (
+                      {!canvaTutorialVideoUrl && (
                         <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-400 transition-colors">
                           <input
                             type="file"
@@ -836,23 +849,23 @@ export default function SolicitacoesPage() {
                             onChange={(e) => {
                               const file = e.target.files?.[0]
                               if (file) {
-                                setTutorialVideo(file)
+                                setCanvaTutorialVideo(file)
                               }
                             }}
                             className="hidden"
-                            id="video-upload"
+                            id="canva-video-upload"
                           />
                           <label
-                            htmlFor="video-upload"
+                            htmlFor="canva-video-upload"
                             className="cursor-pointer flex flex-col items-center gap-2"
                           >
                             <Upload className="w-8 h-8 text-gray-400" />
                             <span className="text-sm text-gray-600">
-                              {tutorialVideo ? tutorialVideo.name : 'Clique para fazer upload do vídeo tutorial'}
+                              {canvaTutorialVideo ? canvaTutorialVideo.name : 'Clique para fazer upload do vídeo tutorial do Canva'}
                             </span>
-                            {tutorialVideo && (
+                            {canvaTutorialVideo && (
                               <span className="text-xs text-gray-500">
-                                {(tutorialVideo.size / 1024 / 1024).toFixed(2)} MB
+                                {(canvaTutorialVideo.size / 1024 / 1024).toFixed(2)} MB
                               </span>
                             )}
                           </label>
@@ -860,7 +873,77 @@ export default function SolicitacoesPage() {
                       )}
                     </div>
                     <p className="text-xs text-gray-500 mt-1">
-                      O vídeo aparecerá na página de ferramentas do cliente quando os links estiverem disponíveis
+                      O vídeo aparecerá na página de ferramentas do cliente quando o link do Canva estiver disponível
+                    </p>
+                  </div>
+
+                  {/* Upload de Vídeo Tutorial - CapCut */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <div className="flex items-center gap-2">
+                        <Video className="w-4 h-4" />
+                        Vídeo Tutorial de Ativação - CapCut Pro
+                      </div>
+                    </label>
+                    <div className="space-y-3">
+                      {capcutTutorialVideoUrl && (
+                        <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <Video className="w-4 h-4 text-emerald-600" />
+                              <span className="text-sm text-emerald-700">Vídeo já enviado</span>
+                            </div>
+                            <button
+                              onClick={() => {
+                                setCapcutTutorialVideoUrl(null)
+                                setCapcutTutorialVideo(null)
+                              }}
+                              className="text-emerald-600 hover:text-emerald-800"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                          <video
+                            src={capcutTutorialVideoUrl}
+                            controls
+                            className="w-full mt-2 rounded-lg max-h-48"
+                          />
+                        </div>
+                      )}
+                      
+                      {!capcutTutorialVideoUrl && (
+                        <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-400 transition-colors">
+                          <input
+                            type="file"
+                            accept="video/*"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0]
+                              if (file) {
+                                setCapcutTutorialVideo(file)
+                              }
+                            }}
+                            className="hidden"
+                            id="capcut-video-upload"
+                          />
+                          <label
+                            htmlFor="capcut-video-upload"
+                            className="cursor-pointer flex flex-col items-center gap-2"
+                          >
+                            <Upload className="w-8 h-8 text-gray-400" />
+                            <span className="text-sm text-gray-600">
+                              {capcutTutorialVideo ? capcutTutorialVideo.name : 'Clique para fazer upload do vídeo tutorial do CapCut'}
+                            </span>
+                            {capcutTutorialVideo && (
+                              <span className="text-xs text-gray-500">
+                                {(capcutTutorialVideo.size / 1024 / 1024).toFixed(2)} MB
+                              </span>
+                            )}
+                          </label>
+                        </div>
+                      )}
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">
+                      O vídeo aparecerá na página de ferramentas do cliente quando as credenciais do CapCut estiverem disponíveis
                     </p>
                   </div>
 
