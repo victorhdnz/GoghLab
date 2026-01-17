@@ -223,13 +223,34 @@ export async function POST(request: Request) {
     }
 
     // Buscar perfil de nicho do usuário para personalização
+    type NicheProfileData = {
+      id: string
+      user_id: string
+      business_name: string | null
+      niche: string | null
+      target_audience: string | null
+      brand_voice: string | null
+      goals: string | null
+      content_pillars: string[] | null
+      platforms: string[] | null
+      created_at: string
+      updated_at: string
+    }
+
     const { data: nicheProfile } = await supabase
       .from('user_niche_profiles')
       .select('*')
       .eq('user_id', user.id)
-      .single()
+      .maybeSingle()
+
+    const nicheProfileData = nicheProfile as NicheProfileData | null
 
     // Buscar histórico de mensagens (últimas 20)
+    type HistoryMessage = {
+      role: string
+      content: string
+    }
+
     const { data: historyMessages } = await supabase
       .from('ai_messages')
       .select('role, content')
@@ -237,33 +258,35 @@ export async function POST(request: Request) {
       .order('created_at', { ascending: true })
       .limit(20)
 
+    const historyMessagesTyped = (historyMessages || []) as HistoryMessage[]
+
     // Construir system prompt personalizado
     const agent = conversationData.ai_agents
     let systemPrompt = agent.system_prompt
 
     // Adicionar contexto do perfil de nicho se existir
-    if (nicheProfile) {
+    if (nicheProfileData) {
       systemPrompt += `\n\n--- CONTEXTO DO USUÁRIO ---`
-      if (nicheProfile.business_name) {
-        systemPrompt += `\nNome do negócio: ${nicheProfile.business_name}`
+      if (nicheProfileData.business_name) {
+        systemPrompt += `\nNome do negócio: ${nicheProfileData.business_name}`
       }
-      if (nicheProfile.niche) {
-        systemPrompt += `\nNicho: ${nicheProfile.niche}`
+      if (nicheProfileData.niche) {
+        systemPrompt += `\nNicho: ${nicheProfileData.niche}`
       }
-      if (nicheProfile.target_audience) {
-        systemPrompt += `\nPúblico-alvo: ${nicheProfile.target_audience}`
+      if (nicheProfileData.target_audience) {
+        systemPrompt += `\nPúblico-alvo: ${nicheProfileData.target_audience}`
       }
-      if (nicheProfile.brand_voice) {
-        systemPrompt += `\nTom de voz da marca: ${nicheProfile.brand_voice}`
+      if (nicheProfileData.brand_voice) {
+        systemPrompt += `\nTom de voz da marca: ${nicheProfileData.brand_voice}`
       }
-      if (nicheProfile.goals) {
-        systemPrompt += `\nObjetivos: ${nicheProfile.goals}`
+      if (nicheProfileData.goals) {
+        systemPrompt += `\nObjetivos: ${nicheProfileData.goals}`
       }
-      if (nicheProfile.content_pillars && Array.isArray(nicheProfile.content_pillars) && nicheProfile.content_pillars.length > 0) {
-        systemPrompt += `\nPilares de conteúdo: ${nicheProfile.content_pillars.join(', ')}`
+      if (nicheProfileData.content_pillars && Array.isArray(nicheProfileData.content_pillars) && nicheProfileData.content_pillars.length > 0) {
+        systemPrompt += `\nPilares de conteúdo: ${nicheProfileData.content_pillars.join(', ')}`
       }
-      if (nicheProfile.platforms && Array.isArray(nicheProfile.platforms) && nicheProfile.platforms.length > 0) {
-        systemPrompt += `\nPlataformas: ${nicheProfile.platforms.join(', ')}`
+      if (nicheProfileData.platforms && Array.isArray(nicheProfileData.platforms) && nicheProfileData.platforms.length > 0) {
+        systemPrompt += `\nPlataformas: ${nicheProfileData.platforms.join(', ')}`
       }
       systemPrompt += `\n--- FIM DO CONTEXTO ---`
     }
@@ -274,8 +297,8 @@ export async function POST(request: Request) {
     ]
 
     // Adicionar histórico
-    if (historyMessages && historyMessages.length > 0) {
-      historyMessages.forEach(msg => {
+    if (historyMessagesTyped && historyMessagesTyped.length > 0) {
+      historyMessagesTyped.forEach(msg => {
         if (msg.role === 'user' || msg.role === 'assistant') {
           messages.push({
             role: msg.role as 'user' | 'assistant',
