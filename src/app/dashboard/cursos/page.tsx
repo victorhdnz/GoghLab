@@ -74,25 +74,41 @@ export default function CursosPage() {
     ensureDefaultCourses()
   }, [])
 
-  // Garantir que existam sempre os cursos pré-definidos
+  // Garantir que existam sempre os cursos pré-definidos e remover os outros
   const ensureDefaultCourses = async () => {
     try {
-      // Verificar se existe curso de Canva
-      const { data: canvaCourse } = await (supabase as any)
+      // Buscar todos os cursos
+      const { data: allCourses } = await (supabase as any)
         .from('courses')
-        .select('id')
-        .eq('course_type', 'canva')
-        .maybeSingle()
+        .select('id, course_type, title')
 
+      if (!allCourses) return
+
+      // Identificar cursos de Canva e CapCut existentes
+      const canvaCourse = allCourses.find((c: Course) => c.course_type === 'canva')
+      const capcutCourse = allCourses.find((c: Course) => c.course_type === 'capcut')
+
+      // Deletar todos os cursos que não são os pré-definidos
+      const coursesToDelete = allCourses.filter((c: Course) => 
+        c.course_type !== 'canva' && c.course_type !== 'capcut'
+      )
+
+      for (const course of coursesToDelete) {
+        await (supabase as any)
+          .from('courses')
+          .delete()
+          .eq('id', course.id)
+      }
+
+      // Criar ou atualizar curso de Canva
       if (!canvaCourse) {
-        // Criar curso de Canva
         await (supabase as any)
           .from('courses')
           .insert({
-            title: 'Curso de Canva',
-            description: 'Aprenda a criar designs profissionais no Canva',
+            title: 'Canva do Zero ao Avançado',
+            description: 'Aprenda a criar designs profissionais no Canva, desde o básico até técnicas avançadas.',
             course_type: 'canva',
-            slug: 'curso-de-canva',
+            slug: 'canva-do-zero-ao-avancado',
             order_position: 1,
             is_published: false,
             plan_required: 'all',
@@ -100,24 +116,27 @@ export default function CursosPage() {
             duration_hours: 0,
             instructor_name: 'Gogh Lab'
           })
+      } else {
+        // Atualizar título e descrição do curso de Canva se necessário
+        await (supabase as any)
+          .from('courses')
+          .update({
+            title: 'Canva do Zero ao Avançado',
+            description: 'Aprenda a criar designs profissionais no Canva, desde o básico até técnicas avançadas.',
+            slug: 'canva-do-zero-ao-avancado'
+          })
+          .eq('id', canvaCourse.id)
       }
 
-      // Verificar se existe curso de CapCut
-      const { data: capcutCourse } = await (supabase as any)
-        .from('courses')
-        .select('id')
-        .eq('course_type', 'capcut')
-        .maybeSingle()
-
+      // Criar ou atualizar curso de CapCut
       if (!capcutCourse) {
-        // Criar curso de CapCut
         await (supabase as any)
           .from('courses')
           .insert({
-            title: 'Curso de CapCut',
-            description: 'Domine a edição de vídeos para redes sociais usando o CapCut Pro',
+            title: 'CapCut do Zero ao Avançado',
+            description: 'Domine a edição de vídeos para redes sociais usando o CapCut Pro, desde o básico até técnicas avançadas.',
             course_type: 'capcut',
-            slug: 'curso-de-capcut',
+            slug: 'capcut-do-zero-ao-avancado',
             order_position: 1,
             is_published: false,
             plan_required: 'all',
@@ -125,9 +144,43 @@ export default function CursosPage() {
             duration_hours: 0,
             instructor_name: 'Gogh Lab'
           })
+      } else {
+        // Atualizar título e descrição do curso de CapCut se necessário
+        await (supabase as any)
+          .from('courses')
+          .update({
+            title: 'CapCut do Zero ao Avançado',
+            description: 'Domine a edição de vídeos para redes sociais usando o CapCut Pro, desde o básico até técnicas avançadas.',
+            slug: 'capcut-do-zero-ao-avancado'
+          })
+          .eq('id', capcutCourse.id)
       }
 
-      // Recarregar cursos após criar os padrões
+      // Se houver múltiplos cursos do mesmo tipo, manter apenas o primeiro e deletar os outros
+      const canvaCourses = allCourses.filter((c: Course) => c.course_type === 'canva')
+      const capcutCourses = allCourses.filter((c: Course) => c.course_type === 'capcut')
+
+      if (canvaCourses.length > 1) {
+        const toDelete = canvaCourses.slice(1)
+        for (const course of toDelete) {
+          await (supabase as any)
+            .from('courses')
+            .delete()
+            .eq('id', course.id)
+        }
+      }
+
+      if (capcutCourses.length > 1) {
+        const toDelete = capcutCourses.slice(1)
+        for (const course of toDelete) {
+          await (supabase as any)
+            .from('courses')
+            .delete()
+            .eq('id', course.id)
+        }
+      }
+
+      // Recarregar cursos após garantir os padrões
       await loadCourses()
     } catch (error) {
       console.error('Erro ao garantir cursos padrão:', error)
@@ -469,7 +522,7 @@ export default function CursosPage() {
                     <CourseCard
                       key={course.id}
                       course={course}
-                      onEdit={() => openCourseForm(course)}
+                      onEdit={() => {}}
                       onDelete={() => {}}
                       onSelect={() => setSelectedCourse(course)}
                       isSelected={selectedCourse?.id === course.id}
@@ -496,7 +549,7 @@ export default function CursosPage() {
                     <CourseCard
                       key={course.id}
                       course={course}
-                      onEdit={() => openCourseForm(course)}
+                      onEdit={() => {}}
                       onDelete={() => {}}
                       onSelect={() => setSelectedCourse(course)}
                       isSelected={selectedCourse?.id === course.id}
