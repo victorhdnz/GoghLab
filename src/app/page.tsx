@@ -33,11 +33,23 @@ async function getServices(): Promise<Service[]> {
 async function getSiteSettings() {
   try {
     const supabase = createServerClient()
+    type SiteSettingsData = {
+      site_name: string | null
+      site_description: string | null
+      contact_email: string | null
+      contact_whatsapp: string | null
+      instagram_url: string | null
+      site_logo: string | null
+      homepage_content: any
+    }
+
     const { data, error } = await supabase
       .from('site_settings')
       .select('site_name, site_description, contact_email, contact_whatsapp, instagram_url, site_logo, homepage_content')
       .eq('key', 'general')
       .maybeSingle()
+
+    const dataTyped = data as SiteSettingsData | null
 
     if (error) {
       console.error('Error fetching site settings:', error)
@@ -46,8 +58,8 @@ async function getSiteSettings() {
 
     // Garantir que homepage_content seja um objeto válido
     let homepageContent: any = {}
-    if (data && data.homepage_content && typeof data.homepage_content === 'object') {
-      homepageContent = data.homepage_content
+    if (dataTyped && dataTyped.homepage_content && typeof dataTyped.homepage_content === 'object') {
+      homepageContent = dataTyped.homepage_content
     }
 
     // Garantir que todos os arrays sejam sempre arrays válidos
@@ -67,7 +79,7 @@ async function getSiteSettings() {
     }
 
     return {
-      ...data,
+      ...dataTyped,
       homepage_content: homepageContent
     }
   } catch (error) {
