@@ -71,6 +71,79 @@ export default function ChatPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [])
 
+  // Função para construir contexto do nicho
+  const buildNicheContext = useCallback((profile: any): string => {
+    let context = 'INFORMAÇÕES DO MEU PERFIL:\n\n'
+    
+    if (profile.business_name) {
+      context += `Nome do negócio: ${profile.business_name}\n`
+    }
+    if (profile.niche) {
+      context += `Nicho: ${profile.niche}\n`
+    }
+    if (profile.target_audience) {
+      context += `Público-alvo: ${profile.target_audience}\n`
+    }
+    if (profile.brand_voice) {
+      context += `Tom de voz: ${profile.brand_voice}\n`
+    }
+    if (profile.content_pillars && Array.isArray(profile.content_pillars) && profile.content_pillars.length > 0) {
+      context += `Pilares de conteúdo: ${profile.content_pillars.join(', ')}\n`
+    }
+    if (profile.platforms && Array.isArray(profile.platforms) && profile.platforms.length > 0) {
+      context += `Plataformas que uso: ${profile.platforms.join(', ')}\n`
+    }
+    if (profile.goals) {
+      context += `Objetivos: ${profile.goals}\n`
+    }
+    if (profile.additional_context) {
+      context += `Contexto adicional: ${profile.additional_context}\n`
+    }
+    
+    context += '\nUse essas informações para personalizar suas respostas e sugestões. Agora estou pronto para começar a trabalhar com você!'
+    return context
+  }, [])
+
+  // Função para enviar contexto do nicho automaticamente na primeira mensagem
+  const sendInitialNicheContext = useCallback(async (conv: any, profile: any) => {
+    if (!user || !conv || isSending) return
+
+    const nicheContext = buildNicheContext(profile)
+    setIsSending(true)
+    setError(null)
+
+    try {
+      // Chamar API de chat
+      const response = await fetch('/api/ai/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          conversationId: conv.id,
+          message: nicheContext,
+          agentId: conv.agent_id
+        })
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Erro ao enviar contexto do perfil')
+      }
+
+      // Atualizar mensagens
+      setMessages([data.userMessage, data.assistantMessage])
+
+      // Atualizar uso
+      setUsageInfo(prev => prev ? { ...prev, current: (prev.current || 0) + 1 } : { current: 1, limit: isPro ? 20 : 8 })
+    } catch (error: any) {
+      console.error('Error sending niche context:', error)
+      setError(error.message || 'Erro ao enviar contexto do perfil')
+    } finally {
+      setIsSending(false)
+    }
+  }, [user, isSending, buildNicheContext, isPro])
+
   // Buscar dados da conversa
   useEffect(() => {
     const fetchConversation = async () => {
@@ -152,7 +225,7 @@ export default function ChatPage() {
     }
 
     fetchConversation()
-  }, [conversationId, user, subscription])
+  }, [conversationId, user, subscription, sendInitialNicheContext])
 
   // Scroll quando mensagens mudam
   useEffect(() => {
@@ -224,80 +297,6 @@ export default function ChatPage() {
     }
   }
 
-  // Função para construir contexto do nicho
-  const buildNicheContext = (profile: any): string => {
-    let context = 'INFORMAÇÕES DO MEU PERFIL:\n\n'
-    
-    if (profile.business_name) {
-      context += `Nome do negócio: ${profile.business_name}\n`
-    }
-    if (profile.niche) {
-      context += `Nicho: ${profile.niche}\n`
-    }
-    if (profile.target_audience) {
-      context += `Público-alvo: ${profile.target_audience}\n`
-    }
-    if (profile.brand_voice) {
-      context += `Tom de voz: ${profile.brand_voice}\n`
-    }
-    if (profile.content_pillars && Array.isArray(profile.content_pillars) && profile.content_pillars.length > 0) {
-      context += `Pilares de conteúdo: ${profile.content_pillars.join(', ')}\n`
-    }
-    if (profile.platforms && Array.isArray(profile.platforms) && profile.platforms.length > 0) {
-      context += `Plataformas que uso: ${profile.platforms.join(', ')}\n`
-    }
-    if (profile.goals) {
-      context += `Objetivos: ${profile.goals}\n`
-    }
-    if (profile.additional_context) {
-      context += `Contexto adicional: ${profile.additional_context}\n`
-    }
-    
-    context += '\nUse essas informações para personalizar suas respostas e sugestões. Agora estou pronto para começar a trabalhar com você!'
-    return context
-  }
-
-  // Função para enviar contexto do nicho automaticamente na primeira mensagem
-  const sendInitialNicheContext = async (conv: any, profile: any) => {
-    if (!user || !conv || isSending) return
-
-    const nicheContext = buildNicheContext(profile)
-    setIsSending(true)
-    setError(null)
-
-    try {
-      // Chamar API de chat
-      const response = await fetch('/api/ai/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
-          conversationId: conv.id,
-          message: nicheContext,
-          agentId: conv.agent_id
-        })
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Erro ao enviar contexto do perfil')
-      }
-
-      // Atualizar mensagens
-      setMessages([data.userMessage, data.assistantMessage])
-
-      // Atualizar uso
-      if (usageInfo) {
-        setUsageInfo(prev => prev ? { ...prev, current: prev.current + 1 } : null)
-      }
-    } catch (error: any) {
-      console.error('Error sending niche context:', error)
-      setError(error.message || 'Erro ao enviar contexto do perfil')
-    } finally {
-      setIsSending(false)
-    }
-  }
 
   // Handler para Enter
   const handleKeyDown = (e: React.KeyboardEvent) => {
