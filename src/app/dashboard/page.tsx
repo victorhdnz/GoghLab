@@ -17,6 +17,7 @@ import {
   MessageSquare,
   Wrench,
   BookOpen,
+  Settings,
 } from 'lucide-react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
@@ -144,6 +145,20 @@ function DashboardContent() {
           href: '/dashboard/cursos',
           icon: BookOpen,
           color: 'bg-teal-500',
+        },
+      ],
+    },
+    {
+      title: 'Configurações',
+      description: 'Configure logo da empresa e WhatsApp para suporte',
+      icon: Settings,
+      items: [
+        {
+          title: 'Configurações Gerais',
+          description: 'Configure a logo da empresa e número de WhatsApp para suporte',
+          href: '/dashboard/configuracoes',
+          icon: Settings,
+          color: 'bg-gray-600',
         },
       ],
     },
