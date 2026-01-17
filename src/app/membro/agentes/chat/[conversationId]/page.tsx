@@ -108,7 +108,18 @@ export default function ChatPage() {
   // Função para enviar contexto do nicho automaticamente na primeira mensagem
   const sendInitialNicheContext = useCallback(async (conv: any, profile: any) => {
     // Evitar múltiplas chamadas
-    if (nicheContextSentRef.current || !user || !conv || isSending) return
+    if (nicheContextSentRef.current || !user || !conv) return
+    
+    // Verificar se já está enviando
+    if (isSending) {
+      // Aguardar um pouco e tentar novamente
+      setTimeout(() => {
+        if (!nicheContextSentRef.current && user && conv) {
+          sendInitialNicheContext(conv, profile)
+        }
+      }, 500)
+      return
+    }
     
     nicheContextSentRef.current = true
 
@@ -117,6 +128,9 @@ export default function ChatPage() {
     setError(null)
 
     try {
+      // Aguardar um pouco para garantir que os cookies estejam prontos
+      await new Promise(resolve => setTimeout(resolve, 200))
+
       // Chamar API de chat
       const response = await fetch('/api/ai/chat', {
         method: 'POST',
@@ -148,7 +162,7 @@ export default function ChatPage() {
     } finally {
       setIsSending(false)
     }
-  }, [user, buildNicheContext, isPro])
+  }, [user, buildNicheContext, isPro, isSending])
 
   // Buscar dados da conversa
   useEffect(() => {
