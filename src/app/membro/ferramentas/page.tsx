@@ -25,6 +25,7 @@ interface ToolAccess {
   tool_type: 'canva' | 'capcut'
   email: string
   access_link?: string
+  password?: string
   tutorial_video_url?: string
   access_granted_at: string
   is_active: boolean

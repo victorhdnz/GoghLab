@@ -66,7 +66,8 @@ export default function SolicitacoesPage() {
   
   // Form states para links
   const [canvaLink, setCanvaLink] = useState('')
-  const [capcutLink, setCapcutLink] = useState('')
+  const [capcutEmail, setCapcutEmail] = useState('')
+  const [capcutPassword, setCapcutPassword] = useState('')
   const [tutorialVideo, setTutorialVideo] = useState<File | null>(null)
   const [tutorialVideoUrl, setTutorialVideoUrl] = useState<string | null>(null)
   const [uploadingVideo, setUploadingVideo] = useState(false)
@@ -253,8 +254,8 @@ export default function SolicitacoesPage() {
         }
       }
 
-      // Salvar/atualizar link do CapCut
-      if (capcutLink.trim()) {
+      // Salvar/atualizar credenciais do CapCut
+      if (capcutEmail.trim()) {
         const capcutAccess = toolAccess.find(t => t.tool_type === 'capcut')
         
         if (capcutAccess) {
@@ -262,7 +263,8 @@ export default function SolicitacoesPage() {
           const { data, error } = await (supabase as any)
             .from('tool_access_credentials')
             .update({
-              access_link: capcutLink.trim(),
+              access_link: capcutEmail.trim(), // Armazena email/usuário no access_link
+              password: capcutPassword.trim() || null, // Armazena senha separadamente
               email: selectedTicket.user?.email || 'noreply@example.com',
               tutorial_video_url: videoUrl,
               updated_at: new Date().toISOString()
@@ -271,12 +273,12 @@ export default function SolicitacoesPage() {
             .select()
 
           if (error) {
-            console.error('Erro ao atualizar link do CapCut:', error)
-            throw new Error(`Erro ao atualizar link do CapCut: ${error.message || 'Erro desconhecido'}`)
+            console.error('Erro ao atualizar credenciais do CapCut:', error)
+            throw new Error(`Erro ao atualizar credenciais do CapCut: ${error.message || 'Erro desconhecido'}`)
           }
           
           if (!data || data.length === 0) {
-            throw new Error('Erro ao atualizar link do CapCut: nenhuma linha foi atualizada. Verifique as políticas RLS.')
+            throw new Error('Erro ao atualizar credenciais do CapCut: nenhuma linha foi atualizada. Verifique as políticas RLS.')
           }
         } else {
           // Criar novo
@@ -286,19 +288,20 @@ export default function SolicitacoesPage() {
               user_id: selectedTicket.user_id,
               tool_type: 'capcut',
               email: selectedTicket.user?.email || 'noreply@example.com',
-              access_link: capcutLink.trim(),
+              access_link: capcutEmail.trim(), // Armazena email/usuário no access_link
+              password: capcutPassword.trim() || null, // Armazena senha separadamente
               tutorial_video_url: videoUrl,
               is_active: true
             })
             .select()
 
           if (error) {
-            console.error('Erro ao criar link do CapCut:', error)
-            throw new Error(`Erro ao criar link do CapCut: ${error.message || 'Erro desconhecido'}`)
+            console.error('Erro ao criar credenciais do CapCut:', error)
+            throw new Error(`Erro ao criar credenciais do CapCut: ${error.message || 'Erro desconhecido'}`)
           }
           
           if (!data || data.length === 0) {
-            throw new Error('Erro ao criar link do CapCut: nenhuma linha foi inserida. Verifique as políticas RLS.')
+            throw new Error('Erro ao criar credenciais do CapCut: nenhuma linha foi inserida. Verifique as políticas RLS.')
           }
         }
       }
@@ -318,7 +321,7 @@ export default function SolicitacoesPage() {
         }
       }
 
-      if (capcutLink.trim()) {
+      if (capcutEmail.trim()) {
         const capcutAccess = toolAccess.find(t => t.tool_type === 'capcut')
         if (capcutAccess && capcutAccess.error_reported) {
           await (supabase as any)
@@ -336,9 +339,9 @@ export default function SolicitacoesPage() {
       // Não atualizar status aqui se o usuário já mudou manualmente
       // O status será atualizado apenas se ainda estiver como "open"
       if (selectedTicket.status === 'open') {
-        if (canvaLink.trim() && capcutLink.trim()) {
+        if (canvaLink.trim() && capcutEmail.trim()) {
           await updateTicketStatus(selectedTicket.id, 'resolved')
-        } else if (canvaLink.trim() || capcutLink.trim()) {
+        } else if (canvaLink.trim() || capcutEmail.trim()) {
           await updateTicketStatus(selectedTicket.id, 'in_progress')
         }
       }
