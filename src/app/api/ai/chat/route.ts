@@ -59,10 +59,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Conversa não encontrada' }, { status: 404 })
     }
 
-    // Verificar assinatura ativa (opcional - permite uso mesmo sem assinatura)
+    // Verificar assinatura ativa (aceita planos Stripe e manuais)
+    // Planos manuais não têm stripe_subscription_id, então verificamos se é null ou não
     const { data: subscription } = await supabase
       .from('subscriptions')
-      .select('plan_id, status, current_period_end')
+      .select('plan_id, status, current_period_end, stripe_subscription_id')
       .eq('user_id', user.id)
       .eq('status', 'active')
       .gte('current_period_end', new Date().toISOString())

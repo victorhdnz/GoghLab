@@ -32,6 +32,8 @@ interface Member {
     status: string
     billing_cycle: string
     current_period_end: string
+    stripe_subscription_id: string | null
+    is_manual?: boolean
   } | null
 }
 
@@ -130,7 +132,9 @@ export default function MembrosPage() {
                      subscription.plan_type === 'essential' ? 'gogh_essencial' : null),
             status: subscription.status,
             billing_cycle: subscription.billing_cycle || 'monthly',
-            current_period_end: subscription.current_period_end
+            current_period_end: subscription.current_period_end,
+            stripe_subscription_id: subscription.stripe_subscription_id || null,
+            is_manual: !subscription.stripe_subscription_id
           } : null
         }
       })

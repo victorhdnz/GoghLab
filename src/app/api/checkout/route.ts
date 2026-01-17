@@ -18,9 +18,19 @@ export async function POST(request: Request) {
       )
     }
 
-    // Verificar se o usuário está logado
+    // Verificar se o usuário está logado ANTES de criar sessão
     const supabase = createRouteHandlerClient({ cookies })
-    const { data: { user } } = await supabase.auth.getUser()
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+    if (authError || !user) {
+      return NextResponse.json(
+        { 
+          error: 'Você precisa estar logado para comprar um plano. Faça login ou crie uma conta primeiro.',
+          requiresAuth: true
+        },
+        { status: 401 }
+      )
+    }
 
     // URL base para redirecionamentos
     const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://goghlab.com.br'

@@ -34,7 +34,7 @@ export function PricingSection({
       ? plan.stripePriceIdMonthly 
       : plan.stripePriceIdAnnually
 
-    // Se tiver Price ID configurado, redirecionar para checkout do Stripe
+    // Se tiver Price ID configurado, verificar login primeiro
     if (priceId) {
       try {
         const response = await fetch('/api/checkout', {
@@ -42,6 +42,7 @@ export function PricingSection({
           headers: {
             'Content-Type': 'application/json',
           },
+          credentials: 'include',
           body: JSON.stringify({
             priceId,
             planId,
@@ -54,9 +55,13 @@ export function PricingSection({
 
         if (data.url) {
           window.location.href = data.url
+        } else if (data.requiresAuth) {
+          // Se precisar de autenticação, redirecionar para login
+          alert('Você precisa estar logado para comprar um plano. Redirecionando para login...')
+          window.location.href = `/login?redirect=${encodeURIComponent(window.location.pathname + '#pricing-section')}&plan=${planId}&cycle=${cycle}`
         } else {
           console.error('Erro ao criar sessão de checkout:', data.error)
-          alert('Erro ao processar pagamento. Tente novamente.')
+          alert(data.error || 'Erro ao processar pagamento. Tente novamente.')
         }
       } catch (error) {
         console.error('Erro ao criar sessão de checkout:', error)
