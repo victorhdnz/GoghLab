@@ -26,19 +26,25 @@ export async function POST(request: NextRequest) {
     }
 
     // Verificar se o usuário tem permissão (admin ou editor)
+    type ProfileData = {
+      role: string
+    }
+
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('role')
       .eq('id', user.id)
       .single()
 
-    if (profileError || !profile) {
+    const profileData = profile as ProfileData | null
+
+    if (profileError || !profileData) {
       return NextResponse.json({ 
         error: 'Erro ao verificar permissões' 
       }, { status: 500 })
     }
 
-    if (profile.role !== 'admin' && profile.role !== 'editor') {
+    if (profileData.role !== 'admin' && profileData.role !== 'editor') {
       return NextResponse.json({ 
         error: 'Apenas administradores podem fazer upload de vídeos' 
       }, { status: 403 })
