@@ -6,6 +6,15 @@ import { Database } from '@/types/database.types'
 
 export async function POST(request: Request) {
   try {
+    // Verificar se a chave da OpenAI está configurada
+    if (!process.env.OPENAI_API_KEY) {
+      console.error('OPENAI_API_KEY não configurada')
+      return NextResponse.json({ 
+        error: 'API da OpenAI não configurada. Entre em contato com o suporte.',
+        code: 'OPENAI_NOT_CONFIGURED'
+      }, { status: 500 })
+    }
+
     // Inicializar OpenAI dentro da função para evitar erro no build
     const openai = new OpenAI({
       apiKey: process.env.OPENAI_API_KEY,
@@ -142,12 +151,45 @@ export async function POST(request: Request) {
     messages.push({ role: 'user', content: message })
 
     // Chamar OpenAI
-    const completion = await openai.chat.completions.create({
-      model: agent.model || 'gpt-4o-mini',
-      messages: messages,
-      max_tokens: 1000,
-      temperature: 0.7,
-    })
+    let completion
+    try {
+      completion = await openai.chat.completions.create({
+        model: agent.model || 'gpt-4o-mini',
+        messages: messages,
+        max_tokens: 1000,
+        temperature: 0.7,
+      })
+    } catch (openaiError: any) {
+      console.error('Erro ao chamar OpenAI:', openaiError)
+      
+      // Tratar erros específicos da OpenAI
+      if (openaiError.status === 401) {
+        return NextResponse.json({ 
+          error: 'Chave da API OpenAI inválida. Verifique a configuração.',
+          code: 'OPENAI_INVALID_KEY'
+        }, { status: 500 })
+      }
+      
+      if (openaiError.status === 429) {
+        return NextResponse.json({ 
+          error: 'Limite de requisições excedido. Tente novamente em alguns instantes.',
+          code: 'OPENAI_RATE_LIMIT'
+        }, { status: 429 })
+      }
+      
+      if (openaiError.status === 402 || openaiError.code === 'insufficient_quota') {
+        return NextResponse.json({ 
+          error: 'Cota da API OpenAI esgotada. Entre em contato com o suporte.',
+          code: 'OPENAI_INSUFFICIENT_QUOTA'
+        }, { status: 402 })
+      }
+      
+      return NextResponse.json({ 
+        error: 'Erro ao processar sua mensagem. Tente novamente.',
+        code: 'OPENAI_ERROR',
+        details: process.env.NODE_ENV === 'development' ? openaiError.message : undefined
+      }, { status: 500 })
+    }
 
     const assistantResponse = completion.choices[0]?.message?.content || 'Desculpe, não consegui gerar uma resposta.'
     const tokensUsed = completion.usage?.total_tokens || 0
