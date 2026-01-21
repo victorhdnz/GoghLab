@@ -53,6 +53,7 @@ export default function MembrosPage() {
   const [filterPlan, setFilterPlan] = useState<string>('all')
   const [editingMember, setEditingMember] = useState<string | null>(null)
   const [editingPlan, setEditingPlan] = useState<string>('')
+  const [editingBillingCycle, setEditingBillingCycle] = useState<'monthly' | 'annual'>('monthly')
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
@@ -164,11 +165,15 @@ export default function MembrosPage() {
     }
     
     setEditingPlan(currentPlanId)
+    // Definir billing cycle atual ou padrão
+    const currentBillingCycle = member.subscription?.billing_cycle as 'monthly' | 'annual' | undefined
+    setEditingBillingCycle(currentBillingCycle || 'monthly')
   }
 
   const handleCancelEdit = () => {
     setEditingMember(null)
     setEditingPlan('')
+    setEditingBillingCycle('monthly')
   }
 
   const handleSavePlan = async (memberId: string) => {
@@ -198,9 +203,21 @@ export default function MembrosPage() {
         // Atualizar ou criar assinatura
         if (member.subscription) {
           // Atualizar existente
-          // Tentar primeiro com estrutura nova (plan_id)
+          const now = new Date()
+          // Calcular novo período final baseado no billing_cycle escolhido
+          const periodEnd = new Date(now)
+          if (editingBillingCycle === 'annual') {
+            periodEnd.setFullYear(periodEnd.getFullYear() + 1)
+          } else {
+            periodEnd.setMonth(periodEnd.getMonth() + 1)
+          }
+          
+          // Tentar primeiro com estrutura nova (plan_id, billing_cycle)
           let updateData: any = {
             plan_id: editingPlan,
+            billing_cycle: editingBillingCycle,
+            current_period_start: now.toISOString(),
+            current_period_end: periodEnd.toISOString(),
             updated_at: new Date().toISOString()
           }
           
@@ -238,7 +255,13 @@ export default function MembrosPage() {
         } else {
           // Criar nova (assinatura manual sem Stripe)
           const now = new Date()
-          const oneYearLater = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000)
+          // Calcular período final baseado no billing_cycle escolhido
+          const periodEnd = new Date(now)
+          if (editingBillingCycle === 'annual') {
+            periodEnd.setFullYear(periodEnd.getFullYear() + 1)
+          } else {
+            periodEnd.setMonth(periodEnd.getMonth() + 1)
+          }
           const manualId = `manual_${memberId.slice(0, 8)}_${Date.now()}`
           
           // Tentar primeiro com estrutura nova (plan_id, billing_cycle)
@@ -247,12 +270,12 @@ export default function MembrosPage() {
             user_id: memberId,
             plan_id: editingPlan,
             status: 'active',
-            billing_cycle: 'monthly',
+            billing_cycle: editingBillingCycle,
             stripe_customer_id: null, // Planos manuais não têm customer do Stripe
             stripe_subscription_id: null, // Planos manuais não têm subscription do Stripe
             stripe_price_id: null, // Planos manuais não têm price do Stripe
             current_period_start: now.toISOString(),
-            current_period_end: oneYearLater.toISOString(),
+            current_period_end: periodEnd.toISOString(),
             cancel_at_period_end: false,
             created_at: now.toISOString(),
             updated_at: now.toISOString()
@@ -501,17 +524,29 @@ export default function MembrosPage() {
                     </td>
                     <td className="px-6 py-4">
                       {editingMember === member.id ? (
-                        <select
-                          value={editingPlan}
-                          onChange={(e) => setEditingPlan(e.target.value)}
-                          className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-black"
-                        >
-                          {planOptions.map((option) => (
-                            <option key={option.value} value={option.value}>
-                              {option.label}
-                            </option>
-                          ))}
-                        </select>
+                        <div className="space-y-2">
+                          <select
+                            value={editingPlan}
+                            onChange={(e) => setEditingPlan(e.target.value)}
+                            className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-black"
+                          >
+                            {planOptions.map((option) => (
+                              <option key={option.value} value={option.value}>
+                                {option.label}
+                              </option>
+                            ))}
+                          </select>
+                          {editingPlan !== '' && (
+                            <select
+                              value={editingBillingCycle}
+                              onChange={(e) => setEditingBillingCycle(e.target.value as 'monthly' | 'annual')}
+                              className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-black"
+                            >
+                              <option value="monthly">Mensal</option>
+                              <option value="annual">Anual</option>
+                            </select>
+                          )}
+                        </div>
                       ) : (
                         <div>
                           {getPlanBadge(member)}

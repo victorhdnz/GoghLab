@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { createClient } from '@/lib/supabase/client'
 import { motion } from 'framer-motion'
+import Link from 'next/link'
 import { 
   Wrench, 
   CheckCircle2, 
@@ -43,7 +44,7 @@ interface SupportTicket {
 }
 
 export default function ToolsPage() {
-  const { user, subscription } = useAuth()
+  const { user, subscription, hasActiveSubscription } = useAuth()
   const [toolAccess, setToolAccess] = useState<ToolAccess[]>([])
   const [pendingTickets, setPendingTickets] = useState<SupportTicket[]>([])
   const [loading, setLoading] = useState(true)
@@ -323,6 +324,45 @@ export default function ToolsPage() {
           <div className="w-12 h-12 border-4 border-gogh-yellow border-t-transparent rounded-full animate-spin mx-auto mb-4" />
           <p className="text-gogh-grayDark">Carregando ferramentas...</p>
         </div>
+      </div>
+    )
+  }
+
+  // Verificar se tem assinatura ativa
+  if (!hasActiveSubscription) {
+    return (
+      <div className="max-w-4xl mx-auto space-y-8">
+        <div>
+          <h1 className="text-2xl lg:text-3xl font-bold text-gogh-black mb-2">
+            Ferramentas Pro
+          </h1>
+        </div>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200 rounded-xl p-6"
+        >
+          <div className="flex items-start gap-4">
+            <AlertCircle className="w-6 h-6 text-amber-600 flex-shrink-0 mt-0.5" />
+            <div>
+              <h3 className="font-semibold text-amber-900 mb-2">Assinatura Necessária</h3>
+              <p className="text-amber-800 mb-4">
+                Você precisa de uma assinatura ativa para acessar as ferramentas Pro (Canva Pro e CapCut Pro).
+                {subscription && subscription.current_period_end && new Date(subscription.current_period_end) < new Date() && (
+                  <span className="block mt-2 font-medium">
+                    Sua assinatura expirou em {new Date(subscription.current_period_end).toLocaleDateString('pt-BR')}. Renove sua assinatura para continuar usando.
+                  </span>
+                )}
+              </p>
+              <Link 
+                href="/#pricing" 
+                className="inline-flex items-center gap-2 px-4 py-2 bg-gogh-yellow text-gogh-black font-medium rounded-lg hover:bg-gogh-yellow/80 transition-colors"
+              >
+                Ver Planos e Assinar
+              </Link>
+            </div>
+          </div>
+        </motion.div>
       </div>
     )
   }

@@ -432,10 +432,6 @@ A Gogh Lab se esforça para manter a plataforma disponível 24 horas por dia, 7 
 - Problemas de conectividade de internet do usuário
 - Indisponibilidade de serviços de terceiros (Stripe, Google, etc.)
 
-### 6.2. Tempo de Inatividade
-
-Em caso de indisponibilidade prolongada (superior a 24 horas consecutivas), a Gogh Lab poderá, a seu exclusivo critério, estender o período de assinatura proporcionalmente ao tempo de inatividade.
-
 ## 7. Limites de Uso e Fair Use
 
 ### 7.1. Uso Razoável

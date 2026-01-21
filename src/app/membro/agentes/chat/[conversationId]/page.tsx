@@ -49,7 +49,7 @@ export default function ChatPage() {
   const router = useRouter()
   const conversationId = params.conversationId as string
   
-  const { user, profile, subscription, isPro, loading: authLoading } = useAuth()
+  const { user, profile, subscription, isPro, hasActiveSubscription, loading: authLoading } = useAuth()
   const [conversation, setConversation] = useState<Conversation | null>(null)
   const [messages, setMessages] = useState<Message[]>([])
   const [inputValue, setInputValue] = useState('')
@@ -473,12 +473,40 @@ export default function ChatPage() {
   }
 
   // Loading state
-  if (isLoading) {
+  if (authLoading || isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
           <div className="w-12 h-12 border-4 border-gogh-yellow border-t-transparent rounded-full animate-spin mx-auto mb-4" />
           <p className="text-gogh-grayDark">Carregando conversa...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Verificar se tem assinatura ativa
+  if (!hasActiveSubscription) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center max-w-md mx-auto p-6">
+          <AlertCircle className="w-16 h-16 text-amber-500 mx-auto mb-4" />
+          <h3 className="text-xl font-semibold text-gogh-black mb-2">
+            Assinatura Necessária
+          </h3>
+          <p className="text-gogh-grayDark mb-4">
+            Você precisa de uma assinatura ativa para usar os agentes de IA.
+            {subscription && subscription.current_period_end && new Date(subscription.current_period_end) < new Date() && (
+              <span className="block mt-2 font-medium text-amber-600">
+                Sua assinatura expirou em {new Date(subscription.current_period_end).toLocaleDateString('pt-BR')}. Renove sua assinatura para continuar usando.
+              </span>
+            )}
+          </p>
+          <Link 
+            href="/#pricing" 
+            className="inline-flex items-center gap-2 px-6 py-3 bg-gogh-yellow text-gogh-black font-medium rounded-lg hover:bg-gogh-yellow/80 transition-colors"
+          >
+            Ver Planos e Assinar
+          </Link>
         </div>
       </div>
     )
