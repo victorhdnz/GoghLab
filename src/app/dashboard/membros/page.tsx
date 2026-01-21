@@ -136,8 +136,10 @@ export default function MembrosPage() {
               (new Date(subscription.current_period_end).getTime() - new Date(subscription.current_period_start).getTime() > 30 * 24 * 60 * 60 * 1000 ? 'annual' : 'monthly') 
               : 'monthly'),
             current_period_end: subscription.current_period_end,
-            stripe_subscription_id: subscription.stripe_subscription_id || null,
-            is_manual: !subscription.stripe_subscription_id
+            stripe_subscription_id: subscription.stripe_subscription_id && subscription.stripe_subscription_id.trim() !== '' 
+              ? subscription.stripe_subscription_id 
+              : null,
+            is_manual: !subscription.stripe_subscription_id || subscription.stripe_subscription_id.trim() === ''
           } : null
         }
       })
@@ -205,8 +207,16 @@ export default function MembrosPage() {
         // Atualizar ou criar assinatura
         if (member.subscription) {
           // Verificar se é assinatura do Stripe (não deve alterar billing_cycle manualmente)
-          const isStripeSubscription = member.subscription.stripe_subscription_id && 
-                                      !member.subscription.stripe_subscription_id.startsWith('manual_')
+          // Assinatura do Stripe = tem stripe_subscription_id válido (não null, não vazio, não começa com 'manual_')
+          // E não tem o flag is_manual = true
+          const stripeSubId = member.subscription.stripe_subscription_id
+          const isManual = member.subscription.is_manual === true
+          
+          // É do Stripe se: tem stripe_subscription_id válido E não é manual
+          const isStripeSubscription = !isManual && 
+                                      stripeSubId && 
+                                      stripeSubId.trim() !== '' && 
+                                      !stripeSubId.startsWith('manual_')
           
           if (isStripeSubscription) {
             // Para assinaturas do Stripe, apenas atualizar o plan_id
