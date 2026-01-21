@@ -300,7 +300,7 @@ export default function MembrosPage() {
                 stripe_customer_id: null, // Planos manuais não têm customer do Stripe
                 stripe_subscription_id: null, // Planos manuais não têm subscription do Stripe
                 current_period_start: now.toISOString(),
-                current_period_end: oneYearLater.toISOString(),
+                current_period_end: periodEnd.toISOString(),
                 cancel_at_period_end: false,
                 created_at: now.toISOString(),
                 updated_at: now.toISOString()
