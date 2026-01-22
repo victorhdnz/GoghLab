@@ -825,11 +825,6 @@ export default function HomepageEditorPage() {
                     placeholder="URL do vídeo ou upload"
                   />
                 </div>
-                <Switch
-                  label="Auto-play do vídeo (reproduzir automaticamente)"
-                  checked={formData.video_autoplay ?? false}
-                  onCheckedChange={(checked) => setFormData({ ...formData, video_autoplay: checked })}
-                />
                 <Input
                   label="Título Principal"
                   value={formData.video_title || ''}

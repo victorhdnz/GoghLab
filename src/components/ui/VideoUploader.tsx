@@ -205,17 +205,11 @@ export function VideoUploader({
 
       <div className="relative">
         {preview ? (
-          <div className={`relative group bg-black rounded-lg overflow-hidden ${
-            orientation === 'vertical' ? 'max-w-sm mx-auto' : 'w-full'
-          }`}>
+          <div className="relative group bg-black rounded-lg overflow-hidden max-w-sm mx-auto">
             <video
               src={preview}
               controls
-              className={`w-full rounded-lg border ${
-                orientation === 'vertical' 
-                  ? 'aspect-[9/16] object-cover' 
-                  : 'aspect-video object-cover'
-              }`}
+              className="w-full rounded-lg border aspect-[9/16] object-contain"
               style={{ backgroundColor: '#000000' }}
             />
             <div className="absolute top-2 right-2">
@@ -228,17 +222,6 @@ export function VideoUploader({
                 <X size={16} />
               </Button>
             </div>
-            {orientation && (
-              <div className="absolute top-2 left-2">
-                <span className={`px-2 py-1 rounded text-xs font-medium ${
-                  orientation === 'vertical'
-                    ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white'
-                    : 'bg-blue-600 text-white'
-                }`}>
-                  {orientation === 'vertical' ? '📱 Vertical' : '🖥️ Horizontal'}
-                </span>
-              </div>
-            )}
           </div>
         ) : (
           <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
@@ -249,9 +232,6 @@ export function VideoUploader({
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
               <p className="text-sm font-medium text-blue-900 mb-1">
                 📐 Dimensões Recomendadas
-              </p>
-              <p className="text-xs text-blue-700">
-                <strong>Horizontal:</strong> 1920 x 1080px (16:9)
               </p>
               <p className="text-xs text-blue-700">
                 <strong>Vertical:</strong> 1080 x 1920px (9:16)

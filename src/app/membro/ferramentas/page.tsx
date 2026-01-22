@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { createClient } from '@/lib/supabase/client'
 import { motion } from 'framer-motion'
@@ -52,6 +52,10 @@ export default function ToolsPage() {
   const [capcutVideoUrl, setCapcutVideoUrl] = useState<string | null>(null)
   const [showCanvaVideoModal, setShowCanvaVideoModal] = useState(false)
   const [showCapcutVideoModal, setShowCapcutVideoModal] = useState(false)
+  const [canvaVideoPlaying, setCanvaVideoPlaying] = useState(false)
+  const [capcutVideoPlaying, setCapcutVideoPlaying] = useState(false)
+  const canvaVideoRef = useRef<HTMLVideoElement>(null)
+  const capcutVideoRef = useRef<HTMLVideoElement>(null)
   const [reportingError, setReportingError] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState('')
   const [showErrorModal, setShowErrorModal] = useState(false)
@@ -806,34 +810,60 @@ export default function ToolsPage() {
 
       {/* Modal de Vídeo Tutorial Canva */}
       {showCanvaVideoModal && canvaVideoUrl && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+        <div 
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowCanvaVideoModal(false)
+              setCanvaVideoPlaying(false)
+              canvaVideoRef.current?.pause()
+            }
+          }}
+        >
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="bg-white rounded-xl shadow-xl max-w-4xl w-full p-6"
+            className="bg-white rounded-xl shadow-xl max-w-sm w-full p-4 md:p-6"
           >
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold text-gogh-black">
+              <h3 className="text-base md:text-lg font-bold text-gogh-black">
                 Tutorial de Ativação - Canva Pro
               </h3>
               <button
-                onClick={() => setShowCanvaVideoModal(false)}
+                onClick={() => {
+                  setShowCanvaVideoModal(false)
+                  setCanvaVideoPlaying(false)
+                  canvaVideoRef.current?.pause()
+                }}
                 className="text-gray-400 hover:text-gray-600"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <div className="aspect-video rounded-lg overflow-hidden bg-black">
+            <div className="aspect-[9/16] rounded-lg overflow-hidden bg-black relative">
               <video
+                ref={canvaVideoRef}
                 src={canvaVideoUrl}
-                controls
-                className="w-full h-full"
+                preload="none"
+                controls={canvaVideoPlaying}
+                className="w-full h-full object-contain"
                 title="Tutorial de Ativação Canva Pro"
+                onPlay={() => setCanvaVideoPlaying(true)}
               >
                 Seu navegador não suporta a reprodução de vídeo.
               </video>
+              {!canvaVideoPlaying && (
+                <div className="absolute inset-0 flex items-center justify-center bg-black cursor-pointer group" onClick={() => {
+                  canvaVideoRef.current?.play()
+                  setCanvaVideoPlaying(true)
+                }}>
+                  <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-gogh-yellow/90 group-hover:bg-gogh-yellow flex items-center justify-center transition-all transform group-hover:scale-110 shadow-lg">
+                    <Play className="w-10 h-10 md:w-12 md:h-12 text-gogh-black ml-1" fill="currentColor" />
+                  </div>
+                </div>
+              )}
             </div>
-            <p className="text-sm text-gray-600 mt-4">
+            <p className="text-xs md:text-sm text-gray-600 mt-4">
               Assista este tutorial para aprender como ativar e fazer login no Canva Pro.
             </p>
           </motion.div>
@@ -842,34 +872,60 @@ export default function ToolsPage() {
 
       {/* Modal de Vídeo Tutorial CapCut */}
       {showCapcutVideoModal && capcutVideoUrl && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+        <div 
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowCapcutVideoModal(false)
+              setCapcutVideoPlaying(false)
+              capcutVideoRef.current?.pause()
+            }
+          }}
+        >
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="bg-white rounded-xl shadow-xl max-w-4xl w-full p-6"
+            className="bg-white rounded-xl shadow-xl max-w-sm w-full p-4 md:p-6"
           >
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold text-gogh-black">
+              <h3 className="text-base md:text-lg font-bold text-gogh-black">
                 Tutorial de Ativação - CapCut Pro
               </h3>
               <button
-                onClick={() => setShowCapcutVideoModal(false)}
+                onClick={() => {
+                  setShowCapcutVideoModal(false)
+                  setCapcutVideoPlaying(false)
+                  capcutVideoRef.current?.pause()
+                }}
                 className="text-gray-400 hover:text-gray-600"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <div className="aspect-video rounded-lg overflow-hidden bg-black">
+            <div className="aspect-[9/16] rounded-lg overflow-hidden bg-black relative">
               <video
+                ref={capcutVideoRef}
                 src={capcutVideoUrl}
-                controls
-                className="w-full h-full"
+                preload="none"
+                controls={capcutVideoPlaying}
+                className="w-full h-full object-contain"
                 title="Tutorial de Ativação CapCut Pro"
+                onPlay={() => setCapcutVideoPlaying(true)}
               >
                 Seu navegador não suporta a reprodução de vídeo.
               </video>
+              {!capcutVideoPlaying && (
+                <div className="absolute inset-0 flex items-center justify-center bg-black cursor-pointer group" onClick={() => {
+                  capcutVideoRef.current?.play()
+                  setCapcutVideoPlaying(true)
+                }}>
+                  <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-gogh-yellow/90 group-hover:bg-gogh-yellow flex items-center justify-center transition-all transform group-hover:scale-110 shadow-lg">
+                    <Play className="w-10 h-10 md:w-12 md:h-12 text-gogh-black ml-1" fill="currentColor" />
+                  </div>
+                </div>
+              )}
             </div>
-            <p className="text-sm text-gray-600 mt-4">
+            <p className="text-xs md:text-sm text-gray-600 mt-4">
               Assista este tutorial para aprender como fazer login no CapCut Pro usando as credenciais fornecidas.
             </p>
           </motion.div>

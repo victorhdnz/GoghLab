@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { Play } from 'lucide-react'
 import { PointerHighlight } from '@/components/ui/pointer-highlight'
 
 interface HomepageVideoProps {
@@ -60,6 +61,7 @@ export function HomepageVideo({ enabled = true, videoUrl, videoAutoplay = false,
 
   // Estado para detectar se o vídeo é vertical
   const [isVertical, setIsVertical] = useState(false)
+  const [isPlaying, setIsPlaying] = useState(false)
   const videoRef = useRef<HTMLVideoElement>(null)
 
   // Detectar orientação do vídeo quando carregar
@@ -110,14 +112,27 @@ export function HomepageVideo({ enabled = true, videoUrl, videoAutoplay = false,
               allowFullScreen
             />
           ) : (
-            <video
-              ref={videoRef}
-              src={videoUrl}
-              preload="metadata"
-              playsInline
-              controls
-              className="w-full h-full object-contain"
-            />
+            <div className="relative w-full h-full">
+              <video
+                ref={videoRef}
+                src={videoUrl}
+                preload="none"
+                playsInline
+                controls={isPlaying}
+                className="w-full h-full object-contain"
+                onPlay={() => setIsPlaying(true)}
+              />
+              {!isPlaying && (
+                <div className="absolute inset-0 flex items-center justify-center bg-black cursor-pointer group" onClick={() => {
+                  videoRef.current?.play()
+                  setIsPlaying(true)
+                }}>
+                  <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-gogh-yellow/90 group-hover:bg-gogh-yellow flex items-center justify-center transition-all transform group-hover:scale-110 shadow-lg">
+                    <Play className="w-10 h-10 md:w-12 md:h-12 text-gogh-black ml-1" fill="currentColor" />
+                  </div>
+                </div>
+              )}
+            </div>
           )
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-gogh-beige-light border border-gogh-yellow/20 rounded-2xl">
