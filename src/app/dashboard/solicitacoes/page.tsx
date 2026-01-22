@@ -68,8 +68,7 @@ export default function SolicitacoesPage() {
   const [canvaLink, setCanvaLink] = useState('')
   const [capcutEmail, setCapcutEmail] = useState('')
   const [capcutPassword, setCapcutPassword] = useState('')
-  const [canvaTutorialVideoUrl, setCanvaTutorialVideoUrl] = useState<string | null>(null)
-  const [capcutTutorialVideoUrl, setCapcutTutorialVideoUrl] = useState<string | null>(null)
+  // Removido: não precisamos mais de estados para vídeos individuais
   
   // URLs fixas de vídeos de tutorial (salvas no site_settings)
   const [defaultCanvaVideoUrl, setDefaultCanvaVideoUrl] = useState<string>('')
@@ -198,7 +197,7 @@ export default function SolicitacoesPage() {
     try {
       const { data: subscriptionData } = await (supabase as any)
         .from('subscriptions')
-        .select('current_period_start, created_at')
+        .select('current_period_start, created_at, stripe_subscription_id')
         .eq('user_id', userId)
         .eq('status', 'active')
         .order('created_at', { ascending: false })
@@ -206,6 +205,8 @@ export default function SolicitacoesPage() {
         .maybeSingle()
 
       if (subscriptionData) {
+        // Para assinaturas Stripe, usar current_period_start
+        // Para assinaturas manuais (sem stripe_subscription_id), usar current_period_start ou created_at
         const subscriptionStartDate = subscriptionData.current_period_start 
           ? new Date(subscriptionData.current_period_start)
           : subscriptionData.created_at 
@@ -306,9 +307,7 @@ export default function SolicitacoesPage() {
       setCapcutEmail(capcutAccess?.access_link || capcutAccess?.email || '')
       setCapcutPassword(capcutAccess?.password || '')
       
-      // Buscar vídeos tutorial separadamente
-      setCanvaTutorialVideoUrl(canvaAccess?.tutorial_video_url || null)
-      setCapcutTutorialVideoUrl(capcutAccess?.tutorial_video_url || null)
+      // Não precisamos mais carregar vídeos individuais, pois usaremos URLs fixas
     } catch (error: any) {
       console.error('Erro ao carregar acessos:', error)
     }
@@ -324,9 +323,10 @@ export default function SolicitacoesPage() {
       if (!user) throw new Error('Usuário não autenticado')
 
       // Verificar se já passaram 8 dias desde o início da assinatura (oitavo dia)
+      // Considera tanto assinaturas Stripe quanto manuais
       const { data: subscriptionData } = await (supabase as any)
         .from('subscriptions')
-        .select('current_period_start, created_at')
+        .select('current_period_start, created_at, stripe_subscription_id')
         .eq('user_id', selectedTicket.user_id)
         .eq('status', 'active')
         .order('created_at', { ascending: false })
@@ -334,6 +334,8 @@ export default function SolicitacoesPage() {
         .maybeSingle()
 
       if (subscriptionData) {
+        // Para assinaturas Stripe, usar current_period_start
+        // Para assinaturas manuais (sem stripe_subscription_id), usar current_period_start ou created_at
         const subscriptionStartDate = subscriptionData.current_period_start 
           ? new Date(subscriptionData.current_period_start)
           : subscriptionData.created_at 
@@ -355,17 +357,26 @@ export default function SolicitacoesPage() {
         }
       }
 
-      // Validar URLs do YouTube
-      let canvaVideoUrl = canvaTutorialVideoUrl
+      // Buscar URLs fixas de vídeos de tutorial do site_settings
+      const { data: settingsData } = await (supabase as any)
+        .from('site_settings')
+        .select('value')
+        .eq('key', 'general')
+        .maybeSingle()
+      
+      const defaultVideos = settingsData?.value?.tool_tutorial_videos || {}
+      const canvaVideoUrl = defaultVideos.canva || null
+      const capcutVideoUrl = defaultVideos.capcut || null
+      
+      // Validar URLs do YouTube se existirem
       if (canvaVideoUrl && !getYouTubeId(canvaVideoUrl)) {
-        toast.error('URL do vídeo tutorial do Canva deve ser do YouTube')
+        toast.error('URL do vídeo tutorial do Canva (fixa) deve ser do YouTube')
         setSaving(false)
         return
       }
 
-      let capcutVideoUrl = capcutTutorialVideoUrl
       if (capcutVideoUrl && !getYouTubeId(capcutVideoUrl)) {
-        toast.error('URL do vídeo tutorial do CapCut deve ser do YouTube')
+        toast.error('URL do vídeo tutorial do CapCut (fixa) deve ser do YouTube')
         setSaving(false)
         return
       }
@@ -1065,114 +1076,18 @@ export default function SolicitacoesPage() {
                     </p>
                   </div>
 
-                  {/* Upload de Vídeo Tutorial - Canva */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      <div className="flex items-center gap-2">
-                        <Video className="w-4 h-4" />
-                        Vídeo Tutorial de Ativação - Canva Pro
-                      </div>
-                    </label>
-                    <div className="space-y-3">
-                      <div className="space-y-2">
-                        <input
-                          type="url"
-                          value={canvaTutorialVideoUrl || ''}
-                          onChange={(e) => {
-                            const url = e.target.value
-                            setCanvaTutorialVideoUrl(url || null)
-                            if (url && !getYouTubeId(url)) {
-                              toast.error('URL deve ser do YouTube (youtube.com ou youtu.be)')
-                            }
-                          }}
-                          placeholder="Cole a URL do vídeo do YouTube (ex: https://www.youtube.com/watch?v=...)"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
-                        {canvaTutorialVideoUrl && getYouTubeId(canvaTutorialVideoUrl) && (
-                          <div className="mt-2">
-                            <div className="relative max-w-[200px] mx-auto">
-                              <div className="bg-gradient-to-br from-gogh-yellow/10 to-gogh-yellow/5 p-1 rounded-xl">
-                                <div className="bg-black rounded-lg overflow-hidden">
-                                  <div className="relative aspect-[9/16] bg-black">
-                                    <iframe
-                                      src={`https://www.youtube.com/embed/${getYouTubeId(canvaTutorialVideoUrl)}`}
-                                      title="Preview Canva"
-                                      className="w-full h-full rounded-lg"
-                                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                      allowFullScreen
-                                    />
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                            <button
-                              onClick={() => setCanvaTutorialVideoUrl(null)}
-                              className="mt-2 text-sm text-red-600 hover:text-red-800"
-                            >
-                              Remover vídeo
-                            </button>
-                          </div>
-                        )}
+                  {/* Nota sobre vídeos de tutorial */}
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <div className="flex items-start gap-3">
+                      <Video className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <h4 className="font-medium text-blue-900 mb-1">Vídeos de Tutorial</h4>
+                        <p className="text-sm text-blue-700">
+                          Os vídeos de tutorial serão automaticamente adicionados usando as URLs fixas configuradas no topo da página. 
+                          Se você configurou URLs fixas para Canva e CapCut, elas serão usadas automaticamente para todos os clientes.
+                        </p>
                       </div>
                     </div>
-                    <p className="text-xs text-gray-500 mt-1">
-                      O vídeo aparecerá na página de ferramentas do cliente quando o link do Canva estiver disponível
-                    </p>
-                  </div>
-
-                  {/* Upload de Vídeo Tutorial - CapCut */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      <div className="flex items-center gap-2">
-                        <Video className="w-4 h-4" />
-                        Vídeo Tutorial de Ativação - CapCut Pro
-                      </div>
-                    </label>
-                    <div className="space-y-3">
-                      <div className="space-y-2">
-                        <input
-                          type="url"
-                          value={capcutTutorialVideoUrl || ''}
-                          onChange={(e) => {
-                            const url = e.target.value
-                            setCapcutTutorialVideoUrl(url || null)
-                            if (url && !getYouTubeId(url)) {
-                              toast.error('URL deve ser do YouTube (youtube.com ou youtu.be)')
-                            }
-                          }}
-                          placeholder="Cole a URL do vídeo do YouTube (ex: https://www.youtube.com/watch?v=...)"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
-                        {capcutTutorialVideoUrl && getYouTubeId(capcutTutorialVideoUrl) && (
-                          <div className="mt-2">
-                            <div className="relative max-w-[200px] mx-auto">
-                              <div className="bg-gradient-to-br from-gogh-yellow/10 to-gogh-yellow/5 p-1 rounded-xl">
-                                <div className="bg-black rounded-lg overflow-hidden">
-                                  <div className="relative aspect-[9/16] bg-black">
-                                    <iframe
-                                      src={`https://www.youtube.com/embed/${getYouTubeId(capcutTutorialVideoUrl)}`}
-                                      title="Preview CapCut"
-                                      className="w-full h-full rounded-lg"
-                                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                      allowFullScreen
-                                    />
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                            <button
-                              onClick={() => setCapcutTutorialVideoUrl(null)}
-                              className="mt-2 text-sm text-red-600 hover:text-red-800"
-                            >
-                              Remover vídeo
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    <p className="text-xs text-gray-500 mt-1">
-                      O vídeo aparecerá na página de ferramentas do cliente quando as credenciais do CapCut estiverem disponíveis
-                    </p>
                   </div>
 
                   {/* Status dos Links */}

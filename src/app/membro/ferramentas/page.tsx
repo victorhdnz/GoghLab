@@ -778,24 +778,49 @@ export default function ToolsPage() {
                       Conforme o Código de Defesa do Consumidor (CDC), você tem 7 dias para exercer seu direito de arrependimento. 
                       Por isso, o acesso às ferramentas Canva Pro e CapCut Pro será liberado apenas após o <strong>oitavo dia</strong> da sua assinatura, garantindo que o período de arrependimento já tenha sido concluído.
                     </p>
-                    <p className="text-sm text-blue-600 text-left mb-2">
-                      Após a liberação, você terá <strong>30 dias de uso</strong> das ferramentas para aproveitar ao máximo seus recursos.
-                    </p>
-                    <p className="text-sm text-blue-600 text-left">
-                      Para mais informações sobre esta política, consulte nossos{' '}
-                      <Link 
-                        href="/termos-assinatura-planos" 
-                        target="_blank"
-                        className="underline font-medium text-blue-700 hover:text-blue-900"
-                      >
-                        Termos de Assinatura e Planos
-                      </Link>.
-                    </p>
-                    {daysUntilCanRequest() !== null && daysUntilCanRequest()! > 0 && (
-                      <p className="text-sm font-medium text-blue-700 mt-3">
-                        Você poderá solicitar acesso em {daysUntilCanRequest()} dia{daysUntilCanRequest()! > 1 ? 's' : ''}.
-                      </p>
-                    )}
+                    {(() => {
+                      const daysRemaining = daysUntilCanRequest()
+                      const subscriptionStartDate = subscription?.current_period_start 
+                        ? new Date(subscription.current_period_start)
+                        : (subscription as any)?.created_at 
+                          ? new Date((subscription as any).created_at)
+                          : null
+                      const daysActive = subscriptionStartDate 
+                        ? Math.floor((new Date().getTime() - subscriptionStartDate.getTime()) / (1000 * 60 * 60 * 24))
+                        : 0
+                      
+                      return (
+                        <>
+                          <p className="text-sm text-blue-600 text-left mb-2">
+                            Sua assinatura está ativa há <strong>{daysActive} dia{daysActive !== 1 ? 's' : ''}</strong>. 
+                            Após a liberação, você terá <strong>30 dias de uso</strong> das ferramentas para aproveitar ao máximo seus recursos.
+                          </p>
+                          {daysRemaining !== null && daysRemaining > 0 && (
+                            <div className="mt-3 p-3 bg-blue-100 rounded-lg border border-blue-300">
+                              <p className="text-sm font-semibold text-blue-900 mb-1">
+                                ⏳ Faltam {daysRemaining} dia{daysRemaining > 1 ? 's' : ''} para você poder solicitar acesso às ferramentas
+                              </p>
+                              <div className="w-full bg-blue-200 rounded-full h-2 mt-2">
+                                <div 
+                                  className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                                  style={{ width: `${Math.min(100, ((8 - daysRemaining) / 8) * 100)}%` }}
+                                />
+                              </div>
+                            </div>
+                          )}
+                          <p className="text-sm text-blue-600 text-left mt-3">
+                            Para mais informações sobre esta política, consulte nossos{' '}
+                            <Link 
+                              href="/termos-assinatura-planos" 
+                              target="_blank"
+                              className="underline font-medium text-blue-700 hover:text-blue-900"
+                            >
+                              Termos de Assinatura e Planos
+                            </Link>.
+                          </p>
+                        </>
+                      )
+                    })()}
                   </div>
                   <button
                     disabled={true}
