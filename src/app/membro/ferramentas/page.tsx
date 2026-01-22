@@ -16,7 +16,8 @@ import {
   ExternalLink,
   Link as LinkIcon,
   AlertTriangle,
-  X
+  X,
+  Play
 } from 'lucide-react'
 
 // Função para detectar se é YouTube e extrair ID (suporta todos os formatos)
