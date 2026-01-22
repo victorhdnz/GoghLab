@@ -341,6 +341,8 @@ Para garantir que o período de arrependimento seja respeitado e evitar que cred
 
 **IMPORTANTE:** Esta regra se aplica tanto para **compras iniciais** (primeira contratação de um plano) quanto para **renovações** (renovação automática ou manual da assinatura). Em ambos os casos, o período de espera de 8 dias é contado a partir da data de início do novo período de assinatura (current_period_start), garantindo que o direito de arrependimento seja respeitado em cada ciclo contratual.
 
+**ISENÇÃO DE RESPONSABILIDADE:** Ao contratar qualquer plano de assinatura, você reconhece e aceita expressamente que o acesso às ferramentas profissionais (Canva Pro e CapCut Pro) estará disponível apenas a partir do oitavo dia após o início da sua assinatura (ou renovação), e que este período de espera é uma condição essencial do contrato, estabelecida para garantir o cumprimento do período de arrependimento previsto no CDC. Você concorda que não terá direito a qualquer tipo de compensação, reembolso parcial, desconto ou indenização em decorrência deste período de espera, e que esta condição não constitui falha na prestação do serviço ou descumprimento contratual por parte da Gogh Lab.
+
 #### 2.4.2. Processo de Solicitação
 
 - Após o oitavo dia da assinatura (seja compra inicial ou renovação), você poderá solicitar acesso às ferramentas através da área de membros
@@ -397,8 +399,9 @@ A Gogh Lab reserva-se o direito de cancelar sua assinatura, sem reembolso, em ca
 ### 4.3. Política de Reembolso
 
 #### 4.3.1. Reembolso Total
-- **Período de Arrependimento**: 7 (sete) dias corridos a partir da data de contratação, conforme previsto no Código de Defesa do Consumidor (CDC)
-- **Condições**: O reembolso total será processado apenas se solicitado dentro do período de arrependimento e se você não tiver utilizado recursos significativos do plano durante este período
+- **Período de Arrependimento**: 7 (sete) dias corridos a partir da data de contratação, conforme previsto no Código de Defesa do Consumidor (CDC - Art. 49)
+- **Direito de Arrependimento**: Conforme o CDC, você tem direito ao reembolso total se solicitar o cancelamento dentro do período de arrependimento de 7 dias, independentemente do uso ou não dos recursos do plano durante este período. O direito de arrependimento é irrestrito e não requer justificativa.
+- **Processamento**: O reembolso total será processado quando solicitado dentro do período de arrependimento, respeitando o direito garantido pelo CDC
 
 #### 4.3.2. Reembolso Proporcional
 - Após o período de arrependimento, **não há direito a reembolso**, exceto em casos específicos previstos em lei ou por decisão da Gogh Lab, a seu exclusivo critério
