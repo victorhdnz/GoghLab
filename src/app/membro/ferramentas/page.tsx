@@ -783,7 +783,7 @@ export default function ToolsPage() {
                     </div>
                   )}
                 </div>
-              )}
+              )})()}
             </div>
           </motion.div>
         ))}
