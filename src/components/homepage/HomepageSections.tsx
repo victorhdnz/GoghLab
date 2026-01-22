@@ -147,7 +147,7 @@ export function HomepageSections({
             const { firstPart, secondPart } = splitTextForHighlights(homepageContent.hero_subtitle)
             return (
               <FadeInElement delay={0}>
-                <p className="text-2xl md:text-3xl lg:text-4xl text-[#0A0A0A] max-w-4xl mx-auto font-bold mb-6 leading-tight">
+                <p className="text-xl sm:text-2xl md:text-3xl lg:text-4xl text-[#0A0A0A] max-w-4xl mx-auto font-bold mb-6 leading-tight px-4">
                   <span className="inline-block relative z-0 mb-2 md:mb-0">
                     <Highlighter action="underline" color="#F7C948" isView={true}>
                       {firstPart}
@@ -170,7 +170,7 @@ export function HomepageSections({
           })()}
           {homepageContent.hero_description && (
             <FadeInElement delay={0.2}>
-              <p className="text-xl md:text-2xl lg:text-3xl text-[#0A0A0A] max-w-3xl mx-auto font-bold">
+              <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-[#0A0A0A] max-w-3xl mx-auto font-bold px-4">
                 <AuroraText colors={["#F7C948", "#E5A800", "#0A0A0A", "#F7C948", "#E5A800"]} speed={1}>
                   {homepageContent.hero_description}
                 </AuroraText>

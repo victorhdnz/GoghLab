@@ -1,5 +1,6 @@
 'use client'
 
+import { useState, useEffect, useRef } from 'react'
 import { PointerHighlight } from '@/components/ui/pointer-highlight'
 
 interface HomepageVideoProps {
@@ -57,6 +58,26 @@ export function HomepageVideo({ enabled = true, videoUrl, videoAutoplay = false,
   const isYouTube = videoUrl ? !!getYouTubeId(videoUrl) : false
   const youtubeId = videoUrl ? getYouTubeId(videoUrl) : null
 
+  // Estado para detectar se o vídeo é vertical
+  const [isVertical, setIsVertical] = useState(false)
+  const videoRef = useRef<HTMLVideoElement>(null)
+
+  // Detectar orientação do vídeo quando carregar
+  useEffect(() => {
+    if (videoUrl && !isYouTube && videoRef.current) {
+      const video = videoRef.current
+      const handleLoadedMetadata = () => {
+        if (video.videoWidth && video.videoHeight) {
+          // Se altura > largura, é vertical
+          setIsVertical(video.videoHeight > video.videoWidth)
+        }
+      }
+      
+      video.addEventListener('loadedmetadata', handleLoadedMetadata)
+      return () => video.removeEventListener('loadedmetadata', handleLoadedMetadata)
+    }
+  }, [videoUrl, isYouTube])
+
   return (
     <div className="w-full">
       {/* Título com animação Pointer Highlight - Antes do vídeo */}
@@ -74,25 +95,28 @@ export function HomepageVideo({ enabled = true, videoUrl, videoAutoplay = false,
       )}
 
       {/* Vídeo Principal */}
-      <div className="relative aspect-video rounded-2xl overflow-hidden shadow-lg border border-gogh-yellow/30">
+      <div className={`relative rounded-2xl overflow-hidden shadow-lg border border-gogh-yellow/30 ${
+        isVertical && !isYouTube 
+          ? 'aspect-[9/16] max-w-sm mx-auto' 
+          : 'aspect-video'
+      }`}>
         {videoUrl ? (
           isYouTube && youtubeId ? (
             <iframe
-              src={`https://www.youtube.com/embed/${youtubeId}${videoAutoplay ? '?autoplay=1&mute=1' : ''}`}
+              src={`https://www.youtube.com/embed/${youtubeId}`}
               title={title || 'Vídeo sobre nós'}
               className="w-full h-full"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen
             />
           ) : (
             <video
+              ref={videoRef}
               src={videoUrl}
-              autoPlay={videoAutoplay}
-              loop
-              muted
+              preload="metadata"
               playsInline
               controls
-              className="w-full h-full object-cover"
+              className="w-full h-full object-contain"
             />
           )
         ) : (
