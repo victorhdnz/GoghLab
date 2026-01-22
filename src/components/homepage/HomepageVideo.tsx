@@ -1,7 +1,5 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
-import { Play } from 'lucide-react'
 import { PointerHighlight } from '@/components/ui/pointer-highlight'
 
 interface HomepageVideoProps {
@@ -12,11 +10,18 @@ interface HomepageVideoProps {
   subtitle?: string
 }
 
-// Função para detectar se é YouTube e extrair ID
+// Função para detectar se é YouTube e extrair ID (suporta todos os formatos)
 function getYouTubeId(url: string): string | null {
-  const youtubeRegex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/
-  const match = url.match(youtubeRegex)
-  return match ? match[1] : null
+  if (!url) return null
+  // Regex mais completa que funciona com todos os formatos:
+  // - https://www.youtube.com/watch?v=VIDEO_ID
+  // - https://youtu.be/VIDEO_ID
+  // - https://www.youtube.com/embed/VIDEO_ID
+  // - https://www.youtube.com/v/VIDEO_ID
+  // - https://www.youtube.com/watch?v=VIDEO_ID&t=30s
+  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/
+  const match = url.match(regExp)
+  return (match && match[2] && match[2].length === 11) ? match[2] : null
 }
 
 // Função para dividir o título e aplicar PointerHighlight na palavra "nós"
@@ -56,32 +61,10 @@ function renderTitleWithHighlight(title: string) {
 export function HomepageVideo({ enabled = true, videoUrl, videoAutoplay = false, title, subtitle }: HomepageVideoProps) {
   if (!enabled) return null
 
-  const isYouTube = videoUrl ? !!getYouTubeId(videoUrl) : false
   const youtubeId = videoUrl ? getYouTubeId(videoUrl) : null
 
-  // Estado para detectar se o vídeo é vertical
-  const [isVertical, setIsVertical] = useState(false)
-  const [isPlaying, setIsPlaying] = useState(false)
-  const videoRef = useRef<HTMLVideoElement>(null)
-
-  // Detectar orientação do vídeo quando carregar
-  useEffect(() => {
-    if (videoUrl && !isYouTube && videoRef.current) {
-      const video = videoRef.current
-      const handleLoadedMetadata = () => {
-        if (video.videoWidth && video.videoHeight) {
-          // Se altura > largura, é vertical
-          setIsVertical(video.videoHeight > video.videoWidth)
-        }
-      }
-      
-      video.addEventListener('loadedmetadata', handleLoadedMetadata)
-      return () => video.removeEventListener('loadedmetadata', handleLoadedMetadata)
-    }
-  }, [videoUrl, isYouTube])
-
   return (
-    <div className={`${isVertical && !isYouTube ? 'w-full max-w-[360px] mx-auto' : 'w-full'}`}>
+    <div className="w-full max-w-[400px] mx-auto">
       {/* Título com animação Pointer Highlight - Antes do vídeo */}
       {title && (
         <div className="mb-8">
@@ -96,110 +79,28 @@ export function HomepageVideo({ enabled = true, videoUrl, videoAutoplay = false,
         </div>
       )}
 
-      {/* Vídeo Principal - Sem container de fundo */}
-      <div className={`relative ${
-        isVertical && !isYouTube 
-          ? 'aspect-[9/16] w-full' 
-          : 'aspect-video w-full'
-      }`}>
-        {videoUrl ? (
-          isYouTube && youtubeId ? (
-            <iframe
-              src={`https://www.youtube.com/embed/${youtubeId}`}
-              title={title || 'Vídeo sobre nós'}
-              className="w-full h-full"
-              allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-            />
-          ) : (
-            <div className="relative w-full h-full">
-              {/* Validar que não é blob URL */}
-              {videoUrl && videoUrl.startsWith('blob:') ? (
-                <div className="w-full h-full flex items-center justify-center bg-black rounded-lg">
-                  <div className="text-center text-white p-4">
-                    <p className="text-sm mb-2">⚠️ URL temporária detectada</p>
-                    <p className="text-xs text-gray-400">Por favor, faça upload do vídeo novamente no dashboard.</p>
-                  </div>
-                </div>
-              ) : (
-                <video
-                  ref={videoRef}
-                  src={videoUrl}
-                  preload="metadata"
-                  playsInline
-                  controls={isPlaying}
-                  className="w-full h-full object-contain bg-black rounded-lg"
-                  onPlay={() => setIsPlaying(true)}
-                  onError={(e) => {
-                    console.error('Erro ao carregar vídeo:', e)
-                    const video = e.currentTarget
-                    const error = video.error
-                    
-                    if (error) {
-                      console.error('Detalhes do erro:', {
-                        code: error.code,
-                        message: error.message,
-                        videoUrl: videoUrl,
-                        currentSrc: video.currentSrc
-                      })
-                      
-                      // Não tentar recarregar infinitamente
-                      if (error.code === 4) {
-                        // MEDIA_ELEMENT_ERROR: Format error ou source não suportado
-                        console.error('Formato de vídeo não suportado ou URL inválida')
-                      }
-                    }
-                    
-                    // Se for blob URL, não tentar recarregar
-                    if (videoUrl && videoUrl.startsWith('blob:')) {
-                      console.error('Blob URL detectada - não é possível recarregar')
-                      return
-                    }
-                    
-                    // Tentar recarregar apenas uma vez
-                    if (video && videoUrl && !videoUrl.startsWith('blob:')) {
-                      video.load()
-                    }
-                  }}
-                  onLoadedMetadata={() => {
-                    // Verificar se o vídeo tem fontes suportadas
-                    const video = videoRef.current
-                    if (video && video.readyState >= 2) {
-                      // Vídeo carregou corretamente
-                      console.log('✅ Vídeo carregado com sucesso')
-                    }
-                  }}
+      {/* Vídeo Principal - Sempre vertical para YouTube */}
+      <div className="relative max-w-[400px] mx-auto">
+        {youtubeId ? (
+          <div className="bg-gradient-to-br from-gogh-yellow/10 to-gogh-yellow/5 p-1 rounded-xl">
+            <div className="bg-black rounded-lg overflow-hidden">
+              <div className="relative aspect-[9/16] bg-black">
+                <iframe
+                  src={`https://www.youtube.com/embed/${youtubeId}${videoAutoplay ? '?autoplay=1&mute=1' : ''}`}
+                  title={title || 'Vídeo sobre nós'}
+                  className="w-full h-full rounded-lg"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
                 />
-              )}
-              {!isPlaying && (
-                <div className="absolute inset-0 flex items-center justify-center bg-black/90 cursor-pointer group z-10 rounded-lg" onClick={() => {
-                  if (videoRef.current) {
-                    videoRef.current.play().catch((error) => {
-                      console.error('Erro ao reproduzir vídeo:', error)
-                      // Tentar recarregar e reproduzir
-                      if (videoRef.current && videoUrl) {
-                        videoRef.current.load()
-                        setTimeout(() => {
-                          videoRef.current?.play().catch(console.error)
-                        }, 500)
-                      }
-                    })
-                    setIsPlaying(true)
-                  }
-                }}>
-                  <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-gogh-yellow/90 group-hover:bg-gogh-yellow flex items-center justify-center transition-all transform group-hover:scale-110 shadow-lg">
-                    <Play className="w-10 h-10 md:w-12 md:h-12 text-gogh-black ml-1" fill="currentColor" />
-                  </div>
-                </div>
-              )}
+              </div>
             </div>
-          )
+          </div>
         ) : (
-          <div className="w-full h-full flex items-center justify-center bg-gogh-beige-light border border-gogh-yellow/20 rounded-2xl">
+          <div className="aspect-[9/16] w-full flex items-center justify-center bg-gogh-beige-light border border-gogh-yellow/20 rounded-lg">
             <div className="text-center">
               <div className="text-6xl mb-4">🎥</div>
               <p className="text-gogh-grayDark text-lg">Vídeo não adicionado</p>
-              <p className="text-gogh-grayDark/70 text-sm mt-2">Adicione um vídeo no editor</p>
+              <p className="text-gogh-grayDark/70 text-sm mt-2">Adicione uma URL do YouTube no editor</p>
             </div>
           </div>
         )}
@@ -207,4 +108,3 @@ export function HomepageVideo({ enabled = true, videoUrl, videoAutoplay = false,
     </div>
   )
 }
-

@@ -250,6 +250,15 @@ const sectionIcons: Record<string, string> = {
   contact: '📞',
 }
 
+// Função para validar URL do YouTube (suporta todos os formatos)
+function getYouTubeId(url: string): string | null {
+  if (!url) return null
+  // Regex mais completa que funciona com todos os formatos
+  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/
+  const match = url.match(regExp)
+  return (match && match[2] && match[2].length === 11) ? match[2] : null
+}
+
 const sectionLabels: Record<string, string> = {
   hero: 'Hero (Principal)',
   video: 'Vídeo (Sobre Nós)',
@@ -876,16 +885,16 @@ export default function HomepageEditorPage() {
                       console.log('🔔 onChange do VideoUploader chamado no dashboard!', url)
                       console.trace('Stack trace do onChange no dashboard')
                       
-                      // Validar que não é blob URL
-                      if (url && url.startsWith('blob:')) {
-                        console.error('❌ Blob URL detectada no onChange, rejeitando...')
-                        toast.error('URL temporária detectada. Por favor, faça upload do vídeo novamente.')
+                      // Validar que é URL do YouTube
+                      if (url && !getYouTubeId(url)) {
+                        console.error('❌ URL não é do YouTube')
+                        toast.error('Por favor, use uma URL do YouTube (youtube.com ou youtu.be)')
                         return
                       }
                       
                       setFormData({ ...formData, video_url: url })
                     }}
-                    placeholder="URL do vídeo ou upload"
+                    placeholder="Cole a URL do vídeo do YouTube"
                   />
                   {formData.video_url && (
                     <p className="text-xs text-gray-500 mt-2">

@@ -19,7 +19,6 @@ import {
   ExternalLink,
   AlertTriangle,
   Video,
-  Upload,
   X
 } from 'lucide-react'
 import toast from 'react-hot-toast'
@@ -69,11 +68,17 @@ export default function SolicitacoesPage() {
   const [canvaLink, setCanvaLink] = useState('')
   const [capcutEmail, setCapcutEmail] = useState('')
   const [capcutPassword, setCapcutPassword] = useState('')
-  const [canvaTutorialVideo, setCanvaTutorialVideo] = useState<File | null>(null)
   const [canvaTutorialVideoUrl, setCanvaTutorialVideoUrl] = useState<string | null>(null)
-  const [capcutTutorialVideo, setCapcutTutorialVideo] = useState<File | null>(null)
   const [capcutTutorialVideoUrl, setCapcutTutorialVideoUrl] = useState<string | null>(null)
-  const [uploadingVideo, setUploadingVideo] = useState(false)
+
+  // Função para validar URL do YouTube (suporta todos os formatos)
+  const getYouTubeId = (url: string): string | null => {
+    if (!url) return null
+    // Regex mais completa que funciona com todos os formatos
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/
+    const match = url.match(regExp)
+    return (match && match[2] && match[2].length === 11) ? match[2] : null
+  }
   const [subscriptionInfo, setSubscriptionInfo] = useState<{
     daysSinceStart: number | null
     canRelease: boolean
@@ -213,80 +218,6 @@ export default function SolicitacoesPage() {
     }
   }
 
-  const uploadVideo = async (file: File): Promise<string | null> => {
-    setUploadingVideo(true)
-    try {
-      // 1. VALIDAÇÕES
-      if (!file.type.startsWith('video/')) {
-        throw new Error('Apenas arquivos de vídeo são permitidos')
-      }
-
-      // Sem limite de tamanho para vídeos (removido para permitir alta qualidade)
-
-      // 2. VERIFICAR AUTENTICAÇÃO
-      const { data: { user }, error: authError } = await supabase.auth.getUser()
-      if (authError || !user) {
-        throw new Error('Faça login para fazer upload de vídeos')
-      }
-
-      // 3. GERAR NOME ÚNICO
-      const sanitizedName = file.name
-        .replace(/[^a-zA-Z0-9.-]/g, '_')
-        .replace(/\s+/g, '_')
-        .toLowerCase()
-      
-      const fileExt = sanitizedName.split('.').pop() || 'mp4'
-      const validExtensions = ['mp4', 'webm', 'ogg', 'mov', 'avi', 'mkv']
-      const finalExt = validExtensions.includes(fileExt.toLowerCase()) ? fileExt.toLowerCase() : 'mp4'
-      const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 15)}.${finalExt}`
-      const filePath = fileName
-
-      // 4. UPLOAD DIRETO PARA SUPABASE STORAGE (seguindo o guia)
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('videos') // Nome do bucket
-        .upload(filePath, file, {
-          cacheControl: '3600',
-          upsert: false,
-          contentType: file.type || `video/${finalExt}`,
-        })
-
-      if (uploadError) {
-        console.error('Erro no upload:', uploadError)
-        
-        // Tratar erros comuns
-        let errorMessage = uploadError.message || 'Erro ao fazer upload do vídeo'
-        
-        if (errorMessage.includes('pattern') || errorMessage.includes('match')) {
-          errorMessage = 'Formato de arquivo inválido. Verifique se o arquivo é um vídeo válido.'
-        } else if (errorMessage.includes('duplicate') || errorMessage.includes('exists')) {
-          errorMessage = 'Um arquivo com este nome já existe. Tente novamente.'
-        } else if (errorMessage.includes('413') || errorMessage.includes('too large')) {
-          errorMessage = 'Erro ao fazer upload do vídeo. Verifique sua conexão e tente novamente.'
-        } else if (errorMessage.includes('new row violates row-level security') || errorMessage.includes('row-level security')) {
-          errorMessage = 'Erro de permissão. Verifique as políticas RLS do bucket. Execute o SQL em supabase/storage_videos_rls.sql'
-        }
-        
-        throw new Error(errorMessage)
-      }
-
-      // 5. OBTER URL PÚBLICA
-      const { data: urlData } = supabase.storage
-        .from('videos')
-        .getPublicUrl(filePath)
-
-      if (!urlData?.publicUrl) {
-        throw new Error('Erro ao obter URL do vídeo')
-      }
-
-      return urlData.publicUrl
-    } catch (error: any) {
-      console.error('Erro ao fazer upload do vídeo:', error)
-      toast.error(error.message || 'Erro ao fazer upload do vídeo')
-      return null
-    } finally {
-      setUploadingVideo(false)
-    }
-  }
 
   const saveLinks = async () => {
     if (!selectedTicket) return
@@ -328,26 +259,19 @@ export default function SolicitacoesPage() {
         }
       }
 
-      // Upload do vídeo do Canva se houver
+      // Validar URLs do YouTube
       let canvaVideoUrl = canvaTutorialVideoUrl
-      if (canvaTutorialVideo) {
-        const uploadedUrl = await uploadVideo(canvaTutorialVideo)
-        if (uploadedUrl) {
-          canvaVideoUrl = uploadedUrl
-          setCanvaTutorialVideoUrl(uploadedUrl)
-          setCanvaTutorialVideo(null)
-        }
+      if (canvaVideoUrl && !getYouTubeId(canvaVideoUrl)) {
+        toast.error('URL do vídeo tutorial do Canva deve ser do YouTube')
+        setSaving(false)
+        return
       }
 
-      // Upload do vídeo do CapCut se houver
       let capcutVideoUrl = capcutTutorialVideoUrl
-      if (capcutTutorialVideo) {
-        const uploadedUrl = await uploadVideo(capcutTutorialVideo)
-        if (uploadedUrl) {
-          capcutVideoUrl = uploadedUrl
-          setCapcutTutorialVideoUrl(uploadedUrl)
-          setCapcutTutorialVideo(null)
-        }
+      if (capcutVideoUrl && !getYouTubeId(capcutVideoUrl)) {
+        toast.error('URL do vídeo tutorial do CapCut deve ser do YouTube')
+        setSaving(false)
+        return
       }
 
       // Salvar/atualizar link do Canva
@@ -957,61 +881,46 @@ export default function SolicitacoesPage() {
                       </div>
                     </label>
                     <div className="space-y-3">
-                      {canvaTutorialVideoUrl && (
-                        <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <Video className="w-4 h-4 text-emerald-600" />
-                              <span className="text-sm text-emerald-700">Vídeo já enviado</span>
+                      <div className="space-y-2">
+                        <input
+                          type="url"
+                          value={canvaTutorialVideoUrl || ''}
+                          onChange={(e) => {
+                            const url = e.target.value
+                            setCanvaTutorialVideoUrl(url || null)
+                            if (url && !getYouTubeId(url)) {
+                              toast.error('URL deve ser do YouTube (youtube.com ou youtu.be)')
+                            }
+                          }}
+                          placeholder="Cole a URL do vídeo do YouTube (ex: https://www.youtube.com/watch?v=...)"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                        {canvaTutorialVideoUrl && getYouTubeId(canvaTutorialVideoUrl) && (
+                          <div className="mt-2">
+                            <div className="relative max-w-[200px] mx-auto">
+                              <div className="bg-gradient-to-br from-gogh-yellow/10 to-gogh-yellow/5 p-1 rounded-xl">
+                                <div className="bg-black rounded-lg overflow-hidden">
+                                  <div className="relative aspect-[9/16] bg-black">
+                                    <iframe
+                                      src={`https://www.youtube.com/embed/${getYouTubeId(canvaTutorialVideoUrl)}`}
+                                      title="Preview Canva"
+                                      className="w-full h-full rounded-lg"
+                                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                      allowFullScreen
+                                    />
+                                  </div>
+                                </div>
+                              </div>
                             </div>
                             <button
-                              onClick={() => {
-                                setCanvaTutorialVideoUrl(null)
-                                setCanvaTutorialVideo(null)
-                              }}
-                              className="text-emerald-600 hover:text-emerald-800"
+                              onClick={() => setCanvaTutorialVideoUrl(null)}
+                              className="mt-2 text-sm text-red-600 hover:text-red-800"
                             >
-                              <X className="w-4 h-4" />
+                              Remover vídeo
                             </button>
                           </div>
-                          <video
-                            src={canvaTutorialVideoUrl}
-                            controls
-                            className="w-full mt-2 rounded-lg max-h-48"
-                          />
-                        </div>
-                      )}
-                      
-                      {!canvaTutorialVideoUrl && (
-                        <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-400 transition-colors">
-                          <input
-                            type="file"
-                            accept="video/*"
-                            onChange={(e) => {
-                              const file = e.target.files?.[0]
-                              if (file) {
-                                setCanvaTutorialVideo(file)
-                              }
-                            }}
-                            className="hidden"
-                            id="canva-video-upload"
-                          />
-                          <label
-                            htmlFor="canva-video-upload"
-                            className="cursor-pointer flex flex-col items-center gap-2"
-                          >
-                            <Upload className="w-8 h-8 text-gray-400" />
-                            <span className="text-sm text-gray-600">
-                              {canvaTutorialVideo ? canvaTutorialVideo.name : 'Clique para fazer upload do vídeo tutorial do Canva'}
-                            </span>
-                            {canvaTutorialVideo && (
-                              <span className="text-xs text-gray-500">
-                                {(canvaTutorialVideo.size / 1024 / 1024).toFixed(2)} MB
-                              </span>
-                            )}
-                          </label>
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </div>
                     <p className="text-xs text-gray-500 mt-1">
                       O vídeo aparecerá na página de ferramentas do cliente quando o link do Canva estiver disponível
@@ -1027,61 +936,46 @@ export default function SolicitacoesPage() {
                       </div>
                     </label>
                     <div className="space-y-3">
-                      {capcutTutorialVideoUrl && (
-                        <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <Video className="w-4 h-4 text-emerald-600" />
-                              <span className="text-sm text-emerald-700">Vídeo já enviado</span>
+                      <div className="space-y-2">
+                        <input
+                          type="url"
+                          value={capcutTutorialVideoUrl || ''}
+                          onChange={(e) => {
+                            const url = e.target.value
+                            setCapcutTutorialVideoUrl(url || null)
+                            if (url && !getYouTubeId(url)) {
+                              toast.error('URL deve ser do YouTube (youtube.com ou youtu.be)')
+                            }
+                          }}
+                          placeholder="Cole a URL do vídeo do YouTube (ex: https://www.youtube.com/watch?v=...)"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                        {capcutTutorialVideoUrl && getYouTubeId(capcutTutorialVideoUrl) && (
+                          <div className="mt-2">
+                            <div className="relative max-w-[200px] mx-auto">
+                              <div className="bg-gradient-to-br from-gogh-yellow/10 to-gogh-yellow/5 p-1 rounded-xl">
+                                <div className="bg-black rounded-lg overflow-hidden">
+                                  <div className="relative aspect-[9/16] bg-black">
+                                    <iframe
+                                      src={`https://www.youtube.com/embed/${getYouTubeId(capcutTutorialVideoUrl)}`}
+                                      title="Preview CapCut"
+                                      className="w-full h-full rounded-lg"
+                                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                      allowFullScreen
+                                    />
+                                  </div>
+                                </div>
+                              </div>
                             </div>
                             <button
-                              onClick={() => {
-                                setCapcutTutorialVideoUrl(null)
-                                setCapcutTutorialVideo(null)
-                              }}
-                              className="text-emerald-600 hover:text-emerald-800"
+                              onClick={() => setCapcutTutorialVideoUrl(null)}
+                              className="mt-2 text-sm text-red-600 hover:text-red-800"
                             >
-                              <X className="w-4 h-4" />
+                              Remover vídeo
                             </button>
                           </div>
-                          <video
-                            src={capcutTutorialVideoUrl}
-                            controls
-                            className="w-full mt-2 rounded-lg max-h-48"
-                          />
-                        </div>
-                      )}
-                      
-                      {!capcutTutorialVideoUrl && (
-                        <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-400 transition-colors">
-                          <input
-                            type="file"
-                            accept="video/*"
-                            onChange={(e) => {
-                              const file = e.target.files?.[0]
-                              if (file) {
-                                setCapcutTutorialVideo(file)
-                              }
-                            }}
-                            className="hidden"
-                            id="capcut-video-upload"
-                          />
-                          <label
-                            htmlFor="capcut-video-upload"
-                            className="cursor-pointer flex flex-col items-center gap-2"
-                          >
-                            <Upload className="w-8 h-8 text-gray-400" />
-                            <span className="text-sm text-gray-600">
-                              {capcutTutorialVideo ? capcutTutorialVideo.name : 'Clique para fazer upload do vídeo tutorial do CapCut'}
-                            </span>
-                            {capcutTutorialVideo && (
-                              <span className="text-xs text-gray-500">
-                                {(capcutTutorialVideo.size / 1024 / 1024).toFixed(2)} MB
-                              </span>
-                            )}
-                          </label>
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </div>
                     <p className="text-xs text-gray-500 mt-1">
                       O vídeo aparecerá na página de ferramentas do cliente quando as credenciais do CapCut estiverem disponíveis

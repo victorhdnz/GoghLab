@@ -1,11 +1,8 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
-import { Upload, X, Video as VideoIcon, Play, Maximize2, Minimize2 } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { MediaManager } from '@/components/dashboard/MediaManager'
-import { createClient } from '@/lib/supabase/client'
-import { useAuth } from '@/hooks/useAuth'
+import { useState, useEffect } from 'react'
+import { X, Video as VideoIcon, ExternalLink } from 'lucide-react'
+import { Input } from '@/components/ui/input'
 import toast from 'react-hot-toast'
 
 interface VideoUploaderProps {
@@ -13,299 +10,149 @@ interface VideoUploaderProps {
   onChange: (url: string) => void
   placeholder?: string
   className?: string
-  showMediaManager?: boolean
-  orientation?: 'horizontal' | 'vertical'
-  onOrientationChange?: (orientation: 'horizontal' | 'vertical') => void
+}
+
+// Função para detectar se é YouTube e extrair ID (suporta todos os formatos)
+function getYouTubeId(url: string): string | null {
+  if (!url) return null
+  // Regex mais completa que funciona com todos os formatos:
+  // - https://www.youtube.com/watch?v=VIDEO_ID
+  // - https://youtu.be/VIDEO_ID
+  // - https://www.youtube.com/embed/VIDEO_ID
+  // - https://www.youtube.com/v/VIDEO_ID
+  // - https://www.youtube.com/watch?v=VIDEO_ID&t=30s
+  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/
+  const match = url.match(regExp)
+  return (match && match[2] && match[2].length === 11) ? match[2] : null
+}
+
+// Função para gerar URL de embed do YouTube
+function getYouTubeEmbedUrl(url: string): string | null {
+  const videoId = getYouTubeId(url)
+  if (!videoId) return null
+  return `https://www.youtube.com/embed/${videoId}`
+}
+
+// Função para gerar URL de thumbnail do YouTube
+function getYouTubeThumbnail(url: string): string | null {
+  const videoId = getYouTubeId(url)
+  if (!videoId) return null
+  return `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`
 }
 
 export function VideoUploader({ 
   value, 
   onChange, 
-  placeholder = "Clique para fazer upload de um vídeo",
-  className = "",
-  showMediaManager = true,
-  orientation = 'horizontal',
-  onOrientationChange
+  placeholder = "Cole a URL do vídeo do YouTube",
+  className = ""
 }: VideoUploaderProps) {
-  const [uploading, setUploading] = useState(false)
-  const [uploadProgress, setUploadProgress] = useState(0)
-  const [preview, setPreview] = useState<string | null>(value || null)
-  const fileInputRef = useRef<HTMLInputElement>(null)
-  const supabase = createClient()
-  const { isAuthenticated, isEditor } = useAuth()
+  const [url, setUrl] = useState(value || '')
+  const [isValid, setIsValid] = useState(false)
 
-  // Atualizar preview quando value mudar externamente
+  // Atualizar quando value mudar externamente
   useEffect(() => {
-    setPreview(value || null)
+    setUrl(value || '')
+    setIsValid(!!getYouTubeId(value || ''))
   }, [value])
 
-  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    if (!file) return
-
-    // IMPORTANTE: Arquivos .mov podem ter file.type vazio ou incorreto
-    const fileExt = file.name.split('.').pop()?.toLowerCase() || ''
-    const isMov = fileExt === 'mov'
+  const handleUrlChange = (newUrl: string) => {
+    setUrl(newUrl)
+    const valid = !!getYouTubeId(newUrl)
+    setIsValid(valid)
     
-    // Para .mov, aceitar mesmo se file.type estiver vazio
-    if (!file.type.startsWith('video/') && !isMov) {
-      toast.error('Por favor, selecione apenas arquivos de vídeo')
-      return
+    if (valid) {
+      onChange(newUrl)
+      toast.success('URL do YouTube válida!')
+    } else if (newUrl.trim() !== '') {
+      toast.error('URL do YouTube inválida. Use um link do YouTube (youtube.com ou youtu.be)')
     }
-
-    console.log('📋 Informações do arquivo:', {
-      nome: file.name,
-      tipo: file.type,
-      extensao: fileExt,
-      tamanho: file.size,
-      isMov: isMov
-    })
-
-    // Verificar autenticação e permissões
-    if (!isAuthenticated) {
-      toast.error('Faça login para fazer upload de vídeos')
-      return
-    }
-
-    if (!isEditor) {
-      toast.error('Você não tem permissão para fazer upload de vídeos')
-      return
-    }
-
-    setUploading(true)
-    setUploadProgress(0)
-    
-    try {
-      // Verificar autenticação
-      const { data: { user }, error: authError } = await supabase.auth.getUser()
-      if (authError || !user) {
-        throw new Error('Faça login para fazer upload de vídeos')
-      }
-
-      // Verificar permissões (admin ou editor)
-      const { data: profile, error: profileError } = await (supabase as any)
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single()
-
-      if (profileError || !profile) {
-        throw new Error('Erro ao verificar permissões')
-      }
-
-      if ((profile as any).role !== 'admin' && (profile as any).role !== 'editor') {
-        throw new Error('Apenas administradores e editores podem fazer upload de vídeos')
-      }
-
-      // Gerar nome único para o arquivo (sanitizado)
-      const sanitizedName = file.name
-        .replace(/[^a-zA-Z0-9.-]/g, '_')
-        .replace(/\s+/g, '_')
-        .toLowerCase()
-      
-      const validExtensions = ['mp4', 'webm', 'ogg', 'mov', 'avi', 'mkv']
-      const finalExt = validExtensions.includes(fileExt.toLowerCase()) ? fileExt.toLowerCase() : 'mp4'
-      
-      // Mapear MIME types corretos para cada extensão
-      const mimeTypeMap: Record<string, string> = {
-        'mp4': 'video/mp4',
-        'webm': 'video/webm',
-        'ogg': 'video/ogg',
-        'mov': 'video/quicktime', // MIME type correto para .mov
-        'avi': 'video/x-msvideo',
-        'mkv': 'video/x-matroska'
-      }
-      
-      // Determinar contentType: usar file.type se válido, senão usar mapeamento
-      let contentType = file.type
-      if (!contentType || contentType === '' || (isMov && !contentType.includes('quicktime'))) {
-        contentType = mimeTypeMap[finalExt] || `video/${finalExt}`
-        console.log('⚠️ file.type inválido ou vazio, usando mapeamento:', contentType)
-      }
-      
-      // Gerar nome único: timestamp + random + extensão
-      const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 15)}.${finalExt}`
-      const filePath = fileName
-
-      console.log('📤 Iniciando upload...', { fileName, contentType, finalExt })
-
-      // Fazer upload DIRETO para Supabase Storage
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('videos')
-        .upload(filePath, file, {
-          cacheControl: '3600',
-          upsert: false,
-          contentType: contentType, // Usar contentType determinado acima
-        })
-
-      if (uploadError) {
-        console.error('❌ Erro no upload:', uploadError)
-        
-        // Tratar erros comuns
-        let errorMessage = uploadError.message || 'Erro ao fazer upload do vídeo'
-        
-        if (errorMessage.includes('pattern') || errorMessage.includes('match')) {
-          errorMessage = 'Formato de arquivo inválido. Verifique se o arquivo é um vídeo válido.'
-        } else if (errorMessage.includes('duplicate') || errorMessage.includes('exists')) {
-          errorMessage = 'Um arquivo com este nome já existe. Tente novamente.'
-        } else if (errorMessage.includes('413') || errorMessage.includes('too large')) {
-          errorMessage = 'Erro ao fazer upload do vídeo. Verifique sua conexão e tente novamente.'
-        } else if (errorMessage.includes('new row violates row-level security') || errorMessage.includes('row-level security')) {
-          errorMessage = 'Erro de permissão. Verifique as políticas RLS do bucket. Execute o SQL em supabase/storage_videos_rls.sql'
-        }
-        
-        throw new Error(errorMessage)
-      }
-
-      console.log('✅ Upload concluído:', uploadData)
-
-      // Obter URL pública do vídeo
-      const { data: urlData } = supabase.storage
-        .from('videos')
-        .getPublicUrl(filePath)
-
-      if (!urlData?.publicUrl) {
-        throw new Error('Erro ao obter URL do vídeo')
-      }
-
-      console.log('🔗 URL gerada:', urlData.publicUrl)
-      console.log('🔔 Chamando onChange com URL:', urlData.publicUrl)
-
-      setUploadProgress(100)
-
-      // Atualizar preview e chamar onChange
-      setPreview(urlData.publicUrl)
-      onChange(urlData.publicUrl)
-      
-      console.log('✅ Estado local atualizado e onChange chamado')
-      
-      toast.success('Vídeo carregado com sucesso!')
-    } catch (error: any) {
-      console.error('❌ Erro completo no upload:', error)
-      toast.error(error.message || 'Erro ao fazer upload do vídeo')
-    } finally {
-      setUploading(false)
-      setUploadProgress(0)
-      if (fileInputRef.current) {
-        fileInputRef.current.value = ''
-      }
-    }
-  }
-
-  const handleMediaSelect = (url: string) => {
-    // Validar que não é blob URL
-    if (url.startsWith('blob:')) {
-      toast.error('Esta URL é temporária. Por favor, faça upload do vídeo novamente ou selecione um vídeo já salvo no servidor.')
-      console.error('❌ Tentativa de usar blob URL:', url)
-      return
-    }
-    
-    console.log('🔔 handleMediaSelect chamado com URL:', url)
-    setPreview(url)
-    onChange(url)
   }
 
   const handleRemove = () => {
-    setPreview(null)
+    setUrl('')
+    setIsValid(false)
     onChange('')
-    if (fileInputRef.current) {
-      fileInputRef.current.value = ''
-    }
   }
+
+  const youtubeId = getYouTubeId(url)
+  const embedUrl = youtubeId ? getYouTubeEmbedUrl(url) : null
+  const thumbnailUrl = youtubeId ? getYouTubeThumbnail(url) : null
 
   return (
     <div className={`space-y-4 ${className}`}>
-      {/* Seletor de Orientação */}
-      {onOrientationChange && (
-        <div className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg border">
-          <span className="text-sm font-medium text-gray-700">Orientação do Vídeo:</span>
-          <div className="flex gap-2">
+      {/* Input de URL */}
+      <div className="space-y-2">
+        <label className="block text-sm font-medium text-gray-700">
+          URL do Vídeo do YouTube
+        </label>
+        <div className="flex gap-2">
+          <Input
+            type="url"
+            value={url}
+            onChange={(e) => handleUrlChange(e.target.value)}
+            placeholder={placeholder}
+            className={`flex-1 ${isValid ? 'border-green-500' : url.trim() !== '' ? 'border-red-500' : ''}`}
+          />
+          {url && (
             <button
-              type="button"
-              onClick={() => onOrientationChange('horizontal')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
-                orientation === 'horizontal'
-                  ? 'bg-blue-600 text-white shadow-md'
-                  : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
-              }`}
+              onClick={handleRemove}
+              className="px-3 py-2 text-gray-500 hover:text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50"
             >
-              <Maximize2 size={16} />
-              Horizontal
+              <X size={16} />
             </button>
-            <button
-              type="button"
-              onClick={() => onOrientationChange('vertical')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
-                orientation === 'vertical'
-                  ? 'bg-blue-600 text-white shadow-md'
-                  : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
-              }`}
+          )}
+        </div>
+        <p className="text-xs text-gray-500">
+          Cole o link completo do vídeo do YouTube (ex: https://www.youtube.com/watch?v=... ou https://youtu.be/...)
+        </p>
+      </div>
+
+      {/* Preview do YouTube - Formato Vertical */}
+      {youtubeId && embedUrl && (
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 text-sm text-gray-600">
+            <VideoIcon size={16} />
+            <span>Preview do vídeo:</span>
+            <a
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-600 hover:text-blue-800 flex items-center gap-1"
             >
-              <Minimize2 size={16} />
-              Vertical
-            </button>
+              Abrir no YouTube
+              <ExternalLink size={14} />
+            </a>
+          </div>
+          <div className="relative max-w-[360px] mx-auto">
+            {/* Container com gradiente sutil */}
+            <div className="bg-gradient-to-br from-gogh-yellow/10 to-gogh-yellow/5 p-1 rounded-xl">
+              <div className="bg-black rounded-lg overflow-hidden">
+                {/* Container vertical 9:16 */}
+                <div className="relative aspect-[9/16] bg-black">
+                  <iframe
+                    src={embedUrl}
+                    title="Preview do vídeo"
+                    className="w-full h-full rounded-lg"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  />
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}
 
-      <div className="relative">
-        {preview ? (
-          <div className="relative group bg-black rounded-lg overflow-hidden max-w-sm mx-auto">
-            <video
-              src={preview}
-              controls
-              preload="metadata"
-              className="w-full rounded-lg border aspect-[9/16] object-contain"
-              style={{ backgroundColor: '#000000' }}
-              onError={(e) => {
-                console.error('Erro ao carregar vídeo no preview:', e)
-                const video = e.currentTarget
-                if (preview) {
-                  video.load()
-                }
-              }}
-            />
-            <div className="absolute top-2 right-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleRemove}
-                className="bg-white text-black hover:bg-gray-100"
-              >
-                <X size={16} />
-              </Button>
-            </div>
-          </div>
-        ) : (
-          <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
-            <VideoIcon size={48} className="mx-auto text-gray-400 mb-4" />
-            <p className="text-gray-600 mb-4">{placeholder}</p>
-            
-            {/* Recomendação de Dimensões */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
-              <p className="text-sm font-medium text-blue-900 mb-1">
-                📐 Dimensões Recomendadas
-              </p>
-              <p className="text-xs text-blue-700">
-                <strong>Vertical:</strong> 1080 x 1920px (9:16)
-              </p>
-            </div>
-            
-            <div className="flex gap-2 justify-center flex-col items-center">
-              {showMediaManager && (
-                <MediaManager
-                  onSelectMedia={handleMediaSelect}
-                  acceptedTypes={['video/*']}
-                  maxSizeMB={10000}
-                  folder="videos"
-                />
-              )}
-            </div>
-          </div>
-        )}
-      </div>
-
+      {/* Placeholder quando não há URL */}
+      {!url && (
+        <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+          <VideoIcon size={48} className="mx-auto text-gray-400 mb-4" />
+          <p className="text-gray-600 mb-2">{placeholder}</p>
+          <p className="text-xs text-gray-500">
+            Exemplo: https://www.youtube.com/watch?v=dQw4w9WgXcQ
+          </p>
+        </div>
+      )}
     </div>
   )
 }
-

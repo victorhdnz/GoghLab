@@ -14,11 +14,19 @@ import {
   Palette,
   Scissors,
   ExternalLink,
-  Play,
   Link as LinkIcon,
   AlertTriangle,
   X
 } from 'lucide-react'
+
+// Função para detectar se é YouTube e extrair ID (suporta todos os formatos)
+function getYouTubeId(url: string): string | null {
+  if (!url) return null
+  // Regex mais completa que funciona com todos os formatos
+  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/
+  const match = url.match(regExp)
+  return (match && match[2] && match[2].length === 11) ? match[2] : null
+}
 import toast from 'react-hot-toast'
 
 interface ToolAccess {
@@ -52,10 +60,6 @@ export default function ToolsPage() {
   const [capcutVideoUrl, setCapcutVideoUrl] = useState<string | null>(null)
   const [showCanvaVideoModal, setShowCanvaVideoModal] = useState(false)
   const [showCapcutVideoModal, setShowCapcutVideoModal] = useState(false)
-  const [canvaVideoPlaying, setCanvaVideoPlaying] = useState(false)
-  const [capcutVideoPlaying, setCapcutVideoPlaying] = useState(false)
-  const canvaVideoRef = useRef<HTMLVideoElement>(null)
-  const capcutVideoRef = useRef<HTMLVideoElement>(null)
   const [reportingError, setReportingError] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState('')
   const [showErrorModal, setShowErrorModal] = useState(false)
@@ -822,8 +826,6 @@ export default function ToolsPage() {
           onClick={(e) => {
             if (e.target === e.currentTarget) {
               setShowCanvaVideoModal(false)
-              setCanvaVideoPlaying(false)
-              canvaVideoRef.current?.pause()
             }
           }}
         >
@@ -839,34 +841,30 @@ export default function ToolsPage() {
               <button
                 onClick={() => {
                   setShowCanvaVideoModal(false)
-                  setCanvaVideoPlaying(false)
-                  canvaVideoRef.current?.pause()
                 }}
                 className="text-gray-400 hover:text-gray-600"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <div className="aspect-[9/16] rounded-lg overflow-hidden bg-black relative">
-              <video
-                ref={canvaVideoRef}
-                src={canvaVideoUrl}
-                preload="none"
-                controls={canvaVideoPlaying}
-                className="w-full h-full object-contain"
-                title="Tutorial de Ativação Canva Pro"
-                onPlay={() => setCanvaVideoPlaying(true)}
-              >
-                Seu navegador não suporta a reprodução de vídeo.
-              </video>
-              {!canvaVideoPlaying && (
-                <div className="absolute inset-0 flex items-center justify-center bg-black cursor-pointer group" onClick={() => {
-                  canvaVideoRef.current?.play()
-                  setCanvaVideoPlaying(true)
-                }}>
-                  <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-gogh-yellow/90 group-hover:bg-gogh-yellow flex items-center justify-center transition-all transform group-hover:scale-110 shadow-lg">
-                    <Play className="w-10 h-10 md:w-12 md:h-12 text-gogh-black ml-1" fill="currentColor" />
+            <div className="relative max-w-sm mx-auto">
+              {canvaVideoUrl && getYouTubeId(canvaVideoUrl) ? (
+                <div className="bg-gradient-to-br from-gogh-yellow/10 to-gogh-yellow/5 p-1 rounded-xl">
+                  <div className="bg-black rounded-lg overflow-hidden">
+                    <div className="relative aspect-[9/16] bg-black">
+                      <iframe
+                        src={`https://www.youtube.com/embed/${getYouTubeId(canvaVideoUrl)}`}
+                        title="Tutorial de Ativação Canva Pro"
+                        className="w-full h-full rounded-lg"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                      />
+                    </div>
                   </div>
+                </div>
+              ) : (
+                <div className="aspect-[9/16] w-full flex items-center justify-center bg-black rounded-lg">
+                  <p className="text-white text-sm">Vídeo não disponível</p>
                 </div>
               )}
             </div>
@@ -884,8 +882,6 @@ export default function ToolsPage() {
           onClick={(e) => {
             if (e.target === e.currentTarget) {
               setShowCapcutVideoModal(false)
-              setCapcutVideoPlaying(false)
-              capcutVideoRef.current?.pause()
             }
           }}
         >
@@ -901,34 +897,30 @@ export default function ToolsPage() {
               <button
                 onClick={() => {
                   setShowCapcutVideoModal(false)
-                  setCapcutVideoPlaying(false)
-                  capcutVideoRef.current?.pause()
                 }}
                 className="text-gray-400 hover:text-gray-600"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <div className="aspect-[9/16] rounded-lg overflow-hidden bg-black relative">
-              <video
-                ref={capcutVideoRef}
-                src={capcutVideoUrl}
-                preload="none"
-                controls={capcutVideoPlaying}
-                className="w-full h-full object-contain"
-                title="Tutorial de Ativação CapCut Pro"
-                onPlay={() => setCapcutVideoPlaying(true)}
-              >
-                Seu navegador não suporta a reprodução de vídeo.
-              </video>
-              {!capcutVideoPlaying && (
-                <div className="absolute inset-0 flex items-center justify-center bg-black cursor-pointer group" onClick={() => {
-                  capcutVideoRef.current?.play()
-                  setCapcutVideoPlaying(true)
-                }}>
-                  <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-gogh-yellow/90 group-hover:bg-gogh-yellow flex items-center justify-center transition-all transform group-hover:scale-110 shadow-lg">
-                    <Play className="w-10 h-10 md:w-12 md:h-12 text-gogh-black ml-1" fill="currentColor" />
+            <div className="relative max-w-sm mx-auto">
+              {capcutVideoUrl && getYouTubeId(capcutVideoUrl) ? (
+                <div className="bg-gradient-to-br from-gogh-yellow/10 to-gogh-yellow/5 p-1 rounded-xl">
+                  <div className="bg-black rounded-lg overflow-hidden">
+                    <div className="relative aspect-[9/16] bg-black">
+                      <iframe
+                        src={`https://www.youtube.com/embed/${getYouTubeId(capcutVideoUrl)}`}
+                        title="Tutorial de Ativação CapCut Pro"
+                        className="w-full h-full rounded-lg"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                      />
+                    </div>
                   </div>
+                </div>
+              ) : (
+                <div className="aspect-[9/16] w-full flex items-center justify-center bg-black rounded-lg">
+                  <p className="text-white text-sm">Vídeo não disponível</p>
                 </div>
               )}
             </div>
