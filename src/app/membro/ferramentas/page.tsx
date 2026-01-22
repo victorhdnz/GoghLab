@@ -228,7 +228,7 @@ export default function ToolsPage() {
       const daysRemaining = daysUntilCanRequest()
       toast.error(
         daysRemaining 
-          ? `Você poderá solicitar acesso às ferramentas em ${daysRemaining} dia${daysRemaining > 1 ? 's' : ''}. Isso é necessário para garantir o período de arrependimento de 7 dias conforme o Código de Defesa do Consumidor.`
+          ? `Você poderá solicitar acesso às ferramentas em ${daysRemaining} dia${daysRemaining > 1 ? 's' : ''}.`
           : 'Não foi possível verificar o período de sua assinatura. Entre em contato com o suporte.'
       )
       return
@@ -837,10 +837,6 @@ export default function ToolsPage() {
                       
                       return !canRequestTools() ? (
                         <>
-                          <p className="text-sm text-emerald-700 text-left mb-2">
-                            Sua assinatura renovada está ativa há <strong>{daysActive} dia{daysActive !== 1 ? 's' : ''}</strong>. 
-                            Aguarde após a renovação para solicitar o novo acesso (período de arrependimento de 7 dias).
-                          </p>
                           {daysRemaining !== null && daysRemaining > 0 && (
                             <div className="mt-3 p-3 bg-emerald-100 rounded-lg border border-emerald-300">
                               <p className="text-sm font-semibold text-emerald-900 mb-1">
@@ -901,29 +897,16 @@ export default function ToolsPage() {
                   <div className="bg-blue-50 rounded-lg p-4 border border-blue-200 mb-6">
                     <div className="flex items-center gap-2 text-blue-700 mb-2">
                       <AlertCircle className="w-5 h-5" />
-                      <span className="font-medium">Período de Arrependimento</span>
+                      <span className="font-medium">Aguarde para Solicitar Acesso</span>
                     </div>
                     <p className="text-sm text-blue-600 text-left mb-2">
-                      Conforme o Código de Defesa do Consumidor (CDC), você tem 7 dias para exercer seu direito de arrependimento. 
-                      Por isso, o acesso às ferramentas Canva Pro e CapCut Pro será liberado apenas após o <strong>oitavo dia</strong> da sua assinatura, garantindo que o período de arrependimento já tenha sido concluído.
+                      O acesso às ferramentas Canva Pro e CapCut Pro será liberado após o <strong>oitavo dia</strong> da sua assinatura.
                     </p>
                     {(() => {
                       const daysRemaining = daysUntilCanRequest()
-                      const subscriptionStartDate = subscription?.current_period_start 
-                        ? new Date(subscription.current_period_start)
-                        : (subscription as any)?.created_at 
-                          ? new Date((subscription as any).created_at)
-                          : null
-                      const daysActive = subscriptionStartDate 
-                        ? Math.floor((new Date().getTime() - subscriptionStartDate.getTime()) / (1000 * 60 * 60 * 24))
-                        : 0
                       
                       return (
                         <>
-                          <p className="text-sm text-blue-600 text-left mb-2">
-                            Sua assinatura está ativa há <strong>{daysActive} dia{daysActive !== 1 ? 's' : ''}</strong>. 
-                            Após a liberação, você terá <strong>30 dias de uso</strong> das ferramentas para aproveitar ao máximo seus recursos.
-                          </p>
                           {daysRemaining !== null && daysRemaining > 0 && (
                             <div className="mt-3 p-3 bg-blue-100 rounded-lg border border-blue-300">
                               <p className="text-sm font-semibold text-blue-900 mb-1">
