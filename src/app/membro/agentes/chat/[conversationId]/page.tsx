@@ -75,34 +75,65 @@ export default function ChatPage() {
 
   // Função para construir contexto do nicho
   const buildNicheContext = useCallback((profile: any): string => {
-    let context = 'INFORMAÇÕES DO MEU PERFIL:\n\n'
+    let context = '=== CONTEXTO DO MEU NEGÓCIO ===\n\n'
     
+    // Informações básicas do negócio
     if (profile.business_name) {
-      context += `Nome do negócio: ${profile.business_name}\n`
-    }
-    if (profile.niche) {
-      context += `Nicho: ${profile.niche}\n`
-    }
-    if (profile.target_audience) {
-      context += `Público-alvo: ${profile.target_audience}\n`
-    }
-    if (profile.brand_voice) {
-      context += `Tom de voz: ${profile.brand_voice}\n`
-    }
-    if (profile.content_pillars && Array.isArray(profile.content_pillars) && profile.content_pillars.length > 0) {
-      context += `Pilares de conteúdo: ${profile.content_pillars.join(', ')}\n`
-    }
-    if (profile.platforms && Array.isArray(profile.platforms) && profile.platforms.length > 0) {
-      context += `Plataformas que uso: ${profile.platforms.join(', ')}\n`
-    }
-    if (profile.goals) {
-      context += `Objetivos: ${profile.goals}\n`
-    }
-    if (profile.additional_context) {
-      context += `Contexto adicional: ${profile.additional_context}\n`
+      context += `📌 NOME DO NEGÓCIO/MARCA:\n${profile.business_name}\n\n`
     }
     
-    context += '\nUse essas informações para personalizar suas respostas e sugestões. Agora estou pronto para começar a trabalhar com você!'
+    if (profile.niche) {
+      context += `🎯 NICHO/ÁREA DE ATUAÇÃO:\n${profile.niche}\n\n`
+    }
+    
+    // Público-alvo
+    if (profile.target_audience) {
+      context += `👥 PÚBLICO-ALVO:\n${profile.target_audience}\n\n`
+    }
+    
+    // Tom de voz
+    if (profile.brand_voice) {
+      const brandVoiceLabels: { [key: string]: string } = {
+        'profissional': 'Profissional (Formal, técnico, corporativo)',
+        'casual': 'Casual (Descontraído, amigável, acessível)',
+        'inspirador': 'Inspirador (Motivacional, energético, positivo)',
+        'educativo': 'Educativo (Didático, informativo, detalhado)',
+        'humoristico': 'Humorístico (Divertido, leve, com humor)',
+        'autoridade': 'Autoridade (Expert, confiante, referência)'
+      }
+      context += `💬 TOM DE VOZ DA MARCA:\n${brandVoiceLabels[profile.brand_voice] || profile.brand_voice}\n\n`
+    }
+    
+    // Pilares de conteúdo
+    if (profile.content_pillars && Array.isArray(profile.content_pillars) && profile.content_pillars.length > 0) {
+      context += `📚 PILARES DE CONTEÚDO (Temas principais que abordo):\n${profile.content_pillars.map((p: string, i: number) => `${i + 1}. ${p}`).join('\n')}\n\n`
+    }
+    
+    // Plataformas
+    if (profile.platforms && Array.isArray(profile.platforms) && profile.platforms.length > 0) {
+      context += `📱 PLATAFORMAS QUE UTILIZO:\n${profile.platforms.join(', ')}\n\n`
+    }
+    
+    // Objetivos
+    if (profile.goals) {
+      context += `🎯 OBJETIVOS PRINCIPAIS:\n${profile.goals}\n\n`
+    }
+    
+    // Contexto adicional
+    if (profile.additional_context) {
+      context += `ℹ️ INFORMAÇÕES ADICIONAIS IMPORTANTES:\n${profile.additional_context}\n\n`
+    }
+    
+    context += '=== INSTRUÇÕES PARA O AGENTE ===\n\n'
+    context += 'Use TODAS essas informações acima para:\n'
+    context += '1. Personalizar completamente suas respostas e sugestões\n'
+    context += '2. Adaptar o tom de voz conforme especificado\n'
+    context += '3. Considerar o público-alvo em todas as recomendações\n'
+    context += '4. Focar nos pilares de conteúdo mencionados\n'
+    context += '5. Considerar as plataformas que utilizo\n'
+    context += '6. Alinhar tudo com os objetivos do negócio\n\n'
+    context += 'Agora estou pronto para começar a trabalhar com você!'
+    
     return context
   }, [])
 

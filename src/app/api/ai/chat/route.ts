@@ -275,29 +275,43 @@ export async function POST(request: Request) {
 
     // Adicionar contexto do perfil de nicho se existir
     if (nicheProfileData) {
-      systemPrompt += `\n\n--- CONTEXTO DO USUÁRIO ---`
+      systemPrompt += `\n\n=== CONTEXTO DO USUÁRIO ===\n\n`
+      
       if (nicheProfileData.business_name) {
-        systemPrompt += `\nNome do negócio: ${nicheProfileData.business_name}`
+        systemPrompt += `📌 NOME DO NEGÓCIO/MARCA: ${nicheProfileData.business_name}\n`
       }
       if (nicheProfileData.niche) {
-        systemPrompt += `\nNicho: ${nicheProfileData.niche}`
+        systemPrompt += `🎯 NICHO/ÁREA DE ATUAÇÃO: ${nicheProfileData.niche}\n`
       }
       if (nicheProfileData.target_audience) {
-        systemPrompt += `\nPúblico-alvo: ${nicheProfileData.target_audience}`
+        systemPrompt += `👥 PÚBLICO-ALVO: ${nicheProfileData.target_audience}\n`
       }
       if (nicheProfileData.brand_voice) {
-        systemPrompt += `\nTom de voz da marca: ${nicheProfileData.brand_voice}`
-      }
-      if (nicheProfileData.goals) {
-        systemPrompt += `\nObjetivos: ${nicheProfileData.goals}`
+        const brandVoiceLabels: { [key: string]: string } = {
+          'profissional': 'Profissional (Formal, técnico, corporativo)',
+          'casual': 'Casual (Descontraído, amigável, acessível)',
+          'inspirador': 'Inspirador (Motivacional, energético, positivo)',
+          'educativo': 'Educativo (Didático, informativo, detalhado)',
+          'humoristico': 'Humorístico (Divertido, leve, com humor)',
+          'autoridade': 'Autoridade (Expert, confiante, referência)'
+        }
+        systemPrompt += `💬 TOM DE VOZ DA MARCA: ${brandVoiceLabels[nicheProfileData.brand_voice] || nicheProfileData.brand_voice}\n`
       }
       if (nicheProfileData.content_pillars && Array.isArray(nicheProfileData.content_pillars) && nicheProfileData.content_pillars.length > 0) {
-        systemPrompt += `\nPilares de conteúdo: ${nicheProfileData.content_pillars.join(', ')}`
+        systemPrompt += `📚 PILARES DE CONTEÚDO: ${nicheProfileData.content_pillars.join(', ')}\n`
       }
       if (nicheProfileData.platforms && Array.isArray(nicheProfileData.platforms) && nicheProfileData.platforms.length > 0) {
-        systemPrompt += `\nPlataformas: ${nicheProfileData.platforms.join(', ')}`
+        systemPrompt += `📱 PLATAFORMAS: ${nicheProfileData.platforms.join(', ')}\n`
       }
-      systemPrompt += `\n--- FIM DO CONTEXTO ---`
+      if (nicheProfileData.goals) {
+        systemPrompt += `🎯 OBJETIVOS: ${nicheProfileData.goals}\n`
+      }
+      if (nicheProfileData.additional_context) {
+        systemPrompt += `ℹ️ INFORMAÇÕES ADICIONAIS: ${nicheProfileData.additional_context}\n`
+      }
+      
+      systemPrompt += `\nIMPORTANTE: Use TODAS essas informações para personalizar completamente suas respostas, adaptar o tom de voz, considerar o público-alvo, focar nos pilares de conteúdo e alinhar tudo com os objetivos do negócio.\n`
+      systemPrompt += `=== FIM DO CONTEXTO ===`
     }
 
     // Construir mensagens para a OpenAI

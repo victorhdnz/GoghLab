@@ -100,6 +100,45 @@ export default function ProfilePage() {
 
   const handleSave = async () => {
     if (!user) return
+
+    // Validação de campos obrigatórios
+    const errors: string[] = []
+    
+    if (!nicheProfile.business_name?.trim()) {
+      errors.push('Nome do Negócio/Marca é obrigatório')
+    }
+    
+    if (!nicheProfile.niche?.trim()) {
+      errors.push('Nicho/Área de Atuação é obrigatório')
+    }
+    
+    if (!nicheProfile.target_audience?.trim()) {
+      errors.push('Público-alvo é obrigatório')
+    }
+    
+    if (!nicheProfile.brand_voice?.trim()) {
+      errors.push('Tom de Voz da Marca é obrigatório')
+    }
+    
+    if (!nicheProfile.goals?.trim()) {
+      errors.push('Objetivos são obrigatórios')
+    }
+    
+    if (!nicheProfile.content_pillars || nicheProfile.content_pillars.length === 0) {
+      errors.push('Adicione pelo menos um Pilar de Conteúdo')
+    }
+    
+    if (!nicheProfile.platforms || nicheProfile.platforms.length === 0) {
+      errors.push('Selecione pelo menos uma Plataforma')
+    }
+
+    if (errors.length > 0) {
+      toast.error(`Por favor, preencha todos os campos obrigatórios:\n${errors.join('\n')}`, {
+        duration: 5000
+      })
+      return
+    }
+
     setSaving(true)
 
     try {
@@ -183,9 +222,12 @@ export default function ProfilePage() {
           </div>
           <div>
             <h3 className="font-semibold text-purple-900 mb-1">Por que preencher isso?</h3>
-            <p className="text-sm text-purple-700">
+            <p className="text-sm text-purple-700 mb-2">
               Ao configurar seu perfil, os agentes de IA terão contexto sobre seu negócio e criarão 
               conteúdos mais relevantes e personalizados para você. Quanto mais detalhes, melhores as sugestões!
+            </p>
+            <p className="text-xs text-purple-600 font-medium">
+              <span className="text-red-500">*</span> Campos obrigatórios devem ser preenchidos para salvar o perfil.
             </p>
           </div>
         </div>
@@ -210,7 +252,7 @@ export default function ProfilePage() {
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gogh-black mb-2">
-                Nome do Negócio/Marca
+                Nome do Negócio/Marca <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
@@ -218,12 +260,13 @@ export default function ProfilePage() {
                 onChange={(e) => setNicheProfile(prev => ({ ...prev, business_name: e.target.value }))}
                 placeholder="Ex: Studio Fitness, Dra. Ana Nutrição, etc."
                 className="w-full px-4 py-3 border border-gogh-grayLight rounded-lg focus:outline-none focus:ring-2 focus:ring-gogh-yellow"
+                required
               />
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gogh-black mb-2">
-                Nicho/Área de Atuação
+                Nicho/Área de Atuação <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
@@ -231,6 +274,7 @@ export default function ProfilePage() {
                 onChange={(e) => setNicheProfile(prev => ({ ...prev, niche: e.target.value }))}
                 placeholder="Ex: Personal Trainer, Nutricionista, Coach de Carreira, etc."
                 className="w-full px-4 py-3 border border-gogh-grayLight rounded-lg focus:outline-none focus:ring-2 focus:ring-gogh-yellow"
+                required
               />
             </div>
           </div>
@@ -252,7 +296,7 @@ export default function ProfilePage() {
 
           <div>
             <label className="block text-sm font-medium text-gogh-black mb-2">
-              Descreva seu público ideal
+              Descreva seu público ideal <span className="text-red-500">*</span>
             </label>
             <textarea
               value={nicheProfile.target_audience}
@@ -260,6 +304,7 @@ export default function ProfilePage() {
               placeholder="Ex: Mulheres de 25-40 anos, mães que querem emagrecer, profissionais ocupados que buscam saúde, etc."
               rows={3}
               className="w-full px-4 py-3 border border-gogh-grayLight rounded-lg focus:outline-none focus:ring-2 focus:ring-gogh-yellow resize-none"
+              required
             />
           </div>
         </motion.div>
@@ -275,7 +320,9 @@ export default function ProfilePage() {
             <div className="p-2 bg-gogh-yellow/20 rounded-lg">
               <MessageSquare className="w-5 h-5 text-gogh-black" />
             </div>
-            <h2 className="text-lg font-semibold text-gogh-black">Tom de Voz da Marca</h2>
+            <h2 className="text-lg font-semibold text-gogh-black">
+              Tom de Voz da Marca <span className="text-red-500">*</span>
+            </h2>
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
@@ -314,7 +361,7 @@ export default function ProfilePage() {
           </div>
 
           <p className="text-sm text-gogh-grayDark mb-4">
-            Adicione os principais temas que você aborda em seu conteúdo.
+            Adicione os principais temas que você aborda em seu conteúdo. <span className="text-red-500">*</span>
           </p>
 
           <div className="flex gap-2 mb-4">
@@ -370,7 +417,9 @@ export default function ProfilePage() {
             <div className="p-2 bg-gogh-yellow/20 rounded-lg">
               <User className="w-5 h-5 text-gogh-black" />
             </div>
-            <h2 className="text-lg font-semibold text-gogh-black">Plataformas que Você Usa</h2>
+            <h2 className="text-lg font-semibold text-gogh-black">
+              Plataformas que Você Usa <span className="text-red-500">*</span>
+            </h2>
           </div>
 
           <div className="flex flex-wrap gap-2">
@@ -408,7 +457,7 @@ export default function ProfilePage() {
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gogh-black mb-2">
-                Quais são seus principais objetivos?
+                Quais são seus principais objetivos? <span className="text-red-500">*</span>
               </label>
               <textarea
                 value={nicheProfile.goals}
@@ -416,6 +465,7 @@ export default function ProfilePage() {
                 placeholder="Ex: Aumentar engajamento, conseguir mais clientes, educar meu público, construir autoridade..."
                 rows={2}
                 className="w-full px-4 py-3 border border-gogh-grayLight rounded-lg focus:outline-none focus:ring-2 focus:ring-gogh-yellow resize-none"
+                required
               />
             </div>
 
