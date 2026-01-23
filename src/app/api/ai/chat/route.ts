@@ -242,6 +242,7 @@ export async function POST(request: Request) {
       goals: string | null
       content_pillars: string[] | null
       platforms: string[] | null
+      additional_context: string | null
       created_at: string
       updated_at: string
     }
