@@ -341,11 +341,6 @@ export default function AccountPage() {
           >
             <tab.icon className="w-4 h-4" />
             {tab.label}
-            {tab.badge && tab.badge > 0 && (
-              <span className="absolute -top-1 -right-1 w-5 h-5 bg-gogh-yellow text-gogh-black text-xs font-bold rounded-full flex items-center justify-center">
-                {tab.badge}
-              </span>
-            )}
           </button>
         ))}
       </div>
