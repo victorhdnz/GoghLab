@@ -252,24 +252,53 @@ export default function MembrosPage() {
 
       // Se não encontrou os nomes, usar IDs como fallback
       const finalServiceNames = serviceNames.length > 0 ? serviceNames : editingServiceOptions
+      
+      // Remover duplicatas dos nomes de serviços
+      const uniqueServiceNames = [...new Set(finalServiceNames)]
 
-      const insertData: any = {
-        user_id: memberId,
-        plan_id: 'gogh-agencia',
-        plan_name: 'Gogh Agency',
-        status: 'active',
-        billing_cycle: editingServiceBillingCycle,
-        stripe_subscription_id: null,
-        current_period_start: now.toISOString(),
-        current_period_end: periodEnd.toISOString(),
-        selected_services: finalServiceNames,
-        created_at: now.toISOString(),
-        updated_at: now.toISOString()
-      }
-
-      const { error } = await (supabase as any)
+      // Verificar se já existe uma assinatura de serviço para este usuário
+      const { data: existingService } = await (supabase as any)
         .from('service_subscriptions')
-        .insert(insertData)
+        .select('*')
+        .eq('user_id', memberId)
+        .in('status', ['active', 'trialing'])
+        .maybeSingle()
+
+      let error
+      if (existingService) {
+        // Atualizar existente
+        const { error: updateError } = await (supabase as any)
+          .from('service_subscriptions')
+          .update({
+            selected_services: uniqueServiceNames,
+            billing_cycle: editingServiceBillingCycle,
+            current_period_start: now.toISOString(),
+            current_period_end: periodEnd.toISOString(),
+            updated_at: now.toISOString()
+          })
+          .eq('id', existingService.id)
+        error = updateError
+      } else {
+        // Criar novo
+        const insertData: any = {
+          user_id: memberId,
+          plan_id: 'gogh-agencia',
+          plan_name: 'Gogh Agency',
+          status: 'active',
+          billing_cycle: editingServiceBillingCycle,
+          stripe_subscription_id: null,
+          current_period_start: now.toISOString(),
+          current_period_end: periodEnd.toISOString(),
+          selected_services: uniqueServiceNames,
+          created_at: now.toISOString(),
+          updated_at: now.toISOString()
+        }
+
+        const { error: insertError } = await (supabase as any)
+          .from('service_subscriptions')
+          .insert(insertData)
+        error = insertError
+      }
 
       if (error) {
         console.error('Erro ao criar assinatura de serviço:', error)
@@ -772,17 +801,35 @@ export default function MembrosPage() {
                                 { id: 'criacao-sites', name: 'Criação de sites completos' },
                                 { id: 'criacao-conteudo', name: 'Criação de conteúdo completa' },
                                 { id: 'gestao-redes-sociais', name: 'Gestão de redes sociais' },
+                                { id: 'manutencao-sites', name: 'Manutenção e Alteração em sites existentes' },
                               ]
+                              
+                              // Mapear nomes dos serviços existentes para IDs
+                              const existingServiceNames = member.serviceSubscriptions?.[0]?.selected_services || []
+                              const existingServiceIds = existingServiceNames
+                                .map((serviceName: string) => {
+                                  const option = serviceOptions.find(opt => opt.name === serviceName)
+                                  return option?.id
+                                })
+                                .filter((id): id is string => !!id)
+                              
+                              // Se está editando, usar os IDs mapeados, senão usar os que já estão selecionados
+                              const checkedIds = editingServiceMember === member.id 
+                                ? editingServiceOptions 
+                                : existingServiceIds
+                              
                               return (
                                 <div className="space-y-1">
                                   {serviceOptions.map(option => (
                                     <label key={option.id} className="flex items-center gap-2 text-sm">
                                       <input
                                         type="checkbox"
-                                        checked={editingServiceOptions.includes(option.id)}
+                                        checked={checkedIds.includes(option.id)}
                                         onChange={(e) => {
                                           if (e.target.checked) {
-                                            setEditingServiceOptions([...editingServiceOptions, option.id])
+                                            // Remover duplicatas antes de adicionar
+                                            const newOptions = [...new Set([...editingServiceOptions, option.id])]
+                                            setEditingServiceOptions(newOptions)
                                           } else {
                                             setEditingServiceOptions(editingServiceOptions.filter(id => id !== option.id))
                                           }
@@ -809,13 +856,28 @@ export default function MembrosPage() {
                             {(member.serviceSubscriptions || []).length === 0 ? (
                               <span className="text-sm text-gray-400">—</span>
                             ) : (
-                              <div className="space-y-1 text-sm text-gray-700">
-                                {(member.serviceSubscriptions || []).map((service) => (
-                                  <div key={service.id}>
-                                    <span className="font-medium">{service.plan_name || 'Serviços Personalizados'}:</span>{' '}
-                                    {service.selected_services?.length ? service.selected_services.join(', ') : 'Serviços personalizados'}
-                                  </div>
-                                ))}
+                              <div className="space-y-2 text-sm text-gray-700">
+                                {(member.serviceSubscriptions || []).map((service) => {
+                                  // Remover duplicatas e mostrar cada serviço em uma linha separada
+                                  const uniqueServices = service.selected_services 
+                                    ? [...new Set(service.selected_services)]
+                                    : []
+                                  
+                                  return (
+                                    <div key={service.id} className="space-y-1">
+                                      <span className="font-medium text-gray-900">{service.plan_name || 'Serviços Personalizados'}:</span>
+                                      {uniqueServices.length > 0 ? (
+                                        <ul className="list-disc list-inside ml-2 space-y-0.5">
+                                          {uniqueServices.map((serviceName, idx) => (
+                                            <li key={idx} className="text-gray-600">{serviceName}</li>
+                                          ))}
+                                        </ul>
+                                      ) : (
+                                        <span className="text-gray-500">Serviços personalizados</span>
+                                      )}
+                                    </div>
+                                  )
+                                })}
                               </div>
                             )}
                           </div>
@@ -872,11 +934,52 @@ export default function MembrosPage() {
                               <Edit2 className="w-4 h-4" />
                             </button>
                             <button
-                              onClick={() => {
+                              onClick={async () => {
                                 setEditingServiceMember(member.id)
-                                // Se já tem serviços, carregar os selecionados
-                                const existingServices = member.serviceSubscriptions?.[0]?.selected_services || []
-                                setEditingServiceOptions(Array.isArray(existingServices) ? existingServices : [])
+                                // Se já tem serviços, carregar os selecionados e mapear nomes para IDs
+                                const existingServiceNames = member.serviceSubscriptions?.[0]?.selected_services || []
+                                
+                                // Buscar serviços disponíveis do site_settings para mapear
+                                const { data: settings } = await (supabase as any)
+                                  .from('site_settings')
+                                  .select('homepage_content')
+                                  .eq('key', 'general')
+                                  .maybeSingle()
+                                
+                                const serviceOptions = [
+                                  { id: 'marketing-trafego-pago', name: 'Marketing (Tráfego Pago)' },
+                                  { id: 'criacao-sites', name: 'Criação de sites completos' },
+                                  { id: 'criacao-conteudo', name: 'Criação de conteúdo completa' },
+                                  { id: 'gestao-redes-sociais', name: 'Gestão de redes sociais' },
+                                  { id: 'manutencao-sites', name: 'Manutenção e Alteração em sites existentes' },
+                                ]
+                                
+                                // Se não encontrou no site_settings, tentar buscar do plano
+                                let mappedIds: string[] = []
+                                if (settings?.homepage_content?.pricing?.pricing_plans) {
+                                  const agencyPlan = settings.homepage_content.pricing.pricing_plans.find((p: any) => p.id === 'gogh-agencia' || p.planType === 'service')
+                                  if (agencyPlan?.serviceOptions) {
+                                    mappedIds = existingServiceNames
+                                      .map((serviceName: string) => {
+                                        const option = agencyPlan.serviceOptions.find((opt: any) => opt.name === serviceName)
+                                        return option?.id
+                                      })
+                                      .filter((id): id is string => !!id)
+                                  }
+                                }
+                                
+                                // Se não encontrou, mapear usando a lista local
+                                if (mappedIds.length === 0) {
+                                  mappedIds = existingServiceNames
+                                    .map((serviceName: string) => {
+                                      const option = serviceOptions.find(opt => opt.name === serviceName)
+                                      return option?.id
+                                    })
+                                    .filter((id): id is string => !!id)
+                                }
+                                
+                                // Remover duplicatas
+                                setEditingServiceOptions([...new Set(mappedIds)])
                                 const existingCycle = member.serviceSubscriptions?.[0]?.billing_cycle || 'monthly'
                                 setEditingServiceBillingCycle(existingCycle as 'monthly' | 'annual')
                               }}

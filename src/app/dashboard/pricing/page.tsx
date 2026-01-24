@@ -86,6 +86,13 @@ export default function PricingEditorPage() {
         priceMonthly: 1000,
         priceAnnually: 9600, // 1000 * 12 * 0.8 = 9600 (20% desconto)
       },
+      {
+        id: 'manutencao-sites',
+        name: 'Manutenção e Alteração em sites existentes',
+        description: 'Manutenção, correções, e adição em sites existentes.',
+        priceMonthly: 400,
+        priceAnnually: 3840, // 400 * 12 * 0.8 = 3840 (20% desconto)
+      },
     ],
     // Textos padrão específicos para serviços (não espelham dos planos de assinatura)
     category_values: [

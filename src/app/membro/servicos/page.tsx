@@ -149,8 +149,9 @@ export default function ServicosPage() {
       ) : (
         <div className="space-y-6">
           {serviceSubscriptions.map((service, index) => {
+            // Remover duplicatas dos serviços
             const serviceNames = service.selected_services?.length
-              ? service.selected_services
+              ? [...new Set(service.selected_services)]
               : ['Serviços personalizados']
             
             const message = `Olá! Gostaria de falar sobre meu serviço contratado (${service.plan_name || 'Serviços Personalizados'}). Serviços: ${serviceNames.join(', ')}.`

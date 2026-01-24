@@ -44,6 +44,12 @@ A Gogh Lab oferece os seguintes serviços personalizados:
 - Interação com a audiência
 - Monitoramento e relatórios de engajamento
 
+### 2.5. Manutenção e Alteração em Sites Existentes
+- Manutenção, correções, e adição em sites existentes
+- Atualizações de conteúdo e funcionalidades
+- Correção de bugs e problemas técnicos
+- Melhorias e otimizações contínuas
+
 ## 3. Contratação e Seleção de Serviços
 
 ### 3.1. Seleção de Serviços
