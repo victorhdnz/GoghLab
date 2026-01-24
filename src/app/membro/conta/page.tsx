@@ -366,7 +366,7 @@ export default function AccountPage() {
           { text: 'Canva Pro', icon: Palette },
           { text: 'CapCut Pro', icon: Scissors },
         ]
-  })()
+  })();
 
   return (
     <div className="max-w-4xl mx-auto">
