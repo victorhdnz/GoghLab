@@ -19,7 +19,8 @@ import {
   ChevronRight,
   Home,
   CreditCard,
-  ExternalLink
+  ExternalLink,
+  Briefcase
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { createClient } from '@/lib/supabase/client'
@@ -53,6 +54,16 @@ const subscriberMenuItems = [
     label: 'Nicho do Perfil', 
     icon: User,
     description: 'Configure seu perfil para IA'
+  },
+]
+
+// Itens do menu que são sempre visíveis (não requerem assinatura)
+const alwaysVisibleMenuItems = [
+  { 
+    href: '/membro/servicos', 
+    label: 'Meus Serviços', 
+    icon: Briefcase,
+    description: 'Serviços personalizados contratados'
   },
 ]
 

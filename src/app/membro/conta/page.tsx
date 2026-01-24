@@ -37,14 +37,6 @@ interface UsageStats {
   agents: AgentUsage[]
 }
 
-interface ServiceSubscription {
-  id: string
-  plan_name: string | null
-  billing_cycle: string
-  status: string
-  current_period_end: string | null
-  selected_services: string[]
-}
 
 const getPlanFeatures = (hasActive: boolean, pro: boolean) => {
   if (!hasActive) return []
@@ -73,8 +65,6 @@ export default function AccountPage() {
   const [openingPortal, setOpeningPortal] = useState(false)
   const [usageStats, setUsageStats] = useState<UsageStats | null>(null)
   const [loadingUsage, setLoadingUsage] = useState(false)
-  const [serviceSubscriptions, setServiceSubscriptions] = useState<ServiceSubscription[]>([])
-  const [whatsappNumber, setWhatsappNumber] = useState<string>('5534999999999')
   
   // Form state
   const [fullName, setFullName] = useState('')
@@ -166,66 +156,6 @@ export default function AccountPage() {
     }
   }, [user, hasActiveSubscription, isPro])
 
-  useEffect(() => {
-    const loadServiceSubscriptions = async () => {
-      if (!user) {
-        setServiceSubscriptions([])
-        return
-      }
-
-      try {
-        const { data, error } = await (supabase as any)
-          .from('service_subscriptions')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false })
-
-        if (error) {
-          console.error('Erro ao carregar serviços:', error)
-          return
-        }
-
-        const services = (data || []) as ServiceSubscription[]
-        console.log('📦 Serviços carregados:', services.length, services)
-        setServiceSubscriptions(services)
-      } catch (error) {
-        console.error('Erro ao carregar serviços:', error)
-      }
-    }
-
-    loadServiceSubscriptions()
-    
-    // Atualizar serviços quando a página ganha foco (usuário volta para a aba)
-    const handleFocus = () => {
-      loadServiceSubscriptions()
-    }
-    window.addEventListener('focus', handleFocus)
-    
-    return () => {
-      window.removeEventListener('focus', handleFocus)
-    }
-  }, [user, supabase])
-
-  useEffect(() => {
-    const loadWhatsapp = async () => {
-      try {
-        const { data } = await (supabase as any)
-          .from('site_settings')
-          .select('value')
-          .eq('key', 'contact_whatsapp')
-          .single()
-
-        if (data?.value) {
-          const number = data.value.replace(/\D/g, '')
-          setWhatsappNumber(number || '5534999999999')
-        }
-      } catch (error) {
-        console.error('Erro ao carregar WhatsApp:', error)
-      }
-    }
-
-    loadWhatsapp()
-  }, [supabase])
 
   // Listener para atualização de assinatura
   useEffect(() => {
@@ -377,12 +307,7 @@ export default function AccountPage() {
 
   const tabs = [
     { id: 'profile' as TabType, label: 'Perfil', icon: User },
-    { 
-      id: 'plan' as TabType, 
-      label: 'Plano & Uso', 
-      icon: CreditCard,
-      badge: serviceSubscriptions.length > 0 ? serviceSubscriptions.length : undefined
-    },
+    { id: 'plan' as TabType, label: 'Plano & Uso', icon: CreditCard },
   ]
 
   const planFeatures = getPlanFeatures(hasActiveSubscription, isPro)
@@ -664,73 +589,6 @@ export default function AccountPage() {
                 </div>
               )}
             </div>
-            </div>
-
-            {/* Serviços Personalizados */}
-            <div className="bg-white rounded-2xl border border-gogh-grayLight p-6 lg:p-8">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <Wrench className="w-5 h-5 text-gogh-grayDark" />
-                  <h3 className="text-lg font-bold text-gogh-black">Serviços Contratados</h3>
-                  {serviceSubscriptions.length > 0 && (
-                    <span className="px-2 py-1 bg-gogh-yellow/20 text-gogh-black text-xs font-semibold rounded-full">
-                      {serviceSubscriptions.length} {serviceSubscriptions.length === 1 ? 'serviço' : 'serviços'}
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              {serviceSubscriptions.length === 0 ? (
-                <div className="text-sm text-gogh-grayDark">
-                  Você ainda não contratou serviços personalizados. Se quiser, confira as opções na seção de planos.
-                  <div className="mt-3">
-                    <Link
-                      href="/#pricing-section"
-                      className="inline-flex items-center gap-2 px-4 py-2 bg-gogh-yellow text-gogh-black font-medium rounded-xl hover:bg-gogh-yellow/90 transition-colors"
-                    >
-                      Ver serviços disponíveis
-                    </Link>
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {serviceSubscriptions.map((service) => {
-                    const serviceNames = service.selected_services?.length
-                      ? service.selected_services.join(', ')
-                      : 'Serviços personalizados'
-                    const message = `Olá! Gostaria de falar sobre meu serviço contratado (${service.plan_name || 'Serviços Personalizados'}). Serviços: ${serviceNames}.`
-                    const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`
-
-                    return (
-                      <div key={service.id} className="border border-gogh-grayLight rounded-xl p-4 space-y-3">
-                        <div>
-                          <p className="text-sm font-semibold text-gogh-black">
-                            {service.plan_name || 'Serviços Personalizados'}
-                          </p>
-                          <p className="text-xs text-gogh-grayDark">
-                            {service.billing_cycle === 'annual' ? 'Anual' : 'Mensal'}
-                            {service.current_period_end && (
-                              <> • Próxima cobrança: {new Date(service.current_period_end).toLocaleDateString('pt-BR')}</>
-                            )}
-                          </p>
-                        </div>
-                        <div className="text-sm text-gogh-grayDark">
-                          <span className="font-medium text-gogh-black">Serviços:</span> {serviceNames}
-                        </div>
-                        <a
-                          href={whatsappUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-2 px-4 py-2 bg-gogh-black text-white font-medium rounded-xl hover:bg-gogh-black/90 transition-colors"
-                        >
-                          Falar no WhatsApp
-                          <ExternalLink className="w-4 h-4" />
-                        </a>
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
             </div>
           </div>
         )}
