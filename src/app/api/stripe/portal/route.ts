@@ -46,13 +46,14 @@ export async function POST(request: Request) {
 
     console.log('[Portal Stripe] Usuário autenticado com sucesso:', user.id)
     
-    // Buscar a assinatura ativa do usuário
+    // Buscar a assinatura ativa do usuário (prioridade: subscriptions, depois service_subscriptions)
     type SubscriptionData = {
       stripe_customer_id: string | null
       plan_id: string
       status: string
     }
 
+    // Primeiro, tentar buscar assinatura de plano normal
     const { data: subscription, error: subError } = await supabase
       .from('subscriptions')
       .select('stripe_customer_id, plan_id, status')
@@ -62,23 +63,34 @@ export async function POST(request: Request) {
       .limit(1)
       .maybeSingle()
 
-    const subscriptionData = subscription as SubscriptionData | null
+    let subscriptionData = subscription as SubscriptionData | null
+    let isServiceSubscription = false
+
+    // Se não encontrou assinatura de plano, buscar service subscription
+    if (!subscriptionData || subError) {
+      const { data: serviceSubscription, error: serviceError } = await supabase
+        .from('service_subscriptions')
+        .select('stripe_customer_id, plan_id, status')
+        .eq('user_id', user.id)
+        .in('status', ['active', 'trialing'])
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      if (serviceSubscription && !serviceError) {
+        subscriptionData = serviceSubscription as SubscriptionData
+        isServiceSubscription = true
+      }
+    }
 
     console.log('[Portal Stripe] Busca de assinatura:', {
       found: !!subscriptionData,
       hasStripeId: !!subscriptionData?.stripe_customer_id,
       stripeId: subscriptionData?.stripe_customer_id,
       planId: subscriptionData?.plan_id,
+      isServiceSubscription,
       error: subError ? subError.message : null
     })
-
-    if (subError) {
-      console.error('[Portal Stripe] Erro ao buscar assinatura:', JSON.stringify(subError, null, 2))
-      return NextResponse.json({ 
-        error: 'Erro ao buscar informações da assinatura',
-        details: process.env.NODE_ENV === 'development' ? subError.message : undefined
-      }, { status: 500 })
-    }
 
     if (!subscriptionData) {
       console.log('[Portal Stripe] Assinatura não encontrada para usuário:', user.id)
@@ -94,7 +106,8 @@ export async function POST(request: Request) {
       console.log('Tentativa de acessar portal com assinatura manual:', {
         user_id: user.id,
         subscription_id: subscriptionData.plan_id,
-        stripe_customer_id: subscriptionData.stripe_customer_id
+        stripe_customer_id: subscriptionData.stripe_customer_id,
+        isServiceSubscription
       })
       return NextResponse.json({ 
         error: 'Esta assinatura foi criada manualmente e não pode ser gerenciada através do portal do Stripe. Entre em contato com o suporte através do WhatsApp para gerenciar sua assinatura.',
@@ -103,7 +116,7 @@ export async function POST(request: Request) {
     }
 
     // Criar sessão do portal de gerenciamento do Stripe
-    // Usar a configuração do portal criada no Dashboard
+    // O portal do Stripe funciona com qualquer subscription do customer, mesmo que seja de produto dinâmico
     const portalSession = await stripe.billingPortal.sessions.create({
       customer: subscriptionData.stripe_customer_id,
       return_url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://goghlab.com.br'}/membro/conta`,

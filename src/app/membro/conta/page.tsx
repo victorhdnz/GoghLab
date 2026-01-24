@@ -424,7 +424,7 @@ export default function AccountPage() {
               </div>
 
               <div className="text-center py-6">
-                {hasActiveSubscription ? (
+                {hasActiveSubscription && subscription ? (
                   <>
                     <div className={`
                       inline-flex items-center gap-2 px-4 py-2 rounded-full mb-4

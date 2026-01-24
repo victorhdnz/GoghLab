@@ -89,6 +89,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   if (session.metadata?.planType === 'service') {
     const customerEmail = session.customer_details?.email
     const subscriptionId = session.subscription as string | undefined
+    const customerId = session.customer as string | undefined
 
     if (!customerEmail || !subscriptionId) {
       console.warn('Checkout de serviço sem email ou assinatura.')
@@ -109,6 +110,9 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     const subscriptionResponse = await stripe.subscriptions.retrieve(subscriptionId)
     const subscription = subscriptionResponse as Stripe.Subscription
 
+    // Se não tiver customerId na session, buscar do subscription
+    const finalCustomerId = customerId || subscription.customer as string
+
     const selectedServices = session.metadata?.selectedServices
       ? session.metadata.selectedServices.split(',').map(item => item.trim()).filter(Boolean)
       : []
@@ -117,6 +121,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
       .from('service_subscriptions')
       .upsert({
         user_id: profile.id,
+        stripe_customer_id: finalCustomerId,
         stripe_subscription_id: subscriptionId,
         status: subscription.status,
         billing_cycle: subscription.items.data[0]?.price?.recurring?.interval === 'year' ? 'annual' : 'monthly',
