@@ -348,8 +348,10 @@ export default function AccountPage() {
     { id: 'plan' as TabType, label: 'Plano & Uso', icon: CreditCard },
   ]
 
-  const planFeatures = hasActiveSubscription
-    ? (isPro
+  let planFeatures: { text: string; icon: typeof MessageSquare }[] = []
+
+  if (hasActiveSubscription) {
+    planFeatures = isPro
       ? [
           { text: '20 interações por dia', icon: MessageSquare },
           { text: 'Todos os agentes', icon: Sparkles },
@@ -363,8 +365,8 @@ export default function AccountPage() {
           { text: 'Cursos de Canva e CapCut', icon: BookOpen },
           { text: 'Canva Pro', icon: Palette },
           { text: 'CapCut Pro', icon: Scissors },
-        ])
-    : []
+        ]
+  }
 
   return (
     <div className="max-w-4xl mx-auto">
