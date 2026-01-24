@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { PricingComponent, PriceTier, BillingCycle, FeatureCategory } from '@/components/ui/pricing-card'
+import { PricingComponent, PriceTier, BillingCycle, FeatureCategory, PlanSelection } from '@/components/ui/pricing-card'
 import { FadeInSection } from '@/components/ui/FadeInSection'
 
 interface ServicePricingProps {
@@ -29,7 +29,7 @@ export function ServicePricing({
 
   if (!enabled || !plans) return null
 
-  const handlePlanSelect = (planId: string, cycle: BillingCycle, plan: PriceTier) => {
+  const handlePlanSelect = (planId: string, cycle: BillingCycle, plan: PriceTier, selection?: PlanSelection) => {
     // Obter a mensagem apropriada baseada no ciclo de cobrança
     let message = cycle === 'monthly' 
       ? (plan.whatsappMessageMonthly || `Olá! Gostaria de contratar o plano ${plan.name} no plano mensal.`)
@@ -38,6 +38,12 @@ export function ServicePricing({
     // Adicionar nome do serviço se disponível
     if (serviceName) {
       message = `${message} Serviço: ${serviceName}.`
+    }
+
+    if (plan.planType === 'service' && selection) {
+      const selectedNames = selection.selectedServiceOptions.map(option => option.name).join(', ')
+      message += ` Serviços selecionados: ${selectedNames || 'Nenhum'}.`
+      message += ` Valor total: R$ ${selection.totalPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${cycle === 'monthly' ? '/mês' : '/ano'}.`
     }
     
     // Obter número do WhatsApp (priorizar o configurado, senão usar padrão)

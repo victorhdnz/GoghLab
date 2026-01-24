@@ -37,6 +37,14 @@ interface Member {
     manually_edited?: boolean
     manually_edited_at?: string | null
   } | null
+  serviceSubscriptions?: {
+    id: string
+    plan_name: string | null
+    status: string
+    billing_cycle: string
+    current_period_end: string | null
+    selected_services: string[]
+  }[]
 }
 
 const planOptions = [
@@ -53,6 +61,7 @@ export default function MembrosPage() {
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [filterPlan, setFilterPlan] = useState<string>('all')
+  const [viewTab, setViewTab] = useState<'subscriptions' | 'services'>('subscriptions')
   const [editingMember, setEditingMember] = useState<string | null>(null)
   const [editingPlan, setEditingPlan] = useState<string>('')
   const [editingBillingCycle, setEditingBillingCycle] = useState<'monthly' | 'annual'>('monthly')
@@ -114,9 +123,28 @@ export default function MembrosPage() {
         console.error('Erro ao buscar assinaturas:', error)
       }
 
+      // Buscar assinaturas de serviços
+      let serviceSubscriptions: any[] = []
+      try {
+        const { data: serviceData, error: serviceError } = await (supabase as any)
+          .from('service_subscriptions')
+          .select('*')
+
+        if (serviceError && serviceError.code !== 'PGRST116') {
+          console.error('Erro ao buscar serviços:', serviceError)
+        } else {
+          serviceSubscriptions = serviceData || []
+        }
+      } catch (error) {
+        console.error('Erro ao buscar serviços:', error)
+      }
+
       // Combinar dados
       const membersWithSubs: Member[] = (profiles || []).map((profile: any) => {
         const subscription = subscriptions.find(
+          (sub: any) => sub.user_id === profile.id
+        )
+        const memberServices = serviceSubscriptions.filter(
           (sub: any) => sub.user_id === profile.id
         )
         
@@ -144,7 +172,8 @@ export default function MembrosPage() {
             is_manual: !subscription.stripe_subscription_id || subscription.stripe_subscription_id.trim() === '',
             manually_edited: subscription.manually_edited || false,
             manually_edited_at: subscription.manually_edited_at || null
-          } : null
+          } : null,
+          serviceSubscriptions: memberServices || []
         }
       })
 
@@ -434,6 +463,14 @@ export default function MembrosPage() {
     return matchesSearch && matchesPlan
   })
 
+  const filteredServiceMembers = members.filter(member => {
+    const matchesSearch = 
+      member.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (member.full_name?.toLowerCase() || '').includes(searchTerm.toLowerCase())
+    const hasServices = (member.serviceSubscriptions || []).length > 0
+    return matchesSearch && hasServices
+  })
+
   const getPlanBadge = (member: Member) => {
     if (!member.subscription) {
       return (
@@ -517,6 +554,30 @@ export default function MembrosPage() {
           </div>
         </div>
 
+        {/* Tabs */}
+        <div className="flex gap-3 mb-4">
+          <button
+            onClick={() => setViewTab('subscriptions')}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              viewTab === 'subscriptions'
+                ? 'bg-black text-white'
+                : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'
+            }`}
+          >
+            Assinaturas do site
+          </button>
+          <button
+            onClick={() => setViewTab('services')}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              viewTab === 'services'
+                ? 'bg-black text-white'
+                : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'
+            }`}
+          >
+            Serviços personalizados
+          </button>
+        </div>
+
         {/* Filters */}
         <div className="bg-white rounded-xl p-4 border border-gray-200 mb-6">
           <div className="flex flex-col md:flex-row gap-4">
@@ -533,171 +594,270 @@ export default function MembrosPage() {
             </div>
 
             {/* Plan Filter */}
-            <select
-              value={filterPlan}
-              onChange={(e) => setFilterPlan(e.target.value)}
-              className="px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-gray-400 bg-white"
-            >
-              <option value="all">Todos os planos</option>
-              <option value="gogh_pro">Gogh Pro</option>
-              <option value="gogh_essencial">Gogh Essencial</option>
-              <option value="none">Sem plano</option>
-            </select>
+            {viewTab === 'subscriptions' && (
+              <select
+                value={filterPlan}
+                onChange={(e) => setFilterPlan(e.target.value)}
+                className="px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-gray-400 bg-white"
+              >
+                <option value="all">Todos os planos</option>
+                <option value="gogh_pro">Gogh Pro</option>
+                <option value="gogh_essencial">Gogh Essencial</option>
+                <option value="none">Sem plano</option>
+              </select>
+            )}
           </div>
         </div>
 
-        {/* Members List */}
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50 border-b border-gray-200">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Usuário
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Plano
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Cadastro
-                  </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Ações
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {filteredMembers.map((member) => (
-                  <tr key={member.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        {member.avatar_url ? (
-                          <img
-                            src={member.avatar_url}
-                            alt=""
-                            className="w-10 h-10 rounded-full"
-                          />
-                        ) : (
-                          <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
-                            <Users className="w-5 h-5 text-gray-500" />
-                          </div>
-                        )}
-                        <div>
-                          <p className="font-medium text-gray-900">
-                            {member.full_name || 'Sem nome'}
-                          </p>
-                          <p className="text-sm text-gray-500 flex items-center gap-1">
-                            <Mail className="w-3 h-3" />
-                            {member.email}
-                          </p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      {editingMember === member.id ? (
-                        <div className="space-y-2">
-                          <select
-                            value={editingPlan}
-                            onChange={(e) => setEditingPlan(e.target.value)}
-                            className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-black"
-                          >
-                            {planOptions.map((option) => (
-                              <option key={option.value} value={option.value}>
-                                {option.label}
-                              </option>
-                            ))}
-                          </select>
-                          {editingPlan !== '' && (
-                            <select
-                              value={editingBillingCycle}
-                              onChange={(e) => setEditingBillingCycle(e.target.value as 'monthly' | 'annual')}
-                              className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-black"
-                            >
-                              <option value="monthly">Mensal</option>
-                              <option value="annual">Anual</option>
-                            </select>
-                          )}
-                        </div>
-                      ) : (
-                        <div>
-                          {getPlanBadge(member)}
-                          {member.subscription && (
-                            <div className="mt-1 space-y-0.5">
-                              {member.subscription.billing_cycle && (
-                                <p className="text-xs text-gray-500">
-                                  {member.subscription.billing_cycle === 'annual' ? 'Anual' : 'Mensal'}
-                                  {member.subscription.current_period_end && (
-                                    <> • Até {new Date(member.subscription.current_period_end).toLocaleDateString('pt-BR')}</>
-                                  )}
-                                </p>
-                              )}
-                              {member.subscription.is_manual && (
-                                <p className="text-xs text-amber-600 font-medium">
-                                  Plano Manual
-                                </p>
-                              )}
-                              {member.subscription.manually_edited && !member.subscription.is_manual && (
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-orange-100 text-orange-800 rounded-full">
-                                  <span className="w-1.5 h-1.5 bg-orange-600 rounded-full"></span>
-                                  Editado Manualmente
-                                </span>
-                              )}
+        {viewTab === 'subscriptions' && (
+          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50 border-b border-gray-200">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Usuário
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Plano
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Cadastro
+                    </th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Ações
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {filteredMembers.map((member) => (
+                    <tr key={member.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          {member.avatar_url ? (
+                            <img
+                              src={member.avatar_url}
+                              alt=""
+                              className="w-10 h-10 rounded-full"
+                            />
+                          ) : (
+                            <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
+                              <Users className="w-5 h-5 text-gray-500" />
                             </div>
                           )}
+                          <div>
+                            <p className="font-medium text-gray-900">
+                              {member.full_name || 'Sem nome'}
+                            </p>
+                            <p className="text-sm text-gray-500 flex items-center gap-1">
+                              <Mail className="w-3 h-3" />
+                              {member.email}
+                            </p>
+                          </div>
                         </div>
-                      )}
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-1 text-sm text-gray-500">
-                        <Calendar className="w-4 h-4" />
-                        {new Date(member.created_at).toLocaleDateString('pt-BR')}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      {editingMember === member.id ? (
-                        <div className="flex items-center justify-end gap-2">
-                          <button
-                            onClick={() => handleSavePlan(member.id)}
-                            disabled={saving}
-                            className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors disabled:opacity-50"
-                          >
-                            {saving ? (
-                              <LoadingSpinner size="sm" />
-                            ) : (
-                              <Check className="w-4 h-4" />
+                      </td>
+                      <td className="px-6 py-4">
+                        {editingMember === member.id ? (
+                          <div className="space-y-2">
+                            <select
+                              value={editingPlan}
+                              onChange={(e) => setEditingPlan(e.target.value)}
+                              className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-black"
+                            >
+                              {planOptions.map((option) => (
+                                <option key={option.value} value={option.value}>
+                                  {option.label}
+                                </option>
+                              ))}
+                            </select>
+                            {editingPlan !== '' && (
+                              <select
+                                value={editingBillingCycle}
+                                onChange={(e) => setEditingBillingCycle(e.target.value as 'monthly' | 'annual')}
+                                className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-black"
+                              >
+                                <option value="monthly">Mensal</option>
+                                <option value="annual">Anual</option>
+                              </select>
                             )}
-                          </button>
-                          <button
-                            onClick={handleCancelEdit}
-                            className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
+                          </div>
+                        ) : (
+                          <div>
+                            {getPlanBadge(member)}
+                            {member.subscription && (
+                              <div className="mt-1 space-y-0.5">
+                                {member.subscription.billing_cycle && (
+                                  <p className="text-xs text-gray-500">
+                                    {member.subscription.billing_cycle === 'annual' ? 'Anual' : 'Mensal'}
+                                    {member.subscription.current_period_end && (
+                                      <> • Até {new Date(member.subscription.current_period_end).toLocaleDateString('pt-BR')}</>
+                                    )}
+                                  </p>
+                                )}
+                                {member.subscription.is_manual && (
+                                  <p className="text-xs text-amber-600 font-medium">
+                                    Plano Manual
+                                  </p>
+                                )}
+                                {member.subscription.manually_edited && !member.subscription.is_manual && (
+                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-orange-100 text-orange-800 rounded-full">
+                                    <span className="w-1.5 h-1.5 bg-orange-600 rounded-full"></span>
+                                    Editado Manualmente
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-1 text-sm text-gray-500">
+                          <Calendar className="w-4 h-4" />
+                          {new Date(member.created_at).toLocaleDateString('pt-BR')}
                         </div>
-                      ) : (
-                        <button
-                          onClick={() => handleEditPlan(member)}
-                          className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"
-                          title="Editar plano"
-                        >
-                          <Edit2 className="w-4 h-4" />
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        {editingMember === member.id ? (
+                          <div className="flex items-center justify-end gap-2">
+                            <button
+                              onClick={() => handleSavePlan(member.id)}
+                              disabled={saving}
+                              className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors disabled:opacity-50"
+                            >
+                              {saving ? (
+                                <LoadingSpinner size="sm" />
+                              ) : (
+                                <Check className="w-4 h-4" />
+                              )}
+                            </button>
+                            <button
+                              onClick={handleCancelEdit}
+                              className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => handleEditPlan(member)}
+                            className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"
+                            title="Editar plano"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
 
-                {filteredMembers.length === 0 && (
-                  <tr>
-                    <td colSpan={4} className="px-6 py-12 text-center text-gray-500">
-                      Nenhum membro encontrado
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+                  {filteredMembers.length === 0 && (
+                    <tr>
+                      <td colSpan={4} className="px-6 py-12 text-center text-gray-500">
+                        Nenhum membro encontrado
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
+        )}
+
+        {viewTab === 'services' && (
+          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50 border-b border-gray-200">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Usuário
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Serviços contratados
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Ciclo
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Status
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {filteredServiceMembers.map((member) => (
+                    <tr key={member.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          {member.avatar_url ? (
+                            <img
+                              src={member.avatar_url}
+                              alt=""
+                              className="w-10 h-10 rounded-full"
+                            />
+                          ) : (
+                            <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
+                              <Users className="w-5 h-5 text-gray-500" />
+                            </div>
+                          )}
+                          <div>
+                            <p className="font-medium text-gray-900">
+                              {member.full_name || 'Sem nome'}
+                            </p>
+                            <p className="text-sm text-gray-500 flex items-center gap-1">
+                              <Mail className="w-3 h-3" />
+                              {member.email}
+                            </p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="space-y-2">
+                          {(member.serviceSubscriptions || []).map((service) => (
+                            <div key={service.id} className="text-sm text-gray-700">
+                              <span className="font-medium">{service.plan_name || 'Serviços Personalizados'}:</span>{' '}
+                              {service.selected_services?.length ? service.selected_services.join(', ') : 'Serviços personalizados'}
+                            </div>
+                          ))}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="space-y-2 text-sm text-gray-600">
+                          {(member.serviceSubscriptions || []).map((service) => (
+                            <div key={service.id}>
+                              {service.billing_cycle === 'annual' ? 'Anual' : 'Mensal'}
+                              {service.current_period_end && (
+                                <> • Até {new Date(service.current_period_end).toLocaleDateString('pt-BR')}</>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="space-y-2 text-sm">
+                          {(member.serviceSubscriptions || []).map((service) => (
+                            <div key={service.id} className={`font-medium ${
+                              service.status === 'active' ? 'text-emerald-600' : 'text-gray-500'
+                            }`}>
+                              {service.status}
+                            </div>
+                          ))}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+
+                  {filteredServiceMembers.length === 0 && (
+                    <tr>
+                      <td colSpan={4} className="px-6 py-12 text-center text-gray-500">
+                        Nenhum cliente com serviços encontrados
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )

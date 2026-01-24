@@ -11,7 +11,7 @@ import toast from 'react-hot-toast'
 import Link from 'next/link'
 import { DashboardNavigation } from '@/components/dashboard/DashboardNavigation'
 import { getSiteSettings, saveSiteSettings } from '@/lib/supabase/site-settings-helper'
-import { PriceTier, Feature } from '@/components/ui/pricing-card'
+import { PriceTier, Feature, ServiceOption } from '@/components/ui/pricing-card'
 import { Plus, Trash2, ArrowUp, ArrowDown, ChevronDown, ChevronUp } from 'lucide-react'
 
 interface FeatureCategory {
@@ -46,7 +46,7 @@ export default function PricingEditorPage() {
   const [formData, setFormData] = useState<PricingSettings>({
     pricing_enabled: true,
     pricing_title: 'Escolha seu plano e comece a criar',
-    pricing_description: 'Acesse todos os agentes de IA, cursos completos e ferramentas premium. Transforme sua presença digital com autonomia total.',
+    pricing_description: 'Acesse a plataforma com IA e, se preferir, contrate nossa equipe para executar tudo como agência completa.',
     pricing_annual_discount: 20, // 20% de desconto no plano anual
     pricing_whatsapp_number: '',
     pricing_plans: [
@@ -58,6 +58,7 @@ export default function PricingEditorPage() {
         priceAnnually: 651.90,
         isPopular: false,
         buttonLabel: 'Começar agora',
+        planType: 'subscription',
         features: [
           { name: 'Agente de IA para Vídeos', isIncluded: true },
           { name: 'Agente de IA para Redes Sociais', isIncluded: true },
@@ -78,6 +79,7 @@ export default function PricingEditorPage() {
         priceAnnually: 1226.90,
         isPopular: true,
         buttonLabel: 'Assinar Pro',
+        planType: 'subscription',
         features: [
           { name: 'Tudo do plano Essencial', isIncluded: true },
           { name: '20 interações por dia (2,5x mais)', isIncluded: true },
@@ -89,6 +91,51 @@ export default function PricingEditorPage() {
         ],
         stripePriceIdMonthly: 'price_1SpjJIJmSvvqlkSQpBHztwk6',
         stripePriceIdAnnually: 'price_1SpjKSJmSvvqlkSQlr8jNDTf',
+      },
+      {
+        id: 'gogh-agencia',
+        name: 'Gogh Agency',
+        description: 'Serviços completos de agência. Escolha o que você quer que a gente faça por você.',
+        priceMonthly: 0,
+        priceAnnually: 0,
+        isPopular: false,
+        buttonLabel: 'Solicitar serviço',
+        planType: 'service',
+        features: [
+          { name: 'Gestão feita pela equipe', isIncluded: true },
+          { name: 'Planejamento e execução completos', isIncluded: true },
+          { name: 'Relatórios e acompanhamento', isIncluded: true },
+        ],
+        serviceOptions: [
+          {
+            id: 'marketing-trafego-pago',
+            name: 'Marketing (Tráfego Pago)',
+            description: 'Campanhas, otimizações e relatórios contínuos.',
+            priceMonthly: 1200,
+            priceAnnually: 12000,
+          },
+          {
+            id: 'criacao-sites',
+            name: 'Criação de sites completos',
+            description: 'Projeto, design, desenvolvimento e publicação.',
+            priceMonthly: 900,
+            priceAnnually: 9000,
+          },
+          {
+            id: 'criacao-conteudo',
+            name: 'Criação de conteúdo completa',
+            description: 'Roteiro, produção, edição e pós-produção.',
+            priceMonthly: 1600,
+            priceAnnually: 16000,
+          },
+          {
+            id: 'gestao-redes-sociais',
+            name: 'Gestão de redes sociais',
+            description: 'Calendário, postagem e interação com a audiência.',
+            priceMonthly: 1400,
+            priceAnnually: 14000,
+          },
+        ],
       },
     ],
   })
@@ -114,24 +161,14 @@ export default function PricingEditorPage() {
         const pricing = data.homepage_content.pricing
         
         setFormData(prev => {
-          // Verificar se os planos do banco são os novos (Gogh)
           const dbPlans = pricing.pricing_plans || []
-          const hasGoghPlans = dbPlans.some((p: PriceTier) => 
-            p.id === 'gogh-essencial' || p.id === 'gogh-pro'
-          )
-          
-          // Se não tiver os planos Gogh, usar os padrões
-          // Isso força a substituição dos planos antigos pelos novos
-          const plans = hasGoghPlans 
-            ? dbPlans.filter((p: PriceTier) => p.id === 'gogh-essencial' || p.id === 'gogh-pro')
-            : prev.pricing_plans
+          const plans = dbPlans.length > 0 ? dbPlans : prev.pricing_plans
           
           return {
             ...prev,
             ...pricing,
-            // Forçar desconto de 20% se for planos Gogh (valores corretos)
-            pricing_annual_discount: hasGoghPlans ? (pricing.pricing_annual_discount || 20) : 20,
-            pricing_plans: plans && plans.length === 2 ? plans : prev.pricing_plans,
+            pricing_annual_discount: pricing.pricing_annual_discount || prev.pricing_annual_discount || 20,
+            pricing_plans: plans,
           }
         })
       }
@@ -237,6 +274,42 @@ export default function PricingEditorPage() {
     
     const newPlans = [...formData.pricing_plans]
     newPlans[planIndex].features.splice(featureIndex, 1)
+    setFormData({ ...formData, pricing_plans: newPlans })
+  }
+
+  const updateServiceOption = (planIndex: number, optionIndex: number, field: keyof ServiceOption, value: any) => {
+    if (!formData.pricing_plans) return
+
+    const newPlans = [...formData.pricing_plans]
+    const options = [...(newPlans[planIndex].serviceOptions || [])]
+    options[optionIndex] = { ...options[optionIndex], [field]: value }
+    newPlans[planIndex] = { ...newPlans[planIndex], serviceOptions: options }
+    setFormData({ ...formData, pricing_plans: newPlans })
+  }
+
+  const addServiceOption = (planIndex: number) => {
+    if (!formData.pricing_plans) return
+
+    const newPlans = [...formData.pricing_plans]
+    const options = [...(newPlans[planIndex].serviceOptions || [])]
+    options.push({
+      id: `service-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
+      name: '',
+      description: '',
+      priceMonthly: 0,
+      priceAnnually: 0,
+    })
+    newPlans[planIndex] = { ...newPlans[planIndex], serviceOptions: options }
+    setFormData({ ...formData, pricing_plans: newPlans })
+  }
+
+  const removeServiceOption = (planIndex: number, optionIndex: number) => {
+    if (!formData.pricing_plans) return
+
+    const newPlans = [...formData.pricing_plans]
+    const options = [...(newPlans[planIndex].serviceOptions || [])]
+    options.splice(optionIndex, 1)
+    newPlans[planIndex] = { ...newPlans[planIndex], serviceOptions: options }
     setFormData({ ...formData, pricing_plans: newPlans })
   }
 
@@ -516,6 +589,20 @@ export default function PricingEditorPage() {
                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                       />
                     </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-2">Tipo do Plano</label>
+                      <select
+                        value={plan.planType || 'subscription'}
+                        onChange={(e) => updatePlan(planIndex, 'planType', e.target.value)}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="subscription">Assinatura</option>
+                        <option value="service">Serviços Personalizados</option>
+                      </select>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Planos de serviços permitem seleção de itens e preço total dinâmico.
+                      </p>
+                    </div>
                     <div className="space-y-4">
                       <Input
                         label="Preço Mensal (R$)"
@@ -577,29 +664,93 @@ export default function PricingEditorPage() {
                       onChange={(e) => updatePlan(planIndex, 'buttonLabel', e.target.value)}
                     />
                     
-                    {/* Stripe Price IDs */}
-                    <div className="border-t pt-4 mt-4">
-                      <h4 className="font-semibold mb-3">💳 Configuração Stripe</h4>
-                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
-                        <p className="text-xs text-blue-800">
-                          <strong>Como obter os Price IDs:</strong> No Stripe Dashboard, vá em Products → Crie o produto → Adicione os preços (mensal e anual) → Copie o ID de cada preço (começa com "price_").
-                        </p>
+                    {plan.planType === 'service' && (
+                      <div className="border-t pt-4 mt-4">
+                        <h4 className="font-semibold mb-3">🧩 Serviços Selecionáveis</h4>
+                        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
+                          <p className="text-xs text-yellow-800">
+                            <strong>Como funciona:</strong> Todos os serviços começam selecionados no checkout. O usuário pode remover itens antes de contratar.
+                          </p>
+                        </div>
+                        <div className="space-y-3">
+                          {(plan.serviceOptions || []).map((option, optionIndex) => (
+                            <div key={option.id} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <Input
+                                  label="Nome do Serviço"
+                                  value={option.name}
+                                  onChange={(e) => updateServiceOption(planIndex, optionIndex, 'name', e.target.value)}
+                                />
+                                <Input
+                                  label="Descrição (opcional)"
+                                  value={option.description || ''}
+                                  onChange={(e) => updateServiceOption(planIndex, optionIndex, 'description', e.target.value)}
+                                />
+                              </div>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
+                                <Input
+                                  label="Preço Mensal (R$)"
+                                  value={option.priceMonthly.toString()}
+                                  onChange={(e) => updateServiceOption(planIndex, optionIndex, 'priceMonthly', parseFloat(e.target.value) || 0)}
+                                  type="number"
+                                  min="0"
+                                  step="0.01"
+                                />
+                                <Input
+                                  label="Preço Anual (R$)"
+                                  value={option.priceAnnually.toString()}
+                                  onChange={(e) => updateServiceOption(planIndex, optionIndex, 'priceAnnually', parseFloat(e.target.value) || 0)}
+                                  type="number"
+                                  min="0"
+                                  step="0.01"
+                                />
+                              </div>
+                              <div className="flex justify-end mt-3">
+                                <button
+                                  onClick={() => removeServiceOption(planIndex, optionIndex)}
+                                  className="text-red-600 hover:text-red-800 text-sm"
+                                >
+                                  Remover serviço
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                          <Button
+                            onClick={() => addServiceOption(planIndex)}
+                            variant="outline"
+                            className="w-full"
+                          >
+                            <Plus size={18} className="mr-2" />
+                            Adicionar Serviço
+                          </Button>
+                        </div>
                       </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <Input
-                          label="Stripe Price ID (Mensal)"
-                          value={plan.stripePriceIdMonthly || ''}
-                          onChange={(e) => updatePlan(planIndex, 'stripePriceIdMonthly', e.target.value)}
-                          placeholder="price_xxxxxxxxxxxxx"
-                        />
-                        <Input
-                          label="Stripe Price ID (Anual)"
-                          value={plan.stripePriceIdAnnually || ''}
-                          onChange={(e) => updatePlan(planIndex, 'stripePriceIdAnnually', e.target.value)}
-                          placeholder="price_xxxxxxxxxxxxx"
-                        />
+                    )}
+
+                    {plan.planType !== 'service' && (
+                      <div className="border-t pt-4 mt-4">
+                        <h4 className="font-semibold mb-3">💳 Configuração Stripe</h4>
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+                          <p className="text-xs text-blue-800">
+                            <strong>Como obter os Price IDs:</strong> No Stripe Dashboard, vá em Products → Crie o produto → Adicione os preços (mensal e anual) → Copie o ID de cada preço (começa com "price_").
+                          </p>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <Input
+                            label="Stripe Price ID (Mensal)"
+                            value={plan.stripePriceIdMonthly || ''}
+                            onChange={(e) => updatePlan(planIndex, 'stripePriceIdMonthly', e.target.value)}
+                            placeholder="price_xxxxxxxxxxxxx"
+                          />
+                          <Input
+                            label="Stripe Price ID (Anual)"
+                            value={plan.stripePriceIdAnnually || ''}
+                            onChange={(e) => updatePlan(planIndex, 'stripePriceIdAnnually', e.target.value)}
+                            placeholder="price_xxxxxxxxxxxxx"
+                          />
+                        </div>
                       </div>
-                    </div>
+                    )}
 
                     {/* Textos das Categorias de Comparação */}
                     {featureCategories.length > 0 ? (

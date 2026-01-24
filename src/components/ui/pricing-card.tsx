@@ -24,6 +24,14 @@ export interface PlanCategoryValue {
   text: string // Se vazio, significa que não tem o recurso
 }
 
+export interface ServiceOption {
+  id: string
+  name: string
+  description?: string
+  priceMonthly: number
+  priceAnnually: number
+}
+
 export interface PriceTier {
   id: string
   name: string
@@ -33,6 +41,8 @@ export interface PriceTier {
   isPopular: boolean
   buttonLabel: string
   features: Feature[]
+  planType?: 'subscription' | 'service'
+  serviceOptions?: ServiceOption[]
   // Valores das categorias de comparação (category_id -> text)
   category_values?: PlanCategoryValue[]
   // Mensagens personalizadas para WhatsApp (legado)
@@ -49,6 +59,11 @@ export interface FeatureCategory {
   order: number
 }
 
+export interface PlanSelection {
+  selectedServiceOptions: ServiceOption[]
+  totalPrice: number
+}
+
 export interface PricingComponentProps extends React.HTMLAttributes<HTMLDivElement> {
   /** The list of pricing tiers to display. Can contain 2 or 3 tiers. */
   plans: PriceTier[]
@@ -57,7 +72,7 @@ export interface PricingComponentProps extends React.HTMLAttributes<HTMLDivEleme
   /** Callback function when the user changes the billing cycle. */
   onCycleChange: (cycle: BillingCycle) => void
   /** Callback function when a user selects a plan. */
-  onPlanSelect: (planId: string, cycle: BillingCycle, plan: PriceTier) => void
+  onPlanSelect: (planId: string, cycle: BillingCycle, plan: PriceTier, selection?: PlanSelection) => void
   /** Título personalizado */
   title?: string
   /** Descrição personalizada */
@@ -93,13 +108,52 @@ export const PricingComponent: React.FC<PricingComponentProps> = ({
   onCycleChange,
   onPlanSelect,
   title = "Escolha o plano ideal para sua empresa",
-  description = "Soluções completas de gestão digital para impulsionar seu negócio. Do básico ao enterprise, temos o plano certo para você.",
+  description = "Soluções completas para sua presença digital: plataforma com IA + serviços de agência quando você precisar de execução.",
   annualDiscountPercent = 20,
   featureCategories = [],
   className,
   ...props
 }) => {
   const [isComparisonModalOpen, setIsComparisonModalOpen] = useState(false)
+  const [selectedServiceOptions, setSelectedServiceOptions] = useState<Record<string, string[]>>({})
+
+  const getDefaultSelectedOptions = React.useCallback((plan: PriceTier): string[] => {
+    if (!plan.serviceOptions || plan.serviceOptions.length === 0) return []
+    return plan.serviceOptions.map(option => option.id)
+  }, [])
+
+  const getSelectedOptionsForPlan = React.useCallback((plan: PriceTier): string[] => {
+    return selectedServiceOptions[plan.id] || getDefaultSelectedOptions(plan)
+  }, [selectedServiceOptions, getDefaultSelectedOptions])
+
+  const toggleServiceOption = React.useCallback((plan: PriceTier, optionId: string) => {
+    setSelectedServiceOptions(prev => {
+      const current = prev[plan.id] || getDefaultSelectedOptions(plan)
+      const exists = current.includes(optionId)
+      const next = exists ? current.filter(id => id !== optionId) : [...current, optionId]
+      return {
+        ...prev,
+        [plan.id]: next
+      }
+    })
+  }, [getDefaultSelectedOptions])
+
+  const getServiceSelectionSummary = React.useCallback((plan: PriceTier, cycle: BillingCycle) => {
+    if (!plan.serviceOptions || plan.serviceOptions.length === 0) {
+      return { selectedOptions: [], total: plan.priceMonthly }
+    }
+    const selectedIds = getSelectedOptionsForPlan(plan)
+    const selectedOptions = plan.serviceOptions.filter(option => selectedIds.includes(option.id))
+    const basePrice = cycle === 'monthly' ? plan.priceMonthly : plan.priceAnnually
+    const optionsTotal = selectedOptions.reduce((sum, option) => {
+      const optionPrice = cycle === 'monthly' ? option.priceMonthly : option.priceAnnually
+      return sum + optionPrice
+    }, 0)
+    return {
+      selectedOptions,
+      total: basePrice + optionsTotal
+    }
+  }, [getSelectedOptionsForPlan])
 
   // Ensure at least 1 plan is passed
   if (!plans || plans.length === 0) {
@@ -158,6 +212,9 @@ export const PricingComponent: React.FC<PricingComponentProps> = ({
         const currentPrice = billingCycle === 'monthly' ? plan.priceMonthly : plan.priceAnnually
         const originalMonthlyPrice = plan.priceMonthly
         const priceSuffix = billingCycle === 'monthly' ? '/mês' : '/ano'
+        const serviceSelection = plan.planType === 'service'
+          ? getServiceSelectionSummary(plan, billingCycle)
+          : null
 
         return (
           <Card
@@ -272,10 +329,72 @@ export const PricingComponent: React.FC<PricingComponentProps> = ({
                   })()
                 )}
               </ul>
+              {plan.planType === 'service' && plan.serviceOptions && plan.serviceOptions.length > 0 && (
+                <div className="mt-6 border-t border-[#F7C948]/20 pt-4">
+                  <h4 className="text-sm font-semibold mb-3 text-gray-700">Serviços inclusos na sua escolha:</h4>
+                  <div className="space-y-2">
+                    {plan.serviceOptions.map(option => {
+                      const selectedIds = getSelectedOptionsForPlan(plan)
+                      const isSelected = selectedIds.includes(option.id)
+                      const optionPrice = billingCycle === 'monthly' ? option.priceMonthly : option.priceAnnually
+
+                      return (
+                        <label
+                          key={option.id}
+                          className={cn(
+                            "flex items-center justify-between gap-3 rounded-lg border p-3 cursor-pointer transition-colors",
+                            isSelected
+                              ? "border-[#F7C948] bg-[#F7C948]/10"
+                              : "border-gray-200 bg-white hover:border-[#F7C948]/50"
+                          )}
+                        >
+                          <div className="flex items-start gap-3">
+                            <input
+                              type="checkbox"
+                              className="mt-1 h-4 w-4 rounded border-gray-300 text-[#F7C948] focus:ring-[#F7C948]"
+                              checked={isSelected}
+                              onChange={() => toggleServiceOption(plan, option.id)}
+                            />
+                            <div>
+                              <p className="text-sm font-medium text-[#0A0A0A]">{option.name}</p>
+                              {option.description && (
+                                <p className="text-xs text-gray-500 mt-1">{option.description}</p>
+                              )}
+                            </div>
+                          </div>
+                          <div className="text-sm font-semibold text-[#0A0A0A]">
+                            R$ {optionPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            <span className="text-xs text-gray-500 ml-1">{priceSuffix}</span>
+                          </div>
+                        </label>
+                      )
+                    })}
+                  </div>
+                  {serviceSelection && (
+                    <div className="mt-4 flex items-center justify-between text-sm font-semibold text-[#0A0A0A]">
+                      <span>Total com serviços selecionados:</span>
+                      <span>
+                        R$ {serviceSelection.total.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        <span className="text-xs text-gray-500 ml-1">{priceSuffix}</span>
+                      </span>
+                    </div>
+                  )}
+                  <p className="text-xs text-gray-500 mt-2">
+                    Todos os serviços começam selecionados. Você pode ajustar antes de contratar.
+                  </p>
+                </div>
+              )}
             </CardContent>
             <CardFooter className="p-6 pt-0">
               <Button
-                onClick={() => onPlanSelect(plan.id, billingCycle, plan)}
+                onClick={() => {
+                  if (plan.planType === 'service') {
+                    const selection = getServiceSelectionSummary(plan, billingCycle)
+                    onPlanSelect(plan.id, billingCycle, plan, selection)
+                    return
+                  }
+                  onPlanSelect(plan.id, billingCycle, plan)
+                }}
                 className={cn(
                   "w-full transition-all duration-200",
                   isFeatured

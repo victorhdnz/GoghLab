@@ -548,6 +548,46 @@ Para questões relacionadas a assinaturas, pagamentos ou estes termos, entre em 
 
 **Última atualização**: Janeiro de 2026`,
   },
+  {
+    key: 'termos-servicos',
+    title: 'Termos de Serviços Personalizados',
+    icon: 'file-text',
+    defaultContent: `# Termos de Serviços Personalizados
+
+## 1. Escopo dos Serviços
+
+Os serviços personalizados incluem, quando contratados, atividades como: marketing (tráfego pago), criação de sites completos, criação de conteúdo (roteiro, produção e pós-produção) e gestão de redes sociais. A descrição detalhada de cada serviço contratado será apresentada no momento da compra.
+
+## 2. Seleção e Personalização
+
+Os serviços podem ser combinados e personalizados conforme sua escolha. O valor total será calculado com base nos serviços selecionados e no ciclo de cobrança escolhido (mensal ou anual).
+
+## 3. Prazos e Entregas
+
+Prazos de início, cronograma de execução e entregas específicas serão definidos após a confirmação do pagamento e alinhamento inicial com o usuário. Alterações de escopo podem impactar prazos e custos.
+
+## 4. Responsabilidades do Usuário
+
+Para a execução dos serviços, o usuário se compromete a fornecer informações, acessos e materiais necessários em tempo hábil. A falta de informações pode gerar atrasos no cronograma.
+
+## 5. Cancelamento e Reembolso
+
+Serviços personalizados são iniciados após a confirmação do pagamento e do alinhamento inicial. Regras de cancelamento e reembolso seguem as condições previstas nos Termos de Assinatura e Planos e na legislação aplicável.
+
+## 6. Comunicação e Aprovação
+
+As aprovações de materiais, campanhas e conteúdos serão feitas pelos canais oficiais da plataforma. Caso não haja retorno em tempo razoável, o cronograma poderá ser ajustado.
+
+## 7. Limitação de Responsabilidade
+
+A Gogh Lab não garante resultados específicos (como volume de vendas ou crescimento de audiência), pois dependem de múltiplos fatores externos.
+
+## 8. Alterações
+
+A Gogh Lab pode atualizar estes termos mediante aviso prévio. A continuidade do uso ou contratação implica concordância com as alterações.
+
+**Última atualização**: Janeiro de 2026`,
+  },
 ]
 
 export default function DashboardTermsPage() {

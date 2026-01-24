@@ -20,7 +20,8 @@ import {
   Scissors,
   Sparkles,
   RefreshCw,
-  Zap
+  Zap,
+  Wrench
 } from 'lucide-react'
 
 type TabType = 'profile' | 'plan'
@@ -36,6 +37,15 @@ interface UsageStats {
   agents: AgentUsage[]
 }
 
+interface ServiceSubscription {
+  id: string
+  plan_name: string | null
+  billing_cycle: string
+  status: string
+  current_period_end: string | null
+  selected_services: string[]
+}
+
 export default function AccountPage() {
   const { user, profile, subscription, hasActiveSubscription, isPro, refreshSubscription } = useAuth()
   const [activeTab, setActiveTab] = useState<TabType>('profile')
@@ -43,6 +53,8 @@ export default function AccountPage() {
   const [openingPortal, setOpeningPortal] = useState(false)
   const [usageStats, setUsageStats] = useState<UsageStats | null>(null)
   const [loadingUsage, setLoadingUsage] = useState(false)
+  const [serviceSubscriptions, setServiceSubscriptions] = useState<ServiceSubscription[]>([])
+  const [whatsappNumber, setWhatsappNumber] = useState<string>('5534999999999')
   
   // Form state
   const [fullName, setFullName] = useState('')
@@ -133,6 +145,55 @@ export default function AccountPage() {
       window.removeEventListener('focus', handleFocus)
     }
   }, [user, hasActiveSubscription, isPro])
+
+  useEffect(() => {
+    const loadServiceSubscriptions = async () => {
+      if (!user) {
+        setServiceSubscriptions([])
+        return
+      }
+
+      try {
+        const { data, error } = await (supabase as any)
+          .from('service_subscriptions')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+
+        if (error) {
+          console.error('Erro ao carregar serviços:', error)
+          return
+        }
+
+        setServiceSubscriptions((data || []) as ServiceSubscription[])
+      } catch (error) {
+        console.error('Erro ao carregar serviços:', error)
+      }
+    }
+
+    loadServiceSubscriptions()
+  }, [user, supabase])
+
+  useEffect(() => {
+    const loadWhatsapp = async () => {
+      try {
+        const { data } = await (supabase as any)
+          .from('site_settings')
+          .select('value')
+          .eq('key', 'contact_whatsapp')
+          .single()
+
+        if (data?.value) {
+          const number = data.value.replace(/\D/g, '')
+          setWhatsappNumber(number || '5534999999999')
+        }
+      } catch (error) {
+        console.error('Erro ao carregar WhatsApp:', error)
+      }
+    }
+
+    loadWhatsapp()
+  }, [supabase])
 
   // Listener para atualização de assinatura
   useEffect(() => {
@@ -393,7 +454,8 @@ export default function AccountPage() {
         )}
 
         {activeTab === 'plan' && (
-          <div className="grid lg:grid-cols-2 gap-6">
+          <div className="space-y-6">
+            <div className="grid lg:grid-cols-2 gap-6">
             {/* Current Plan */}
             <div className="bg-white rounded-2xl border border-gogh-grayLight p-6 lg:p-8">
               <div className="flex items-center justify-between mb-6">
@@ -571,6 +633,66 @@ export default function AccountPage() {
                   <p className="text-sm text-gogh-grayDark">
                     Próxima cobrança: {new Date(subscription.current_period_end).toLocaleDateString('pt-BR')}
                   </p>
+                </div>
+              )}
+            </div>
+
+            {/* Serviços Personalizados */}
+            <div className="bg-white rounded-2xl border border-gogh-grayLight p-6 lg:p-8">
+              <div className="flex items-center gap-3 mb-4">
+                <Wrench className="w-5 h-5 text-gogh-grayDark" />
+                <h3 className="text-lg font-bold text-gogh-black">Serviços Contratados</h3>
+              </div>
+
+              {serviceSubscriptions.length === 0 ? (
+                <div className="text-sm text-gogh-grayDark">
+                  Você ainda não contratou serviços personalizados. Se quiser, confira as opções na seção de planos.
+                  <div className="mt-3">
+                    <Link
+                      href="/#pricing-section"
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-gogh-yellow text-gogh-black font-medium rounded-xl hover:bg-gogh-yellow/90 transition-colors"
+                    >
+                      Ver serviços disponíveis
+                    </Link>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {serviceSubscriptions.map((service) => {
+                    const serviceNames = service.selected_services?.length
+                      ? service.selected_services.join(', ')
+                      : 'Serviços personalizados'
+                    const message = `Olá! Gostaria de falar sobre meu serviço contratado (${service.plan_name || 'Serviços Personalizados'}). Serviços: ${serviceNames}.`
+                    const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`
+
+                    return (
+                      <div key={service.id} className="border border-gogh-grayLight rounded-xl p-4 space-y-3">
+                        <div>
+                          <p className="text-sm font-semibold text-gogh-black">
+                            {service.plan_name || 'Serviços Personalizados'}
+                          </p>
+                          <p className="text-xs text-gogh-grayDark">
+                            {service.billing_cycle === 'annual' ? 'Anual' : 'Mensal'}
+                            {service.current_period_end && (
+                              <> • Próxima cobrança: {new Date(service.current_period_end).toLocaleDateString('pt-BR')}</>
+                            )}
+                          </p>
+                        </div>
+                        <div className="text-sm text-gogh-grayDark">
+                          <span className="font-medium text-gogh-black">Serviços:</span> {serviceNames}
+                        </div>
+                        <a
+                          href={whatsappUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-2 px-4 py-2 bg-gogh-black text-white font-medium rounded-xl hover:bg-gogh-black/90 transition-colors"
+                        >
+                          Falar no WhatsApp
+                          <ExternalLink className="w-4 h-4" />
+                        </a>
+                      </div>
+                    )
+                  })}
                 </div>
               )}
             </div>

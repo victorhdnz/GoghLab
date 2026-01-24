@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { PricingComponent, PriceTier, BillingCycle, FeatureCategory } from '@/components/ui/pricing-card'
+import { PricingComponent, PriceTier, BillingCycle, FeatureCategory, PlanSelection } from '@/components/ui/pricing-card'
 import { FadeInElement } from '@/components/ui/FadeInElement'
 
 interface PricingSectionProps {
@@ -25,6 +25,7 @@ export function PricingSection({
   featureCategories = [],
 }: PricingSectionProps) {
   const [billingCycle, setBillingCycle] = useState<BillingCycle>('annually')
+  const hasServicePlan = plans?.some(plan => plan.planType === 'service') ?? false
 
   if (!enabled || !plans) return null
 
@@ -38,7 +39,59 @@ export function PricingSection({
     }
   }, [])
 
-  const handlePlanSelect = async (planId: string, cycle: BillingCycle, plan: PriceTier) => {
+  const handlePlanSelect = async (planId: string, cycle: BillingCycle, plan: PriceTier, selection?: PlanSelection) => {
+    if (plan.planType === 'service') {
+      try {
+        if (typeof window !== 'undefined' && (window as any).fbq) {
+          const total = selection?.totalPrice || 0
+          ;(window as any).fbq('track', 'InitiateCheckout', {
+            value: total,
+            currency: 'BRL',
+            content_name: plan.name
+          })
+        }
+
+        const response = await fetch('/api/checkout/service', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+          body: JSON.stringify({
+            planId,
+            planName: plan.name,
+            billingCycle: cycle,
+            selectedServiceIds: selection?.selectedServiceOptions.map(option => option.id) || [],
+          }),
+        })
+
+        const data = await response.json()
+
+        if (data.url) {
+          window.location.href = data.url
+          return
+        }
+
+        if (data.requiresAuth) {
+          alert('Você precisa estar logado para contratar este serviço. Redirecionando para login...')
+          window.location.href = `/login?redirect=${encodeURIComponent(window.location.pathname + '#pricing-section')}&plan=${planId}&cycle=${cycle}`
+          return
+        }
+
+        if (data.whatsappUrl) {
+          window.open(data.whatsappUrl, '_blank')
+          return
+        }
+
+        console.error('Erro ao criar sessão de checkout:', data.error)
+        alert(data.error || 'Erro ao processar contratação. Tente novamente.')
+      } catch (error) {
+        console.error('Erro ao criar sessão de checkout:', error)
+        alert('Erro ao processar contratação. Tente novamente.')
+      }
+      return
+    }
+
     // Obter o Price ID do Stripe baseado no ciclo
     const priceId = cycle === 'monthly' 
       ? plan.stripePriceIdMonthly 
@@ -126,6 +179,18 @@ export function PricingSection({
             <li>• Limitação de responsabilidade e isenção de garantias</li>
             <li>• Propriedade intelectual e uso adequado dos recursos</li>
           </ul>
+          {hasServicePlan && (
+            <p className="text-center text-xs text-gray-600 mt-4">
+              Para serviços personalizados, consulte também os{' '}
+              <Link
+                href="/termos?termo=termos-servicos"
+                className="underline hover:text-[#F7C948] font-semibold text-[#0A0A0A]"
+              >
+                Termos de Serviços Personalizados
+              </Link>
+              .
+            </p>
+          )}
           <p className="text-center text-xs text-gray-500 mt-4">
             Leia atentamente os termos antes de realizar a assinatura. Dúvidas? Entre em contato conosco.
           </p>

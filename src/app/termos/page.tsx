@@ -41,7 +41,8 @@ export default function TermosPage() {
     'termos-login-google',
     'termos-assinatura-planos',
     'termos-uso',
-    'politica-privacidade'
+    'politica-privacidade',
+    'termos-servicos'
   ]
 
   const handleTermSelect = (termKey: string) => {

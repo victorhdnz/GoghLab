@@ -86,6 +86,63 @@ export async function POST(request: Request) {
 }
 
 async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
+  if (session.metadata?.planType === 'service') {
+    const customerEmail = session.customer_details?.email
+    const subscriptionId = session.subscription as string | undefined
+
+    if (!customerEmail || !subscriptionId) {
+      console.warn('Checkout de serviço sem email ou assinatura.')
+      return
+    }
+
+    const { data: profile, error: profileError } = await supabaseAdmin
+      .from('profiles')
+      .select('id')
+      .eq('email', customerEmail)
+      .single()
+
+    if (profileError || !profile) {
+      console.error('Usuário não encontrado para serviço:', customerEmail)
+      return
+    }
+
+    const subscriptionResponse = await stripe.subscriptions.retrieve(subscriptionId)
+    const subscription = subscriptionResponse as Stripe.Subscription
+
+    const selectedServices = session.metadata?.selectedServices
+      ? session.metadata.selectedServices.split(',').map(item => item.trim()).filter(Boolean)
+      : []
+
+    const { error } = await supabaseAdmin
+      .from('service_subscriptions')
+      .upsert({
+        user_id: profile.id,
+        stripe_subscription_id: subscriptionId,
+        status: subscription.status,
+        billing_cycle: subscription.items.data[0]?.price?.recurring?.interval === 'year' ? 'annual' : 'monthly',
+        current_period_start: new Date((subscription as any).current_period_start * 1000).toISOString(),
+        current_period_end: new Date((subscription as any).current_period_end * 1000).toISOString(),
+        plan_id: session.metadata?.planId || null,
+        plan_name: session.metadata?.planName || 'Serviços Personalizados',
+        selected_services: selectedServices,
+      }, {
+        onConflict: 'stripe_subscription_id'
+      })
+
+    if (error) {
+      console.error('Erro ao salvar serviço:', error)
+      throw error
+    }
+
+    console.log(`Serviço criado para usuário ${profile.id}`)
+    return
+  }
+
+  if (!session.subscription) {
+    console.warn('Checkout sem assinatura - ignorando.')
+    return
+  }
+
   const customerId = session.customer as string
   const subscriptionId = session.subscription as string
   const customerEmail = session.customer_details?.email
@@ -148,6 +205,32 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
   const priceId = subscription.items.data[0]?.price.id
   const planInfo = PRICE_TO_PLAN[priceId]
 
+  const { data: serviceSub } = await supabaseAdmin
+    .from('service_subscriptions')
+    .select('id')
+    .eq('stripe_subscription_id', subscription.id)
+    .maybeSingle()
+
+  if (serviceSub) {
+    const sub = subscription as any
+    const { error } = await supabaseAdmin
+      .from('service_subscriptions')
+      .update({
+        status: subscription.status,
+        current_period_start: new Date(sub.current_period_start * 1000).toISOString(),
+        current_period_end: new Date(sub.current_period_end * 1000).toISOString(),
+      })
+      .eq('stripe_subscription_id', subscription.id)
+
+    if (error) {
+      console.error('Error updating service subscription:', error)
+      throw error
+    }
+
+    console.log(`Service subscription ${subscription.id} updated`)
+    return
+  }
+
   if (!planInfo) {
     console.error('Unknown price ID:', priceId)
     return
@@ -179,6 +262,29 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
 }
 
 async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
+  const { data: serviceSub } = await supabaseAdmin
+    .from('service_subscriptions')
+    .select('id')
+    .eq('stripe_subscription_id', subscription.id)
+    .maybeSingle()
+
+  if (serviceSub) {
+    const { error } = await supabaseAdmin
+      .from('service_subscriptions')
+      .update({
+        status: 'canceled'
+      })
+      .eq('stripe_subscription_id', subscription.id)
+
+    if (error) {
+      console.error('Error canceling service subscription:', error)
+      throw error
+    }
+
+    console.log(`Service subscription ${subscription.id} canceled`)
+    return
+  }
+
   const { error } = await supabaseAdmin
     .from('subscriptions')
     .update({
