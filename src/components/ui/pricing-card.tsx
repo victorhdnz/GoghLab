@@ -209,12 +209,17 @@ export const PricingComponent: React.FC<PricingComponentProps> = ({
     <div className={`grid gap-8 ${gridCols} md:gap-6 lg:gap-8`}>
       {plans.map((plan) => {
         const isFeatured = plan.isPopular
-        const currentPrice = billingCycle === 'monthly' ? plan.priceMonthly : plan.priceAnnually
-        const originalMonthlyPrice = plan.priceMonthly
-        const priceSuffix = billingCycle === 'monthly' ? '/mês' : '/ano'
         const serviceSelection = plan.planType === 'service'
           ? getServiceSelectionSummary(plan, billingCycle)
           : null
+        // Para planos de serviço, usar o preço dinâmico baseado nas seleções
+        const currentPrice = plan.planType === 'service' && serviceSelection
+          ? serviceSelection.totalPrice
+          : (billingCycle === 'monthly' ? plan.priceMonthly : plan.priceAnnually)
+        const originalMonthlyPrice = plan.planType === 'service' && serviceSelection
+          ? serviceSelection.totalPrice
+          : plan.priceMonthly
+        const priceSuffix = billingCycle === 'monthly' ? '/mês' : '/ano'
 
         return (
           <Card
@@ -250,20 +255,31 @@ export const PricingComponent: React.FC<PricingComponentProps> = ({
                   <>
                     {/* Destaque: parcela mensal equivalente */}
                     <p className="text-4xl font-extrabold text-[#0A0A0A]">
-                      R$ {(plan.priceAnnually / 12).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      R$ {(plan.planType === 'service' && serviceSelection
+                        ? (serviceSelection.totalPrice / 12)
+                        : (plan.priceAnnually / 12)
+                      ).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       <span className="text-base font-normal text-gray-500 ml-1">/mês</span>
                     </p>
-                    {/* Preço mensal original riscado */}
-                    <p className="text-sm text-gray-400 line-through mt-1">
-                      R$ {originalMonthlyPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/mês
-                    </p>
+                    {/* Preço mensal original riscado - apenas se não for serviço */}
+                    {plan.planType !== 'service' && (
+                      <p className="text-sm text-gray-400 line-through mt-1">
+                        R$ {originalMonthlyPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/mês
+                      </p>
+                    )}
                     {/* Total anual menor */}
                     <p className="text-xs text-gray-500 mt-2">
-                      Cobrado anualmente: R$ {plan.priceAnnually.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      Cobrado anualmente: R$ {(plan.planType === 'service' && serviceSelection
+                        ? serviceSelection.totalPrice
+                        : plan.priceAnnually
+                      ).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </p>
-                    <p className="text-xs text-green-600 font-semibold mt-1">
-                      Economia de R$ {((originalMonthlyPrice * 12) - plan.priceAnnually).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/ano
-                    </p>
+                    {/* Economia - apenas se não for serviço */}
+                    {plan.planType !== 'service' && (
+                      <p className="text-xs text-green-600 font-semibold mt-1">
+                        Economia de R$ {((originalMonthlyPrice * 12) - plan.priceAnnually).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/ano
+                      </p>
+                    )}
                   </>
                 )}
               </div>
@@ -404,7 +420,7 @@ export const PricingComponent: React.FC<PricingComponentProps> = ({
                 size="lg"
                 aria-label={`Select ${plan.name} plan for ${currentPrice} ${priceSuffix}`}
               >
-                {plan.buttonLabel}
+                {plan.planType === 'service' ? 'Adquirir' : (plan.buttonLabel || 'Assinar')}
               </Button>
             </CardFooter>
           </Card>

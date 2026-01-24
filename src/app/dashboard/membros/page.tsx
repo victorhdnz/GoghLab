@@ -65,6 +65,9 @@ export default function MembrosPage() {
   const [editingPlan, setEditingPlan] = useState<string>('')
   const [editingBillingCycle, setEditingBillingCycle] = useState<'monthly' | 'annual'>('monthly')
   const [saving, setSaving] = useState(false)
+  const [editingServiceMember, setEditingServiceMember] = useState<string | null>(null)
+  const [editingServiceOptions, setEditingServiceOptions] = useState<string[]>([])
+  const [editingServiceBillingCycle, setEditingServiceBillingCycle] = useState<'monthly' | 'annual'>('monthly')
 
   useEffect(() => {
     // Carregar membros - autenticação é verificada pelo middleware
@@ -210,6 +213,82 @@ export default function MembrosPage() {
     setEditingMember(null)
     setEditingPlan('')
     setEditingBillingCycle('monthly')
+  }
+
+  const handleSaveService = async (memberId: string) => {
+    try {
+      setSaving(true)
+      
+      if (editingServiceOptions.length === 0) {
+        toast.error('Selecione pelo menos um serviço')
+        return
+      }
+
+      const now = new Date()
+      const periodEnd = new Date(now)
+      if (editingServiceBillingCycle === 'annual') {
+        periodEnd.setFullYear(periodEnd.getFullYear() + 1)
+      } else {
+        periodEnd.setMonth(periodEnd.getMonth() + 1)
+      }
+
+      // Buscar nomes dos serviços do site_settings
+      const { data: settings } = await (supabase as any)
+        .from('site_settings')
+        .select('homepage_content')
+        .eq('key', 'general')
+        .maybeSingle()
+
+      const serviceNames: string[] = []
+      if (settings?.homepage_content?.pricing?.pricing_plans) {
+        const agencyPlan = settings.homepage_content.pricing.pricing_plans.find((p: any) => p.id === 'gogh-agencia' || p.planType === 'service')
+        if (agencyPlan?.serviceOptions) {
+          editingServiceOptions.forEach(serviceId => {
+            const service = agencyPlan.serviceOptions.find((opt: any) => opt.id === serviceId)
+            if (service) serviceNames.push(service.name)
+          })
+        }
+      }
+
+      // Se não encontrou os nomes, usar IDs como fallback
+      const finalServiceNames = serviceNames.length > 0 ? serviceNames : editingServiceOptions
+
+      const insertData: any = {
+        user_id: memberId,
+        plan_id: 'gogh-agencia',
+        plan_name: 'Gogh Agency',
+        status: 'active',
+        billing_cycle: editingServiceBillingCycle,
+        stripe_subscription_id: null,
+        current_period_start: now.toISOString(),
+        current_period_end: periodEnd.toISOString(),
+        selected_services: finalServiceNames,
+        total_price: 0, // Pode ser calculado depois se necessário
+        created_at: now.toISOString(),
+        updated_at: now.toISOString()
+      }
+
+      const { error } = await (supabase as any)
+        .from('service_subscriptions')
+        .insert(insertData)
+
+      if (error) {
+        console.error('Erro ao criar assinatura de serviço:', error)
+        throw new Error(error.message || 'Erro ao criar assinatura de serviço')
+      }
+
+      toast.success('Serviço adicionado com sucesso!')
+      setEditingServiceMember(null)
+      setEditingServiceOptions([])
+      setEditingServiceBillingCycle('monthly')
+      
+      await loadMembers()
+    } catch (error: any) {
+      console.error('Error saving service:', error)
+      toast.error(error?.message || 'Erro ao salvar serviço')
+    } finally {
+      setSaving(false)
+    }
   }
 
   const handleSavePlan = async (memberId: string) => {
@@ -684,16 +763,72 @@ export default function MembrosPage() {
                         )}
                       </td>
                       <td className="px-6 py-4">
-                        {(member.serviceSubscriptions || []).length === 0 ? (
-                          <span className="text-sm text-gray-400">—</span>
+                        {editingServiceMember === member.id ? (
+                          <div className="space-y-2">
+                            <div className="text-xs text-gray-600 mb-2">Selecione os serviços:</div>
+                            {(() => {
+                              // Buscar serviços disponíveis do site_settings
+                              const serviceOptions = [
+                                { id: 'marketing-trafego-pago', name: 'Marketing (Tráfego Pago)' },
+                                { id: 'criacao-sites', name: 'Criação de sites completos' },
+                                { id: 'criacao-conteudo', name: 'Criação de conteúdo completa' },
+                                { id: 'gestao-redes-sociais', name: 'Gestão de redes sociais' },
+                              ]
+                              return (
+                                <div className="space-y-1">
+                                  {serviceOptions.map(option => (
+                                    <label key={option.id} className="flex items-center gap-2 text-sm">
+                                      <input
+                                        type="checkbox"
+                                        checked={editingServiceOptions.includes(option.id)}
+                                        onChange={(e) => {
+                                          if (e.target.checked) {
+                                            setEditingServiceOptions([...editingServiceOptions, option.id])
+                                          } else {
+                                            setEditingServiceOptions(editingServiceOptions.filter(id => id !== option.id))
+                                          }
+                                        }}
+                                        className="rounded border-gray-300 text-[#F7C948] focus:ring-[#F7C948]"
+                                      />
+                                      <span>{option.name}</span>
+                                    </label>
+                                  ))}
+                                </div>
+                              )
+                            })()}
+                            <select
+                              value={editingServiceBillingCycle}
+                              onChange={(e) => setEditingServiceBillingCycle(e.target.value as 'monthly' | 'annual')}
+                              className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-black"
+                            >
+                              <option value="monthly">Mensal</option>
+                              <option value="annual">Anual</option>
+                            </select>
+                          </div>
                         ) : (
-                          <div className="space-y-1 text-sm text-gray-700">
-                            {(member.serviceSubscriptions || []).map((service) => (
-                              <div key={service.id}>
-                                <span className="font-medium">{service.plan_name || 'Serviços Personalizados'}:</span>{' '}
-                                {service.selected_services?.length ? service.selected_services.join(', ') : 'Serviços personalizados'}
+                          <div>
+                            {(member.serviceSubscriptions || []).length === 0 ? (
+                              <span className="text-sm text-gray-400">—</span>
+                            ) : (
+                              <div className="space-y-1 text-sm text-gray-700">
+                                {(member.serviceSubscriptions || []).map((service) => (
+                                  <div key={service.id}>
+                                    <span className="font-medium">{service.plan_name || 'Serviços Personalizados'}:</span>{' '}
+                                    {service.selected_services?.length ? service.selected_services.join(', ') : 'Serviços personalizados'}
+                                  </div>
+                                ))}
                               </div>
-                            ))}
+                            )}
+                            <button
+                              onClick={() => {
+                                setEditingServiceMember(member.id)
+                                setEditingServiceOptions([])
+                                setEditingServiceBillingCycle('monthly')
+                              }}
+                              className="mt-2 text-xs text-blue-600 hover:text-blue-800 underline"
+                            >
+                              {member.serviceSubscriptions && member.serviceSubscriptions.length > 0 ? 'Editar' : 'Adicionar serviço'}
+                            </button>
                           </div>
                         )}
                       </td>
@@ -704,10 +839,16 @@ export default function MembrosPage() {
                         </div>
                       </td>
                       <td className="px-6 py-4 text-right">
-                        {editingMember === member.id ? (
+                        {editingMember === member.id || editingServiceMember === member.id ? (
                           <div className="flex items-center justify-end gap-2">
                             <button
-                              onClick={() => handleSavePlan(member.id)}
+                              onClick={() => {
+                                if (editingMember === member.id) {
+                                  handleSavePlan(member.id)
+                                } else if (editingServiceMember === member.id) {
+                                  handleSaveService(member.id)
+                                }
+                              }}
                               disabled={saving}
                               className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors disabled:opacity-50"
                             >
@@ -718,7 +859,15 @@ export default function MembrosPage() {
                               )}
                             </button>
                             <button
-                              onClick={handleCancelEdit}
+                              onClick={() => {
+                                if (editingMember === member.id) {
+                                  handleCancelEdit()
+                                } else if (editingServiceMember === member.id) {
+                                  setEditingServiceMember(null)
+                                  setEditingServiceOptions([])
+                                  setEditingServiceBillingCycle('monthly')
+                                }
+                              }}
                               className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"
                             >
                               <X className="w-4 h-4" />

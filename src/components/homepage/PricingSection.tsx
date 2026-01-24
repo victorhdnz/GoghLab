@@ -183,7 +183,7 @@ export function PricingSection({
             <p className="text-center text-xs text-gray-600 mt-4">
               Para serviços personalizados, consulte também os{' '}
               <Link
-                href="/termos?termo=termos-servicos"
+                href="/termos?termo=termos-servicos-personalizados"
                 className="underline hover:text-[#F7C948] font-semibold text-[#0A0A0A]"
               >
                 Termos de Serviços Personalizados

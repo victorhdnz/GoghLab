@@ -87,6 +87,37 @@ export default function PricingEditorPage() {
         priceAnnually: 14000,
       },
     ],
+    // Textos padrão específicos para serviços (não espelham dos planos de assinatura)
+    category_values: [
+      {
+        category_id: 'agentes-ia',
+        text: 'Serviços executados pela equipe da agência'
+      },
+      {
+        category_id: 'limite-uso-diario',
+        text: 'Sem limites - execução completa pela equipe'
+      },
+      {
+        category_id: 'cursos-edicao',
+        text: 'Não incluído - foco em execução de serviços'
+      },
+      {
+        category_id: 'canva-pro',
+        text: 'Não incluído - foco em execução de serviços'
+      },
+      {
+        category_id: 'capcut-pro',
+        text: 'Não incluído - foco em execução de serviços'
+      },
+      {
+        category_id: 'materiais-exclusivos',
+        text: 'Não incluído - foco em execução de serviços'
+      },
+      {
+        category_id: 'suporte',
+        text: 'Suporte dedicado via WhatsApp para clientes de serviços'
+      },
+    ],
   }
 
   const ensureAgencyPlan = (plans: PriceTier[] | undefined) => {
