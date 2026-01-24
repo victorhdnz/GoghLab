@@ -185,13 +185,25 @@ export default function AccountPage() {
           return
         }
 
-        setServiceSubscriptions((data || []) as ServiceSubscription[])
+        const services = (data || []) as ServiceSubscription[]
+        console.log('📦 Serviços carregados:', services.length, services)
+        setServiceSubscriptions(services)
       } catch (error) {
         console.error('Erro ao carregar serviços:', error)
       }
     }
 
     loadServiceSubscriptions()
+    
+    // Atualizar serviços quando a página ganha foco (usuário volta para a aba)
+    const handleFocus = () => {
+      loadServiceSubscriptions()
+    }
+    window.addEventListener('focus', handleFocus)
+    
+    return () => {
+      window.removeEventListener('focus', handleFocus)
+    }
   }, [user, supabase])
 
   useEffect(() => {
@@ -365,7 +377,12 @@ export default function AccountPage() {
 
   const tabs = [
     { id: 'profile' as TabType, label: 'Perfil', icon: User },
-    { id: 'plan' as TabType, label: 'Plano & Uso', icon: CreditCard },
+    { 
+      id: 'plan' as TabType, 
+      label: 'Plano & Uso', 
+      icon: CreditCard,
+      badge: serviceSubscriptions.length > 0 ? serviceSubscriptions.length : undefined
+    },
   ]
 
   const planFeatures = getPlanFeatures(hasActiveSubscription, isPro)
@@ -390,7 +407,7 @@ export default function AccountPage() {
             onClick={() => setActiveTab(tab.id)}
             className={`
               flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg
-              font-medium transition-all duration-200
+              font-medium transition-all duration-200 relative
               ${activeTab === tab.id 
                 ? 'bg-white text-gogh-black shadow-sm' 
                 : 'text-gogh-grayDark hover:text-gogh-black'
@@ -399,6 +416,11 @@ export default function AccountPage() {
           >
             <tab.icon className="w-4 h-4" />
             {tab.label}
+            {tab.badge && tab.badge > 0 && (
+              <span className="absolute -top-1 -right-1 w-5 h-5 bg-gogh-yellow text-gogh-black text-xs font-bold rounded-full flex items-center justify-center">
+                {tab.badge}
+              </span>
+            )}
           </button>
         ))}
       </div>
@@ -646,9 +668,16 @@ export default function AccountPage() {
 
             {/* Serviços Personalizados */}
             <div className="bg-white rounded-2xl border border-gogh-grayLight p-6 lg:p-8">
-              <div className="flex items-center gap-3 mb-4">
-                <Wrench className="w-5 h-5 text-gogh-grayDark" />
-                <h3 className="text-lg font-bold text-gogh-black">Serviços Contratados</h3>
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <Wrench className="w-5 h-5 text-gogh-grayDark" />
+                  <h3 className="text-lg font-bold text-gogh-black">Serviços Contratados</h3>
+                  {serviceSubscriptions.length > 0 && (
+                    <span className="px-2 py-1 bg-gogh-yellow/20 text-gogh-black text-xs font-semibold rounded-full">
+                      {serviceSubscriptions.length} {serviceSubscriptions.length === 1 ? 'serviço' : 'serviços'}
+                    </span>
+                  )}
+                </div>
               </div>
 
               {serviceSubscriptions.length === 0 ? (

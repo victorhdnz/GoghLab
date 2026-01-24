@@ -669,96 +669,147 @@ export const PricingComponent: React.FC<PricingComponentProps> = ({
         title="Comparação Detalhada de Recursos"
         size="xl"
       >
-        <div className="border border-[#F7C948]/30 rounded-lg overflow-x-auto shadow-sm bg-white">
-          <table className="min-w-full divide-y divide-[#F7C948]/20">
-            <thead>
-              <tr className="bg-[#F7C948]/10">
-                <th scope="col" className="px-4 py-3 text-left text-sm font-semibold text-[#0A0A0A] w-[150px] whitespace-nowrap">
-                  Recurso
-                </th>
-                {plans.map((plan) => (
-                  <th
-                    key={`th-modal-${plan.id}`}
-                    scope="col"
-                    className={cn(
-                      "px-4 py-3 text-center text-sm font-semibold text-[#0A0A0A] whitespace-nowrap",
-                      plan.isPopular && "bg-[#F7C948]/20"
-                    )}
-                  >
-                    {plan.name}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#F7C948]/10 bg-white">
-              {sortedCategories.length > 0 ? (
-                sortedCategories.map((category, index) => {
-                  const planValues = plans.map(plan => {
-                    const categoryValue = (plan.category_values || []).find(cv => cv.category_id === category.id)
-                    return {
-                      plan,
-                      hasCategory: !!(categoryValue?.text && categoryValue.text.trim() !== ''),
-                      text: categoryValue?.text || ''
-                    }
-                  })
-                  
-                  const allHaveCategory = planValues.every(pv => pv.hasCategory)
-
-                  return (
-                    <tr key={`modal-${category.id}`} className={cn("transition-colors hover:bg-[#F7C948]/5", index % 2 === 0 ? "bg-white" : "bg-[#F5F1E8]/50")}>
-                      <td className="px-4 py-3 text-left text-sm font-semibold text-[#0A0A0A]">
-                        {category.name}
-                      </td>
-                      {planValues.map(({ plan, hasCategory, text }) => {
-                        if (allHaveCategory) {
-                          return (
-                            <td
-                              key={`modal-${plan.id}-${category.id}`}
-                              className={cn(
-                                "px-4 py-3 text-left transition-all duration-150",
-                                plan.isPopular && "bg-[#F7C948]/10"
-                              )}
-                            >
-                              <div className="flex items-start gap-2">
-                                <Check className="h-4 w-4 flex-shrink-0 text-[#F7C948] mt-0.5" aria-hidden="true" />
-                                <span className="text-sm text-gray-600 leading-relaxed">{text}</span>
-                              </div>
-                            </td>
-                          )
-                        } else {
-                          return (
-                            <td
-                              key={`modal-${plan.id}-${category.id}`}
-                              className={cn(
-                                "px-4 py-3 transition-all duration-150",
-                                hasCategory ? "text-left" : "text-center",
-                                plan.isPopular && "bg-[#F7C948]/10"
-                              )}
-                            >
-                              {hasCategory && text ? (
-                                <div className="flex items-start gap-2">
-                                  <Check className="h-4 w-4 flex-shrink-0 text-[#F7C948] mt-0.5" aria-hidden="true" />
-                                  <span className="text-sm text-gray-600 leading-relaxed">{text}</span>
-                                </div>
-                              ) : (
-                                <X className="h-5 w-5 mx-auto text-gray-400" aria-hidden="true" />
-                              )}
-                            </td>
-                          )
+        <div className="space-y-6">
+          {/* Tabela de Planos de Assinatura */}
+          {subscriptionPlans.length > 0 && (
+            <div className="border border-[#F7C948]/30 rounded-lg overflow-x-auto shadow-sm bg-white">
+              <table className="min-w-full divide-y divide-[#F7C948]/20">
+                <thead>
+                  <tr className="bg-[#F7C948]/10">
+                    <th scope="col" className="px-4 py-3 text-left text-sm font-semibold text-[#0A0A0A] w-[150px] whitespace-nowrap">
+                      Recurso
+                    </th>
+                    {subscriptionPlans.map((plan) => (
+                      <th
+                        key={`th-modal-${plan.id}`}
+                        scope="col"
+                        className={cn(
+                          "px-4 py-3 text-center text-sm font-semibold text-[#0A0A0A] whitespace-nowrap",
+                          plan.isPopular && "bg-[#F7C948]/20"
+                        )}
+                      >
+                        {plan.name}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#F7C948]/10 bg-white">
+                  {sortedCategories.length > 0 ? (
+                    sortedCategories.map((category, index) => {
+                      const planValues = subscriptionPlans.map(plan => {
+                        const categoryValue = (plan.category_values || []).find(cv => cv.category_id === category.id)
+                        return {
+                          plan,
+                          hasCategory: !!(categoryValue?.text && categoryValue.text.trim() !== ''),
+                          text: categoryValue?.text || ''
                         }
-                      })}
+                      })
+                      
+                      const allHaveCategory = planValues.length > 0 && planValues.every(pv => pv.hasCategory)
+
+                      return (
+                        <tr key={`modal-${category.id}`} className={cn("transition-colors hover:bg-[#F7C948]/5", index % 2 === 0 ? "bg-white" : "bg-[#F5F1E8]/50")}>
+                          <td className="px-4 py-3 text-left text-sm font-semibold text-[#0A0A0A]">
+                            {category.name}
+                          </td>
+                          {planValues.map(({ plan, hasCategory, text }) => {
+                            if (allHaveCategory) {
+                              return (
+                                <td
+                                  key={`modal-${plan.id}-${category.id}`}
+                                  className={cn(
+                                    "px-4 py-3 text-left transition-all duration-150",
+                                    plan.isPopular && "bg-[#F7C948]/10"
+                                  )}
+                                >
+                                  <div className="flex items-start gap-2">
+                                    <Check className="h-4 w-4 flex-shrink-0 text-[#F7C948] mt-0.5" aria-hidden="true" />
+                                    <span className="text-sm text-gray-600 leading-relaxed">{text}</span>
+                                  </div>
+                                </td>
+                              )
+                            } else {
+                              return (
+                                <td
+                                  key={`modal-${plan.id}-${category.id}`}
+                                  className={cn(
+                                    "px-4 py-3 transition-all duration-150",
+                                    hasCategory ? "text-left" : "text-center",
+                                    plan.isPopular && "bg-[#F7C948]/10"
+                                  )}
+                                >
+                                  {hasCategory && text ? (
+                                    <div className="flex items-start gap-2">
+                                      <Check className="h-4 w-4 flex-shrink-0 text-[#F7C948] mt-0.5" aria-hidden="true" />
+                                      <span className="text-sm text-gray-600 leading-relaxed">{text}</span>
+                                    </div>
+                                  ) : (
+                                    <X className="h-5 w-5 mx-auto text-gray-400" aria-hidden="true" />
+                                  )}
+                                </td>
+                              )
+                            }
+                          })}
+                        </tr>
+                      )
+                    })
+                  ) : (
+                    <tr>
+                      <td colSpan={subscriptionPlans.length + 1} className="px-4 py-4 text-center text-sm text-gray-500">
+                        Nenhuma categoria configurada
+                      </td>
                     </tr>
-                  )
-                })
-              ) : (
-                <tr>
-                  <td colSpan={4} className="px-4 py-4 text-center text-sm text-gray-500">
-                    Nenhuma categoria configurada
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {/* Tabela de Serviços Personalizados */}
+          {servicePlans.length > 0 && servicePlans[0].serviceOptions && servicePlans[0].serviceOptions.length > 0 && (
+            <div className="border border-[#F7C948]/30 rounded-lg overflow-x-auto shadow-sm bg-white">
+              <h3 className="text-lg font-semibold text-[#0A0A0A] px-4 py-3 bg-[#F7C948]/10 border-b border-[#F7C948]/20">
+                Serviços Disponíveis
+              </h3>
+              <table className="min-w-full divide-y divide-[#F7C948]/20">
+                <thead>
+                  <tr className="bg-[#F7C948]/10">
+                    <th scope="col" className="px-4 py-3 text-left text-sm font-semibold text-[#0A0A0A]">
+                      Serviço
+                    </th>
+                    <th scope="col" className="px-4 py-3 text-left text-sm font-semibold text-[#0A0A0A]">
+                      Descrição
+                    </th>
+                    <th scope="col" className="px-4 py-3 text-center text-sm font-semibold text-[#0A0A0A]">
+                      Preço Mensal
+                    </th>
+                    <th scope="col" className="px-4 py-3 text-center text-sm font-semibold text-[#0A0A0A]">
+                      Preço Anual
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#F7C948]/10 bg-white">
+                  {servicePlans[0].serviceOptions.map((service, index) => (
+                    <tr key={service.id} className={cn("transition-colors hover:bg-[#F7C948]/5", index % 2 === 0 ? "bg-white" : "bg-[#F5F1E8]/50")}>
+                      <td className="px-4 py-3 text-left text-sm font-medium text-[#0A0A0A]">
+                        {service.name}
+                      </td>
+                      <td className="px-4 py-3 text-left text-sm text-gray-600">
+                        {service.description || '—'}
+                      </td>
+                      <td className="px-4 py-3 text-center text-sm font-semibold text-[#0A0A0A]">
+                        R$ {service.priceMonthly.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </td>
+                      <td className="px-4 py-3 text-center text-sm font-semibold text-[#0A0A0A]">
+                        R$ {service.priceAnnually.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        <span className="block text-xs text-green-600 mt-1">Economia de 20%</span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       </Modal>
     </div>

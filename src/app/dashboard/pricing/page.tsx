@@ -666,56 +666,59 @@ export default function PricingEditorPage() {
                         Planos de serviços permitem seleção de itens e preço total dinâmico.
                       </p>
                     </div>
-                    <div className="space-y-4">
-                      <Input
-                        label="Preço Mensal (R$)"
-                        value={plan.priceMonthly.toString()}
-                        onChange={(e) => updatePlan(planIndex, 'priceMonthly', parseFloat(e.target.value) || 0)}
-                        type="number"
-                        min="0"
-                        step="0.01"
-                      />
-                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                        <p className="text-xs text-blue-800 mb-1">
-                          <strong>💡 Dica:</strong> O preço anual é calculado automaticamente com base no desconto de {formData.pricing_annual_discount || 20}%.
-                        </p>
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-sm font-medium mb-2">
-                            Preço Anual (R$) - Calculado automaticamente
-                          </label>
-                          <Input
-                            value={plan.priceAnnually.toString()}
-                            onChange={(e) => updatePlan(planIndex, 'priceAnnually', parseFloat(e.target.value) || 0)}
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            className="bg-gray-50"
-                          />
-                          <p className="text-xs text-gray-500 mt-1">
-                            <strong>Parcela mensal equivalente:</strong> R$ {(plan.priceAnnually / 12).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/mês
+                    {/* Preços - Apenas para planos de assinatura */}
+                    {plan.planType !== 'service' && (
+                      <div className="space-y-4">
+                        <Input
+                          label="Preço Mensal (R$)"
+                          value={plan.priceMonthly.toString()}
+                          onChange={(e) => updatePlan(planIndex, 'priceMonthly', parseFloat(e.target.value) || 0)}
+                          type="number"
+                          min="0"
+                          step="0.01"
+                        />
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                          <p className="text-xs text-blue-800 mb-1">
+                            <strong>💡 Dica:</strong> O preço anual é calculado automaticamente com base no desconto de {formData.pricing_annual_discount || 20}%.
                           </p>
                         </div>
-                        <div>
-                          <label className="block text-sm font-medium mb-2">Informações de Economia</label>
-                          <div className="px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-sm space-y-1">
-                            <p className="text-gray-700">
-                              <strong>Total sem desconto (12x):</strong> R$ {(plan.priceMonthly * 12).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                            </p>
-                            <p className="text-green-600 font-semibold">
-                              <strong>Economia total:</strong> R$ {((plan.priceMonthly * 12) - plan.priceAnnually).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                            </p>
-                            <p className="text-blue-600 font-semibold">
-                              <strong>Desconto aplicado:</strong> {formData.pricing_annual_discount || 20}%
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-sm font-medium mb-2">
+                              Preço Anual (R$) - Calculado automaticamente
+                            </label>
+                            <Input
+                              value={plan.priceAnnually.toString()}
+                              onChange={(e) => updatePlan(planIndex, 'priceAnnually', parseFloat(e.target.value) || 0)}
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              className="bg-gray-50"
+                            />
+                            <p className="text-xs text-gray-500 mt-1">
+                              <strong>Parcela mensal equivalente:</strong> R$ {(plan.priceAnnually / 12).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/mês
                             </p>
                           </div>
+                          <div>
+                            <label className="block text-sm font-medium mb-2">Informações de Economia</label>
+                            <div className="px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-sm space-y-1">
+                              <p className="text-gray-700">
+                                <strong>Total sem desconto (12x):</strong> R$ {(plan.priceMonthly * 12).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              </p>
+                              <p className="text-green-600 font-semibold">
+                                <strong>Economia total:</strong> R$ {((plan.priceMonthly * 12) - plan.priceAnnually).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              </p>
+                              <p className="text-blue-600 font-semibold">
+                                <strong>Desconto aplicado:</strong> {formData.pricing_annual_discount || 20}%
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="text-xs text-gray-500 bg-yellow-50 border border-yellow-200 rounded-lg p-2">
+                          <strong>💡 Nota:</strong> O preço anual é calculado automaticamente quando você altera o preço mensal. Você pode editá-lo manualmente se necessário, mas será recalculado novamente se alterar o preço mensal.
                         </div>
                       </div>
-                      <div className="text-xs text-gray-500 bg-yellow-50 border border-yellow-200 rounded-lg p-2">
-                        <strong>💡 Nota:</strong> O preço anual é calculado automaticamente quando você altera o preço mensal. Você pode editá-lo manualmente se necessário, mas será recalculado novamente se alterar o preço mensal.
-                      </div>
-                    </div>
+                    )}
                     <Switch
                       label="Marcar como 'Most Popular'"
                       checked={plan.isPopular}
@@ -760,14 +763,19 @@ export default function PricingEditorPage() {
                                     min="0"
                                     step="0.01"
                                   />
-                                  <Input
-                                    label="Preço Anual (R$) - Calculado automaticamente"
-                                    value={option.priceAnnually.toString()}
-                                    onChange={(e) => updateServiceOption(planIndex, optionIndex, 'priceAnnually', parseFloat(e.target.value) || 0)}
-                                    type="number"
-                                    min="0"
-                                    step="0.01"
-                                  />
+                                  <div>
+                                    <label className="block text-sm font-medium mb-2">
+                                      Preço Anual (R$) - Calculado automaticamente
+                                    </label>
+                                    <Input
+                                      value={option.priceAnnually.toString()}
+                                      readOnly
+                                      type="number"
+                                      min="0"
+                                      step="0.01"
+                                      className="bg-gray-50 cursor-not-allowed"
+                                    />
+                                  </div>
                                 </div>
                                 {option.priceMonthly > 0 && (
                                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
