@@ -65,11 +65,44 @@ export default function AccountPage() {
   const [openingPortal, setOpeningPortal] = useState(false)
   const [usageStats, setUsageStats] = useState<UsageStats | null>(null)
   const [loadingUsage, setLoadingUsage] = useState(false)
+  const [hasServiceSubscriptions, setHasServiceSubscriptions] = useState(false)
   
   // Form state
   const [fullName, setFullName] = useState('')
 
   const supabase = createClient()
+
+  // Verificar se o usuário tem serviços contratados
+  useEffect(() => {
+    const checkServiceSubscriptions = async () => {
+      if (!user) {
+        setHasServiceSubscriptions(false)
+        return
+      }
+
+      try {
+        const { data, error } = await (supabase as any)
+          .from('service_subscriptions')
+          .select('id')
+          .eq('user_id', user.id)
+          .in('status', ['active', 'trialing'])
+          .limit(1)
+
+        if (error) {
+          console.error('Erro ao verificar serviços:', error)
+          setHasServiceSubscriptions(false)
+          return
+        }
+
+        setHasServiceSubscriptions((data && data.length > 0) || false)
+      } catch (error) {
+        console.error('Erro ao verificar serviços:', error)
+        setHasServiceSubscriptions(false)
+      }
+    }
+
+    checkServiceSubscriptions()
+  }, [user, supabase])
 
   useEffect(() => {
     if (profile) {
@@ -455,6 +488,23 @@ export default function AccountPage() {
                         </>
                       )}
                     </button>
+                  </>
+                ) : hasServiceSubscriptions ? (
+                  <>
+                    <div className="inline-flex items-center gap-2 px-4 py-2 bg-gogh-yellow/20 text-gogh-black rounded-full mb-4">
+                      <Wrench className="w-5 h-5" />
+                      <span className="font-bold">Serviços Personalizados</span>
+                    </div>
+                    <p className="text-gogh-grayDark mb-6">
+                      Você tem serviços personalizados contratados. Acesse a aba "Meus Serviços" para mais detalhes.
+                    </p>
+                    <Link
+                      href="/membro/servicos"
+                      className="inline-flex items-center gap-2 px-6 py-3 bg-gogh-yellow text-gogh-black font-medium rounded-xl hover:bg-gogh-yellow/90 transition-colors"
+                    >
+                      Ver Meus Serviços
+                      <ExternalLink className="w-4 h-4" />
+                    </Link>
                   </>
                 ) : (
                   <>

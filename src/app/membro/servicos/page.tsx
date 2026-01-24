@@ -114,10 +114,11 @@ export default function ServicosPage() {
       loadServiceSubscriptions()
     }
     
-    // Atualizar periodicamente (a cada 3 segundos) para pegar mudanças manuais
+    // Atualizar periodicamente (a cada 30 segundos) para pegar mudanças manuais
+    // Intervalo aumentado para evitar atualizações muito frequentes
     const interval = setInterval(() => {
       loadServiceSubscriptions()
-    }, 3000)
+    }, 30000)
     
     window.addEventListener('focus', handleFocus)
     window.addEventListener('service-subscription-updated', handleServiceUpdate)
