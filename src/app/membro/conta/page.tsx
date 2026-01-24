@@ -642,6 +642,7 @@ export default function AccountPage() {
                 </div>
               )}
             </div>
+            </div>
 
             {/* Serviços Personalizados */}
             <div className="bg-white rounded-2xl border border-gogh-grayLight p-6 lg:p-8">
