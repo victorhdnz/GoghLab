@@ -91,7 +91,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gogh-beige via-white to-gogh-beige flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-gogh-black via-gogh-grayDark to-gogh-yellow/20 flex items-center justify-center p-4">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -201,30 +201,6 @@ export default function LoginPage() {
               )}
             </button>
 
-            {/* Divider */}
-            <div className="my-6 flex items-center gap-4">
-              <div className="flex-1 h-px bg-gogh-grayLight" />
-              <span className="text-sm text-gogh-grayDark">ou</span>
-              <div className="flex-1 h-px bg-gogh-grayLight" />
-            </div>
-
-            {/* Benefits */}
-            <div className="space-y-3">
-              <p className="text-sm font-medium text-gogh-black mb-3">
-                O que você terá acesso:
-              </p>
-              {[
-                'Agentes de IA especializados',
-                'Cursos de Canva e CapCut',
-                'Acesso às ferramentas Pro',
-                'Suporte exclusivo para membros'
-              ].map((benefit, index) => (
-                <div key={index} className="flex items-center gap-2 text-sm text-gogh-grayDark">
-                  <CheckCircle2 className="w-4 h-4 text-gogh-yellow" />
-                  {benefit}
-                </div>
-              ))}
-            </div>
           </div>
 
           {/* Footer */}
@@ -240,19 +216,8 @@ export default function LoginPage() {
 
         {/* Terms - Login Google */}
         <div className="mt-6 p-4 bg-gogh-grayLight/30 rounded-lg border border-gogh-grayLight">
-          <p className="text-center text-xs text-gogh-grayDark mb-2">
-            Ao continuar com Google, você concorda com nossos{' '}
-            <Link href="/termos-uso" className="underline hover:text-gogh-black font-medium">
-              Termos de Uso
-            </Link>{' '}
-            e{' '}
-            <Link href="/politica-privacidade" className="underline hover:text-gogh-black font-medium">
-              Política de Privacidade
-            </Link>
-            .
-          </p>
           <p className="text-center text-xs text-gogh-grayDark">
-            Especificamente, ao autenticar-se via Google, você aceita os{' '}
+            Ao continuar com Google, você concorda com nossos{' '}
             <Link 
               href="/termos-login-google" 
               className="underline hover:text-gogh-black font-medium text-gogh-yellow"
