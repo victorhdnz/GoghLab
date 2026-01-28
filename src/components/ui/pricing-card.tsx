@@ -252,14 +252,14 @@ export const PricingComponent: React.FC<PricingComponentProps> = ({
                         const categoryValue = (plan.category_values || []).find(cv => cv.category_id === category.id)
                         const hasResource = !!(categoryValue?.text && categoryValue.text.trim() !== '')
                         
-                        // Mostrar apenas recursos que o plano possui
+                        // Mostrar apenas recursos que o plano possui (com texto)
                         if (!hasResource) return null
                         
                         return (
                           <li key={category.id} className="flex items-start gap-2">
                             <Check className="h-4 w-4 flex-shrink-0 text-[#F7C948] mt-0.5" aria-hidden="true" />
                             <span className="text-sm text-[#0A0A0A]">
-                              {category.name}
+                              {categoryValue.text}
                             </span>
                           </li>
                         )
