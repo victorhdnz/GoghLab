@@ -271,8 +271,8 @@ export default function PricingEditorPage() {
 
       // Carregar produtos e plan_products (tabelas do banco)
       try {
-        const { data: productsData } = await supabase.from('products').select('*').eq('is_active', true).order('order_position', { ascending: true })
-        const { data: planProductsData } = await supabase.from('plan_products').select('plan_id, product_id')
+        const { data: productsData } = await (supabase as any).from('products').select('*').eq('is_active', true).order('order_position', { ascending: true })
+        const { data: planProductsData } = await (supabase as any).from('plan_products').select('plan_id, product_id')
         if (productsData) setProducts(productsData as Product[])
         if (planProductsData) setPlanProducts(planProductsData as PlanProduct[])
       } catch (_) {
@@ -510,7 +510,7 @@ export default function PricingEditorPage() {
     const slug = newProductSlug.trim() || slugFromName(newProductName)
     setAddingProduct(true)
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('products')
         .insert({
           name: newProductName.trim(),
@@ -523,7 +523,7 @@ export default function PricingEditorPage() {
       toast.success('Produto criado')
       setNewProductName('')
       setNewProductSlug('')
-      const { data } = await supabase.from('products').select('*').eq('is_active', true).order('order_position', { ascending: true })
+      const { data } = await (supabase as any).from('products').select('*').eq('is_active', true).order('order_position', { ascending: true })
       if (data) setProducts(data as Product[])
     } catch (e: any) {
       toast.error(e?.message || 'Erro ao criar produto')
@@ -539,10 +539,10 @@ export default function PricingEditorPage() {
     const has = planHasProduct(planId, productId)
     try {
       if (has) {
-        await supabase.from('plan_products').delete().eq('plan_id', planId).eq('product_id', productId)
+        await (supabase as any).from('plan_products').delete().eq('plan_id', planId).eq('product_id', productId)
         setPlanProducts(prev => prev.filter(pp => !(pp.plan_id === planId && pp.product_id === productId)))
       } else {
-        await supabase.from('plan_products').insert({ plan_id: planId, product_id: productId })
+        await (supabase as any).from('plan_products').insert({ plan_id: planId, product_id: productId })
         setPlanProducts(prev => [...prev, { plan_id: planId, product_id: productId }])
       }
       toast.success(has ? 'Produto removido do plano' : 'Produto adicionado ao plano')
