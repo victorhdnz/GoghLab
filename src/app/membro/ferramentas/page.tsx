@@ -28,7 +28,8 @@ import {
 
 interface ToolAccess {
   id: string
-  tool_type: 'canva' | 'capcut'
+  tool_type: string
+  tool_id?: string | null
   email: string
   access_link?: string
   password?: string
@@ -38,6 +39,17 @@ interface ToolAccess {
   is_active: boolean
   error_reported?: boolean
   error_message?: string
+}
+
+interface ToolFromDB {
+  id: string
+  product_id: string | null
+  name: string
+  slug: string
+  description: string | null
+  tutorial_video_url: string | null
+  requires_8_days: boolean
+  order_position: number
 }
 
 interface SupportTicket {
@@ -62,7 +74,8 @@ export default function ToolsPage() {
   const [errorMessage, setErrorMessage] = useState('')
   const [showErrorModal, setShowErrorModal] = useState(false)
   const [showCapcutCredentials, setShowCapcutCredentials] = useState(false)
-  
+  const [toolsFromPlan, setToolsFromPlan] = useState<ToolFromDB[]>([])
+
   const supabase = createClient()
 
   useEffect(() => {
@@ -70,7 +83,6 @@ export default function ToolsPage() {
       if (!user) return
 
       try {
-        // Buscar acessos já concedidos
         const { data: accessData } = await (supabase as any)
           .from('tool_access_credentials')
           .select('*')
@@ -78,7 +90,6 @@ export default function ToolsPage() {
 
         setToolAccess(accessData || [])
 
-        // Buscar tickets pendentes de ferramentas
         const { data: ticketsData } = await (supabase as any)
           .from('support_tickets')
           .select('*')
@@ -88,30 +99,40 @@ export default function ToolsPage() {
 
         setPendingTickets(ticketsData || [])
 
-        // Buscar URLs dos vídeos tutorial separados por plataforma
         const canvaAccess = accessData?.find((t: ToolAccess) => t.tool_type === 'canva')
         const capcutAccess = accessData?.find((t: ToolAccess) => t.tool_type === 'capcut')
-        
-        // Buscar vídeos fixos padrão do site_settings (uma única busca)
         const { data: settingsData } = await (supabase as any)
           .from('site_settings')
           .select('value')
           .eq('key', 'general')
           .maybeSingle()
-        
         const defaultVideos = settingsData?.value?.tool_tutorial_videos || {}
-        
-        // Prioridade: vídeo específico do cliente > vídeo fixo padrão
-        if (canvaAccess?.tutorial_video_url) {
-          setCanvaVideoUrl(canvaAccess.tutorial_video_url)
-        } else if (defaultVideos.canva) {
-          setCanvaVideoUrl(defaultVideos.canva)
-        }
-        
-        if (capcutAccess?.tutorial_video_url) {
-          setCapcutVideoUrl(capcutAccess.tutorial_video_url)
-        } else if (defaultVideos.capcut) {
-          setCapcutVideoUrl(defaultVideos.capcut)
+        if (canvaAccess?.tutorial_video_url) setCanvaVideoUrl(canvaAccess.tutorial_video_url)
+        else if (defaultVideos.canva) setCanvaVideoUrl(defaultVideos.canva)
+        if (capcutAccess?.tutorial_video_url) setCapcutVideoUrl(capcutAccess.tutorial_video_url)
+        else if (defaultVideos.capcut) setCapcutVideoUrl(defaultVideos.capcut)
+
+        // Ferramentas do plano (plan_products -> products tipo tool -> tools)
+        const planId = subscription?.plan_id
+        if (planId) {
+          try {
+            const { data: planProductsData } = await (supabase as any)
+              .from('plan_products')
+              .select('product_id')
+              .eq('plan_id', planId)
+            const productIds = (planProductsData || []).map((pp: { product_id: string }) => pp.product_id)
+            if (productIds.length > 0) {
+              const { data: toolsData } = await (supabase as any)
+                .from('tools')
+                .select('id, product_id, name, slug, description, tutorial_video_url, requires_8_days, order_position')
+                .eq('is_active', true)
+                .in('product_id', productIds)
+                .order('order_position', { ascending: true })
+              setToolsFromPlan(toolsData || [])
+            }
+          } catch (_) {
+            setToolsFromPlan([])
+          }
         }
       } catch (error) {
         console.error('Error fetching tools data:', error)
@@ -121,7 +142,7 @@ export default function ToolsPage() {
     }
 
     fetchData()
-  }, [user, subscription]) // Recarregar quando a assinatura for atualizada (renovação)
+  }, [user, subscription])
 
   // Verificar se o acesso foi concedido no período atual ou anterior
   const isAccessFromCurrentPeriod = (access: ToolAccess): boolean => {
@@ -208,7 +229,59 @@ export default function ToolsPage() {
     return daysRemaining > 0 ? daysRemaining : 0
   }
 
-  // Solicitar acesso para ambas as ferramentas
+  const canRequestForTool = (tool: ToolFromDB) =>
+    tool.requires_8_days ? canRequestTools() : true
+
+  const requestToolAccess = async (tool: ToolFromDB) => {
+    if (!user) return
+    if (!canRequestForTool(tool)) {
+      const daysRemaining = daysUntilCanRequest()
+      toast.error(
+        daysRemaining
+          ? `Você poderá solicitar acesso em ${daysRemaining} dia${daysRemaining > 1 ? 's' : ''}.`
+          : 'Não foi possível verificar o período da sua assinatura.'
+      )
+      return
+    }
+    setSubmitting(true)
+    try {
+      const { data: ticketData, error: ticketError } = await (supabase as any)
+        .from('support_tickets')
+        .insert({
+          user_id: user.id,
+          ticket_type: 'tools_access',
+          subject: `Solicitação de acesso: ${tool.name}`,
+          status: 'open',
+          priority: 'normal',
+          tool_id: tool.id,
+        })
+        .select()
+        .single()
+      if (ticketError) throw ticketError
+      await (supabase as any)
+        .from('support_messages')
+        .insert({
+          ticket_id: ticketData.id,
+          sender_id: user.id,
+          content: `Solicito acesso à ferramenta ${tool.name}.`,
+        })
+      toast.success('Solicitação enviada!')
+      const { data: ticketsData } = await (supabase as any)
+        .from('support_tickets')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('ticket_type', 'tools_access')
+        .in('status', ['open', 'in_progress'])
+      setPendingTickets(ticketsData || [])
+    } catch (error) {
+      console.error(error)
+      toast.error('Erro ao enviar solicitação.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  // Solicitar acesso para ambas as ferramentas (legado canva/capcut)
   const requestToolsAccess = async () => {
     if (!user) return
     
@@ -482,8 +555,8 @@ export default function ToolsPage() {
     )
   }
 
-  // Verificar se tem acesso às ferramentas (apenas Pro)
-  const hasToolsAccess = isPro && hasActiveSubscription
+  // Acesso às ferramentas: plano tem produtos do tipo ferramenta OU legado (apenas Pro)
+  const hasToolsAccess = (toolsFromPlan.length > 0) || (isPro && hasActiveSubscription)
 
   // Se não for Pro, mostrar tela de bloqueio similar à de cursos
   if (!hasToolsAccess && hasActiveSubscription) {
@@ -570,6 +643,127 @@ export default function ToolsPage() {
     )
   }
 
+  // Layout dinâmico: ferramentas do plano (tabela tools)
+  if (toolsFromPlan.length > 0) {
+    const hasAccessForTool = (t: ToolFromDB) =>
+      toolAccess.some(
+        (acc) =>
+          acc.is_active &&
+          isAccessFromCurrentPeriod(acc) &&
+          (acc.tool_id === t.id || acc.tool_type === t.slug)
+      )
+    const pendingForTool = (t: ToolFromDB) =>
+      pendingTickets.some((tk: SupportTicket & { tool_id?: string }) => tk.tool_id === t.id)
+
+    return (
+      <div className="max-w-4xl mx-auto space-y-8">
+        <div>
+          <h1 className="text-2xl lg:text-3xl font-bold text-gogh-black mb-2">Ferramentas</h1>
+          <p className="text-gogh-grayDark">
+            Ferramentas incluídas no seu plano. Solicite o acesso e use o vídeo tutorial quando disponível.
+          </p>
+        </div>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-gradient-to-r from-gogh-yellow/20 to-amber-100 rounded-xl p-5 border border-gogh-yellow/30"
+        >
+          <p className="text-sm text-gogh-grayDark">
+            Ao solicitar acesso, nossa equipe liberará em até <strong>24 horas úteis</strong>. O link do vídeo tutorial (quando configurado) aparece em cada ferramenta.
+          </p>
+        </motion.div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {toolsFromPlan.map((t, index) => {
+            const hasAccess = hasAccessForTool(t)
+            const accessData = toolAccess.find(
+              (acc) => (acc.tool_id === t.id || acc.tool_type === t.slug) && isAccessFromCurrentPeriod(acc)
+            )
+            const videoUrl = t.tutorial_video_url || accessData?.tutorial_video_url
+            const canRequest = canRequestForTool(t)
+            const pending = pendingForTool(t)
+            return (
+              <motion.div
+                key={t.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.1 }}
+                className="bg-white rounded-xl border border-gogh-grayLight shadow-sm overflow-hidden"
+              >
+                <div className="bg-gradient-to-r from-gogh-yellow to-amber-500 p-6 text-white">
+                  <div className="flex items-center gap-4">
+                    <div className="w-14 h-14 bg-white/20 rounded-xl flex items-center justify-center">
+                      <Wrench className="w-8 h-8" />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-bold">{t.name}</h3>
+                      {hasAccess && (
+                        <span className="inline-flex items-center gap-1 text-xs bg-white/20 px-2 py-0.5 rounded-full mt-1">
+                          <CheckCircle2 className="w-3 h-3" />
+                          Acesso liberado
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <div className="p-6">
+                  {t.description && (
+                    <p className="text-gogh-grayDark text-sm mb-4">{t.description}</p>
+                  )}
+                  {hasAccess && accessData?.access_link && (
+                    <a
+                      href={accessData.access_link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gogh-yellow text-gogh-black font-medium rounded-lg hover:bg-gogh-yellow/90 mb-3"
+                    >
+                      <LinkIcon className="w-4 h-4" />
+                      Acessar {t.name}
+                      <ExternalLink className="w-4 h-4" />
+                    </a>
+                  )}
+                  {videoUrl && (
+                    <a
+                      href={videoUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-blue-500 text-white font-medium rounded-lg hover:bg-blue-600 mb-3"
+                    >
+                      <Play className="w-4 h-4" />
+                      Ver tutorial
+                    </a>
+                  )}
+                  {!hasAccess && (
+                    <div className="mt-4">
+                      {pending ? (
+                        <p className="text-sm text-amber-600 flex items-center gap-2">
+                          <Clock className="w-4 h-4" />
+                          Solicitação em análise
+                        </p>
+                      ) : !canRequest && t.requires_8_days ? (
+                        <p className="text-sm text-blue-600 mb-2">
+                          Disponível a partir do 8º dia da assinatura. Faltam {daysUntilCanRequest()} dia(s).
+                        </p>
+                      ) : (
+                        <button
+                          onClick={() => requestToolAccess(t)}
+                          disabled={submitting}
+                          className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gogh-yellow text-gogh-black font-medium rounded-lg hover:bg-gogh-yellow/90 disabled:opacity-50"
+                        >
+                          <Send className="w-4 h-4" />
+                          Solicitar acesso
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            )
+          })}
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="max-w-4xl mx-auto space-y-8">
       {/* Header */}
@@ -603,7 +797,7 @@ export default function ToolsPage() {
         </div>
       </motion.div>
 
-      {/* Tools Grid */}
+      {/* Tools Grid (legado: Canva / CapCut) */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {tools.map((tool, index) => (
           <motion.div

@@ -127,10 +127,24 @@ function DashboardContent() {
       items: [
         {
           title: 'Solicitações de Ferramentas',
-          description: 'Visualize e responda solicitações de acesso ao Canva e CapCut',
+          description: 'Visualize e responda solicitações de acesso às ferramentas',
           href: '/dashboard/solicitacoes',
           icon: Wrench,
           color: 'bg-purple-500',
+        },
+      ],
+    },
+    {
+      title: 'Ferramentas',
+      description: 'Configure ferramentas que os planos podem incluir',
+      icon: Wrench,
+      items: [
+        {
+          title: 'Gerenciar Ferramentas',
+          description: 'Crie ferramentas, vincule a produto, link do vídeo e prazo de 8 dias',
+          href: '/dashboard/ferramentas',
+          icon: Wrench,
+          color: 'bg-slate-600',
         },
       ],
     },
@@ -145,6 +159,20 @@ function DashboardContent() {
           href: '/dashboard/cursos',
           icon: BookOpen,
           color: 'bg-teal-500',
+        },
+      ],
+    },
+    {
+      title: 'Prompts',
+      description: 'Biblioteca de prompts para a área de membros',
+      icon: Sparkles,
+      items: [
+        {
+          title: 'Gerenciar Prompts',
+          description: 'Crie categorias e prompts para os membros copiarem e usarem em IAs',
+          href: '/dashboard/prompts',
+          icon: Sparkles,
+          color: 'bg-amber-500',
         },
       ],
     },

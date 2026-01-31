@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Modal } from "@/components/ui/Modal"
-import { Check, X, BarChart3 } from "lucide-react"
+import { Check, X, ChevronRight } from "lucide-react"
 
 // --- 1. Typescript Interfaces (API) ---
 
@@ -114,7 +114,7 @@ export const PricingComponent: React.FC<PricingComponentProps> = ({
   className,
   ...props
 }) => {
-  const [isComparisonModalOpen, setIsComparisonModalOpen] = useState(false)
+  const [detailPlan, setDetailPlan] = useState<PriceTier | null>(null)
   const [selectedServiceOptions, setSelectedServiceOptions] = useState<Record<string, string[]>>({})
 
   const getDefaultSelectedOptions = React.useCallback((plan: PriceTier): string[] => {
@@ -198,11 +198,6 @@ export const PricingComponent: React.FC<PricingComponentProps> = ({
 
   // --- 3.2. Pricing Cards & Comparison Table Data ---
 
-  // Usar categorias se disponíveis, senão usar features dos planos
-  const allCategories = featureCategories.length > 0
-    ? featureCategories.map(c => c.name)
-    : []
-  
   // Render the list of pricing cards
   const gridCols = plans.length === 2 ? 'md:grid-cols-2 max-w-4xl mx-auto' : 'md:grid-cols-3'
   const PricingCards = (
@@ -393,15 +388,23 @@ export const PricingComponent: React.FC<PricingComponentProps> = ({
                 </div>
               )}
             </CardContent>
-            <CardFooter className="p-6 pt-0">
+            <CardFooter className="p-6 pt-0 flex flex-col gap-3">
+              {plan.planType !== 'service' && featureCategories.length > 0 && plan.category_values && (
+                <Button
+                  variant="ghost"
+                  onClick={() => setDetailPlan(plan)}
+                  className="w-full text-[#0A0A0A] hover:bg-[#F7C948]/20 hover:text-[#0A0A0A]"
+                  size="sm"
+                >
+                  <ChevronRight className="w-4 h-4 mr-1" />
+                  Ver mais detalhes
+                </Button>
+              )}
               <Button
                 onClick={() => {
                   if (plan.planType === 'service') {
                     const selection = getServiceSelectionSummary(plan, billingCycle)
-                    // Validar se pelo menos um serviço foi selecionado
-                    if (!selection || selection.selectedServiceOptions.length === 0) {
-                      return // Não fazer nada se nenhum serviço estiver selecionado
-                    }
+                    if (!selection || selection.selectedServiceOptions.length === 0) return
                     onPlanSelect(plan.id, billingCycle, plan, selection)
                     return
                   }
@@ -431,206 +434,7 @@ export const PricingComponent: React.FC<PricingComponentProps> = ({
     </div>
   )
 
-  // --- 3.3. Comparison Table (Mobile hidden, Tablet/Desktop visible) ---
-  // Ordenar categorias
-  const sortedCategories = React.useMemo(() => {
-    if (featureCategories.length === 0) {
-      return []
-    }
-    return featureCategories
-      .sort((a, b) => a.order - b.order)
-  }, [featureCategories])
-
-  // Separar planos de assinatura e serviços
-  const subscriptionPlans = plans.filter(p => p.planType !== 'service')
-  const servicePlans = plans.filter(p => p.planType === 'service')
-
-  const ComparisonTable = (
-    <div className="mt-16 hidden md:block">
-      {/* Tabela de Planos de Assinatura */}
-      {subscriptionPlans.length > 0 && (
-        <div className="border border-[#F7C948]/30 rounded-lg overflow-x-auto shadow-sm bg-white mb-8">
-          <table className="min-w-full divide-y divide-[#F7C948]/20">
-            <thead>
-              <tr className="bg-[#F7C948]/10">
-                <th scope="col" className="px-6 py-4 text-left text-sm font-semibold text-[#0A0A0A] w-[200px] whitespace-nowrap">
-                  Recurso
-                </th>
-                {subscriptionPlans.map((plan) => (
-                  <th
-                    key={`th-${plan.id}`}
-                    scope="col"
-                    className={cn(
-                      "px-6 py-4 text-center text-sm font-semibold text-[#0A0A0A] whitespace-nowrap",
-                      plan.isPopular && "bg-[#F7C948]/20"
-                    )}
-                  >
-                    {plan.name}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#F7C948]/10 bg-white">
-              {sortedCategories.length > 0 ? (
-                // Renderizar categorias
-                sortedCategories.map((category, index) => {
-                  // Verificar valores de cada plano de assinatura para esta categoria
-                  const planValues = subscriptionPlans.map(plan => {
-                    const categoryValue = (plan.category_values || []).find(cv => cv.category_id === category.id)
-                    return {
-                      plan,
-                      hasCategory: !!(categoryValue?.text && categoryValue.text.trim() !== ''),
-                      text: categoryValue?.text || ''
-                    }
-                  })
-              
-              const allHaveCategory = planValues.every(pv => pv.hasCategory)
-
-              return (
-                <tr key={category.id} className={cn("transition-colors hover:bg-[#F7C948]/5", index % 2 === 0 ? "bg-white" : "bg-[#F5F1E8]/50")}>
-                  {/* Nome da categoria (título principal) */}
-                  <td className="px-6 py-3 text-left text-sm font-semibold text-[#0A0A0A]">
-                    {category.name}
-                  </td>
-                  {planValues.map(({ plan, hasCategory, text }) => {
-                    if (allHaveCategory) {
-                      // TODOS os planos têm texto: mostrar ✓ + texto específico de cada plano
-                      return (
-                        <td
-                          key={`${plan.id}-${category.id}`}
-                          className={cn(
-                            "px-6 py-3 text-left transition-all duration-150",
-                            plan.isPopular && "bg-[#F7C948]/10"
-                          )}
-                        >
-                          <div className="flex items-start gap-2">
-                            <Check className="h-4 w-4 flex-shrink-0 text-[#F7C948] mt-0.5" aria-hidden="true" />
-                            <span className="text-sm text-gray-600 leading-relaxed">{text}</span>
-                          </div>
-                        </td>
-                      )
-                    } else {
-                      // APENAS ALGUNS planos têm: mostrar ✓ + texto para quem tem, ✗ para quem não tem
-                      return (
-                        <td
-                          key={`${plan.id}-${category.id}`}
-                          className={cn(
-                            "px-6 py-3 transition-all duration-150",
-                            hasCategory ? "text-left" : "text-center",
-                            plan.isPopular && "bg-[#F7C948]/10"
-                          )}
-                        >
-                          {hasCategory && text ? (
-                            <div className="flex items-start gap-2">
-                              <Check className="h-4 w-4 flex-shrink-0 text-[#F7C948] mt-0.5" aria-hidden="true" />
-                              <span className="text-sm text-gray-600 leading-relaxed">{text}</span>
-                            </div>
-                          ) : (
-                            <X className="h-5 w-5 mx-auto text-gray-400" aria-hidden="true" />
-                          )}
-                        </td>
-                      )
-                    }
-                  })}
-                </tr>
-              )
-            })
-          ) : (
-            // Fallback: mostrar lista simples sem categorias (features antigas)
-            allCategories.length > 0 ? (
-              allCategories.map((categoryName, index) => (
-                <tr key={categoryName} className={cn("transition-colors hover:bg-[#F7C948]/5", index % 2 === 0 ? "bg-white" : "bg-[#F5F1E8]/50")}>
-                  <td className="px-6 py-3 text-left text-sm font-medium text-[#0A0A0A]">
-                    {categoryName}
-                  </td>
-                  {subscriptionPlans.map((plan) => {
-                    const category = featureCategories.find(c => c.name === categoryName)
-                    const categoryValue = category ? (plan.category_values || []).find(cv => cv.category_id === category.id) : null
-                    const isIncluded = !!(categoryValue?.text && categoryValue.text.trim() !== '')
-                    
-                    const Icon = isIncluded ? Check : X
-                    const iconColor = isIncluded ? "text-[#F7C948]" : "text-gray-500"
-
-                    return (
-                      <td
-                        key={`${plan.id}-${categoryName}`}
-                        className={cn(
-                          "px-6 py-3 text-center transition-all duration-150",
-                          plan.isPopular && "bg-[#F7C948]/10"
-                        )}
-                      >
-                        <Icon className={cn("h-5 w-5 mx-auto", iconColor)} aria-hidden="true" />
-                      </td>
-                    )
-                  })}
-                </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan={subscriptionPlans.length + 1} className="px-6 py-4 text-center text-sm text-gray-500">
-                  Nenhuma categoria configurada
-                </td>
-              </tr>
-            )
-          )}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      {/* Tabela de Serviços Personalizados */}
-      {servicePlans.length > 0 && servicePlans[0].serviceOptions && servicePlans[0].serviceOptions.length > 0 && (
-        <div className="border border-[#F7C948]/30 rounded-lg overflow-x-auto shadow-sm bg-white">
-          <h3 className="text-lg font-semibold text-[#0A0A0A] px-6 py-4 bg-[#F7C948]/10 border-b border-[#F7C948]/20">
-            Serviços Disponíveis
-          </h3>
-          <table className="min-w-full divide-y divide-[#F7C948]/20">
-            <thead>
-              <tr className="bg-[#F7C948]/10">
-                <th scope="col" className="px-6 py-4 text-left text-sm font-semibold text-[#0A0A0A]">
-                  Serviço
-                </th>
-                <th scope="col" className="px-6 py-4 text-left text-sm font-semibold text-[#0A0A0A]">
-                  Descrição
-                </th>
-                <th scope="col" className="px-6 py-4 text-center text-sm font-semibold text-[#0A0A0A]">
-                  Preço Mensal
-                </th>
-                <th scope="col" className="px-6 py-4 text-center text-sm font-semibold text-[#0A0A0A]">
-                  Preço Anual
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#F7C948]/10 bg-white">
-              {servicePlans[0].serviceOptions.map((service, index) => (
-                <tr key={service.id} className={cn("transition-colors hover:bg-[#F7C948]/5", index % 2 === 0 ? "bg-white" : "bg-[#F5F1E8]/50")}>
-                  <td className="px-6 py-3 text-left text-sm font-medium text-[#0A0A0A]">
-                    {service.name}
-                  </td>
-                  <td className="px-6 py-3 text-left text-sm text-gray-600">
-                    {service.description || '—'}
-                  </td>
-                  <td className="px-6 py-3 text-center text-sm font-semibold text-[#0A0A0A]">
-                    R$ {service.priceMonthly.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </td>
-                  <td className="px-6 py-3 text-center text-sm font-semibold text-[#0A0A0A]">
-                    R$ {(service.priceAnnually / 12).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    <span className="block text-xs text-gray-500 mt-1">/mês</span>
-                    <span className="block text-xs text-green-600 mt-1">Economia de 20%</span>
-                    <span className="block text-xs text-gray-400 mt-0.5">
-                      Total anual: R$ {service.priceAnnually.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </div>
-  )
-
-  // --- 3.4. Final Render ---
+  // --- 3.3. Final Render ---
   return (
     <div className={cn("w-full py-12 md:py-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8", className)} {...props}>
       <header className="text-center mb-10">
@@ -649,178 +453,46 @@ export const PricingComponent: React.FC<PricingComponentProps> = ({
         {PricingCards}
       </section>
 
-      {/* Comparison Table (Desktop/Tablet visibility) */}
-      <section aria-label="Feature Comparison Table" className="mt-16">
-        <div className="flex flex-col md:flex-row items-center justify-between mb-6">
-          <h3 className="text-2xl font-bold hidden md:block text-center text-[#0A0A0A] w-full">
-            Comparação Detalhada de Recursos
-          </h3>
-          {/* Botão para mobile */}
-          <Button
-            onClick={() => setIsComparisonModalOpen(true)}
-            variant="outline"
-            className="md:hidden w-full max-w-sm bg-[#F7C948] border-[#E5A800] text-[#0A0A0A] hover:bg-[#E5A800] font-semibold"
-          >
-            <BarChart3 size={18} className="mr-2" />
-            Ver Comparação Detalhada
-          </Button>
-        </div>
-        {ComparisonTable}
-      </section>
-
-      {/* Modal para mobile com tabela de comparação */}
+      {/* Modal "Ver mais" com detalhes do plano */}
       <Modal
-        isOpen={isComparisonModalOpen}
-        onClose={() => setIsComparisonModalOpen(false)}
-        title="Comparação Detalhada de Recursos"
-        size="xl"
+        isOpen={!!detailPlan}
+        onClose={() => setDetailPlan(null)}
+        title={detailPlan ? detailPlan.name : ''}
+        size="md"
       >
-        <div className="space-y-6">
-          {/* Tabela de Planos de Assinatura */}
-          {subscriptionPlans.length > 0 && (
-            <div className="border border-[#F7C948]/30 rounded-lg overflow-x-auto shadow-sm bg-white">
-              <table className="min-w-full divide-y divide-[#F7C948]/20">
-                <thead>
-                  <tr className="bg-[#F7C948]/10">
-                    <th scope="col" className="px-4 py-3 text-left text-sm font-semibold text-[#0A0A0A] w-[150px] whitespace-nowrap">
-                      Recurso
-                    </th>
-                    {subscriptionPlans.map((plan) => (
-                      <th
-                        key={`th-modal-${plan.id}`}
-                        scope="col"
-                        className={cn(
-                          "px-4 py-3 text-center text-sm font-semibold text-[#0A0A0A] whitespace-nowrap",
-                          plan.isPopular && "bg-[#F7C948]/20"
-                        )}
-                      >
-                        {plan.name}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[#F7C948]/10 bg-white">
-                  {sortedCategories.length > 0 ? (
-                    sortedCategories.map((category, index) => {
-                      const planValues = subscriptionPlans.map(plan => {
-                        const categoryValue = (plan.category_values || []).find(cv => cv.category_id === category.id)
-                        return {
-                          plan,
-                          hasCategory: !!(categoryValue?.text && categoryValue.text.trim() !== ''),
-                          text: categoryValue?.text || ''
-                        }
-                      })
-                      
-                      const allHaveCategory = planValues.length > 0 && planValues.every(pv => pv.hasCategory)
-
+        {detailPlan && (
+          <div className="space-y-4">
+            <p className="text-gray-600">{detailPlan.description}</p>
+            {featureCategories.length > 0 && detailPlan.category_values && (
+              <div>
+                <h4 className="text-sm font-semibold text-[#0A0A0A] mb-2">Recursos inclusos</h4>
+                <ul className="space-y-2">
+                  {featureCategories
+                    .sort((a, b) => a.order - b.order)
+                    .map((category) => {
+                      const categoryValue = (detailPlan.category_values || []).find(cv => cv.category_id === category.id)
+                      const hasResource = !!(categoryValue?.text && categoryValue.text.trim() !== '')
+                      if (!hasResource) return null
                       return (
-                        <tr key={`modal-${category.id}`} className={cn("transition-colors hover:bg-[#F7C948]/5", index % 2 === 0 ? "bg-white" : "bg-[#F5F1E8]/50")}>
-                          <td className="px-4 py-3 text-left text-sm font-semibold text-[#0A0A0A]">
-                            {category.name}
-                          </td>
-                          {planValues.map(({ plan, hasCategory, text }) => {
-                            if (allHaveCategory) {
-                              return (
-                                <td
-                                  key={`modal-${plan.id}-${category.id}`}
-                                  className={cn(
-                                    "px-4 py-3 text-left transition-all duration-150",
-                                    plan.isPopular && "bg-[#F7C948]/10"
-                                  )}
-                                >
-                                  <div className="flex items-start gap-2">
-                                    <Check className="h-4 w-4 flex-shrink-0 text-[#F7C948] mt-0.5" aria-hidden="true" />
-                                    <span className="text-sm text-gray-600 leading-relaxed">{text}</span>
-                                  </div>
-                                </td>
-                              )
-                            } else {
-                              return (
-                                <td
-                                  key={`modal-${plan.id}-${category.id}`}
-                                  className={cn(
-                                    "px-4 py-3 transition-all duration-150",
-                                    hasCategory ? "text-left" : "text-center",
-                                    plan.isPopular && "bg-[#F7C948]/10"
-                                  )}
-                                >
-                                  {hasCategory && text ? (
-                                    <div className="flex items-start gap-2">
-                                      <Check className="h-4 w-4 flex-shrink-0 text-[#F7C948] mt-0.5" aria-hidden="true" />
-                                      <span className="text-sm text-gray-600 leading-relaxed">{text}</span>
-                                    </div>
-                                  ) : (
-                                    <X className="h-5 w-5 mx-auto text-gray-400" aria-hidden="true" />
-                                  )}
-                                </td>
-                              )
-                            }
-                          })}
-                        </tr>
+                        <li key={category.id} className="flex items-start gap-2">
+                          <Check className="h-4 w-4 flex-shrink-0 text-[#F7C948] mt-0.5" aria-hidden="true" />
+                          <span className="text-sm text-gray-700">{categoryValue?.text}</span>
+                        </li>
                       )
-                    })
-                  ) : (
-                    <tr>
-                      <td colSpan={subscriptionPlans.length + 1} className="px-4 py-4 text-center text-sm text-gray-500">
-                        Nenhuma categoria configurada
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
+                    })}
+                </ul>
+              </div>
+            )}
+            <div className="pt-4 border-t border-gray-200">
+              <p className="text-2xl font-bold text-[#0A0A0A]">
+                R$ {detailPlan.priceMonthly.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/mês
+              </p>
+              <p className="text-sm text-gray-500 mt-1">
+                ou R$ {(detailPlan.priceAnnually / 12).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/mês no plano anual (economia de {annualDiscountPercent}%)
+              </p>
             </div>
-          )}
-
-          {/* Tabela de Serviços Personalizados */}
-          {servicePlans.length > 0 && servicePlans[0].serviceOptions && servicePlans[0].serviceOptions.length > 0 && (
-            <div className="border border-[#F7C948]/30 rounded-lg overflow-x-auto shadow-sm bg-white">
-              <h3 className="text-lg font-semibold text-[#0A0A0A] px-4 py-3 bg-[#F7C948]/10 border-b border-[#F7C948]/20">
-                Serviços Disponíveis
-              </h3>
-              <table className="min-w-full divide-y divide-[#F7C948]/20">
-                <thead>
-                  <tr className="bg-[#F7C948]/10">
-                    <th scope="col" className="px-4 py-3 text-left text-sm font-semibold text-[#0A0A0A]">
-                      Serviço
-                    </th>
-                    <th scope="col" className="px-4 py-3 text-left text-sm font-semibold text-[#0A0A0A]">
-                      Descrição
-                    </th>
-                    <th scope="col" className="px-4 py-3 text-center text-sm font-semibold text-[#0A0A0A]">
-                      Preço Mensal
-                    </th>
-                    <th scope="col" className="px-4 py-3 text-center text-sm font-semibold text-[#0A0A0A]">
-                      Preço Anual
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[#F7C948]/10 bg-white">
-                  {servicePlans[0].serviceOptions.map((service, index) => (
-                    <tr key={service.id} className={cn("transition-colors hover:bg-[#F7C948]/5", index % 2 === 0 ? "bg-white" : "bg-[#F5F1E8]/50")}>
-                      <td className="px-4 py-3 text-left text-sm font-medium text-[#0A0A0A]">
-                        {service.name}
-                      </td>
-                      <td className="px-4 py-3 text-left text-sm text-gray-600">
-                        {service.description || '—'}
-                      </td>
-                      <td className="px-4 py-3 text-center text-sm font-semibold text-[#0A0A0A]">
-                        R$ {service.priceMonthly.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      </td>
-                      <td className="px-4 py-3 text-center text-sm font-semibold text-[#0A0A0A]">
-                        R$ {(service.priceAnnually / 12).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                        <span className="block text-xs text-gray-500 mt-1">/mês</span>
-                        <span className="block text-xs text-green-600 mt-1">Economia de 20%</span>
-                        <span className="block text-xs text-gray-400 mt-0.5">
-                          Total anual: R$ {service.priceAnnually.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
+          </div>
+        )}
       </Modal>
     </div>
   )

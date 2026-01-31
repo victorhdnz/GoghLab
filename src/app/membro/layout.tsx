@@ -12,13 +12,12 @@ import {
   User, 
   Settings, 
   LogOut,
-  Menu,
+  PanelLeft,
   X,
   Crown,
   Sparkles,
   ChevronRight,
   Home,
-  CreditCard,
   ExternalLink,
   Briefcase
 } from 'lucide-react'
@@ -32,12 +31,6 @@ interface MemberLayoutProps {
 // Itens do menu que requerem assinatura
 const subscriberMenuItems = [
   { 
-    href: '/membro/agentes', 
-    label: 'Agentes de IA', 
-    icon: MessageSquare,
-    description: 'Converse com nossos agentes'
-  },
-  { 
     href: '/membro/cursos', 
     label: 'Cursos', 
     icon: BookOpen,
@@ -47,13 +40,19 @@ const subscriberMenuItems = [
     href: '/membro/ferramentas', 
     label: 'Ferramentas', 
     icon: Wrench,
-    description: 'Acesso ao Canva e CapCut'
+    description: 'Solicite acesso às ferramentas do seu plano'
+  },
+  { 
+    href: '/membro/prompts', 
+    label: 'Prompts', 
+    icon: Sparkles,
+    description: 'Biblioteca de prompts para uso em IAs'
   },
   { 
     href: '/membro/perfil', 
     label: 'Nicho do Perfil', 
     icon: User,
-    description: 'Configure seu perfil para IA'
+    description: 'Configure seu perfil'
   },
 ]
 
@@ -493,8 +492,9 @@ export default function MemberLayout({ children }: MemberLayoutProps) {
             <button
               onClick={() => setSidebarOpen(true)}
               className="p-2 hover:bg-gogh-grayLight rounded-lg transition-colors"
+              aria-label="Abrir menu"
             >
-              <Menu className="w-6 h-6 text-gogh-black" />
+              <PanelLeft className="w-6 h-6 text-gogh-black" />
             </button>
             <Link href="/" className="flex items-center gap-2">
               {siteLogo ? (

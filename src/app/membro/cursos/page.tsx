@@ -44,11 +44,34 @@ export default function CoursesPage() {
   const { user, hasActiveSubscription, subscription, isPro } = useAuth()
   const [courses, setCourses] = useState<Course[]>([])
   const [loading, setLoading] = useState(true)
-  
+  const [planHasCoursesProduct, setPlanHasCoursesProduct] = useState<boolean | null>(null)
+
   const supabase = createClient()
-  
-  // Verificar se tem acesso aos cursos (apenas Pro)
-  const hasCourseAccess = isPro && hasActiveSubscription
+
+  // Acesso aos cursos: plano tem produto "cursos-edicao" OU legado (isPro)
+  const hasCourseAccess =
+    planHasCoursesProduct === true || (planHasCoursesProduct !== false && isPro && hasActiveSubscription)
+
+  useEffect(() => {
+    const checkPlanProducts = async () => {
+      const planId = subscription?.plan_id
+      if (!planId) {
+        setPlanHasCoursesProduct(false)
+        return
+      }
+      try {
+        const { data } = await (supabase as any)
+          .from('plan_products')
+          .select('product_id, products(slug)')
+          .eq('plan_id', planId)
+        const hasCursos = (Array.isArray(data) && data.some((pp: any) => pp.products?.slug === 'cursos-edicao')) ?? false
+        setPlanHasCoursesProduct(hasCursos)
+      } catch (_) {
+        setPlanHasCoursesProduct(false)
+      }
+    }
+    checkPlanProducts()
+  }, [subscription?.plan_id, supabase])
 
   useEffect(() => {
     const fetchCourses = async () => {

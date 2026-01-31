@@ -35,6 +35,21 @@ interface PricingSettings {
   feature_categories?: FeatureCategory[]
 }
 
+interface Product {
+  id: string
+  name: string
+  slug: string
+  description: string | null
+  product_type: string
+  order_position: number
+  is_active: boolean
+}
+
+interface PlanProduct {
+  plan_id: string
+  product_id: string
+}
+
 export default function PricingEditorPage() {
   const router = useRouter()
   const supabase = createClient()
@@ -42,7 +57,14 @@ export default function PricingEditorPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [categoriesExpanded, setCategoriesExpanded] = useState(true)
+  const [productsExpanded, setProductsExpanded] = useState(true)
   const [featureCategories, setFeatureCategories] = useState<FeatureCategory[]>([])
+  const [products, setProducts] = useState<Product[]>([])
+  const [planProducts, setPlanProducts] = useState<PlanProduct[]>([])
+  const [newProductName, setNewProductName] = useState('')
+  const [newProductSlug, setNewProductSlug] = useState('')
+  const [newProductType, setNewProductType] = useState<'tool' | 'course' | 'prompt' | 'other'>('tool')
+  const [addingProduct, setAddingProduct] = useState(false)
   const defaultAgencyPlan: PriceTier = {
     id: 'gogh-agencia',
     name: 'Gogh Agency',
@@ -244,10 +266,17 @@ export default function PricingEditorPage() {
       }
       
       if (categories && categories.length > 0) {
-        console.log('📦 Categorias carregadas:', categories.length)
         setFeatureCategories(categories.sort((a, b) => a.order - b.order))
-      } else {
-        console.log('⚠️ Nenhuma categoria encontrada nos dados:', data)
+      }
+
+      // Carregar produtos e plan_products (tabelas do banco)
+      try {
+        const { data: productsData } = await supabase.from('products').select('*').eq('is_active', true).order('order_position', { ascending: true })
+        const { data: planProductsData } = await supabase.from('plan_products').select('plan_id, product_id')
+        if (productsData) setProducts(productsData as Product[])
+        if (planProductsData) setPlanProducts(planProductsData as PlanProduct[])
+      } catch (_) {
+        // Tabelas podem não existir ainda (migration não rodada)
       }
     } catch (error: any) {
       console.error('Erro ao carregar configurações:', error)
@@ -465,6 +494,63 @@ export default function PricingEditorPage() {
     return categoryValue?.text || ''
   }
 
+  const slugFromName = (name: string) =>
+    name
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/\p{Diacritic}/gu, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '')
+
+  const handleAddProduct = async () => {
+    if (!newProductName.trim()) {
+      toast.error('Nome do produto é obrigatório')
+      return
+    }
+    const slug = newProductSlug.trim() || slugFromName(newProductName)
+    setAddingProduct(true)
+    try {
+      const { error } = await supabase
+        .from('products')
+        .insert({
+          name: newProductName.trim(),
+          slug,
+          product_type: newProductType,
+          order_position: products.length,
+          is_active: true,
+        })
+      if (error) throw error
+      toast.success('Produto criado')
+      setNewProductName('')
+      setNewProductSlug('')
+      const { data } = await supabase.from('products').select('*').eq('is_active', true).order('order_position', { ascending: true })
+      if (data) setProducts(data as Product[])
+    } catch (e: any) {
+      toast.error(e?.message || 'Erro ao criar produto')
+    } finally {
+      setAddingProduct(false)
+    }
+  }
+
+  const planHasProduct = (planId: string, productId: string) =>
+    planProducts.some(pp => pp.plan_id === planId && pp.product_id === productId)
+
+  const togglePlanProduct = async (planId: string, productId: string) => {
+    const has = planHasProduct(planId, productId)
+    try {
+      if (has) {
+        await supabase.from('plan_products').delete().eq('plan_id', planId).eq('product_id', productId)
+        setPlanProducts(prev => prev.filter(pp => !(pp.plan_id === planId && pp.product_id === productId)))
+      } else {
+        await supabase.from('plan_products').insert({ plan_id: planId, product_id: productId })
+        setPlanProducts(prev => [...prev, { plan_id: planId, product_id: productId }])
+      }
+      toast.success(has ? 'Produto removido do plano' : 'Produto adicionado ao plano')
+    } catch (e: any) {
+      toast.error(e?.message || 'Erro ao atualizar')
+    }
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -636,6 +722,102 @@ export default function PricingEditorPage() {
             </div>
           )}
 
+          {/* Produtos globais e atribuição aos planos (Essencial / Pro) */}
+          {formData.pricing_enabled && (
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+              <button
+                onClick={() => setProductsExpanded(!productsExpanded)}
+                className="w-full flex items-center justify-between mb-4"
+              >
+                <div className="flex items-center gap-3">
+                  <h2 className="text-xl font-bold">Produtos e atribuição aos planos</h2>
+                  <span className="text-sm text-gray-500">({products.length} produtos)</span>
+                </div>
+                {productsExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+              </button>
+              {productsExpanded && (
+                <div className="space-y-4">
+                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                    <p className="text-sm text-amber-800">
+                      <strong>Produtos</strong> definem o que cada plano inclui (ferramentas, cursos, prompts). Crie produtos aqui e marque em cada plano (Gogh Essencial / Gogh Pro) quais produtos estão incluídos. O checkout continua usando os <strong>Price IDs fixos do Stripe</strong> configurados em cada plano abaixo.
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-2 items-center">
+                    <Input
+                      placeholder="Nome do produto"
+                      value={newProductName}
+                      onChange={(e) => {
+                        setNewProductName(e.target.value)
+                        if (!newProductSlug) setNewProductSlug(slugFromName(e.target.value))
+                      }}
+                      className="max-w-[200px]"
+                    />
+                    <Input
+                      placeholder="Slug (opcional)"
+                      value={newProductSlug}
+                      onChange={(e) => setNewProductSlug(e.target.value)}
+                      className="max-w-[160px]"
+                    />
+                    <select
+                      value={newProductType}
+                      onChange={(e) => setNewProductType(e.target.value as any)}
+                      className="px-3 py-2 border border-gray-300 rounded-lg"
+                    >
+                      <option value="tool">Ferramenta</option>
+                      <option value="course">Curso</option>
+                      <option value="prompt">Prompt</option>
+                      <option value="other">Outro</option>
+                    </select>
+                    <Button onClick={handleAddProduct} disabled={addingProduct}>
+                      {addingProduct ? '...' : 'Adicionar produto'}
+                    </Button>
+                  </div>
+                  {products.length > 0 && (
+                    <div className="border-t pt-4 mt-4">
+                      <h4 className="font-semibold mb-2">Incluir produto no plano</h4>
+                      <div className="overflow-x-auto">
+                        <table className="min-w-full text-sm">
+                          <thead>
+                            <tr className="border-b">
+                              <th className="text-left py-2 pr-4">Produto</th>
+                              <th className="text-center py-2 px-2">Gogh Essencial</th>
+                              <th className="text-center py-2 px-2">Gogh Pro</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {products.map((p) => (
+                              <tr key={p.id} className="border-b border-gray-100">
+                                <td className="py-2 pr-4">
+                                  <span className="font-medium">{p.name}</span>
+                                  <span className="text-gray-500 ml-1">({p.slug})</span>
+                                </td>
+                                <td className="text-center py-2">
+                                  <input
+                                    type="checkbox"
+                                    checked={planHasProduct('gogh_essencial', p.id)}
+                                    onChange={() => togglePlanProduct('gogh_essencial', p.id)}
+                                    className="rounded border-gray-300"
+                                  />
+                                </td>
+                                <td className="text-center py-2">
+                                  <input
+                                    type="checkbox"
+                                    checked={planHasProduct('gogh_pro', p.id)}
+                                    onChange={() => togglePlanProduct('gogh_pro', p.id)}
+                                    className="rounded border-gray-300"
+                                  />
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Planos */}
           {formData.pricing_enabled && formData.pricing_plans && (
@@ -659,20 +841,22 @@ export default function PricingEditorPage() {
                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                       />
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-2">Tipo do Plano</label>
-                      <select
-                        value={plan.planType || 'subscription'}
-                        onChange={(e) => updatePlan(planIndex, 'planType', e.target.value)}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      >
-                        <option value="subscription">Assinatura</option>
-                        <option value="service">Serviços Personalizados</option>
-                      </select>
-                      <p className="text-xs text-gray-500 mt-1">
-                        Planos de serviços permitem seleção de itens e preço total dinâmico.
-                      </p>
-                    </div>
+                    {/* Tipo do plano: apenas Gogh Agency usa modelo de serviços personalizados */}
+                    {(plan.id === 'gogh-agencia' || plan.planType === 'service') && (
+                      <div>
+                        <label className="block text-sm font-medium mb-2">Tipo do Plano</label>
+                        <select
+                          value={plan.planType || 'service'}
+                          onChange={(e) => updatePlan(planIndex, 'planType', e.target.value)}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                          <option value="service">Serviços Personalizados</option>
+                        </select>
+                        <p className="text-xs text-gray-500 mt-1">
+                          Planos de serviços permitem seleção de itens e preço total dinâmico (Gogh Agency).
+                        </p>
+                      </div>
+                    )}
                     {/* Preços - Apenas para planos de assinatura */}
                     {plan.planType !== 'service' && (
                       <div className="space-y-4">
