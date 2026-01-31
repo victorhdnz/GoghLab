@@ -17,6 +17,8 @@ export interface Feature {
   name: string
   isIncluded: boolean
   tooltip?: string
+  /** URL do ícone do produto (upload na aba Planos) */
+  iconUrl?: string
 }
 
 export interface PlanCategoryValue {
@@ -236,29 +238,23 @@ export const PricingComponent: React.FC<PricingComponentProps> = ({
               </div>
               <CardDescription className="text-sm mt-1 text-gray-600">{plan.description}</CardDescription>
               
-              {/* Recursos do Plano - Baseado nas categorias da comparação */}
-              {plan.planType !== 'service' && featureCategories.length > 0 && plan.category_values && (
+              {/* Recursos do Plano - espelhados dos produtos atribuídos (plan.features) */}
+              {plan.planType !== 'service' && plan.features && plan.features.length > 0 && (
                 <div className="mt-6 border-t border-[#F7C948]/20 pt-4">
                   <h4 className="text-sm font-semibold mb-3 text-gray-700">Recursos Inclusos:</h4>
                   <ul className="space-y-2">
-                    {featureCategories
-                      .sort((a, b) => a.order - b.order)
-                      .map((category) => {
-                        const categoryValue = (plan.category_values || []).find(cv => cv.category_id === category.id)
-                        const hasResource = !!(categoryValue?.text && categoryValue.text.trim() !== '')
-                        
-                        // Mostrar apenas recursos que o plano possui (com texto)
-                        if (!hasResource) return null
-                        
-                        return (
-                          <li key={category.id} className="flex items-start gap-2">
+                    {plan.features
+                      .filter(f => f.isIncluded)
+                      .map((f, i) => (
+                        <li key={i} className="flex items-center gap-3">
+                          {f.iconUrl ? (
+                            <img src={f.iconUrl} alt="" className="h-6 w-6 rounded object-cover flex-shrink-0 border border-gray-200" />
+                          ) : (
                             <Check className="h-4 w-4 flex-shrink-0 text-[#F7C948] mt-0.5" aria-hidden="true" />
-                            <span className="text-sm text-[#0A0A0A]">
-                              {categoryValue.text}
-                            </span>
-                          </li>
-                        )
-                      })}
+                          )}
+                          <span className="text-sm text-[#0A0A0A]">{f.name}</span>
+                        </li>
+                      ))}
                   </ul>
                 </div>
               )}
@@ -389,7 +385,7 @@ export const PricingComponent: React.FC<PricingComponentProps> = ({
               )}
             </CardContent>
             <CardFooter className="p-6 pt-0 flex flex-col gap-3">
-              {plan.planType !== 'service' && featureCategories.length > 0 && plan.category_values && (
+              {plan.planType !== 'service' && (
                 <Button
                   variant="ghost"
                   onClick={() => setDetailPlan(plan)}
@@ -463,23 +459,22 @@ export const PricingComponent: React.FC<PricingComponentProps> = ({
         {detailPlan && (
           <div className="space-y-4">
             <p className="text-gray-600">{detailPlan.description}</p>
-            {featureCategories.length > 0 && detailPlan.category_values && (
+            {detailPlan.features && detailPlan.features.length > 0 && (
               <div>
                 <h4 className="text-sm font-semibold text-[#0A0A0A] mb-2">Recursos inclusos</h4>
                 <ul className="space-y-2">
-                  {featureCategories
-                    .sort((a, b) => a.order - b.order)
-                    .map((category) => {
-                      const categoryValue = (detailPlan.category_values || []).find(cv => cv.category_id === category.id)
-                      const hasResource = !!(categoryValue?.text && categoryValue.text.trim() !== '')
-                      if (!hasResource) return null
-                      return (
-                        <li key={category.id} className="flex items-start gap-2">
+                  {detailPlan.features
+                    .filter(f => f.isIncluded)
+                    .map((f, i) => (
+                      <li key={i} className="flex items-center gap-3">
+                        {f.iconUrl ? (
+                          <img src={f.iconUrl} alt="" className="h-6 w-6 rounded object-cover flex-shrink-0 border border-gray-200" />
+                        ) : (
                           <Check className="h-4 w-4 flex-shrink-0 text-[#F7C948] mt-0.5" aria-hidden="true" />
-                          <span className="text-sm text-gray-700">{categoryValue?.text}</span>
-                        </li>
-                      )
-                    })}
+                        )}
+                        <span className="text-sm text-gray-700">{f.name}</span>
+                      </li>
+                    ))}
                 </ul>
               </div>
             )}

@@ -12,18 +12,7 @@ import Link from 'next/link'
 import { DashboardNavigation } from '@/components/dashboard/DashboardNavigation'
 import { getSiteSettings, saveSiteSettings } from '@/lib/supabase/site-settings-helper'
 import { PriceTier, Feature, ServiceOption } from '@/components/ui/pricing-card'
-import { Plus, Trash2, ArrowUp, ArrowDown, ChevronDown, ChevronUp } from 'lucide-react'
-
-interface FeatureCategory {
-  id: string
-  name: string
-  order: number
-}
-
-interface PlanCategoryValue {
-  category_id: string
-  text: string // Se vazio, significa que não tem o recurso
-}
+import { Plus, Trash2, ChevronDown, ChevronUp } from 'lucide-react'
 
 interface PricingSettings {
   pricing_enabled?: boolean
@@ -32,7 +21,6 @@ interface PricingSettings {
   pricing_annual_discount?: number
   pricing_plans?: PriceTier[]
   pricing_whatsapp_number?: string // Legado
-  feature_categories?: FeatureCategory[]
 }
 
 interface Product {
@@ -43,6 +31,7 @@ interface Product {
   product_type: string
   order_position: number
   is_active: boolean
+  icon_url?: string | null
 }
 
 interface PlanProduct {
@@ -56,15 +45,14 @@ export default function PricingEditorPage() {
 
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [categoriesExpanded, setCategoriesExpanded] = useState(true)
   const [productsExpanded, setProductsExpanded] = useState(true)
-  const [featureCategories, setFeatureCategories] = useState<FeatureCategory[]>([])
   const [products, setProducts] = useState<Product[]>([])
   const [planProducts, setPlanProducts] = useState<PlanProduct[]>([])
   const [newProductName, setNewProductName] = useState('')
   const [newProductSlug, setNewProductSlug] = useState('')
   const [newProductType, setNewProductType] = useState<'tool' | 'course' | 'prompt' | 'other'>('tool')
   const [addingProduct, setAddingProduct] = useState(false)
+  const [uploadingProductId, setUploadingProductId] = useState<string | null>(null)
   const defaultAgencyPlan: PriceTier = {
     id: 'gogh-agencia',
     name: 'Gogh Agency',
@@ -114,37 +102,6 @@ export default function PricingEditorPage() {
         description: 'Manutenção, correções, e adição em sites existentes.',
         priceMonthly: 400,
         priceAnnually: 3840, // 400 * 12 * 0.8 = 3840 (20% desconto)
-      },
-    ],
-    // Textos padrão específicos para serviços (não espelham dos planos de assinatura)
-    category_values: [
-      {
-        category_id: 'agentes-ia',
-        text: 'Serviços executados pela equipe da agência'
-      },
-      {
-        category_id: 'limite-uso-diario',
-        text: 'Sem limites - execução completa pela equipe'
-      },
-      {
-        category_id: 'cursos-edicao',
-        text: 'Não incluído - foco em execução de serviços'
-      },
-      {
-        category_id: 'canva-pro',
-        text: 'Não incluído - foco em execução de serviços'
-      },
-      {
-        category_id: 'capcut-pro',
-        text: 'Não incluído - foco em execução de serviços'
-      },
-      {
-        category_id: 'materiais-exclusivos',
-        text: 'Não incluído - foco em execução de serviços'
-      },
-      {
-        category_id: 'suporte',
-        text: 'Suporte dedicado via WhatsApp para clientes de serviços'
       },
     ],
   }
@@ -233,16 +190,7 @@ export default function PricingEditorPage() {
           const plans = ensureAgencyPlan(dbPlans.length > 0 ? dbPlans : prev.pricing_plans)
           
           // Garantir que o plano de serviço tenha textos padrão se não tiver
-          const plansWithDefaults = plans.map(plan => {
-            if (plan.planType === 'service' && (!plan.category_values || plan.category_values.length === 0)) {
-              // Se não tem category_values, usar os padrões do defaultAgencyPlan
-              return {
-                ...plan,
-                category_values: defaultAgencyPlan.category_values || []
-              }
-            }
-            return plan
-          })
+          const plansWithDefaults = plans
           
           return {
             ...prev,
@@ -253,28 +201,31 @@ export default function PricingEditorPage() {
         })
       }
 
-      // Carregar categorias de recursos
-      // Verificar em múltiplos locais possíveis
-      let categories: FeatureCategory[] = []
-      
-      if (data?.homepage_content?.pricing?.feature_categories) {
-        categories = data.homepage_content.pricing.feature_categories as FeatureCategory[]
-      } else if (data?.pricing?.feature_categories) {
-        categories = data.pricing.feature_categories as FeatureCategory[]
-      } else if ((data as any)?.feature_categories) {
-        categories = (data as any).feature_categories as FeatureCategory[]
-      }
-      
-      if (categories && categories.length > 0) {
-        setFeatureCategories(categories.sort((a, b) => a.order - b.order))
-      }
-
-      // Carregar produtos e plan_products (tabelas do banco)
+      // Carregar produtos e plan_products e espelhar nos planos (features = produtos incluídos)
       try {
         const { data: productsData } = await (supabase as any).from('products').select('*').eq('is_active', true).order('order_position', { ascending: true })
         const { data: planProductsData } = await (supabase as any).from('plan_products').select('plan_id, product_id')
         if (productsData) setProducts(productsData as Product[])
         if (planProductsData) setPlanProducts(planProductsData as PlanProduct[])
+
+        // Sincronizar features dos planos Essencial/Pro a partir dos produtos atribuídos
+        const prods = (productsData || []) as Product[]
+        const pps = (planProductsData || []) as PlanProduct[]
+        const planIdToDb = (id: string) => id === 'gogh-essencial' ? 'gogh_essencial' : id === 'gogh-pro' ? 'gogh_pro' : id
+        setFormData(prev => {
+          if (!prev.pricing_plans) return prev
+          const plans = prev.pricing_plans.map(plan => {
+            if (plan.id !== 'gogh-essencial' && plan.id !== 'gogh-pro') return plan
+            const dbPlanId = planIdToDb(plan.id)
+            const productIds = pps.filter(pp => pp.plan_id === dbPlanId).map(pp => pp.product_id)
+            const features = productIds
+              .map(pid => prods.find(p => p.id === pid))
+              .filter(Boolean)
+              .map(p => ({ name: (p as Product).name, isIncluded: true, iconUrl: (p as Product).icon_url ?? undefined }))
+            return { ...plan, features }
+          })
+          return { ...prev, pricing_plans: plans }
+        })
       } catch (_) {
         // Tabelas podem não existir ainda (migration não rodada)
       }
@@ -292,13 +243,26 @@ export default function PricingEditorPage() {
       const { data: currentData } = await getSiteSettings()
       const currentHomepageContent = currentData?.homepage_content || {}
 
+      // Sincronizar features dos planos Essencial/Pro a partir dos produtos (para exibir na home)
+      const planIdToDb = (id: string) => id === 'gogh-essencial' ? 'gogh_essencial' : id === 'gogh-pro' ? 'gogh_pro' : id
+      const plansToSave = formData.pricing_plans?.map(plan => {
+        if (plan.id !== 'gogh-essencial' && plan.id !== 'gogh-pro') return plan
+        const dbPlanId = planIdToDb(plan.id)
+        const productIds = planProducts.filter(pp => pp.plan_id === dbPlanId).map(pp => pp.product_id)
+        const features = productIds
+          .map(pid => products.find(p => p.id === pid))
+          .filter(Boolean)
+          .map(p => ({ name: (p as Product).name, isIncluded: true, iconUrl: (p as Product).icon_url ?? undefined }))
+        return { ...plan, features }
+      }) ?? formData.pricing_plans
+
       const { success, error } = await saveSiteSettings({
         fieldsToUpdate: {
           homepage_content: {
             ...currentHomepageContent,
             pricing: {
               ...formData,
-              feature_categories: featureCategories,
+              pricing_plans: plansToSave,
             },
           },
         },
@@ -335,32 +299,6 @@ export default function PricingEditorPage() {
       newPlans[index].priceAnnually = Math.round(annualPrice)
     }
     
-    setFormData({ ...formData, pricing_plans: newPlans })
-  }
-
-  const updateFeature = (planIndex: number, featureIndex: number, field: keyof Feature, value: any) => {
-    if (!formData.pricing_plans) return
-    
-    const newPlans = [...formData.pricing_plans]
-    const newFeatures = [...newPlans[planIndex].features]
-    newFeatures[featureIndex] = { ...newFeatures[featureIndex], [field]: value }
-    newPlans[planIndex] = { ...newPlans[planIndex], features: newFeatures }
-    setFormData({ ...formData, pricing_plans: newPlans })
-  }
-
-  const addFeature = (planIndex: number) => {
-    if (!formData.pricing_plans) return
-    
-    const newPlans = [...formData.pricing_plans]
-    newPlans[planIndex].features.push({ name: '', isIncluded: true })
-    setFormData({ ...formData, pricing_plans: newPlans })
-  }
-
-  const removeFeature = (planIndex: number, featureIndex: number) => {
-    if (!formData.pricing_plans) return
-    
-    const newPlans = [...formData.pricing_plans]
-    newPlans[planIndex].features.splice(featureIndex, 1)
     setFormData({ ...formData, pricing_plans: newPlans })
   }
 
@@ -412,88 +350,6 @@ export default function PricingEditorPage() {
     setFormData({ ...formData, pricing_plans: newPlans })
   }
 
-  // Funções para gerenciar categorias
-  const generateCategoryId = () => {
-    return `category-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
-  }
-
-  const handleAddCategory = () => {
-    const newCategory: FeatureCategory = {
-      id: generateCategoryId(),
-      name: '',
-      order: featureCategories.length,
-    }
-    setFeatureCategories([...featureCategories, newCategory])
-  }
-
-  const handleRemoveCategory = (categoryId: string) => {
-    setFeatureCategories(featureCategories.filter(c => c.id !== categoryId))
-    // Remover também dos category_values de todos os planos
-    if (formData.pricing_plans) {
-      const newPlans = formData.pricing_plans.map(plan => ({
-        ...plan,
-        category_values: (plan.category_values || []).filter(cv => cv.category_id !== categoryId),
-      }))
-      setFormData({ ...formData, pricing_plans: newPlans })
-    }
-  }
-
-  const handleUpdateCategory = (categoryId: string, field: 'name', value: string) => {
-    setFeatureCategories(prev => prev.map(c => 
-      c.id === categoryId ? { ...c, [field]: value } : c
-    ))
-  }
-
-  const handleMoveCategory = (categoryId: string, direction: 'up' | 'down') => {
-    const currentIndex = featureCategories.findIndex(c => c.id === categoryId)
-    if (currentIndex === -1) return
-
-    const newIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1
-    if (newIndex < 0 || newIndex >= featureCategories.length) return
-
-    const newCategories = [...featureCategories]
-    const [removed] = newCategories.splice(currentIndex, 1)
-    newCategories.splice(newIndex, 0, removed)
-    
-    // Atualizar ordem
-    const updatedCategories = newCategories.map((category, index) => ({
-      ...category,
-      order: index,
-    }))
-    
-    setFeatureCategories(updatedCategories)
-  }
-
-  // Função para atualizar o texto de uma categoria em um plano
-  const updatePlanCategoryValue = (planIndex: number, categoryId: string, text: string) => {
-    if (!formData.pricing_plans) return
-    
-    const newPlans = [...formData.pricing_plans] as [PriceTier, PriceTier, PriceTier]
-    const plan = newPlans[planIndex]
-    const categoryValues = plan.category_values || []
-    
-    const existingIndex = categoryValues.findIndex(cv => cv.category_id === categoryId)
-    
-    if (existingIndex >= 0) {
-      // Atualizar existente
-      categoryValues[existingIndex].text = text
-    } else {
-      // Adicionar novo
-      categoryValues.push({ category_id: categoryId, text })
-    }
-    
-    newPlans[planIndex] = { ...plan, category_values: categoryValues }
-    setFormData({ ...formData, pricing_plans: newPlans })
-  }
-
-  // Função para obter o texto de uma categoria em um plano
-  const getPlanCategoryText = (planIndex: number, categoryId: string): string => {
-    if (!formData.pricing_plans) return ''
-    const plan = formData.pricing_plans[planIndex]
-    const categoryValue = (plan.category_values || []).find(cv => cv.category_id === categoryId)
-    return categoryValue?.text || ''
-  }
-
   const slugFromName = (name: string) =>
     name
       .toLowerCase()
@@ -535,15 +391,62 @@ export default function PricingEditorPage() {
   const planHasProduct = (planId: string, productId: string) =>
     planProducts.some(pp => pp.plan_id === planId && pp.product_id === productId)
 
+  const handleProductIconUpload = async (productId: string, file: File) => {
+    setUploadingProductId(productId)
+    try {
+      const formDataUpload = new FormData()
+      formDataUpload.append('file', file)
+      formDataUpload.append('folder', 'product-icons')
+      formDataUpload.append('preserveTransparency', 'true')
+      const response = await fetch('/api/upload', { method: 'POST', body: formDataUpload })
+      const data = await response.json()
+      if (!response.ok || !data.success) throw new Error(data.error || 'Erro no upload')
+      const { error } = await (supabase as any).from('products').update({ icon_url: data.url }).eq('id', productId)
+      if (error) throw error
+      const { data: updated } = await (supabase as any).from('products').select('*').eq('is_active', true).order('order_position', { ascending: true })
+      if (updated) setProducts(updated as Product[])
+      syncPlanFeaturesFromProducts(planProducts, updated || products)
+      toast.success('Ícone do produto atualizado')
+    } catch (e: any) {
+      toast.error(e?.message || 'Erro ao enviar ícone')
+    } finally {
+      setUploadingProductId(null)
+    }
+  }
+
+  const planIdToDb = (id: string) => id === 'gogh-essencial' ? 'gogh_essencial' : id === 'gogh-pro' ? 'gogh_pro' : id
+  const syncPlanFeaturesFromProducts = (ppList: PlanProduct[], prodList: Product[]) => {
+    setFormData(prev => {
+      if (!prev.pricing_plans) return prev
+      return {
+        ...prev,
+        pricing_plans: prev.pricing_plans.map(plan => {
+          if (plan.id !== 'gogh-essencial' && plan.id !== 'gogh-pro') return plan
+          const dbPlanId = planIdToDb(plan.id)
+          const productIds = ppList.filter(pp => pp.plan_id === dbPlanId).map(pp => pp.product_id)
+          const features = productIds
+            .map(pid => prodList.find(p => p.id === pid))
+            .filter(Boolean)
+            .map(p => ({ name: (p as Product).name, isIncluded: true, iconUrl: (p as Product).icon_url ?? undefined }))
+          return { ...plan, features }
+        }),
+      }
+    })
+  }
+
   const togglePlanProduct = async (planId: string, productId: string) => {
     const has = planHasProduct(planId, productId)
     try {
       if (has) {
         await (supabase as any).from('plan_products').delete().eq('plan_id', planId).eq('product_id', productId)
-        setPlanProducts(prev => prev.filter(pp => !(pp.plan_id === planId && pp.product_id === productId)))
+        const next = planProducts.filter(pp => !(pp.plan_id === planId && pp.product_id === productId))
+        setPlanProducts(next)
+        syncPlanFeaturesFromProducts(next, products)
       } else {
         await (supabase as any).from('plan_products').insert({ plan_id: planId, product_id: productId })
-        setPlanProducts(prev => [...prev, { plan_id: planId, product_id: productId }])
+        const next = [...planProducts, { plan_id: planId, product_id: productId }]
+        setPlanProducts(next)
+        syncPlanFeaturesFromProducts(next, products)
       }
       toast.success(has ? 'Produto removido do plano' : 'Produto adicionado ao plano')
     } catch (e: any) {
@@ -649,79 +552,6 @@ export default function PricingEditorPage() {
             </div>
           </div>
 
-          {/* Categorias de Recursos */}
-          {formData.pricing_enabled && (
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-              <button
-                onClick={() => setCategoriesExpanded(!categoriesExpanded)}
-                className="w-full flex items-center justify-between mb-4"
-              >
-                <div className="flex items-center gap-3">
-                  <h2 className="text-xl font-bold">Categorias de Recursos</h2>
-                  <span className="text-sm text-gray-500">({featureCategories.length} categorias)</span>
-                </div>
-                {categoriesExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
-              </button>
-
-              {categoriesExpanded && (
-                <div className="space-y-4">
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <p className="text-sm text-blue-800">
-                      <strong>💡 Dica:</strong> Crie categorias para agrupar recursos similares. Ex: "Criação de Site", "Gestão de Redes Sociais", etc. Isso permite que diferentes planos tenham o mesmo recurso com textos diferentes.
-                    </p>
-                  </div>
-
-                  <div className="space-y-3">
-                    {featureCategories.map((category, index) => (
-                      <div key={category.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => handleMoveCategory(category.id, 'up')}
-                            disabled={index === 0}
-                            className="p-1 hover:bg-gray-200 rounded disabled:opacity-50 disabled:cursor-not-allowed"
-                            title="Mover para cima"
-                          >
-                            <ArrowUp size={16} />
-                          </button>
-                          <button
-                            onClick={() => handleMoveCategory(category.id, 'down')}
-                            disabled={index === featureCategories.length - 1}
-                            className="p-1 hover:bg-gray-200 rounded disabled:opacity-50 disabled:cursor-not-allowed"
-                            title="Mover para baixo"
-                          >
-                            <ArrowDown size={16} />
-                          </button>
-                        </div>
-                        <Input
-                          value={category.name}
-                          onChange={(e) => handleUpdateCategory(category.id, 'name', e.target.value)}
-                          placeholder="Nome da categoria (ex: Criação de Site)"
-                          className="flex-1"
-                        />
-                        <button
-                          onClick={() => handleRemoveCategory(category.id)}
-                          className="text-red-600 hover:text-red-800 p-2 hover:bg-red-50 rounded"
-                          title="Remover categoria"
-                        >
-                          <Trash2 size={18} />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-
-                  <Button
-                    onClick={handleAddCategory}
-                    variant="outline"
-                    className="w-full"
-                  >
-                    <Plus size={18} className="mr-2" />
-                    Adicionar Categoria
-                  </Button>
-                </div>
-              )}
-            </div>
-          )}
-
           {/* Produtos globais e atribuição aos planos (Essencial / Pro) */}
           {formData.pricing_enabled && (
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
@@ -779,6 +609,7 @@ export default function PricingEditorPage() {
                         <table className="min-w-full text-sm">
                           <thead>
                             <tr className="border-b">
+                              <th className="text-left py-2 pr-4">Ícone</th>
                               <th className="text-left py-2 pr-4">Produto</th>
                               <th className="text-center py-2 px-2">Gogh Essencial</th>
                               <th className="text-center py-2 px-2">Gogh Pro</th>
@@ -787,6 +618,31 @@ export default function PricingEditorPage() {
                           <tbody>
                             {products.map((p) => (
                               <tr key={p.id} className="border-b border-gray-100">
+                                <td className="py-2 pr-2 align-middle">
+                                  <div className="flex items-center gap-2">
+                                    {p.icon_url ? (
+                                      <img src={p.icon_url} alt="" className="h-10 w-10 rounded-lg object-cover border border-gray-200" />
+                                    ) : (
+                                      <div className="h-10 w-10 rounded-lg border border-dashed border-gray-300 bg-gray-50 flex items-center justify-center text-gray-400 text-xs">Ícone</div>
+                                    )}
+                                    <label className="cursor-pointer">
+                                      <input
+                                        type="file"
+                                        accept="image/jpeg,image/png,image/webp,image/gif"
+                                        className="sr-only"
+                                        disabled={uploadingProductId === p.id}
+                                        onChange={(e) => {
+                                          const file = e.target.files?.[0]
+                                          if (file) handleProductIconUpload(p.id, file)
+                                          e.target.value = ''
+                                        }}
+                                      />
+                                      <span className="text-xs text-blue-600 hover:underline">
+                                        {uploadingProductId === p.id ? 'Enviando...' : p.icon_url ? 'Trocar' : 'Upload'}
+                                      </span>
+                                    </label>
+                                  </div>
+                                </td>
                                 <td className="py-2 pr-4">
                                   <span className="font-medium">{p.name}</span>
                                   <span className="text-gray-500 ml-1">({p.slug})</span>
@@ -1041,62 +897,6 @@ export default function PricingEditorPage() {
                       </div>
                     )}
 
-                    {/* Textos das Categorias de Comparação - Apenas para planos de assinatura */}
-                    {plan.planType !== 'service' && featureCategories.length > 0 ? (
-                      <div className="border-t pt-4 mt-4">
-                        <h4 className="font-semibold mb-3">Textos das Categorias de Comparação</h4>
-                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-                          <p className="text-sm text-blue-800 mb-2">
-                            <strong>💡 Como funciona:</strong>
-                          </p>
-                          <ul className="text-xs text-blue-800 space-y-1 ml-4 list-disc">
-                            <li><strong>Nome da categoria:</strong> Aparece como título principal na tabela</li>
-                            <li><strong>Quando TODOS os planos têm texto:</strong> A tabela mostra ✓ + o texto específico de cada plano lado a lado</li>
-                            <li><strong>Quando APENAS ALGUNS planos têm:</strong> Mostra ✓ + texto para quem tem, e ✗ para quem não tem</li>
-                            <li><strong>Se deixar vazio:</strong> Aparecerá como ✗ na tabela, indicando que o plano não tem essa categoria</li>
-                          </ul>
-                        </div>
-                        
-                        {/* Mostrar categorias com campo de texto */}
-                        <div className="space-y-4">
-                          {featureCategories.map((category) => {
-                            const currentText = getPlanCategoryText(planIndex, category.id)
-                            return (
-                              <div key={category.id} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
-                                <h5 className="font-semibold text-gray-900 mb-3">{category.name}</h5>
-                                <div className="space-y-2 bg-white p-3 rounded border border-gray-200">
-                                  <textarea
-                                    value={currentText}
-                                    onChange={(e) => updatePlanCategoryValue(planIndex, category.id, e.target.value)}
-                                    placeholder={`Digite o texto para ${category.name} neste plano (deixe vazio se não tiver)`}
-                                    rows={3}
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                  />
-                                  {currentText && (
-                                    <p className="text-xs text-green-600">
-                                      ✓ Esta categoria aparecerá na tabela de comparação
-                                    </p>
-                                  )}
-                                  {!currentText && (
-                                    <p className="text-xs text-gray-500">
-                                      ✗ Esta categoria aparecerá como "não tem" na tabela de comparação
-                                    </p>
-                                  )}
-                                </div>
-                              </div>
-                            )
-                          })}
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="border-t pt-4 mt-4">
-                        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                          <p className="text-sm text-yellow-800">
-                            <strong>⚠️ Atenção:</strong> Crie categorias na seção "Categorias de Recursos" acima para poder configurá-las aqui.
-                          </p>
-                        </div>
-                      </div>
-                    )}
                   </div>
                 </div>
               ))}
