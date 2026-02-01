@@ -204,6 +204,7 @@ export function AnimatedBeamSection({
               delay={0.1}
             />
           )}
+          </div>
         </FadeInElement>
       </div>
     </section>
