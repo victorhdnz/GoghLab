@@ -372,17 +372,6 @@ export const PricingComponent: React.FC<PricingComponentProps> = ({
               )}
             </CardContent>
             <CardFooter className="p-6 pt-0 flex flex-col gap-3">
-              {plan.planType !== 'service' && (
-                <Button
-                  variant="ghost"
-                  onClick={() => setDetailPlan(plan)}
-                  className="w-full text-[#0A0A0A] hover:bg-[#F7C948]/20 hover:text-[#0A0A0A]"
-                  size="sm"
-                >
-                  <ChevronRight className="w-4 h-4 mr-1" />
-                  Ver mais detalhes
-                </Button>
-              )}
               <Button
                 onClick={() => {
                   if (plan.planType === 'service') {
