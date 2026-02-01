@@ -75,6 +75,7 @@ export default function ToolsPage() {
   const [showErrorModal, setShowErrorModal] = useState(false)
   const [showCapcutCredentials, setShowCapcutCredentials] = useState(false)
   const [toolsFromPlan, setToolsFromPlan] = useState<ToolFromDB[]>([])
+  const [tutorialModalTool, setTutorialModalTool] = useState<{ name: string; videoUrl: string } | null>(null)
 
   const supabase = createClient()
 
@@ -769,15 +770,14 @@ export default function ToolsPage() {
                     </a>
                   )}
                   {videoUrl && (
-                    <a
-                      href={videoUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                    <button
+                      type="button"
+                      onClick={() => setTutorialModalTool({ name: t.name, videoUrl })}
                       className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-blue-500 text-white font-medium rounded-lg hover:bg-blue-600 mb-3"
                     >
                       <Play className="w-4 h-4" />
                       Ver tutorial
-                    </a>
+                    </button>
                   )}
                   {!hasAccess && (
                     <div className="mt-4">
@@ -816,6 +816,64 @@ export default function ToolsPage() {
             )
           })}
         </div>
+
+        {/* Modal de Vídeo Tutorial (ferramentas dinâmicas) */}
+        {tutorialModalTool && (
+          <div
+            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) setTutorialModalTool(null)
+            }}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="bg-white rounded-xl shadow-xl max-w-sm w-full p-4 md:p-6"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-base md:text-lg font-bold text-gogh-black">
+                  Tutorial - {tutorialModalTool.name}
+                </h3>
+                <button
+                  onClick={() => setTutorialModalTool(null)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <div className="relative max-w-sm mx-auto">
+                {tutorialModalTool.videoUrl && getYouTubeId(tutorialModalTool.videoUrl) ? (() => {
+                  const containerClasses = getYouTubeContainerClasses(tutorialModalTool.videoUrl)
+                  const embedUrl = getYouTubeEmbedUrl(tutorialModalTool.videoUrl)
+                  return (
+                    <div className={`${containerClasses.wrapper}`}>
+                      <div className="bg-gradient-to-br from-gogh-yellow/10 to-gogh-yellow/5 p-1 rounded-xl">
+                        <div className="bg-black rounded-lg overflow-hidden">
+                          <div className={`relative ${containerClasses.aspectRatio} bg-black`}>
+                            <iframe
+                              src={embedUrl || ''}
+                              title={`Tutorial - ${tutorialModalTool.name}`}
+                              className="w-full h-full rounded-lg"
+                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                              allowFullScreen
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })() : (
+                  <div className="aspect-[9/16] w-full flex items-center justify-center bg-black rounded-lg">
+                    <p className="text-white text-sm">Vídeo não disponível</p>
+                  </div>
+                )}
+              </div>
+              <p className="text-xs md:text-sm text-gray-600 mt-4">
+                Assista ao tutorial para aprender a usar a ferramenta.
+              </p>
+            </motion.div>
+          </div>
+        )}
       </div>
     )
   }

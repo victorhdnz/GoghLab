@@ -110,15 +110,16 @@ export default function SolicitacoesPage() {
       setAccessPassword('')
       const userId = selectedTicket.user_id
       const toolId = selectedTicket.tool_id ?? null
+      const slug = toolId ? toolsMap[toolId]?.slug : undefined
       loadingForRef.current = { userId, toolId }
-      loadToolAccessForTicket(userId, toolId)
+      loadToolAccessForTicket(userId, toolId, slug)
       loadSubscriptionInfo(selectedTicket.user_id)
     } else {
       loadingForRef.current = null
       setSubscriptionInfo(null)
       setToolAccess([])
     }
-  }, [selectedTicket])
+  }, [selectedTicket, toolsMap])
 
   const loadSubscriptionInfo = async (userId: string) => {
     try {
@@ -222,7 +223,7 @@ export default function SolicitacoesPage() {
     }
   }
 
-  const loadToolAccessForTicket = async (userId: string, toolId: string | null) => {
+  const loadToolAccessForTicket = async (userId: string, toolId: string | null, slug?: string) => {
     try {
       if (!toolId) {
         const stillCurrent = loadingForRef.current && loadingForRef.current.userId === userId && loadingForRef.current.toolId === null
@@ -233,15 +234,17 @@ export default function SolicitacoesPage() {
         }
         return
       }
-      const { data, error } = await (supabase as any)
-        .from('tool_access_credentials')
-        .select('*')
-        .eq('user_id', userId)
-        .eq('tool_id', toolId)
+      let query = (supabase as any).from('tool_access_credentials').select('*').eq('user_id', userId)
+      if (slug) {
+        query = query.or(`tool_id.eq.${toolId},tool_type.eq.${slug}`)
+      } else {
+        query = query.eq('tool_id', toolId)
+      }
+      const { data, error } = await query
 
       if (error) throw error
       const list = data || []
-      const existing = list[0]
+      const existing = list.find((r: any) => r.tool_id === toolId) || list[0]
       const stillCurrent = loadingForRef.current?.userId === userId && loadingForRef.current?.toolId === toolId
       if (stillCurrent) {
         setToolAccess(list)
@@ -281,6 +284,11 @@ export default function SolicitacoesPage() {
       return
     }
 
+    let linkValue = accessLink.trim()
+    if (linkValue && !/^https?:\/\//i.test(linkValue) && /\./.test(linkValue)) {
+      linkValue = 'https://' + linkValue
+    }
+
     setSaving(true)
     try {
       const { data: { user } } = await supabase.auth.getUser()
@@ -312,36 +320,25 @@ export default function SolicitacoesPage() {
       }
 
       const nowIso = new Date().toISOString()
-      const existing = toolAccess[0]
       const payload: any = {
         user_id: selectedTicket.user_id,
         tool_id: selectedTicket.tool_id,
         tool_type: tool.slug,
         email: selectedTicket.user?.email || 'noreply@example.com',
-        access_link: accessLink.trim(),
+        access_link: linkValue,
         tutorial_video_url: tool.tutorial_video_url || null,
         access_granted_at: nowIso,
         is_active: true,
         error_reported: false,
         error_message: null,
+        updated_at: nowIso,
       }
       if (accessPassword.trim()) payload.password = accessPassword.trim()
 
-      if (existing) {
-        const { error } = await (supabase as any)
-          .from('tool_access_credentials')
-          .update({
-            ...payload,
-            updated_at: nowIso,
-          })
-          .eq('id', existing.id)
-        if (error) throw error
-      } else {
-        const { error } = await (supabase as any)
-          .from('tool_access_credentials')
-          .insert(payload)
-        if (error) throw error
-      }
+      const { error } = await (supabase as any)
+        .from('tool_access_credentials')
+        .upsert(payload, { onConflict: 'user_id,tool_type' })
+      if (error) throw error
 
       if (selectedTicket.status === 'open') {
         await updateTicketStatus(selectedTicket.id, 'resolved')
@@ -349,7 +346,7 @@ export default function SolicitacoesPage() {
 
       toast.success('Acesso salvo com sucesso! O cliente já pode ver o link/credenciais na página de ferramentas.')
       loadingForRef.current = { userId: selectedTicket.user_id, toolId: selectedTicket.tool_id ?? null }
-      await loadToolAccessForTicket(selectedTicket.user_id, selectedTicket.tool_id ?? null)
+      await loadToolAccessForTicket(selectedTicket.user_id, selectedTicket.tool_id ?? null, tool.slug)
       const currentSelectedId = selectedTicket.id
       const updatedList = await loadTickets()
       const reloaded = updatedList.find(t => t.id === currentSelectedId)
