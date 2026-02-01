@@ -230,7 +230,7 @@ export default function DashboardFerramentasPage() {
           )}
 
           <p className="text-sm text-gray-500 mb-4">
-            As ferramentas aparecem na área do membro conforme os <Link href="/dashboard/pricing" className="text-blue-600 underline">produtos atribuídos a cada plano</Link>. Vincule cada ferramenta a um produto do tipo &quot;Ferramenta&quot;.
+            As ferramentas aparecem na área do membro conforme os <Link href="/dashboard/pricing" className="text-blue-600 underline">produtos atribuídos a cada plano</Link>. Vincule cada ferramenta a um produto do tipo &quot;Ferramenta&quot;. Produtos do tipo Ferramenta criados em Planos são espelhados aqui automaticamente; configure o vídeo e o prazo de 8 dias.
           </p>
 
           <ul className="space-y-3">

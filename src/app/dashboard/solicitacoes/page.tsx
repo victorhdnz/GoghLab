@@ -340,7 +340,7 @@ export default function SolicitacoesPage() {
         .upsert(payload, { onConflict: 'user_id,tool_type' })
       if (error) throw error
 
-      if (selectedTicket.status === 'open') {
+      if (selectedTicket.status === 'open' || selectedTicket.status === 'error') {
         await updateTicketStatus(selectedTicket.id, 'resolved')
       }
 
@@ -464,12 +464,10 @@ export default function SolicitacoesPage() {
     switch (status) {
       case 'open':
         return <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700"><Clock className="w-3 h-3" /> Aberto</span>
-      case 'in_progress':
-        return <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-700"><Clock className="w-3 h-3" /> Em Andamento</span>
       case 'resolved':
         return <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700"><CheckCircle2 className="w-3 h-3" /> Resolvido</span>
-      case 'closed':
-        return <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700"><XCircle className="w-3 h-3" /> Fechado</span>
+      case 'error':
+        return <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-700"><AlertTriangle className="w-3 h-3" /> Erro / Problema</span>
       default:
         return <span className="px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700">{status}</span>
     }
@@ -536,9 +534,8 @@ export default function SolicitacoesPage() {
               >
                 <option value="all">Todos os status</option>
                 <option value="open">Aberto</option>
-                <option value="in_progress">Em Andamento</option>
                 <option value="resolved">Resolvido</option>
-                <option value="closed">Fechado</option>
+                <option value="error">Erro / Problema</option>
               </select>
             </div>
 
@@ -610,9 +607,8 @@ export default function SolicitacoesPage() {
                         className="px-3 py-1 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                       >
                         <option value="open">Aberto</option>
-                        <option value="in_progress">Em Andamento</option>
                         <option value="resolved">Resolvido</option>
-                        <option value="closed">Fechado</option>
+                        <option value="error">Erro / Problema</option>
                       </select>
                     </div>
                   </div>

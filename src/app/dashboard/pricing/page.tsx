@@ -365,7 +365,7 @@ export default function PricingEditorPage() {
     const slug = newProductSlug.trim() || slugFromName(newProductName)
     setAddingProduct(true)
     try {
-      const { error } = await (supabase as any)
+      const { data: insertedProduct, error } = await (supabase as any)
         .from('products')
         .insert({
           name: newProductName.trim(),
@@ -374,8 +374,40 @@ export default function PricingEditorPage() {
           order_position: products.length,
           is_active: true,
         })
+        .select()
+        .single()
       if (error) throw error
-      toast.success('Produto criado')
+      if (newProductType === 'tool' && insertedProduct?.id) {
+        const { data: existingTool } = await (supabase as any)
+          .from('tools')
+          .select('id')
+          .eq('product_id', insertedProduct.id)
+          .maybeSingle()
+        if (!existingTool) {
+          const { error: toolError } = await (supabase as any)
+            .from('tools')
+            .insert({
+              product_id: insertedProduct.id,
+              name: insertedProduct.name,
+              slug: insertedProduct.slug,
+              description: null,
+              tutorial_video_url: null,
+              requires_8_days: true,
+              order_position: products.length,
+              is_active: true,
+            })
+          if (toolError) {
+            console.error('Erro ao espelhar ferramenta:', toolError)
+            toast.success('Produto criado. Crie a ferramenta manualmente em Gerenciar Ferramentas se precisar.')
+          } else {
+            toast.success('Produto e ferramenta criados. Configure o vídeo e o prazo em Gerenciar Ferramentas.')
+          }
+        } else {
+          toast.success('Produto criado. A ferramenta já existe em Gerenciar Ferramentas.')
+        }
+      } else {
+        toast.success('Produto criado')
+      }
       setNewProductName('')
       setNewProductSlug('')
       const { data } = await (supabase as any).from('products').select('*').eq('is_active', true).order('order_position', { ascending: true })

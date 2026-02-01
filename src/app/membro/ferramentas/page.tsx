@@ -50,6 +50,7 @@ interface ToolFromDB {
   tutorial_video_url: string | null
   requires_8_days: boolean
   order_position: number
+  icon_url?: string | null
 }
 
 interface SupportTicket {
@@ -71,6 +72,7 @@ export default function ToolsPage() {
   const [showCanvaVideoModal, setShowCanvaVideoModal] = useState(false)
   const [showCapcutVideoModal, setShowCapcutVideoModal] = useState(false)
   const [reportingError, setReportingError] = useState<string | null>(null)
+  const [reportingErrorToolName, setReportingErrorToolName] = useState<string>('')
   const [errorMessage, setErrorMessage] = useState('')
   const [showErrorModal, setShowErrorModal] = useState(false)
   const [showCapcutCredentials, setShowCapcutCredentials] = useState(false)
@@ -99,7 +101,7 @@ export default function ToolsPage() {
           .select('*')
           .eq('user_id', user.id)
           .eq('ticket_type', 'tools_access')
-          .in('status', ['open', 'in_progress'])
+          .in('status', ['open', 'in_progress', 'error'])
 
         setPendingTickets(ticketsData || [])
 
@@ -128,11 +130,22 @@ export default function ToolsPage() {
             if (productIds.length > 0) {
               const { data: toolsData } = await (supabase as any)
                 .from('tools')
-                .select('id, product_id, name, slug, description, tutorial_video_url, requires_8_days, order_position')
+                .select('id, product_id, name, slug, description, tutorial_video_url, requires_8_days, order_position, products(icon_url)')
                 .eq('is_active', true)
                 .in('product_id', productIds)
                 .order('order_position', { ascending: true })
-              setToolsFromPlan(toolsData || [])
+              const toolsWithIcon = (toolsData || []).map((t: any) => ({
+                id: t.id,
+                product_id: t.product_id,
+                name: t.name,
+                slug: t.slug,
+                description: t.description,
+                tutorial_video_url: t.tutorial_video_url,
+                requires_8_days: t.requires_8_days,
+                order_position: t.order_position,
+                icon_url: t.products?.icon_url ?? null,
+              }))
+              setToolsFromPlan(toolsWithIcon)
             }
           } catch (_) {
             setToolsFromPlan([])
@@ -164,7 +177,7 @@ export default function ToolsPage() {
             .select('*')
             .eq('user_id', user.id)
             .eq('ticket_type', 'tools_access')
-            .in('status', ['open', 'in_progress'])
+            .in('status', ['open', 'in_progress', 'error'])
           setPendingTickets(ticketsData || [])
         } catch (_) {}
       })()
@@ -411,9 +424,10 @@ export default function ToolsPage() {
     }
   }
 
-  const reportLinkError = async (toolType: 'canva' | 'capcut') => {
+  const reportLinkError = async (toolType: string, toolName?: string) => {
     if (!user) return
     setReportingError(toolType)
+    setReportingErrorToolName(toolName ?? (toolType === 'canva' ? 'Canva Pro' : toolType === 'capcut' ? 'CapCut Pro' : toolType))
     setShowErrorModal(true)
   }
 
@@ -421,7 +435,7 @@ export default function ToolsPage() {
     if (!user || !reportingError || !errorMessage.trim()) return
 
     try {
-      const toolAccessData = toolAccess.find(t => t.tool_type === reportingError)
+      const toolAccessData = toolAccess.find(t => t.tool_type === reportingError || t.tool_id === reportingError)
       if (!toolAccessData) {
         toast.error('Acesso não encontrado')
         return
@@ -441,27 +455,27 @@ export default function ToolsPage() {
 
       // Buscar ou criar ticket para este reporte
       // Primeiro, verificar se existe ticket aberto para este usuário e tipo
+      const toolName = reportingErrorToolName || (reportingError === 'canva' ? 'Canva Pro' : reportingError === 'capcut' ? 'CapCut Pro' : reportingError)
+
       const { data: existingTickets } = await (supabase as any)
         .from('support_tickets')
         .select('*')
         .eq('user_id', user.id)
         .eq('ticket_type', 'tools_access')
-        .in('status', ['open', 'in_progress'])
+        .in('status', ['open', 'in_progress', 'error'])
         .order('created_at', { ascending: false })
         .limit(1)
 
       let ticketId: string
 
       if (existingTickets && existingTickets.length > 0) {
-        // Reabrir ticket existente se estiver fechado, ou usar o aberto
         const existingTicket = existingTickets[0]
         if (existingTicket.status === 'closed' || existingTicket.status === 'resolved') {
-          // Reabrir ticket fechado
           const { data: reopenedTicket, error: reopenError } = await (supabase as any)
             .from('support_tickets')
             .update({
-              status: 'open',
-              subject: `[REPORTE] ${existingTicket.subject} - Problema com ${reportingError === 'canva' ? 'Canva Pro' : 'CapCut Pro'}`,
+              status: 'error',
+              subject: `[REPORTE] Problema na conta - ${toolName}`,
               updated_at: new Date().toISOString()
             })
             .eq('id', existingTicket.id)
@@ -472,16 +486,19 @@ export default function ToolsPage() {
           ticketId = reopenedTicket.id
         } else {
           ticketId = existingTicket.id
+          await (supabase as any)
+            .from('support_tickets')
+            .update({ status: 'error', subject: `[REPORTE] Problema na conta - ${toolName}`, updated_at: new Date().toISOString() })
+            .eq('id', existingTicket.id)
         }
       } else {
-        // Criar novo ticket para o reporte
         const { data: newTicket, error: ticketError } = await (supabase as any)
           .from('support_tickets')
           .insert({
             user_id: user.id,
             ticket_type: 'tools_access',
-            subject: `[REPORTE] Problema reportado com ${reportingError === 'canva' ? 'Canva Pro' : 'CapCut Pro'}`,
-            status: 'open',
+            subject: `[REPORTE] Problema na conta - ${toolName}`,
+            status: 'error',
             priority: 'high'
           })
           .select()
@@ -491,21 +508,21 @@ export default function ToolsPage() {
         ticketId = newTicket.id
       }
 
-      // Criar mensagem no ticket explicando o problema
       const { error: messageError } = await (supabase as any)
         .from('support_messages')
         .insert({
           ticket_id: ticketId,
           sender_id: user.id,
-          content: `[REPORTE DE PROBLEMA - ${reportingError === 'canva' ? 'Canva Pro' : 'CapCut Pro'}]\n\n${errorMessage.trim()}\n\nPor favor, envie novas credenciais de acesso.`
+          content: `[REPORTE DE PROBLEMA - ${toolName}]\n\n${errorMessage.trim()}\n\nPor favor, envie novas credenciais de acesso.`
         })
 
       if (messageError) throw messageError
 
-      toast.success('Erro reportado! Nossa equipe irá verificar e enviar uma nova conta. Um ticket foi criado para acompanhamento.')
+      toast.success('Enviado para a equipe. Em breve entraremos em contato para resolver.')
       setShowErrorModal(false)
       setErrorMessage('')
       setReportingError(null)
+      setReportingErrorToolName('')
 
       // Recarregar dados
       const { data: accessData } = await (supabase as any)
@@ -732,6 +749,9 @@ export default function ToolsPage() {
             const videoUrl = t.tutorial_video_url || accessData?.tutorial_video_url
             const canRequest = canRequestForTool(t)
             const pending = pendingForTool(t)
+            const ticketForTool = pendingTickets.find((tk: SupportTicket & { tool_id?: string; subject?: string; status?: string }) => tk.tool_id === t.id)
+            const isReportPending = !!ticketForTool && (ticketForTool.status === 'error' || (ticketForTool.subject && String(ticketForTool.subject).includes('[REPORTE]')))
+            const hasNewCredentials = accessData?.updated_at && accessData?.access_granted_at && new Date(accessData.updated_at).getTime() > new Date(accessData.access_granted_at).getTime()
             return (
               <motion.div
                 key={t.id}
@@ -742,8 +762,12 @@ export default function ToolsPage() {
               >
                 <div className="bg-gradient-to-r from-gogh-yellow to-amber-500 p-6 text-white">
                   <div className="flex items-center gap-4">
-                    <div className="w-14 h-14 bg-white/20 rounded-xl flex items-center justify-center">
-                      <Wrench className="w-8 h-8" />
+                    <div className="w-14 h-14 bg-white/20 rounded-xl flex items-center justify-center overflow-hidden flex-shrink-0">
+                      {t.icon_url ? (
+                        <img src={t.icon_url} alt="" className="w-full h-full object-contain p-1" />
+                      ) : (
+                        <Wrench className="w-8 h-8" />
+                      )}
                     </div>
                     <div>
                       <h3 className="text-xl font-bold">{t.name}</h3>
@@ -797,13 +821,28 @@ export default function ToolsPage() {
                       Ver tutorial
                     </button>
                   )}
+                  {hasAccess && (accessData?.access_link || accessData?.password) && (
+                    <button
+                      type="button"
+                      onClick={() => reportLinkError(t.slug, t.name)}
+                      className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg border border-red-200 transition-colors mb-3"
+                    >
+                      <AlertTriangle className="w-4 h-4" />
+                      Reportar Erro na Conta
+                    </button>
+                  )}
                   {!hasAccess && (
                     <div className="mt-4">
                       {pending ? (
-                        <p className="text-sm text-amber-600 flex items-center gap-2">
-                          <Clock className="w-4 h-4" />
-                          Solicitação em análise
-                        </p>
+                        <div className="rounded-lg p-3 border border-amber-200 bg-amber-50">
+                          <p className="text-sm text-amber-800 flex items-center gap-2">
+                            <Clock className="w-4 h-4 flex-shrink-0" />
+                            {isReportPending ? 'Problema reportado – em análise pela equipe' : 'Solicitação em análise'}
+                          </p>
+                          <p className="text-xs text-amber-700 mt-1">
+                            {isReportPending ? 'Entraremos em contato em breve.' : 'Você receberá o acesso em até 24 horas úteis.'}
+                          </p>
+                        </div>
                       ) : !canRequest && t.requires_8_days ? (
                         <button
                           type="button"
@@ -1161,7 +1200,7 @@ export default function ToolsPage() {
                           )}
                           
                           <button
-                            onClick={() => reportLinkError(tool.id as 'canva' | 'capcut')}
+                            onClick={() => reportLinkError(tool.id as 'canva' | 'capcut', tool.name)}
                             className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg border border-red-200 transition-colors"
                           >
                             <AlertTriangle className="w-4 h-4" />
@@ -1193,7 +1232,7 @@ export default function ToolsPage() {
                           )}
                           
                           <button
-                            onClick={() => reportLinkError(tool.id as 'canva' | 'capcut')}
+                            onClick={() => reportLinkError(tool.id as 'canva' | 'capcut', tool.name)}
                             className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg border border-red-200 transition-colors"
                           >
                             <AlertTriangle className="w-4 h-4" />
@@ -1726,6 +1765,7 @@ export default function ToolsPage() {
                   setShowErrorModal(false)
                   setErrorMessage('')
                   setReportingError(null)
+                  setReportingErrorToolName('')
                 }}
                 className="text-gray-400 hover:text-gray-600"
               >
@@ -1751,6 +1791,7 @@ export default function ToolsPage() {
                   setShowErrorModal(false)
                   setErrorMessage('')
                   setReportingError(null)
+                  setReportingErrorToolName('')
                 }}
                 className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
               >
