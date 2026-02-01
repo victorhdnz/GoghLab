@@ -15,7 +15,7 @@ import {
 } from 'lucide-react'
 
 /** Limites de quantidade dos serviços personalizados (mensal e anual). Definidos nos termos. */
-export const SERVICE_QUANTITY_LIMITS: Record<string, { quantity: number; label: string }> = {
+const SERVICE_QUANTITY_LIMITS: Record<string, { quantity: number; label: string }> = {
   'Criação de conteúdo completa': { quantity: 10, label: 'até 10 conteúdos por mês' },
   'Gestão de redes sociais': { quantity: 12, label: 'até 12 publicações por mês' },
 }
