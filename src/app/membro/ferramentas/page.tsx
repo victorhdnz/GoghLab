@@ -446,14 +446,16 @@ export default function ToolsPage() {
 
       if (existingTickets && existingTickets.length > 0) {
         const existingTicket = existingTickets[0]
+        const updatePayload: Record<string, unknown> = {
+          status: 'error',
+          subject: `[REPORTE] Problema na conta - ${toolName}`,
+          updated_at: new Date().toISOString()
+        }
+        if (toolAccessData.tool_id) updatePayload.tool_id = toolAccessData.tool_id
         if (existingTicket.status === 'closed' || existingTicket.status === 'resolved') {
           const { data: reopenedTicket, error: reopenError } = await (supabase as any)
             .from('support_tickets')
-            .update({
-              status: 'error',
-              subject: `[REPORTE] Problema na conta - ${toolName}`,
-              updated_at: new Date().toISOString()
-            })
+            .update(updatePayload)
             .eq('id', existingTicket.id)
             .select()
             .single()
@@ -464,19 +466,21 @@ export default function ToolsPage() {
           ticketId = existingTicket.id
           await (supabase as any)
             .from('support_tickets')
-            .update({ status: 'error', subject: `[REPORTE] Problema na conta - ${toolName}`, updated_at: new Date().toISOString() })
+            .update(updatePayload)
             .eq('id', existingTicket.id)
         }
       } else {
+        const insertPayload: Record<string, unknown> = {
+          user_id: user.id,
+          ticket_type: 'tools_access',
+          subject: `[REPORTE] Problema na conta - ${toolName}`,
+          status: 'error',
+          priority: 'high'
+        }
+        if (toolAccessData.tool_id) insertPayload.tool_id = toolAccessData.tool_id
         const { data: newTicket, error: ticketError } = await (supabase as any)
           .from('support_tickets')
-          .insert({
-            user_id: user.id,
-            ticket_type: 'tools_access',
-            subject: `[REPORTE] Problema na conta - ${toolName}`,
-            status: 'error',
-            priority: 'high'
-          })
+          .insert(insertPayload)
           .select()
           .single()
 
@@ -734,7 +738,7 @@ export default function ToolsPage() {
             const pending = pendingForTool(t)
             const ticketForTool = pendingTickets.find((tk: SupportTicket & { tool_id?: string; subject?: string; status?: string }) => tk.tool_id === t.id)
             const isReportPending = !!ticketForTool && (ticketForTool.status === 'error' || (ticketForTool.subject && String(ticketForTool.subject).includes('[REPORTE]')))
-            const hasNewCredentials = accessData?.updated_at && accessData?.access_granted_at && new Date(accessData.updated_at).getTime() > new Date(accessData.access_granted_at).getTime()
+            const hasNewCredentials = accessData?.updated_at && accessData?.access_granted_at && new Date(accessData.updated_at).getTime() > new Date(accessData.access_granted_at).getTime() && !accessData?.error_reported
             const hasOldPeriodAccess = hasOldPeriodAccessForTool(t)
             return (
               <motion.div
