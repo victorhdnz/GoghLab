@@ -265,7 +265,7 @@ export default function ToolsPage() {
     return daysRemaining > 0 ? daysRemaining : 0
   }
 
-  // Texto do countdown: "X dias restantes" ou "X horas restantes" quando faltar menos de 24h
+  // Texto do countdown: dias e, quando no último dia, "X dia(s) e Y hora(s)" ou só horas/min
   const countdownLabel = (): string | null => {
     if (!subscription) return null
     let subscriptionStartDate: Date | null = null
@@ -283,7 +283,11 @@ export default function ToolsPage() {
     if (msRemaining <= 0) return null
     const hoursRemaining = Math.ceil(msRemaining / (1000 * 60 * 60))
     const daysRemaining = Math.floor(hoursRemaining / 24)
+    const hoursInLastDay = hoursRemaining % 24
     if (daysRemaining >= 1) {
+      if (hoursInLastDay > 0) {
+        return `${daysRemaining} dia${daysRemaining > 1 ? 's' : ''} e ${hoursInLastDay} hora${hoursInLastDay > 1 ? 's' : ''} restante${daysRemaining > 1 || hoursInLastDay > 1 ? 's' : ''}`
+      }
       return `${daysRemaining} dia${daysRemaining > 1 ? 's' : ''} restante${daysRemaining > 1 ? 's' : ''}`
     }
     if (hoursRemaining >= 1) {
@@ -822,14 +826,21 @@ export default function ToolsPage() {
                     </button>
                   )}
                   {hasAccess && (accessData?.access_link || accessData?.password) && (
-                    <button
-                      type="button"
-                      onClick={() => reportLinkError(t.slug, t.name)}
-                      className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg border border-red-200 transition-colors mb-3"
-                    >
-                      <AlertTriangle className="w-4 h-4" />
-                      Reportar Erro na Conta
-                    </button>
+                    <div className="mb-3">
+                      <button
+                        type="button"
+                        onClick={() => reportLinkError(t.slug, t.name)}
+                        className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg border border-red-200 transition-colors"
+                      >
+                        <AlertTriangle className="w-4 h-4" />
+                        {hasNewCredentials ? 'Reportar novamente' : 'Reportar Erro na Conta'}
+                      </button>
+                      {hasNewCredentials && (
+                        <p className="text-xs text-emerald-600 mt-1.5 text-center">
+                          Problema já foi atendido; use o botão acima se precisar reportar de novo.
+                        </p>
+                      )}
+                    </div>
                   )}
                   {!hasAccess && (
                     <div className="mt-4">
@@ -1022,6 +1033,66 @@ export default function ToolsPage() {
             </motion.div>
           </div>
         )}
+
+        {/* Modal de Reporte de Erro (ferramentas dinâmicas) */}
+        {showErrorModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="bg-gradient-to-br from-gogh-beige-light to-amber-50 rounded-xl shadow-xl border border-amber-200/80 max-w-md w-full p-6"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-bold text-gogh-black">
+                  Reportar Erro na Conta
+                </h3>
+                <button
+                  onClick={() => {
+                    setShowErrorModal(false)
+                    setErrorMessage('')
+                    setReportingError(null)
+                    setReportingErrorToolName('')
+                  }}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <p className="text-sm text-gogh-grayDark mb-4">
+                Descreva o problema que você encontrou com a conta (ex: conta com menos dias de duração, credenciais não funcionam, etc.):
+              </p>
+              <textarea
+                value={errorMessage}
+                onChange={(e) => setErrorMessage(e.target.value)}
+                placeholder="Ex: A conta tem menos de 30 dias, as credenciais não funcionam, preciso de uma nova conta, etc..."
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gogh-yellow resize-none"
+                rows={4}
+              />
+              <div className="flex gap-3 mt-6">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowErrorModal(false)
+                    setErrorMessage('')
+                    setReportingError(null)
+                    setReportingErrorToolName('')
+                  }}
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={submitErrorReport}
+                  disabled={!errorMessage.trim()}
+                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Enviar Reporte
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
       </div>
     )
   }
@@ -1112,6 +1183,7 @@ export default function ToolsPage() {
                 const grantedAt = accessData.access_granted_at ? new Date(accessData.access_granted_at) : null
                 const hasNewAccess = updatedAt && grantedAt && updatedAt > grantedAt && 
                   (new Date().getTime() - updatedAt.getTime()) < (24 * 60 * 60 * 1000) // Últimas 24h
+                const hasNewCredentialsLegacy = updatedAt && grantedAt && updatedAt.getTime() > grantedAt.getTime()
                 const wasErrorReported = accessData.error_reported
                 
                 return (
@@ -1204,8 +1276,13 @@ export default function ToolsPage() {
                             className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg border border-red-200 transition-colors"
                           >
                             <AlertTriangle className="w-4 h-4" />
-                            Reportar Erro na Conta
+                            {hasNewCredentialsLegacy ? 'Reportar novamente' : 'Reportar Erro na Conta'}
                           </button>
+                          {hasNewCredentialsLegacy && (
+                            <p className="text-xs text-emerald-600 mt-1.5 text-center">
+                              Problema já foi atendido; use o botão acima se precisar reportar de novo.
+                            </p>
+                          )}
                         </>
                       )}
                       
@@ -1236,8 +1313,13 @@ export default function ToolsPage() {
                             className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg border border-red-200 transition-colors"
                           >
                             <AlertTriangle className="w-4 h-4" />
-                            Reportar Erro na Conta
+                            {hasNewCredentialsLegacy ? 'Reportar novamente' : 'Reportar Erro na Conta'}
                           </button>
+                          {hasNewCredentialsLegacy && (
+                            <p className="text-xs text-emerald-600 mt-1.5 text-center">
+                              Problema já foi atendido; use o botão acima se precisar reportar de novo.
+                            </p>
+                          )}
                         </>
                       )}
                     </div>

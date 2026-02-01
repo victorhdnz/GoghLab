@@ -15,6 +15,7 @@ interface Product {
   name: string
   slug: string
   product_type: string
+  icon_url?: string | null
 }
 
 interface Tool {
@@ -37,6 +38,7 @@ export default function DashboardFerramentasPage() {
   const [loading, setLoading] = useState(true)
   const [editingTool, setEditingTool] = useState<Tool | null>(null)
   const [showForm, setShowForm] = useState(false)
+  const [selectedProductForNew, setSelectedProductForNew] = useState<Product | null>(null)
   const [form, setForm] = useState({
     name: '',
     slug: '',
@@ -55,12 +57,12 @@ export default function DashboardFerramentasPage() {
     try {
       const { data: productsData } = await (supabase as any)
         .from('products')
-        .select('id, name, slug, product_type')
+        .select('id, name, slug, product_type, icon_url')
         .eq('is_active', true)
         .order('order_position', { ascending: true })
       const { data: toolsData } = await (supabase as any)
         .from('tools')
-        .select('*, products(id, name, slug, product_type)')
+        .select('*, products(id, name, slug, product_type, icon_url)')
         .order('order_position', { ascending: true })
       setProducts(productsData || [])
       setTools(toolsData || [])
@@ -79,6 +81,33 @@ export default function DashboardFerramentasPage() {
       .replace(/\p{Diacritic}/gu, '')
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-|-$/g, '')
+
+  const productIdsWithTool = new Set(tools.map((t) => t.product_id).filter(Boolean))
+  const productsWithoutTool = products.filter((p) => p.product_type === 'tool' && !productIdsWithTool.has(p.id))
+
+  const createToolFromProduct = async (product: Product) => {
+    try {
+      const maxOrder = tools.length ? Math.max(...tools.map((t) => t.order_position), 0) : 0
+      await (supabase as any)
+        .from('tools')
+        .insert({
+          product_id: product.id,
+          name: product.name,
+          slug: product.slug,
+          description: null,
+          tutorial_video_url: null,
+          requires_8_days: true,
+          order_position: maxOrder + 1,
+          is_active: true,
+        })
+      toast.success(`Ferramenta "${product.name}" criada. Configure o vídeo e o prazo abaixo.`)
+      setShowForm(false)
+      setSelectedProductForNew(null)
+      await loadData()
+    } catch (e: any) {
+      toast.error(e?.message || 'Erro ao criar ferramenta')
+    }
+  }
 
   const saveTool = async () => {
     if (!form.name.trim()) {
@@ -151,6 +180,7 @@ export default function DashboardFerramentasPage() {
             <Button
               onClick={() => {
                 setEditingTool(null)
+                setSelectedProductForNew(null)
                 setForm({ name: '', slug: '', description: '', product_id: '', tutorial_video_url: '', requires_8_days: true })
                 setShowForm(true)
               }}
@@ -160,8 +190,65 @@ export default function DashboardFerramentasPage() {
             </Button>
           </div>
 
-          {showForm && (
+          {showForm && !editingTool && (
+            <div className="mb-6 p-4 bg-gray-50 rounded-lg space-y-4">
+              <p className="text-sm font-medium text-gray-700">
+                Selecione um produto (Ferramenta) criado em Planos que ainda não tem ferramenta. Nome e logo serão espelhados.
+              </p>
+              {productsWithoutTool.length === 0 ? (
+                <p className="text-sm text-gray-500 py-4">
+                  Todos os produtos tipo Ferramenta já têm ferramenta criada. Crie um novo produto em{' '}
+                  <Link href="/dashboard/pricing" className="text-blue-600 underline">Planos</Link> (tipo Ferramenta) e volte aqui.
+                </p>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {productsWithoutTool.map((p) => (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => setSelectedProductForNew(selectedProductForNew?.id === p.id ? null : p)}
+                      className={`flex items-center gap-3 p-3 rounded-lg border-2 text-left transition-colors ${
+                        selectedProductForNew?.id === p.id ? 'border-black bg-gray-100' : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                    >
+                      {p.icon_url ? (
+                        <img src={p.icon_url} alt="" className="w-12 h-12 rounded-lg object-contain flex-shrink-0 bg-white border border-gray-200" />
+                      ) : (
+                        <div className="w-12 h-12 rounded-lg bg-gray-200 flex items-center justify-center flex-shrink-0">
+                          <Wrench className="w-6 h-6 text-gray-500" />
+                        </div>
+                      )}
+                      <div className="min-w-0">
+                        <span className="font-medium text-gray-900 block truncate">{p.name}</span>
+                        <span className="text-xs text-gray-500">({p.slug})</span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+              <div className="flex gap-2">
+                <Button
+                  onClick={() => selectedProductForNew && createToolFromProduct(selectedProductForNew)}
+                  disabled={!selectedProductForNew}
+                >
+                  Criar ferramenta {selectedProductForNew ? `"${selectedProductForNew.name}"` : ''}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setShowForm(false)
+                    setSelectedProductForNew(null)
+                  }}
+                >
+                  Cancelar
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {showForm && editingTool && (
             <div className="mb-6 p-4 bg-gray-50 rounded-lg space-y-3">
+              <p className="text-sm text-gray-600">Edite descrição, vídeo e prazo. Nome e produto podem ser alterados se necessário.</p>
               <Input
                 label="Nome"
                 value={form.name}
@@ -239,7 +326,15 @@ export default function DashboardFerramentasPage() {
                 key={t.id}
                 className="flex items-center justify-between gap-4 p-4 border border-gray-200 rounded-lg hover:bg-gray-50"
               >
-                <div className="flex-1 min-w-0">
+                <div className="flex-1 min-w-0 flex items-center gap-3">
+                  {(t.products as Product | null)?.icon_url ? (
+                    <img src={(t.products as Product).icon_url!} alt="" className="w-10 h-10 rounded-lg object-contain flex-shrink-0 border border-gray-200 bg-white" />
+                  ) : (
+                    <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
+                      <Wrench className="w-5 h-5 text-gray-500" />
+                    </div>
+                  )}
+                  <div>
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-medium text-gray-900">{t.name}</span>
                     <span className="text-gray-500 text-sm">({t.slug})</span>
@@ -265,6 +360,7 @@ export default function DashboardFerramentasPage() {
                     ) : (
                       <span>Liberação imediata</span>
                     )}
+                  </div>
                   </div>
                 </div>
                 <div className="flex gap-2 flex-shrink-0">
@@ -295,7 +391,7 @@ export default function DashboardFerramentasPage() {
           </ul>
           {tools.length === 0 && (
             <p className="text-gray-500 py-6 text-center">
-              Nenhuma ferramenta. Clique em &quot;Nova ferramenta&quot; para criar. Se a migration foi executada, Canva e CapCut já existem.
+              Nenhuma ferramenta. Clique em &quot;Nova ferramenta&quot; e selecione um produto (Ferramenta) criado em <Link href="/dashboard/pricing" className="text-blue-600 underline">Planos</Link>.
             </p>
           )}
         </div>
