@@ -232,9 +232,6 @@ export const PricingComponent: React.FC<PricingComponentProps> = ({
         const currentPrice = plan.planType === 'service' && serviceSelection
           ? serviceSelection.totalPrice
           : (billingCycle === 'monthly' ? plan.priceMonthly : plan.priceAnnually)
-        const originalMonthlyPrice = plan.planType === 'service' && serviceSelection
-          ? serviceSelection.totalPrice
-          : plan.priceMonthly
         const displayPriceMonthly = plan.planType === 'service' && serviceSelection
           ? serviceSelection.totalPrice
           : plan.priceMonthly
@@ -332,24 +329,14 @@ export const PricingComponent: React.FC<PricingComponentProps> = ({
                     </p>
                   </>
                 ) : (
-                  <>
-                    <p className="text-4xl font-extrabold text-[#0A0A0A] flex flex-wrap items-baseline gap-1">
-                      <NumberFlow
-                        value={displayPriceAnnualMonthly}
-                        format={priceFormat}
-                        className="tabular-nums"
-                      />
-                      <span className="text-base font-normal text-gray-500">/mês</span>
-                    </p>
-                    {plan.planType !== 'service' && (
-                      <p className="mt-1">
-                        <span className="inline-flex items-baseline gap-1 text-sm text-gray-400 line-through [&_*]:line-through">
-                          <NumberFlow value={originalMonthlyPrice} format={priceFormat} className="tabular-nums" />
-                          <span>/mês</span>
-                        </span>
-                      </p>
-                    )}
-                  </>
+                  <p className="text-4xl font-extrabold text-[#0A0A0A] flex flex-wrap items-baseline gap-1">
+                    <NumberFlow
+                      value={displayPriceAnnualMonthly}
+                      format={priceFormat}
+                      className="tabular-nums"
+                    />
+                    <span className="text-base font-normal text-gray-500">/mês</span>
+                  </p>
                 )}
               </div>
             </CardHeader>
