@@ -586,6 +586,15 @@ A Gogh Lab não garante resultados específicos (como volume de vendas ou cresci
 
 A Gogh Lab pode atualizar estes termos mediante aviso prévio. A continuidade do uso ou contratação implica concordância com as alterações.
 
+## Quantidades e Escopo Mensal (Serviços com limite)
+
+Para garantir qualidade e previsibilidade, os seguintes serviços possuem quantidade mensal definida, válida tanto para cobrança mensal quanto anual:
+
+- **Criação de conteúdo completa:** até 10 (dez) conteúdos por mês (posts, reels, artes ou mix conforme combinado).
+- **Gestão de redes sociais:** até 12 (doze) publicações por mês no total nas redes gerenciadas.
+
+Alterações de escopo ou quantidades acima podem ser tratadas sob demanda, mediante alinhamento prévio e eventual ajuste de valor.
+
 **Última atualização**: Janeiro de 2026`,
   },
 ]

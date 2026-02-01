@@ -14,6 +14,12 @@ import {
   MessageCircle
 } from 'lucide-react'
 
+/** Limites de quantidade dos serviços personalizados (mensal e anual). Definidos nos termos. */
+export const SERVICE_QUANTITY_LIMITS: Record<string, { quantity: number; label: string }> = {
+  'Criação de conteúdo completa': { quantity: 10, label: 'até 10 conteúdos por mês' },
+  'Gestão de redes sociais': { quantity: 12, label: 'até 12 publicações por mês' },
+}
+
 interface ServiceSubscription {
   id: string
   plan_name: string | null
@@ -265,15 +271,23 @@ export default function ServicosPage() {
                       Serviços Contratados
                     </h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      {serviceNames.map((serviceName, idx) => (
-                        <div
-                          key={idx}
-                          className="flex items-center gap-2 px-4 py-2.5 bg-gogh-grayLight/50 rounded-lg border border-gogh-grayLight"
-                        >
-                          <CheckCircle2 className="w-4 h-4 text-green-600 flex-shrink-0" />
-                          <span className="text-sm font-medium text-gogh-black">{serviceName}</span>
-                        </div>
-                      ))}
+                      {serviceNames.map((serviceName, idx) => {
+                        const limit = SERVICE_QUANTITY_LIMITS[serviceName]
+                        return (
+                          <div
+                            key={idx}
+                            className="flex items-start gap-2 px-4 py-2.5 bg-gogh-grayLight/50 rounded-lg border border-gogh-grayLight"
+                          >
+                            <CheckCircle2 className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                            <div className="min-w-0">
+                              <span className="text-sm font-medium text-gogh-black">{serviceName}</span>
+                              {limit && (
+                                <p className="text-xs text-gogh-grayDark mt-0.5">{limit.label}</p>
+                              )}
+                            </div>
+                          </div>
+                        )
+                      })}
                     </div>
                   </div>
 
