@@ -11,7 +11,9 @@ import {
   Palette,
   Scissors,
   CheckCircle2,
-  Clock
+  Clock,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react'
 import Link from 'next/link'
 import { 
@@ -284,6 +286,9 @@ function CourseCard({
   hasAccess: boolean
 }) {
   const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null)
+  const [expanded, setExpanded] = useState(false)
+
+  const lessonsCount = course.lessons?.length || 0
 
   return (
     <motion.div
@@ -292,19 +297,31 @@ function CourseCard({
       transition={{ delay: index * 0.1 }}
       className="bg-white rounded-xl border border-gogh-grayLight shadow-sm overflow-hidden"
     >
-      {/* Course Header */}
-      <div className="p-6 border-b border-gogh-grayLight">
-        <h3 className="text-xl font-bold text-gogh-black mb-2">{course.title}</h3>
-        <p className="text-sm text-gogh-grayDark">{course.description}</p>
-        <div className="flex items-center gap-4 mt-4 text-sm text-gogh-grayDark">
-          <span className="flex items-center gap-1">
-            <Video className="w-4 h-4" />
-            {course.lessons?.length || 0} aulas
+      {/* Course Header - clicável para expandir/recolher aulas */}
+      <button
+        type="button"
+        onClick={() => setExpanded(!expanded)}
+        className="w-full p-6 border-b border-gogh-grayLight text-left hover:bg-amber-50/50 transition-colors rounded-t-xl"
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex-1 min-w-0">
+            <h3 className="text-xl font-bold text-gogh-black mb-2">{course.title}</h3>
+            <p className="text-sm text-gogh-grayDark">{course.description}</p>
+            <div className="flex items-center gap-4 mt-4 text-sm text-gogh-grayDark">
+              <span className="flex items-center gap-1">
+                <Video className="w-4 h-4" />
+                {lessonsCount} aula{lessonsCount !== 1 ? 's' : ''}
+              </span>
+            </div>
+          </div>
+          <span className="flex-shrink-0 text-gogh-grayDark mt-1" aria-hidden>
+            {expanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
           </span>
         </div>
-      </div>
+      </button>
 
-      {/* Lessons List */}
+      {/* Lessons List - visível apenas quando expandido */}
+      {expanded && (
       <div className="p-6">
         {hasAccess ? (
           <div className="space-y-2">
@@ -392,6 +409,7 @@ function CourseCard({
           </div>
         )}
       </div>
+      )}
     </motion.div>
   )
 }

@@ -186,18 +186,18 @@ export default function ToolsPage() {
     return () => document.removeEventListener('visibilitychange', onVisibilityChange)
   }, [user])
 
-  // Verificar se o acesso foi concedido no período atual ou anterior
+  // Verificar se o acesso foi concedido no perÃ­odo atual ou anterior
   const isAccessFromCurrentPeriod = (access: ToolAccess): boolean => {
     if (!subscription?.current_period_start || !access.access_granted_at) return false
     
     const periodStart = new Date(subscription.current_period_start)
     const accessGranted = new Date(access.access_granted_at)
     
-    // Se o acesso foi concedido após o início do período atual, é do período atual
+    // Se o acesso foi concedido apÃ³s o inÃ­cio do perÃ­odo atual, Ã© do perÃ­odo atual
     return accessGranted >= periodStart
   }
 
-  // Verificar se já tem acesso do período atual ou ticket pendente
+  // Verificar se jÃ¡ tem acesso do perÃ­odo atual ou ticket pendente
   const hasCanvaAccessCurrentPeriod = toolAccess.some(t => 
     t.tool_type === 'canva' && t.is_active && isAccessFromCurrentPeriod(t)
   )
@@ -206,7 +206,7 @@ export default function ToolsPage() {
   )
   const hasBothAccessCurrentPeriod = hasCanvaAccessCurrentPeriod && hasCapcutAccessCurrentPeriod
   
-  // Verificar se tem acesso de período anterior (para mostrar que pode solicitar novamente)
+  // Verificar se tem acesso de perÃ­odo anterior (para mostrar que pode solicitar novamente)
   const hasCanvaAccessOldPeriod = toolAccess.some(t => 
     t.tool_type === 'canva' && t.is_active && !isAccessFromCurrentPeriod(t)
   )
@@ -217,37 +217,37 @@ export default function ToolsPage() {
   
   const hasPendingRequest = pendingTickets.length > 0
 
-  // Verificar se já passaram 8 dias desde o início da assinatura (oitavo dia)
-  // Funciona tanto para novos clientes quanto para renovações
+  // Verificar se jÃ¡ passaram 8 dias desde o inÃ­cio da assinatura (oitavo dia)
+  // Funciona tanto para novos clientes quanto para renovaÃ§Ãµes
   const canRequestTools = () => {
     if (!subscription) return false
     
-    // Buscar a data de início da assinatura
-    // Prioridade: current_period_start (período atual) > created_at (data de criação)
+    // Buscar a data de inÃ­cio da assinatura
+    // Prioridade: current_period_start (perÃ­odo atual) > created_at (data de criaÃ§Ã£o)
     let subscriptionStartDate: Date | null = null
     
     if (subscription.current_period_start) {
       subscriptionStartDate = new Date(subscription.current_period_start)
     } else if ((subscription as any).created_at) {
-      // Fallback para created_at se current_period_start não existir
+      // Fallback para created_at se current_period_start nÃ£o existir
       subscriptionStartDate = new Date((subscription as any).created_at)
     }
     
     if (!subscriptionStartDate) {
-      // Se não tem nenhuma data, retornar false
+      // Se nÃ£o tem nenhuma data, retornar false
       return false
     }
     
     const now = new Date()
     const daysSinceStart = Math.floor((now.getTime() - subscriptionStartDate.getTime()) / (1000 * 60 * 60 * 24))
     
-    // Oitavo dia = já passou o período de arrependimento de 7 dias
-    // Funciona para novos clientes (primeira compra) e renovações
+    // Oitavo dia = jÃ¡ passou o perÃ­odo de arrependimento de 7 dias
+    // Funciona para novos clientes (primeira compra) e renovaÃ§Ãµes
     return daysSinceStart >= 8
   }
 
-  // Calcular dias restantes até poder solicitar
-  // Funciona tanto para novos clientes quanto para renovações
+  // Calcular dias restantes atÃ© poder solicitar
+  // Funciona tanto para novos clientes quanto para renovaÃ§Ãµes
   const daysUntilCanRequest = (): number | null => {
     if (!subscription) return null
     
@@ -265,7 +265,7 @@ export default function ToolsPage() {
     return daysRemaining > 0 ? daysRemaining : 0
   }
 
-  // Texto do countdown: dias e, quando no último dia, "X dia(s) e Y hora(s)" ou só horas/min
+  // Texto do countdown: dias e, quando no Ãºltimo dia, "X dia(s) e Y hora(s)" ou sÃ³ horas/min
   const countdownLabel = (): string | null => {
     if (!subscription) return null
     let subscriptionStartDate: Date | null = null
@@ -306,8 +306,8 @@ export default function ToolsPage() {
       const daysRemaining = daysUntilCanRequest()
       toast.error(
         daysRemaining
-          ? `Você poderá solicitar acesso em ${daysRemaining} dia${daysRemaining > 1 ? 's' : ''}.`
-          : 'Não foi possível verificar o período da sua assinatura.'
+          ? `VocÃª poderÃ¡ solicitar acesso em ${daysRemaining} dia${daysRemaining > 1 ? 's' : ''}.`
+          : 'NÃ£o foi possÃ­vel verificar o perÃ­odo da sua assinatura.'
       )
       return
     }
@@ -318,7 +318,7 @@ export default function ToolsPage() {
         .insert({
           user_id: user.id,
           ticket_type: 'tools_access',
-          subject: `Solicitação de acesso: ${tool.name}`,
+          subject: `SolicitaÃ§Ã£o de acesso: ${tool.name}`,
           status: 'open',
           priority: 'normal',
           tool_id: tool.id,
@@ -331,9 +331,9 @@ export default function ToolsPage() {
         .insert({
           ticket_id: ticketData.id,
           sender_id: user.id,
-          content: `Solicito acesso à ferramenta ${tool.name}.`,
+          content: `Solicito acesso Ã  ferramenta ${tool.name}.`,
         })
-      toast.success('Solicitação enviada!')
+      toast.success('SolicitaÃ§Ã£o enviada!')
       const { data: ticketsData } = await (supabase as any)
         .from('support_tickets')
         .select('*')
@@ -343,7 +343,7 @@ export default function ToolsPage() {
       setPendingTickets(ticketsData || [])
     } catch (error) {
       console.error(error)
-      toast.error('Erro ao enviar solicitação.')
+      toast.error('Erro ao enviar solicitaÃ§Ã£o.')
     } finally {
       setSubmitting(false)
     }
@@ -353,13 +353,13 @@ export default function ToolsPage() {
   const requestToolsAccess = async () => {
     if (!user) return
     
-    // Verificar se já passaram 8 dias (oitavo dia)
+    // Verificar se jÃ¡ passaram 8 dias (oitavo dia)
     if (!canRequestTools()) {
       const daysRemaining = daysUntilCanRequest()
       toast.error(
         daysRemaining 
-          ? `Você poderá solicitar acesso às ferramentas em ${daysRemaining} dia${daysRemaining > 1 ? 's' : ''}.`
-          : 'Não foi possível verificar o período de sua assinatura. Entre em contato com o suporte.'
+          ? `VocÃª poderÃ¡ solicitar acesso Ã s ferramentas em ${daysRemaining} dia${daysRemaining > 1 ? 's' : ''}.`
+          : 'NÃ£o foi possÃ­vel verificar o perÃ­odo de sua assinatura. Entre em contato com o suporte.'
       )
       return
     }
@@ -367,16 +367,16 @@ export default function ToolsPage() {
     setSubmitting(true)
 
     try {
-      // Determinar se é renovação ou primeira solicitação
+      // Determinar se Ã© renovaÃ§Ã£o ou primeira solicitaÃ§Ã£o
       const isRenewal = hasAccessFromOldPeriod
       const subject = isRenewal 
-        ? 'Solicitação de acesso às ferramentas Pro após renovação (Canva e CapCut)'
-        : 'Solicitação de acesso às ferramentas Pro (Canva e CapCut)'
+        ? 'SolicitaÃ§Ã£o de acesso Ã s ferramentas Pro apÃ³s renovaÃ§Ã£o (Canva e CapCut)'
+        : 'SolicitaÃ§Ã£o de acesso Ã s ferramentas Pro (Canva e CapCut)'
       const messageContent = isRenewal
-        ? 'Olá! Minha assinatura foi renovada e gostaria de solicitar um novo acesso às ferramentas Canva Pro e CapCut Pro para este novo período. Aguardo instruções para receber as credenciais.'
-        : 'Olá! Gostaria de solicitar acesso às ferramentas Canva Pro e CapCut Pro. Aguardo instruções para receber as credenciais.'
+        ? 'OlÃ¡! Minha assinatura foi renovada e gostaria de solicitar um novo acesso Ã s ferramentas Canva Pro e CapCut Pro para este novo perÃ­odo. Aguardo instruÃ§Ãµes para receber as credenciais.'
+        : 'OlÃ¡! Gostaria de solicitar acesso Ã s ferramentas Canva Pro e CapCut Pro. Aguardo instruÃ§Ãµes para receber as credenciais.'
 
-      // Criar ticket único para ambas as ferramentas
+      // Criar ticket Ãºnico para ambas as ferramentas
       const { data: ticketData, error: ticketError } = await (supabase as any)
         .from('support_tickets')
         .insert({
@@ -405,11 +405,11 @@ export default function ToolsPage() {
       // Disparar evento Lead do Meta Pixel
       if (typeof window !== 'undefined' && (window as any).fbq) {
         (window as any).fbq('track', 'Lead', {
-          content_name: 'Solicitação de Acesso às Ferramentas Pro'
+          content_name: 'SolicitaÃ§Ã£o de Acesso Ã s Ferramentas Pro'
         })
       }
 
-      toast.success('Solicitação enviada! Você receberá o acesso em até 24 horas após a aprovação.')
+      toast.success('SolicitaÃ§Ã£o enviada! VocÃª receberÃ¡ o acesso em atÃ© 24 horas apÃ³s a aprovaÃ§Ã£o.')
       
       // Atualizar lista de tickets pendentes
       const { data: ticketsData } = await (supabase as any)
@@ -422,7 +422,7 @@ export default function ToolsPage() {
       setPendingTickets(ticketsData || [])
     } catch (error) {
       console.error('Error requesting tools access:', error)
-      toast.error('Erro ao enviar solicitação. Tente novamente.')
+      toast.error('Erro ao enviar solicitaÃ§Ã£o. Tente novamente.')
     } finally {
       setSubmitting(false)
     }
@@ -441,7 +441,7 @@ export default function ToolsPage() {
     try {
       const toolAccessData = toolAccess.find(t => t.tool_type === reportingError || t.tool_id === reportingError)
       if (!toolAccessData) {
-        toast.error('Acesso não encontrado')
+        toast.error('Acesso nÃ£o encontrado')
         return
       }
 
@@ -458,7 +458,7 @@ export default function ToolsPage() {
       if (updateError) throw updateError
 
       // Buscar ou criar ticket para este reporte
-      // Primeiro, verificar se existe ticket aberto para este usuário e tipo
+      // Primeiro, verificar se existe ticket aberto para este usuÃ¡rio e tipo
       const toolName = reportingErrorToolName || (reportingError === 'canva' ? 'Canva Pro' : reportingError === 'capcut' ? 'CapCut Pro' : reportingError)
 
       const { data: existingTickets } = await (supabase as any)
@@ -546,14 +546,14 @@ export default function ToolsPage() {
     {
       id: 'canva',
       name: 'Canva Pro',
-      description: 'Crie designs profissionais com templates premium, elementos exclusivos e recursos avançados de edição.',
+      description: 'Crie designs profissionais com templates premium, elementos exclusivos e recursos avanÃ§ados de ediÃ§Ã£o.',
       icon: Palette,
       color: 'from-purple-500 to-indigo-600',
-      hasAccess: hasCanvaAccessCurrentPeriod, // Apenas acesso do período atual
+      hasAccess: hasCanvaAccessCurrentPeriod, // Apenas acesso do perÃ­odo atual
       accessData: toolAccess.find(t => t.tool_type === 'canva' && isAccessFromCurrentPeriod(t)),
       features: [
         'Templates premium ilimitados',
-        'Remoção de fundo com 1 clique',
+        'RemoÃ§Ã£o de fundo com 1 clique',
         'Kit de marca',
         'Magic Resize',
         '100GB de armazenamento'
@@ -562,17 +562,17 @@ export default function ToolsPage() {
     {
       id: 'capcut',
       name: 'CapCut Pro',
-      description: 'Editor de vídeo profissional com efeitos avançados, templates virais e sem marca d\'água.',
+      description: 'Editor de vÃ­deo profissional com efeitos avanÃ§ados, templates virais e sem marca d\'Ã¡gua.',
       icon: Scissors,
       color: 'from-emerald-500 to-teal-600',
-      hasAccess: hasCapcutAccessCurrentPeriod, // Apenas acesso do período atual
+      hasAccess: hasCapcutAccessCurrentPeriod, // Apenas acesso do perÃ­odo atual
       accessData: toolAccess.find(t => t.tool_type === 'capcut' && isAccessFromCurrentPeriod(t)),
       features: [
-        'Sem marca d\'água',
-        'Efeitos e transições premium',
-        'Templates de tendência',
-        'Legendas automáticas',
-        'Exportação em 4K'
+        'Sem marca d\'Ã¡gua',
+        'Efeitos e transiÃ§Ãµes premium',
+        'Templates de tendÃªncia',
+        'Legendas automÃ¡ticas',
+        'ExportaÃ§Ã£o em 4K'
       ]
     }
   ]
@@ -605,9 +605,9 @@ export default function ToolsPage() {
           <div className="flex items-start gap-4">
             <AlertCircle className="w-6 h-6 text-amber-600 flex-shrink-0 mt-0.5" />
             <div>
-              <h3 className="font-semibold text-amber-900 mb-2">Assinatura Necessária</h3>
+              <h3 className="font-semibold text-amber-900 mb-2">Assinatura NecessÃ¡ria</h3>
               <p className="text-amber-800 mb-4">
-                Você precisa de uma assinatura ativa para acessar as ferramentas Pro (Canva Pro e CapCut Pro).
+                Você precisa de uma assinatura ativa para acessar as ferramentas do seu plano.
                 {subscription && subscription.current_period_end && new Date(subscription.current_period_end) < new Date() && (
                   <span className="block mt-2 font-medium">
                     Sua assinatura expirou em {new Date(subscription.current_period_end).toLocaleDateString('pt-BR')}. Renove sua assinatura para continuar usando.
@@ -627,10 +627,10 @@ export default function ToolsPage() {
     )
   }
 
-  // Acesso às ferramentas: plano tem produtos do tipo ferramenta OU legado (apenas Pro)
+  // Acesso Ã s ferramentas: plano tem produtos do tipo ferramenta OU legado (apenas Pro)
   const hasToolsAccess = (toolsFromPlan.length > 0) || (isPro && hasActiveSubscription)
 
-  // Se não for Pro, mostrar tela de bloqueio similar à de cursos
+  // Se nÃ£o for Pro, mostrar tela de bloqueio similar Ã  de cursos
   if (!hasToolsAccess && hasActiveSubscription) {
     return (
       <div className="max-w-4xl mx-auto space-y-8">
@@ -640,7 +640,7 @@ export default function ToolsPage() {
             Ferramentas Pro
           </h1>
           <p className="text-gogh-grayDark">
-            Acesse as melhores ferramentas de criação incluídas na sua assinatura.
+            Acesse as melhores ferramentas de criaÃ§Ã£o incluÃ­das na sua assinatura.
           </p>
         </div>
 
@@ -651,7 +651,7 @@ export default function ToolsPage() {
           className="bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200 rounded-xl p-6"
         >
           <p className="text-amber-800">
-            As ferramentas Pro são exclusivas para o plano Pro. <Link href="/#pricing" className="font-medium underline">Faça upgrade agora</Link>
+            As ferramentas Pro sÃ£o exclusivas para o plano Pro. <Link href="/#pricing" className="font-medium underline">FaÃ§a upgrade agora</Link>
           </p>
         </motion.div>
 
@@ -665,7 +665,7 @@ export default function ToolsPage() {
                 Ferramentas Exclusivas do Plano Pro
               </h3>
               <p className="text-gogh-grayDark mb-6 max-w-md">
-                Faça upgrade para o plano Pro e tenha acesso completo às ferramentas Canva Pro e CapCut Pro.
+                FaÃ§a upgrade para o plano Pro e tenha acesso completo Ã s ferramentas Canva Pro e CapCut Pro.
               </p>
               <Link
                 href="/#pricing"
@@ -715,7 +715,7 @@ export default function ToolsPage() {
     )
   }
 
-  // Layout dinâmico: ferramentas do plano (tabela tools)
+  // Layout dinÃ¢mico: ferramentas do plano (tabela tools)
   if (toolsFromPlan.length > 0) {
     const hasAccessForTool = (t: ToolFromDB) =>
       toolAccess.some(
@@ -726,13 +726,20 @@ export default function ToolsPage() {
       )
     const pendingForTool = (t: ToolFromDB) =>
       pendingTickets.some((tk: SupportTicket & { tool_id?: string }) => tk.tool_id === t.id)
+    const hasOldPeriodAccessForTool = (t: ToolFromDB) =>
+      toolAccess.some(
+        (acc) =>
+          acc.is_active &&
+          !isAccessFromCurrentPeriod(acc) &&
+          (acc.tool_id === t.id || acc.tool_type === t.slug)
+      )
 
     return (
       <div className="max-w-4xl mx-auto space-y-8">
         <div>
           <h1 className="text-2xl lg:text-3xl font-bold text-gogh-black mb-2">Ferramentas</h1>
           <p className="text-gogh-grayDark">
-            Ferramentas incluídas no seu plano. Solicite o acesso e use o vídeo tutorial quando disponível.
+            Ferramentas incluÃ­das no seu plano. Solicite o acesso e use o vÃ­deo tutorial quando disponÃ­vel.
           </p>
         </div>
         <motion.div
@@ -741,7 +748,7 @@ export default function ToolsPage() {
           className="bg-gradient-to-r from-gogh-yellow/20 to-amber-100 rounded-xl p-5 border border-gogh-yellow/30"
         >
           <p className="text-sm text-gogh-grayDark">
-            Ao solicitar acesso, nossa equipe liberará em até <strong>24 horas úteis</strong>. O link do vídeo tutorial aparece em cada ferramenta.
+            Ao solicitar acesso, nossa equipe liberarÃ¡ em atÃ© <strong>24 horas Ãºteis</strong>. O link do vÃ­deo tutorial aparece em cada ferramenta.
           </p>
         </motion.div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -756,6 +763,7 @@ export default function ToolsPage() {
             const ticketForTool = pendingTickets.find((tk: SupportTicket & { tool_id?: string; subject?: string; status?: string }) => tk.tool_id === t.id)
             const isReportPending = !!ticketForTool && (ticketForTool.status === 'error' || (ticketForTool.subject && String(ticketForTool.subject).includes('[REPORTE]')))
             const hasNewCredentials = accessData?.updated_at && accessData?.access_granted_at && new Date(accessData.updated_at).getTime() > new Date(accessData.access_granted_at).getTime()
+            const hasOldPeriodAccess = hasOldPeriodAccessForTool(t)
             return (
               <motion.div
                 key={t.id}
@@ -837,21 +845,29 @@ export default function ToolsPage() {
                       </button>
                       {hasNewCredentials && (
                         <p className="text-xs text-emerald-600 mt-1.5 text-center">
-                          Problema já foi atendido; use o botão acima se precisar reportar de novo.
+                          Problema jÃ¡ foi atendido; use o botÃ£o acima se precisar reportar de novo.
                         </p>
                       )}
                     </div>
                   )}
                   {!hasAccess && (
                     <div className="mt-4">
+                      {hasOldPeriodAccess && (
+                        <div className="rounded-lg p-3 border border-emerald-200 bg-emerald-50 mb-3">
+                          <p className="text-sm text-emerald-800 flex items-center gap-2">
+                            <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+                            RenovaÃ§Ã£o detectada â€“ solicite o novo acesso para esta ferramenta.
+                          </p>
+                        </div>
+                      )}
                       {pending ? (
                         <div className="rounded-lg p-3 border border-amber-200 bg-amber-50">
                           <p className="text-sm text-amber-800 flex items-center gap-2">
                             <Clock className="w-4 h-4 flex-shrink-0" />
-                            {isReportPending ? 'Problema reportado – em análise pela equipe' : 'Solicitação em análise'}
+                            {isReportPending ? 'Problema reportado â€“ em anÃ¡lise pela equipe' : 'SolicitaÃ§Ã£o em anÃ¡lise'}
                           </p>
                           <p className="text-xs text-amber-700 mt-1">
-                            {isReportPending ? 'Entraremos em contato em breve.' : 'Você receberá o acesso em até 24 horas úteis.'}
+                            {isReportPending ? 'Entraremos em contato em breve.' : 'VocÃª receberÃ¡ o acesso em atÃ© 24 horas Ãºteis.'}
                           </p>
                         </div>
                       ) : !canRequest && t.requires_8_days ? (
@@ -864,7 +880,7 @@ export default function ToolsPage() {
                           {countdownLabel() ? (
                             <>Aguardando: {countdownLabel()}</>
                           ) : (
-                            <>Aguardando 8º dia da assinatura</>
+                            <>Aguardando 8Âº dia da assinatura</>
                           )}
                         </button>
                       ) : (
@@ -874,7 +890,7 @@ export default function ToolsPage() {
                           className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gogh-yellow text-gogh-black font-medium rounded-lg hover:bg-gogh-yellow/90 disabled:opacity-50"
                         >
                           <Send className="w-4 h-4" />
-                          Solicitar acesso
+                          {hasOldPeriodAccess ? 'Solicitar novo acesso' : 'Solicitar acesso'}
                         </button>
                       )}
                     </div>
@@ -885,7 +901,7 @@ export default function ToolsPage() {
           })}
         </div>
 
-        {/* Modal de Credenciais (ferramentas dinâmicas: email/usuário + senha) */}
+        {/* Modal de Credenciais (ferramentas dinÃ¢micas: email/usuÃ¡rio + senha) */}
         {credentialsModal && (
           <div
             className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
@@ -912,11 +928,11 @@ export default function ToolsPage() {
               <div className="space-y-4">
                 <div className="bg-amber-50/80 border border-amber-200/60 rounded-lg p-3">
                   <p className="text-xs text-amber-800">
-                    <strong>Duração:</strong> O acesso é válido por <strong>30 dias</strong> a partir da liberação.
+                    <strong>DuraÃ§Ã£o:</strong> O acesso Ã© vÃ¡lido por <strong>30 dias</strong> a partir da liberaÃ§Ã£o.
                   </p>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gogh-grayDark mb-2">Email / Usuário:</label>
+                  <label className="block text-sm font-medium text-gogh-grayDark mb-2">Email / UsuÃ¡rio:</label>
                   <div className="flex items-center gap-2">
                     <input
                       type="text"
@@ -928,7 +944,7 @@ export default function ToolsPage() {
                       type="button"
                       onClick={() => {
                         navigator.clipboard.writeText(credentialsModal.emailOrUser)
-                        toast.success('Email/Usuário copiado!')
+                        toast.success('Email/UsuÃ¡rio copiado!')
                       }}
                       className="px-4 py-2 bg-gogh-yellow text-gogh-black rounded-lg hover:bg-gogh-yellow/90 text-sm font-medium"
                     >
@@ -960,7 +976,7 @@ export default function ToolsPage() {
                   </div>
                 )}
                 <p className="text-xs text-gogh-grayDark">
-                  Use essas credenciais para fazer login. Você pode copiar cada campo. Se encontrar algum problema, use &quot;Reportar Erro na Conta&quot;.
+                  Use essas credenciais para fazer login. VocÃª pode copiar cada campo. Se encontrar algum problema, use &quot;Reportar Erro na Conta&quot;.
                 </p>
               </div>
               <div className="mt-4">
@@ -976,7 +992,7 @@ export default function ToolsPage() {
           </div>
         )}
 
-        {/* Modal de Vídeo Tutorial (ferramentas dinâmicas) */}
+        {/* Modal de VÃ­deo Tutorial (ferramentas dinÃ¢micas) */}
         {tutorialModalTool && (
           <div
             className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
@@ -1023,7 +1039,7 @@ export default function ToolsPage() {
                   )
                 })() : (
                   <div className="aspect-[9/16] w-full flex items-center justify-center bg-black rounded-lg">
-                    <p className="text-white text-sm">Vídeo não disponível</p>
+                    <p className="text-white text-sm">VÃ­deo nÃ£o disponÃ­vel</p>
                   </div>
                 )}
               </div>
@@ -1034,7 +1050,7 @@ export default function ToolsPage() {
           </div>
         )}
 
-        {/* Modal de Reporte de Erro (ferramentas dinâmicas) */}
+        {/* Modal de Reporte de Erro (ferramentas dinÃ¢micas) */}
         {showErrorModal && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
             <motion.div
@@ -1059,12 +1075,12 @@ export default function ToolsPage() {
                 </button>
               </div>
               <p className="text-sm text-gogh-grayDark mb-4">
-                Descreva o problema que você encontrou com a conta (ex: conta com menos dias de duração, credenciais não funcionam, etc.):
+                Descreva o problema que vocÃª encontrou com a conta (ex: conta com menos dias de duraÃ§Ã£o, credenciais nÃ£o funcionam, etc.):
               </p>
               <textarea
                 value={errorMessage}
                 onChange={(e) => setErrorMessage(e.target.value)}
-                placeholder="Ex: A conta tem menos de 30 dias, as credenciais não funcionam, preciso de uma nova conta, etc..."
+                placeholder="Ex: A conta tem menos de 30 dias, as credenciais nÃ£o funcionam, preciso de uma nova conta, etc..."
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gogh-yellow resize-none"
                 rows={4}
               />
@@ -1097,799 +1113,27 @@ export default function ToolsPage() {
     )
   }
 
+  // Sem ferramentas no plano: empty state (nÃ£o mostrar Canva/CapCut legado)
   return (
     <div className="max-w-4xl mx-auto space-y-8">
-      {/* Header */}
       <div>
-        <h1 className="text-2xl lg:text-3xl font-bold text-gogh-black mb-2">
-          Ferramentas Pro
-        </h1>
+        <h1 className="text-2xl lg:text-3xl font-bold text-gogh-black mb-2">Ferramentas</h1>
         <p className="text-gogh-grayDark">
-          Acesse as melhores ferramentas de criação incluídas na sua assinatura.
+          Ferramentas incluÃ­das no seu plano. Solicite o acesso e use o vÃ­deo tutorial quando disponÃ­vel.
         </p>
       </div>
-
-      {/* Info Banner */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-gradient-to-r from-gogh-yellow/20 to-amber-100 rounded-xl p-5 border border-gogh-yellow/30"
+        className="bg-white rounded-xl border border-gogh-grayLight shadow-sm p-8 text-center"
       >
-        <div className="flex items-start gap-4">
-          <div className="p-2 bg-gogh-yellow rounded-lg">
-            <AlertCircle className="w-5 h-5 text-gogh-black" />
-          </div>
-          <div>
-            <h3 className="font-semibold text-gogh-black mb-1">Como funciona?</h3>
-            <p className="text-sm text-gogh-grayDark">
-              Ao solicitar acesso, nossa equipe irá adicionar você às contas Pro compartilhadas.
-              Os links de ativação e o vídeo tutorial aparecerão aqui nesta página em até <strong>24 horas úteis</strong>.
-              O acesso é válido enquanto sua assinatura estiver ativa.
-            </p>
-          </div>
-        </div>
+        <Wrench className="w-16 h-16 text-gogh-grayLight mx-auto mb-4" />
+        <h3 className="text-lg font-semibold text-gogh-black mb-2">Nenhuma ferramenta no momento</h3>
+        <p className="text-gogh-grayDark max-w-md mx-auto">
+          NÃ£o hÃ¡ ferramentas configuradas no seu plano. As ferramentas sÃ£o definidas pelo administrador conforme seu plano.
+        </p>
       </motion.div>
-
-      {/* Tools Grid (legado: Canva / CapCut) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {tools.map((tool, index) => (
-          <motion.div
-            key={tool.id}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.1 }}
-            className="bg-white rounded-xl border border-gogh-grayLight shadow-sm overflow-hidden"
-          >
-            {/* Tool Header */}
-            <div className={`bg-gradient-to-r ${tool.color} p-6 text-white`}>
-              <div className="flex items-center gap-4">
-                <div className="w-14 h-14 bg-white/20 rounded-xl flex items-center justify-center">
-                  <tool.icon className="w-8 h-8" />
-                </div>
-                <div>
-                  <h3 className="text-xl font-bold">{tool.name}</h3>
-                  {tool.hasAccess && (
-                    <span className="inline-flex items-center gap-1 text-xs bg-white/20 px-2 py-0.5 rounded-full mt-1">
-                      <CheckCircle2 className="w-3 h-3" />
-                      Acesso liberado
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Tool Content */}
-            <div className="p-6">
-              <p className="text-gogh-grayDark text-sm mb-4">
-                {tool.description}
-              </p>
-
-              {/* Features */}
-              <ul className="space-y-2 mb-6">
-                {tool.features.map((feature, i) => (
-                  <li key={i} className="flex items-center gap-2 text-sm">
-                    <CheckCircle2 className="w-4 h-4 text-gogh-yellow flex-shrink-0" />
-                    <span className="text-gogh-grayDark">{feature}</span>
-                  </li>
-                ))}
-              </ul>
-
-              {/* Link de Ativação / Credenciais */}
-              {tool.hasAccess && tool.accessData && (() => {
-                // Verificar se há novos acessos após reporte
-                // Se error_reported era true mas foi atualizado recentemente (últimas 24h), mostrar indicativo
-                const accessData = tool.accessData
-                const updatedAt = accessData.updated_at ? new Date(accessData.updated_at) : null
-                const grantedAt = accessData.access_granted_at ? new Date(accessData.access_granted_at) : null
-                const hasNewAccess = updatedAt && grantedAt && updatedAt > grantedAt && 
-                  (new Date().getTime() - updatedAt.getTime()) < (24 * 60 * 60 * 1000) // Últimas 24h
-                const hasNewCredentialsLegacy = updatedAt && grantedAt && updatedAt.getTime() > grantedAt.getTime()
-                const wasErrorReported = accessData.error_reported
-                
-                return (
-                  <div className="space-y-3">
-                    {tool.accessData.access_link && (
-                      <div className="space-y-2">
-                        {/* Alerta de Novos Acessos Após Reporte */}
-                        {hasNewAccess && wasErrorReported && (
-                          <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3">
-                            <div className="flex items-start gap-2">
-                              <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
-                              <div className="flex-1">
-                                <p className="text-sm font-medium text-emerald-800">
-                                  ✅ Novos Acessos Disponíveis!
-                                </p>
-                                <p className="text-xs text-emerald-600 mt-1">
-                                  Nossa equipe atualizou suas credenciais após o reporte. Verifique os novos acessos abaixo.
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                        
-                        {/* Alerta de Erro Reportado */}
-                        {tool.accessData.error_reported && !hasNewAccess && (
-                          <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
-                            <div className="flex items-start gap-2">
-                              <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
-                              <div className="flex-1">
-                                <p className="text-sm font-medium text-amber-800">
-                                  Erro reportado
-                                </p>
-                                <p className="text-xs text-amber-600 mt-1">
-                                  Nossa equipe está verificando e enviará uma nova conta em breve.
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      
-                      {/* Informação de duração */}
-                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-2">
-                        <p className="text-xs text-blue-700">
-                          <strong>Duração:</strong> O acesso é válido por <strong>30 dias</strong> a partir da liberação.
-                        </p>
-                      </div>
-                      
-                      {/* Canva: Link ou credenciais */}
-                      {tool.id === 'canva' && (
-                        <>
-                          {isAccessLinkUrl(tool.accessData.access_link) ? (
-                            <a
-                              href={tool.accessData.access_link}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gogh-yellow text-gogh-black font-medium rounded-lg hover:bg-gogh-yellow/90 transition-colors"
-                            >
-                              <LinkIcon className="w-4 h-4" />
-                              Link de Ativação {tool.name}
-                              <ExternalLink className="w-4 h-4" />
-                            </a>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={() => setCredentialsModal({
-                                toolName: tool.name,
-                                emailOrUser: tool.accessData?.access_link ?? '',
-                                password: tool.accessData?.password,
-                              })}
-                              className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gogh-yellow text-gogh-black font-medium rounded-lg hover:bg-gogh-yellow/90 transition-colors"
-                            >
-                              <LinkIcon className="w-4 h-4" />
-                              Ver credenciais - {tool.name}
-                            </button>
-                          )}
-                          
-                          {/* Botão para assistir vídeo tutorial do Canva */}
-                          {canvaVideoUrl && (
-                            <button
-                              onClick={() => setShowCanvaVideoModal(true)}
-                              className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-blue-500 text-white font-medium rounded-lg hover:bg-blue-600 transition-colors"
-                            >
-                              <Play className="w-4 h-4" />
-                              Assistir Tutorial de Ativação
-                            </button>
-                          )}
-                          
-                          <button
-                            onClick={() => reportLinkError(tool.id as 'canva' | 'capcut', tool.name)}
-                            className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg border border-red-200 transition-colors"
-                          >
-                            <AlertTriangle className="w-4 h-4" />
-                            {hasNewCredentialsLegacy ? 'Reportar novamente' : 'Reportar Erro na Conta'}
-                          </button>
-                          {hasNewCredentialsLegacy && (
-                            <p className="text-xs text-emerald-600 mt-1.5 text-center">
-                              Problema já foi atendido; use o botão acima se precisar reportar de novo.
-                            </p>
-                          )}
-                        </>
-                      )}
-                      
-                      {/* CapCut: Botão para mostrar credenciais em modal */}
-                      {tool.id === 'capcut' && (
-                        <>
-                          <button
-                            onClick={() => setShowCapcutCredentials(true)}
-                            className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gogh-yellow text-gogh-black font-medium rounded-lg hover:bg-gogh-yellow/90 transition-colors"
-                          >
-                            <LinkIcon className="w-4 h-4" />
-                            Ver Credenciais de Acesso {tool.name}
-                          </button>
-                          
-                          {/* Botão para assistir vídeo tutorial do CapCut */}
-                          {capcutVideoUrl && (
-                            <button
-                              onClick={() => setShowCapcutVideoModal(true)}
-                              className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-blue-500 text-white font-medium rounded-lg hover:bg-blue-600 transition-colors"
-                            >
-                              <Play className="w-4 h-4" />
-                              Assistir Tutorial de Ativação
-                            </button>
-                          )}
-                          
-                          <button
-                            onClick={() => reportLinkError(tool.id as 'canva' | 'capcut', tool.name)}
-                            className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg border border-red-200 transition-colors"
-                          >
-                            <AlertTriangle className="w-4 h-4" />
-                            {hasNewCredentialsLegacy ? 'Reportar novamente' : 'Reportar Erro na Conta'}
-                          </button>
-                          {hasNewCredentialsLegacy && (
-                            <p className="text-xs text-emerald-600 mt-1.5 text-center">
-                              Problema já foi atendido; use o botão acima se precisar reportar de novo.
-                            </p>
-                          )}
-                        </>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )})()}
-            </div>
-          </motion.div>
-        ))}
-      </div>
-
-      {/* Request Button - Single button for both tools */}
-      {/* Mostrar botão se não tem acesso do período atual OU se tem acesso de período anterior (renovação) */}
-      {!hasBothAccessCurrentPeriod && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="bg-white rounded-xl border border-gogh-grayLight shadow-sm p-6"
-        >
-          {hasPendingRequest ? (
-            <div className="bg-amber-50 rounded-lg p-4 border border-amber-200">
-              <div className="flex items-center gap-2 text-amber-700 mb-2">
-                <Clock className="w-5 h-5" />
-                <span className="font-medium">Solicitação Pendente</span>
-              </div>
-              <p className="text-sm text-amber-600">
-                Sua solicitação está sendo processada. Você receberá um e-mail com as instruções em breve.
-              </p>
-            </div>
-          ) : (
-            <div className="text-center">
-              <h3 className="text-lg font-bold text-gogh-black mb-2">
-                {hasAccessFromOldPeriod ? 'Solicitar Novo Acesso às Ferramentas' : 'Solicitar Acesso às Ferramentas'}
-              </h3>
-              
-              {hasAccessFromOldPeriod ? (
-                <>
-                  <div className="bg-emerald-50 rounded-lg p-4 border border-emerald-200 mb-6">
-                    <div className="flex items-center gap-2 text-emerald-700 mb-2">
-                      <CheckCircle2 className="w-5 h-5" />
-                      <span className="font-medium">Renovação Detectada</span>
-                    </div>
-                    <p className="text-sm text-emerald-700 text-left mb-2">
-                      Detectamos que sua assinatura foi renovada! Você pode solicitar um novo acesso às ferramentas Canva Pro e CapCut Pro para este novo período.
-                    </p>
-                    {(() => {
-                      const daysRemaining = daysUntilCanRequest()
-                      const subscriptionStartDate = subscription?.current_period_start 
-                        ? new Date(subscription.current_period_start)
-                        : (subscription as any)?.created_at 
-                          ? new Date((subscription as any).created_at)
-                          : null
-                      const daysActive = subscriptionStartDate 
-                        ? Math.floor((new Date().getTime() - subscriptionStartDate.getTime()) / (1000 * 60 * 60 * 24))
-                        : 0
-                      
-                      return !canRequestTools() ? (
-                        <>
-                          {daysRemaining !== null && daysRemaining > 0 && (
-                            <div className="mt-3 p-3 bg-emerald-100 rounded-lg border border-emerald-300">
-                              <p className="text-sm font-semibold text-emerald-900 mb-1">
-                                ⏳ Faltam {daysRemaining} dia{daysRemaining > 1 ? 's' : ''} para você poder solicitar acesso às ferramentas
-                              </p>
-                              <div className="w-full bg-emerald-200 rounded-full h-2 mt-2">
-                                <div 
-                                  className="bg-emerald-600 h-2 rounded-full transition-all duration-300"
-                                  style={{ width: `${Math.min(100, ((8 - daysRemaining) / 8) * 100)}%` }}
-                                />
-                              </div>
-                            </div>
-                          )}
-                        </>
-                      ) : (
-                        <p className="text-sm text-emerald-700 text-left">
-                          Você já pode solicitar o novo acesso! Após a aprovação, você terá <strong>30 dias de uso</strong> das ferramentas.
-                        </p>
-                      )
-                    })()}
-                  </div>
-                  {!canRequestTools() ? (
-                    <button
-                      disabled={true}
-                      className="inline-flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-all bg-gogh-grayLight text-gogh-grayDark cursor-not-allowed"
-                    >
-                      <Clock className="w-4 h-4" />
-                      Aguardando Oitavo Dia Após Renovação
-                    </button>
-                  ) : (
-                    <button
-                      onClick={requestToolsAccess}
-                      disabled={submitting}
-                      className={`
-                        inline-flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-all
-                        ${submitting
-                          ? 'bg-gogh-grayLight text-gogh-grayDark cursor-not-allowed'
-                          : 'bg-gogh-yellow text-gogh-black hover:bg-gogh-yellow/80'
-                        }
-                      `}
-                    >
-                      {submitting ? (
-                        <>
-                          <div className="w-5 h-5 border-2 border-gogh-grayDark border-t-transparent rounded-full animate-spin" />
-                          Enviando...
-                        </>
-                      ) : (
-                        <>
-                          <Send className="w-4 h-4" />
-                          Solicitar Novo Acesso às Ferramentas
-                        </>
-                      )}
-                    </button>
-                  )}
-                </>
-              ) : !canRequestTools() ? (
-                <>
-                  <div className="bg-blue-50 rounded-lg p-4 border border-blue-200 mb-6">
-                    <div className="flex items-center gap-2 text-blue-700 mb-2">
-                      <AlertCircle className="w-5 h-5" />
-                      <span className="font-medium">Aguarde para Solicitar Acesso</span>
-                    </div>
-                    <p className="text-sm text-blue-600 text-left mb-2">
-                      O acesso às ferramentas Canva Pro e CapCut Pro será liberado após o <strong>oitavo dia</strong> da sua assinatura.
-                    </p>
-                    {(() => {
-                      const daysRemaining = daysUntilCanRequest()
-                      
-                      return (
-                        <>
-                          {daysRemaining !== null && daysRemaining > 0 && (
-                            <div className="mt-3 p-3 bg-blue-100 rounded-lg border border-blue-300">
-                              <p className="text-sm font-semibold text-blue-900 mb-1">
-                                ⏳ Faltam {daysRemaining} dia{daysRemaining > 1 ? 's' : ''} para você poder solicitar acesso às ferramentas
-                              </p>
-                              <div className="w-full bg-blue-200 rounded-full h-2 mt-2">
-                                <div 
-                                  className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                                  style={{ width: `${Math.min(100, ((8 - daysRemaining) / 8) * 100)}%` }}
-                                />
-                              </div>
-                            </div>
-                          )}
-                          <p className="text-sm text-blue-600 text-left mt-3">
-                            Para mais informações sobre esta política, consulte nossos{' '}
-                            <Link 
-                              href="/termos-assinatura-planos" 
-                              target="_blank"
-                              className="underline font-medium text-blue-700 hover:text-blue-900"
-                            >
-                              Termos de Assinatura e Planos
-                            </Link>.
-                          </p>
-                        </>
-                      )
-                    })()}
-                  </div>
-                  <button
-                    disabled={true}
-                    className="inline-flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-all bg-gogh-grayLight text-gogh-grayDark cursor-not-allowed"
-                  >
-                    <Clock className="w-4 h-4" />
-                    Aguardando Oitavo Dia
-                  </button>
-                </>
-              ) : (
-                <>
-                  <p className="text-sm text-gogh-grayDark mb-6">
-                    Clique no botão abaixo para solicitar acesso ao Canva Pro e CapCut Pro simultaneamente.
-                    O acesso será liberado após a aprovação da solicitação e você terá <strong>30 dias de uso</strong> das ferramentas.
-                  </p>
-                  <button
-                    onClick={requestToolsAccess}
-                    disabled={submitting}
-                    className={`
-                      inline-flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-all
-                      ${submitting
-                        ? 'bg-gogh-grayLight text-gogh-grayDark cursor-not-allowed'
-                        : 'bg-gogh-yellow text-gogh-black hover:bg-gogh-yellow/80'
-                      }
-                    `}
-                  >
-                    {submitting ? (
-                      <>
-                        <div className="w-5 h-5 border-2 border-gogh-grayDark border-t-transparent rounded-full animate-spin" />
-                        Enviando...
-                      </>
-                    ) : (
-                      <>
-                        <Send className="w-4 h-4" />
-                        Solicitar Acesso às Ferramentas
-                      </>
-                    )}
-                  </button>
-                </>
-              )}
-            </div>
-          )}
-        </motion.div>
-      )}
-
-
-      {/* Modal de Credenciais (link não é URL: email/usuário + senha) - legado Canva */}
-      {credentialsModal && (
-        <div
-          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setCredentialsModal(null)
-          }}
-        >
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="bg-gradient-to-br from-gogh-beige-light to-amber-50 rounded-xl shadow-xl border border-amber-200/80 max-w-md w-full p-4 md:p-6"
-          >
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-base md:text-lg font-bold text-gogh-black">
-                Credenciais - {credentialsModal.toolName}
-              </h3>
-              <button
-                onClick={() => setCredentialsModal(null)}
-                className="text-gogh-grayDark hover:text-gogh-black"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <div className="space-y-4">
-              <div className="bg-amber-50/80 border border-amber-200/60 rounded-lg p-3">
-                <p className="text-xs text-amber-800">
-                  <strong>Duração:</strong> O acesso é válido por <strong>30 dias</strong> a partir da liberação.
-                </p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gogh-grayDark mb-2">Email / Usuário:</label>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="text"
-                    value={credentialsModal.emailOrUser}
-                    readOnly
-                    className="flex-1 px-4 py-2 border border-amber-200 rounded-lg bg-white/80 font-mono text-sm text-gogh-black"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => {
-                      navigator.clipboard.writeText(credentialsModal.emailOrUser)
-                      toast.success('Email/Usuário copiado!')
-                    }}
-                    className="px-4 py-2 bg-gogh-yellow text-gogh-black rounded-lg hover:bg-gogh-yellow/90 text-sm font-medium"
-                  >
-                    Copiar
-                  </button>
-                </div>
-              </div>
-              {credentialsModal.password != null && credentialsModal.password !== '' && (
-                <div>
-                  <label className="block text-sm font-medium text-gogh-grayDark mb-2">Senha:</label>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="text"
-                      value={credentialsModal.password}
-                      readOnly
-                      className="flex-1 px-4 py-2 border border-amber-200 rounded-lg bg-white/80 font-mono text-sm text-gogh-black"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        navigator.clipboard.writeText(credentialsModal.password!)
-                        toast.success('Senha copiada!')
-                      }}
-                      className="px-4 py-2 bg-gogh-yellow text-gogh-black rounded-lg hover:bg-gogh-yellow/90 text-sm font-medium"
-                    >
-                      Copiar
-                    </button>
-                  </div>
-                </div>
-              )}
-              <p className="text-xs text-gogh-grayDark">
-                Use essas credenciais para fazer login. Você pode copiar cada campo. Se encontrar algum problema, use &quot;Reportar Erro na Conta&quot;.
-              </p>
-            </div>
-            <div className="mt-4">
-              <button
-                type="button"
-                onClick={() => setCredentialsModal(null)}
-                className="w-full px-4 py-2 border border-amber-300 text-gogh-black rounded-lg hover:bg-amber-50/80 transition-colors"
-              >
-                Fechar
-              </button>
-            </div>
-          </motion.div>
-        </div>
-      )}
-
-      {/* Modal de Vídeo Tutorial Canva */}
-      {showCanvaVideoModal && canvaVideoUrl && (
-        <div 
-          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) {
-              setShowCanvaVideoModal(false)
-            }
-          }}
-        >
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="bg-gradient-to-br from-gogh-beige-light to-amber-50 rounded-xl shadow-xl border border-amber-200/80 max-w-sm w-full p-4 md:p-6"
-          >
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-base md:text-lg font-bold text-gogh-black">
-                Tutorial de Ativação - Canva Pro
-              </h3>
-              <button
-                onClick={() => {
-                  setShowCanvaVideoModal(false)
-                }}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <div className="relative max-w-sm mx-auto">
-              {canvaVideoUrl && getYouTubeId(canvaVideoUrl) ? (() => {
-                const containerClasses = getYouTubeContainerClasses(canvaVideoUrl)
-                const embedUrl = getYouTubeEmbedUrl(canvaVideoUrl)
-                return (
-                  <div className={`${containerClasses.wrapper}`}>
-                    <div className="bg-gradient-to-br from-gogh-yellow/10 to-gogh-yellow/5 p-1 rounded-xl">
-                      <div className="bg-black rounded-lg overflow-hidden">
-                        <div className={`relative ${containerClasses.aspectRatio} bg-black`}>
-                          <iframe
-                            src={embedUrl || ''}
-                            title="Tutorial de Ativação Canva Pro"
-                            className="w-full h-full rounded-lg"
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                            allowFullScreen
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )
-              })() : (
-                <div className="aspect-[9/16] w-full flex items-center justify-center bg-black rounded-lg">
-                  <p className="text-white text-sm">Vídeo não disponível</p>
-                </div>
-              )}
-            </div>
-            <p className="text-xs md:text-sm text-gray-600 mt-4">
-              Assista este tutorial para aprender como ativar e fazer login no Canva Pro.
-            </p>
-          </motion.div>
-        </div>
-      )}
-
-      {/* Modal de Vídeo Tutorial CapCut */}
-      {showCapcutVideoModal && capcutVideoUrl && (
-        <div 
-          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) {
-              setShowCapcutVideoModal(false)
-            }
-          }}
-        >
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="bg-gradient-to-br from-gogh-beige-light to-amber-50 rounded-xl shadow-xl border border-amber-200/80 max-w-sm w-full p-4 md:p-6"
-          >
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-base md:text-lg font-bold text-gogh-black">
-                Tutorial de Ativação - CapCut Pro
-              </h3>
-              <button
-                onClick={() => {
-                  setShowCapcutVideoModal(false)
-                }}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <div className="relative max-w-sm mx-auto">
-              {capcutVideoUrl && getYouTubeId(capcutVideoUrl) ? (() => {
-                const containerClasses = getYouTubeContainerClasses(capcutVideoUrl)
-                const embedUrl = getYouTubeEmbedUrl(capcutVideoUrl)
-                return (
-                  <div className={`${containerClasses.wrapper}`}>
-                    <div className="bg-gradient-to-br from-gogh-yellow/10 to-gogh-yellow/5 p-1 rounded-xl">
-                      <div className="bg-black rounded-lg overflow-hidden">
-                        <div className={`relative ${containerClasses.aspectRatio} bg-black`}>
-                          <iframe
-                            src={embedUrl || ''}
-                            title="Tutorial de Ativação CapCut Pro"
-                            className="w-full h-full rounded-lg"
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                            allowFullScreen
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )
-              })() : (
-                <div className="aspect-[9/16] w-full flex items-center justify-center bg-black rounded-lg">
-                  <p className="text-white text-sm">Vídeo não disponível</p>
-                </div>
-              )}
-            </div>
-            <p className="text-xs md:text-sm text-gray-600 mt-4">
-              Assista este tutorial para aprender como fazer login no CapCut Pro usando as credenciais fornecidas.
-            </p>
-          </motion.div>
-        </div>
-      )}
-
-      {/* Modal de Credenciais CapCut */}
-      {showCapcutCredentials && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="bg-gradient-to-br from-gogh-beige-light to-amber-50 rounded-xl shadow-xl border border-amber-200/80 max-w-md w-full p-6"
-          >
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold text-gogh-black">
-                Credenciais de Acesso CapCut Pro
-              </h3>
-              <button
-                onClick={() => setShowCapcutCredentials(false)}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            
-            <div className="space-y-4">
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
-                <p className="text-xs text-blue-700">
-                  <strong>Duração:</strong> O acesso é válido por <strong>30 dias</strong> a partir da liberação.
-                </p>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gogh-grayDark mb-2">
-                  Email / Usuário:
-                </label>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="text"
-                    value={toolAccess.find(t => t.tool_type === 'capcut')?.access_link || ''}
-                    readOnly
-                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 font-mono text-sm"
-                  />
-                  <button
-                    onClick={() => {
-                      const text = toolAccess.find(t => t.tool_type === 'capcut')?.access_link || ''
-                      navigator.clipboard.writeText(text)
-                      toast.success('Email/Usuário copiado!')
-                    }}
-                    className="px-4 py-2 bg-gogh-yellow text-gogh-black rounded-lg hover:bg-gogh-yellow/90 transition-colors text-sm font-medium"
-                  >
-                    Copiar
-                  </button>
-                </div>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gogh-grayDark mb-2">
-                  Senha:
-                </label>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="text"
-                    value={toolAccess.find(t => t.tool_type === 'capcut')?.password || ''}
-                    readOnly
-                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 font-mono text-sm"
-                  />
-                  <button
-                    onClick={() => {
-                      const text = toolAccess.find(t => t.tool_type === 'capcut')?.password || ''
-                      navigator.clipboard.writeText(text)
-                      toast.success('Senha copiada!')
-                    }}
-                    className="px-4 py-2 bg-gogh-yellow text-gogh-black rounded-lg hover:bg-gogh-yellow/90 transition-colors text-sm font-medium"
-                  >
-                    Copiar
-                  </button>
-                </div>
-              </div>
-              
-              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
-                <p className="text-xs text-amber-700">
-                  <strong>Importante:</strong> Use essas credenciais para fazer login no CapCut. Você pode copiar cada campo separadamente. Se encontrar algum problema, clique em "Reportar Erro na Conta".
-                </p>
-              </div>
-            </div>
-            
-            <div className="flex gap-3 mt-6">
-              <button
-                onClick={() => setShowCapcutCredentials(false)}
-                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                Fechar
-              </button>
-            </div>
-          </motion.div>
-        </div>
-      )}
-
-      {/* Modal de Reporte de Erro */}
-      {showErrorModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="bg-gradient-to-br from-gogh-beige-light to-amber-50 rounded-xl shadow-xl border border-amber-200/80 max-w-md w-full p-6"
-          >
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold text-gogh-black">
-                Reportar Erro na Conta
-              </h3>
-              <button
-                onClick={() => {
-                  setShowErrorModal(false)
-                  setErrorMessage('')
-                  setReportingError(null)
-                  setReportingErrorToolName('')
-                }}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            
-            <p className="text-sm text-gogh-grayDark mb-4">
-              Descreva o problema que você encontrou com a conta (ex: conta com menos dias de duração, credenciais não funcionam, etc.):
-            </p>
-            
-            <textarea
-              value={errorMessage}
-              onChange={(e) => setErrorMessage(e.target.value)}
-              placeholder="Ex: A conta tem menos de 30 dias, as credenciais não funcionam, preciso de uma nova conta, etc..."
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gogh-yellow resize-none"
-              rows={4}
-            />
-            
-            <div className="flex gap-3 mt-6">
-              <button
-                onClick={() => {
-                  setShowErrorModal(false)
-                  setErrorMessage('')
-                  setReportingError(null)
-                  setReportingErrorToolName('')
-                }}
-                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={submitErrorReport}
-                disabled={!errorMessage.trim()}
-                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Enviar Reporte
-              </button>
-            </div>
-          </motion.div>
-        </div>
-      )}
     </div>
   )
 }
+
