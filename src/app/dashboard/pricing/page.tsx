@@ -58,6 +58,7 @@ export default function PricingEditorPage() {
   const [editingProductName, setEditingProductName] = useState('')
   const [editingProductSlug, setEditingProductSlug] = useState('')
   const [savingProductId, setSavingProductId] = useState<string | null>(null)
+  const [deletingProductId, setDeletingProductId] = useState<string | null>(null)
   const defaultAgencyPlan: PriceTier = {
     id: 'gogh-agencia',
     name: 'Gogh Agency',
@@ -498,6 +499,34 @@ export default function PricingEditorPage() {
     }
   }
 
+  const handleDeleteProduct = async (productId: string) => {
+    const product = products.find(pr => pr.id === productId)
+    if (!product) return
+    const msg = product.product_type === 'tool'
+      ? `Excluir o produto "${product.name}"? A ferramenta vinculada em Gerenciar Ferramentas também será excluída.`
+      : `Excluir o produto "${product.name}"? Ele será removido de todos os planos.`
+    if (!confirm(msg)) return
+    setDeletingProductId(productId)
+    try {
+      await (supabase as any).from('plan_products').delete().eq('product_id', productId)
+      if (product.product_type === 'tool') {
+        await (supabase as any).from('tools').delete().eq('product_id', productId)
+      }
+      const { error } = await (supabase as any).from('products').delete().eq('id', productId)
+      if (error) throw error
+      const { data: productsData } = await (supabase as any).from('products').select('*').eq('is_active', true).order('order_position', { ascending: true })
+      const { data: planProductsData } = await (supabase as any).from('plan_products').select('plan_id, product_id')
+      if (productsData) setProducts(productsData as Product[])
+      if (planProductsData) setPlanProducts(planProductsData as PlanProduct[])
+      syncPlanFeaturesFromProducts(planProductsData || [], productsData || [])
+      toast.success(product.product_type === 'tool' ? 'Produto e ferramenta excluídos' : 'Produto excluído')
+    } catch (e: any) {
+      toast.error(e?.message || 'Erro ao excluir produto')
+    } finally {
+      setDeletingProductId(null)
+    }
+  }
+
   const handleProductIconUpload = async (productId: string, file: File) => {
     setUploadingProductId(productId)
     try {
@@ -820,6 +849,19 @@ export default function PricingEditorPage() {
                                         title="Editar nome do produto"
                                       >
                                         <Pencil size={14} />
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => handleDeleteProduct(p.id)}
+                                        disabled={deletingProductId === p.id}
+                                        className="p-1 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded disabled:opacity-50"
+                                        title="Excluir produto"
+                                      >
+                                        {deletingProductId === p.id ? (
+                                          <span className="text-xs">...</span>
+                                        ) : (
+                                          <Trash2 size={14} />
+                                        )}
                                       </button>
                                     </div>
                                   )}
