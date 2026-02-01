@@ -821,7 +821,7 @@ export default function ToolsPage() {
                       </button>
                       {hasNewCredentials && (
                         <p className="text-xs text-emerald-600 mt-1.5 text-center">
-                          Problema já foi atendido; use o botão acima se precisar reportar de novo.
+                          Suas credenciais foram atualizadas pela equipe. Problema já foi atendido; use o botão acima se precisar reportar de novo.
                         </p>
                       )}
                     </div>

@@ -256,13 +256,13 @@ export default function SolicitacoesPage() {
 
       if (error) throw error
       const list = data || []
-      const existing = list.find((r: any) => r.tool_id === toolId) || list[0]
+      const existing = list.find((r: any) => r.tool_id === toolId || (slug && r.tool_type === slug)) ?? null
       const stillCurrent = loadingForRef.current?.userId === userId && loadingForRef.current?.toolId === toolId
       if (stillCurrent) {
         setToolAccess(list)
         if (existing) {
           setAccessLink(existing.access_link || '')
-          setAccessPassword(existing.password || '')
+          setAccessPassword(existing.password ?? '')
         } else {
           setAccessLink('')
           setAccessPassword('')
@@ -348,8 +348,8 @@ export default function SolicitacoesPage() {
         error_reported: false,
         error_message: null,
         updated_at: nowIso,
+        password: accessPassword.trim() || null,
       }
-      if (accessPassword.trim()) payload.password = accessPassword.trim()
 
       const { error } = await (supabase as any)
         .from('tool_access_credentials')
@@ -359,6 +359,14 @@ export default function SolicitacoesPage() {
       if (selectedTicket.status === 'open' || selectedTicket.status === 'error') {
         await updateTicketStatus(selectedTicket.id, 'resolved')
       }
+
+      await (supabase as any)
+        .from('support_messages')
+        .insert({
+          ticket_id: selectedTicket.id,
+          sender_id: user.id,
+          content: 'Suas credenciais de acesso foram atualizadas pela equipe. Verifique a ferramenta na página de Ferramentas.',
+        })
 
       toast.success('Acesso salvo com sucesso! O cliente já pode ver o link/credenciais na página de ferramentas.')
       loadingForRef.current = { userId: selectedTicket.user_id, toolId: selectedTicket.tool_id ?? null }
