@@ -356,6 +356,14 @@ export default function SolicitacoesPage() {
       }
 
       const nowIso = new Date().toISOString()
+      // Preservar access_granted_at ao atualizar credenciais (após reporte), para o cliente ver "resolvido" na área de membros
+      const { data: existingRow } = await (supabase as any)
+        .from('tool_access_credentials')
+        .select('access_granted_at')
+        .eq('user_id', selectedTicket.user_id)
+        .eq('tool_type', tool.slug)
+        .maybeSingle()
+
       const payload: any = {
         user_id: selectedTicket.user_id,
         tool_id: selectedTicket.tool_id,
@@ -363,7 +371,7 @@ export default function SolicitacoesPage() {
         email: selectedTicket.user?.email || 'noreply@example.com',
         access_link: linkValue,
         tutorial_video_url: tool.tutorial_video_url || null,
-        access_granted_at: nowIso,
+        access_granted_at: existingRow?.access_granted_at ?? nowIso,
         is_active: true,
         error_reported: false,
         error_message: null,
@@ -380,18 +388,9 @@ export default function SolicitacoesPage() {
         await updateTicketStatus(selectedTicket.id, 'resolved')
       }
 
-      await (supabase as any)
-        .from('support_messages')
-        .insert({
-          ticket_id: selectedTicket.id,
-          sender_id: user.id,
-          content: 'Suas credenciais de acesso foram atualizadas pela equipe. Verifique a ferramenta na página de Ferramentas.',
-        })
-
       toast.success('Acesso salvo com sucesso! O cliente já pode ver o link/credenciais na página de ferramentas.')
       loadingForRef.current = { userId: selectedTicket.user_id, toolId: selectedTicket.tool_id ?? null }
       await loadToolAccessForTicket(selectedTicket.user_id, selectedTicket.tool_id ?? null, tool.slug)
-      await loadTicketMessages(selectedTicket.id)
       const currentSelectedId = selectedTicket.id
       const updatedList = await loadTickets()
       const reloaded = updatedList.find(t => t.id === currentSelectedId)
@@ -663,27 +662,52 @@ export default function SolicitacoesPage() {
                 {/* Links Form */}
                 <div className="flex-1 overflow-y-auto p-6 space-y-6">
                   {/* Mensagens do ticket (motivo do reporte e respostas) */}
-                  {ticketMessages.length > 0 && (
-                    <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
-                      <h4 className="text-sm font-semibold text-gray-800 mb-3 flex items-center gap-2">
-                        <MessageSquare className="w-4 h-4" />
-                        Mensagens do ticket
-                      </h4>
-                      <div className="space-y-3 max-h-48 overflow-y-auto">
-                        {ticketMessages.map((msg) => (
-                          <div
-                            key={msg.id}
-                            className="rounded-lg bg-white border border-gray-100 p-3 text-sm"
-                          >
-                            <p className="text-gray-500 text-xs mb-1">
-                              {new Date(msg.created_at).toLocaleString('pt-BR')}
-                            </p>
-                            <p className="text-gray-800 whitespace-pre-wrap">{msg.content}</p>
-                          </div>
-                        ))}
+                  {ticketMessages.length > 0 && (() => {
+                    // Não exibir no dashboard mensagens automáticas destinadas só ao cliente (área de membros)
+                    const clientOnlyPhrases = [
+                      'Suas credenciais de acesso foram atualizadas pela equipe',
+                      'Suas credenciais foram atualizadas pela equipe',
+                      'Verifique a ferramenta na página de Ferramentas'
+                    ]
+                    const autoAppendedPhrase = 'Por favor, envie novas credenciais de acesso'
+                    const messagesToShow = ticketMessages.filter((msg) => {
+                      const c = (msg.content || '').trim()
+                      return !clientOnlyPhrases.some((phrase) => c.includes(phrase))
+                    })
+                    const displayContent = (content: string) => {
+                      let c = content || ''
+                      if (c.includes(autoAppendedPhrase)) {
+                        c = c.replace(new RegExp(`\\n?\\n?${autoAppendedPhrase}\\.?\\s*`, 'gi'), '').trim()
+                      }
+                      return c
+                    }
+                    if (messagesToShow.length === 0) return null
+                    return (
+                      <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+                        <h4 className="text-sm font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                          <MessageSquare className="w-4 h-4" />
+                          Mensagens do ticket
+                        </h4>
+                        <div className="space-y-3 max-h-48 overflow-y-auto">
+                          {messagesToShow.map((msg) => {
+                            const text = displayContent(msg.content)
+                            if (!text) return null
+                            return (
+                              <div
+                                key={msg.id}
+                                className="rounded-lg bg-white border border-gray-100 p-3 text-sm"
+                              >
+                                <p className="text-gray-500 text-xs mb-1">
+                                  {new Date(msg.created_at).toLocaleString('pt-BR')}
+                                </p>
+                                <p className="text-gray-800 whitespace-pre-wrap">{text}</p>
+                              </div>
+                            )
+                          })}
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )
+                  })()}
 
                   {/* Informações da Assinatura - Período de 8 dias (oitavo dia) */}
                   {subscriptionInfo && (

@@ -493,7 +493,7 @@ export default function ToolsPage() {
         .insert({
           ticket_id: ticketId,
           sender_id: user.id,
-          content: `[REPORTE DE PROBLEMA - ${toolName}]\n\n${errorMessage.trim()}\n\nPor favor, envie novas credenciais de acesso.`
+          content: `[REPORTE DE PROBLEMA - ${toolName}]\n\n${errorMessage.trim()}`
         })
 
       if (messageError) throw messageError
