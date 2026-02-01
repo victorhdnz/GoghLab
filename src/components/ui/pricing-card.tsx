@@ -343,7 +343,7 @@ export const PricingComponent: React.FC<PricingComponentProps> = ({
                     </p>
                     {plan.planType !== 'service' && (
                       <p className="mt-1">
-                        <span className="inline-flex items-baseline gap-1 text-sm text-gray-400 line-through">
+                        <span className="inline-flex items-baseline gap-1 text-sm text-gray-400 line-through [&_*]:line-through">
                           <NumberFlow value={originalMonthlyPrice} format={priceFormat} className="tabular-nums" />
                           <span>/mês</span>
                         </span>
@@ -357,7 +357,7 @@ export const PricingComponent: React.FC<PricingComponentProps> = ({
               {plan.planType === 'service' && plan.serviceOptions && plan.serviceOptions.length > 0 && (
                 <div className="mt-4">
                   <h4 className="text-sm font-semibold mb-3 text-gray-700">Serviços inclusos na sua escolha:</h4>
-                  <div className="space-y-2 max-h-[240px] overflow-y-auto pr-1 -mr-1 md:max-h-[220px]">
+                  <div className="scrollbar-visible space-y-2 max-h-[240px] overflow-y-auto pr-1 -mr-1 md:max-h-[220px]">
                     {plan.serviceOptions.map(option => {
                       const selectedIds = getSelectedOptionsForPlan(plan)
                       const isSelected = selectedIds.includes(option.id)

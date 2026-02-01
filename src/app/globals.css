@@ -151,6 +151,26 @@ canvas {
   touch-action: pan-y pinch-zoom !important;
 }
 
+/* Scrollbar visível em listas (ex.: serviços personalizados no mobile) */
+.scrollbar-visible {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.scrollbar-visible::-webkit-scrollbar {
+  width: 6px;
+}
+.scrollbar-visible::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.06);
+  border-radius: 3px;
+}
+.scrollbar-visible::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 3px;
+}
+.scrollbar-visible::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.4);
+}
+
 @layer utilities {
   .container {
     @apply max-w-7xl mx-auto;
