@@ -123,8 +123,16 @@ export default function SolicitacoesPage() {
     }
   }, [selectedTicket, toolsMap])
 
-  const loadSubscriptionInfo = async (userId: string) => {
+  const loadSubscriptionInfo = async (userId: string, tool?: ToolFromDB | null) => {
     try {
+      if (tool && tool.requires_8_days === false) {
+        setSubscriptionInfo({
+          daysSinceStart: null,
+          canRelease: true,
+          daysRemaining: 0
+        })
+        return
+      }
       const { data: subscriptionData } = await (supabase as any)
         .from('subscriptions')
         .select('current_period_start, created_at, stripe_subscription_id')
