@@ -217,69 +217,41 @@ export default function ToolsPage() {
   
   const hasPendingRequest = pendingTickets.length > 0
 
-  // Verificar se já passaram 8 dias desde o início da assinatura (oitavo dia)
-  // Funciona tanto para novos clientes quanto para renovações
+  // 8 dias exatos em ms (tanto Stripe quanto liberação manual: sempre 8 dias desde current_period_start)
+  const EIGHT_DAYS_MS = 8 * 24 * 60 * 60 * 1000
+
+  const getSubscriptionStart = (): Date | null => {
+    if (!subscription) return null
+    if (subscription.current_period_start) return new Date(subscription.current_period_start)
+    if ((subscription as any).created_at) return new Date((subscription as any).created_at)
+    return null
+  }
+
+  // Verificar se já passaram exatamente 8 dias desde o início da assinatura
+  // Funciona tanto para compra pela Stripe quanto para liberação manual (current_period_start)
   const canRequestTools = () => {
-    if (!subscription) return false
-    
-    // Buscar a data de início da assinatura
-    // Prioridade: current_period_start (período atual) > created_at (data de criação)
-    let subscriptionStartDate: Date | null = null
-    
-    if (subscription.current_period_start) {
-      subscriptionStartDate = new Date(subscription.current_period_start)
-    } else if ((subscription as any).created_at) {
-      // Fallback para created_at se current_period_start não existir
-      subscriptionStartDate = new Date((subscription as any).created_at)
-    }
-    
-    if (!subscriptionStartDate) {
-      // Se não tem nenhuma data, retornar false
-      return false
-    }
-    
+    const start = getSubscriptionStart()
+    if (!start) return false
     const now = new Date()
-    const daysSinceStart = Math.floor((now.getTime() - subscriptionStartDate.getTime()) / (1000 * 60 * 60 * 24))
-    
-    // Oitavo dia = já passou o período de arrependimento de 7 dias
-    // Funciona para novos clientes (primeira compra) e renovações
-    return daysSinceStart >= 8
+    return now.getTime() - start.getTime() >= EIGHT_DAYS_MS
   }
 
-  // Calcular dias restantes até poder solicitar
-  // Funciona tanto para novos clientes quanto para renovações
+  // Calcular dias restantes até poder solicitar (exatamente 8 dias desde o início)
   const daysUntilCanRequest = (): number | null => {
-    if (!subscription) return null
-    
-    let subscriptionStartDate: Date | null = null
-    if (subscription.current_period_start) {
-      subscriptionStartDate = new Date(subscription.current_period_start)
-    } else if ((subscription as any).created_at) {
-      subscriptionStartDate = new Date((subscription as any).created_at)
-    }
-    if (!subscriptionStartDate) return null
-    
-    const now = new Date()
-    const daysSinceStart = Math.floor((now.getTime() - subscriptionStartDate.getTime()) / (1000 * 60 * 60 * 24))
-    const daysRemaining = 8 - daysSinceStart
-    return daysRemaining > 0 ? daysRemaining : 0
+    const start = getSubscriptionStart()
+    if (!start) return null
+    const endTime = start.getTime() + EIGHT_DAYS_MS
+    const msRemaining = endTime - Date.now()
+    if (msRemaining <= 0) return 0
+    return Math.ceil(msRemaining / (24 * 60 * 60 * 1000))
   }
 
-  // Texto do countdown: dias e, quando no último dia, "X dia(s) e Y hora(s)" ou só horas/min
+  // Texto do countdown: exatamente 8 dias desde o início do período (8 dias cravados)
   const countdownLabel = (): string | null => {
-    if (!subscription) return null
-    let subscriptionStartDate: Date | null = null
-    if (subscription.current_period_start) {
-      subscriptionStartDate = new Date(subscription.current_period_start)
-    } else if ((subscription as any).created_at) {
-      subscriptionStartDate = new Date((subscription as any).created_at)
-    }
-    if (!subscriptionStartDate) return null
-    const eighthDay = new Date(subscriptionStartDate)
-    eighthDay.setDate(eighthDay.getDate() + 8)
-    eighthDay.setHours(0, 0, 0, 0)
-    const now = new Date()
-    const msRemaining = eighthDay.getTime() - now.getTime()
+    const start = getSubscriptionStart()
+    if (!start) return null
+    const endTime = start.getTime() + EIGHT_DAYS_MS
+    const msRemaining = endTime - Date.now()
     if (msRemaining <= 0) return null
     const hoursRemaining = Math.ceil(msRemaining / (1000 * 60 * 60))
     const daysRemaining = Math.floor(hoursRemaining / 24)

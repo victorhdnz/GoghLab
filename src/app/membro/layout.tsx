@@ -339,7 +339,10 @@ export default function MemberLayout({ children }: MemberLayoutProps) {
                       Pro
                     </span>
                   ) : subscription?.plan_id === 'gogh_essencial' ? (
-                    <span className="text-xs text-gogh-grayDark">Essencial</span>
+                    <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-900/80 bg-gogh-yellow/40 px-2 py-0.5 rounded-full border border-amber-200/60">
+                      <Sparkles className="w-3 h-3" />
+                      Essencial
+                    </span>
                   ) : null}
                 </div>
               </div>

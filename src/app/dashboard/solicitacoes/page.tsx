@@ -133,19 +133,21 @@ export default function SolicitacoesPage() {
         .maybeSingle()
 
       if (subscriptionData) {
-        // Para assinaturas Stripe, usar current_period_start
-        // Para assinaturas manuais (sem stripe_subscription_id), usar current_period_start ou created_at
-        const subscriptionStartDate = subscriptionData.current_period_start 
+        // 8 dias exatos (tanto Stripe quanto liberação manual)
+        const EIGHT_DAYS_MS = 8 * 24 * 60 * 60 * 1000
+        const subscriptionStartDate = subscriptionData.current_period_start
           ? new Date(subscriptionData.current_period_start)
-          : subscriptionData.created_at 
+          : subscriptionData.created_at
             ? new Date(subscriptionData.created_at)
             : null
 
         if (subscriptionStartDate) {
           const now = new Date()
-          const daysSinceStart = Math.floor((now.getTime() - subscriptionStartDate.getTime()) / (1000 * 60 * 60 * 24))
-          const canRelease = daysSinceStart >= 8
-          const daysRemaining = canRelease ? 0 : 8 - daysSinceStart
+          const msSinceStart = now.getTime() - subscriptionStartDate.getTime()
+          const canRelease = msSinceStart >= EIGHT_DAYS_MS
+          const msRemaining = subscriptionStartDate.getTime() + EIGHT_DAYS_MS - now.getTime()
+          const daysSinceStart = Math.floor(msSinceStart / (1000 * 60 * 60 * 24))
+          const daysRemaining = canRelease ? 0 : Math.ceil(msRemaining / (1000 * 60 * 60 * 24))
 
           setSubscriptionInfo({
             daysSinceStart,
@@ -304,14 +306,15 @@ export default function SolicitacoesPage() {
         .maybeSingle()
 
       if (subscriptionData) {
+        const EIGHT_DAYS_MS = 8 * 24 * 60 * 60 * 1000
         const subscriptionStartDate = subscriptionData.current_period_start
           ? new Date(subscriptionData.current_period_start)
           : subscriptionData.created_at ? new Date(subscriptionData.created_at) : null
         if (subscriptionStartDate) {
-          const now = new Date()
-          const daysSinceStart = Math.floor((now.getTime() - subscriptionStartDate.getTime()) / (1000 * 60 * 60 * 24))
-          if (daysSinceStart < 8) {
-            const daysRemaining = 8 - daysSinceStart
+          const msSinceStart = new Date().getTime() - subscriptionStartDate.getTime()
+          if (msSinceStart < EIGHT_DAYS_MS) {
+            const msRemaining = subscriptionStartDate.getTime() + EIGHT_DAYS_MS - Date.now()
+            const daysRemaining = Math.ceil(msRemaining / (1000 * 60 * 60 * 24))
             toast.error(`Não é possível liberar o acesso ainda. O cliente precisa aguardar ${daysRemaining} dia${daysRemaining > 1 ? 's' : ''} para completar o período de arrependimento (CDC).`)
             setSaving(false)
             return
