@@ -161,8 +161,8 @@ export function ImageEditor({
           resolve(blob)
         }, 'image/png')
       } else {
-        // Usar JPEG para imagens sem transparência (melhor compressão)
-        const quality = (targetSize && targetSize.width >= 1920) || cropType === 'banner' ? 0.95 : 0.9
+        // Usar JPEG para imagens sem transparência (melhor compressão). Qualidade maior para fotos grandes (ex: equipe 800x800).
+        const quality = (targetSize && targetSize.width >= 1920) || cropType === 'banner' ? 0.95 : (targetSize && targetSize.width >= 600 ? 0.92 : 0.9)
         canvas.toBlob((blob) => {
           if (!blob) {
             throw new Error('Erro ao processar imagem')

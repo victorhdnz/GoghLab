@@ -190,14 +190,27 @@ export const PricingComponent: React.FC<PricingComponentProps> = ({
     }
   }
   const CycleToggle = (
-    <div ref={switchRef} className="flex justify-center items-center gap-3 mb-10 mt-2">
+    <div ref={switchRef} className="relative z-20 flex justify-center items-center gap-4 mb-14 mt-2 px-2">
+      <span
+        className={cn(
+          'text-sm font-semibold transition-colors',
+          billingCycle === 'monthly' ? 'text-[#0A0A0A]' : 'text-gray-400'
+        )}
+      >
+        Mensal
+      </span>
       <Switch
         checked={billingCycle === 'annually'}
         onCheckedChange={handleBillingToggle}
-        className="[&>div]:!flex [&>div]:!items-center [&>div]:!gap-0"
+        className="[&>div]:!flex [&>div]:!items-center [&>div]:!gap-0 flex-shrink-0"
       />
-      <span className="text-sm font-semibold text-[#0A0A0A]">
-        Cobrança anual <span className="text-[#E5A800]">(Economize {annualDiscountPercent}%)</span>
+      <span
+        className={cn(
+          'text-sm font-semibold transition-colors',
+          billingCycle === 'annually' ? 'text-[#0A0A0A]' : 'text-gray-400'
+        )}
+      >
+        Anual <span className="text-[#E5A800]">(Economize {annualDiscountPercent}%)</span>
       </span>
     </div>
   )
@@ -209,7 +222,7 @@ export const PricingComponent: React.FC<PricingComponentProps> = ({
   const priceFormat = { style: 'currency' as const, currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: 2 }
 
   const PricingCards = (
-    <div className={`grid gap-8 ${gridCols} md:gap-6 lg:gap-8`}>
+    <div className={`grid gap-8 ${gridCols} md:gap-6 lg:gap-8 mt-2`}>
       {plans.map((plan, index) => {
         const isFeatured = plan.isPopular
         const serviceSelection = plan.planType === 'service'
@@ -263,10 +276,10 @@ export const PricingComponent: React.FC<PricingComponentProps> = ({
           <Card
             className={cn(
               "flex flex-col transition-all duration-300 text-[#0A0A0A] h-full",
-              "bg-white/85 dark:bg-white/90 backdrop-blur-xl border border-white/60 dark:border-white/40",
-              "shadow-[0_8px_32px_rgba(0,0,0,0.08)] hover:shadow-[0_12px_40px_rgba(0,0,0,0.12)]",
-              "transform hover:scale-[1.02] hover:-translate-y-1",
-              isFeatured && "ring-2 ring-[#F7C948] shadow-xl md:scale-[1.02] hover:scale-[1.05] border-[#F7C948]/70 bg-white/95 dark:bg-white/95"
+              "bg-white/70 dark:bg-white/75 backdrop-blur-xl border border-white/50 dark:border-white/30",
+              "shadow-[0_8px_32px_rgba(0,0,0,0.06)] hover:shadow-[0_12px_40px_rgba(0,0,0,0.1)]",
+              "transform hover:scale-[1.01] md:hover:-translate-y-0.5",
+              isFeatured && "ring-2 ring-[#F7C948] shadow-xl md:scale-[1.02] hover:scale-[1.03] md:hover:-translate-y-1 border-[#F7C948]/70 bg-white/80 dark:bg-white/85"
             )}
           >
             <CardHeader className="p-6 pb-4">
@@ -328,19 +341,22 @@ export const PricingComponent: React.FC<PricingComponentProps> = ({
                       <span className="text-base font-normal text-gray-500">/mês</span>
                     </p>
                     {plan.planType !== 'service' && (
-                      <p className="text-sm text-gray-400 line-through mt-1">
-                        <NumberFlow value={originalMonthlyPrice} format={priceFormat} className="tabular-nums" />/mês
+                      <p className="mt-1">
+                        <span className="inline-flex items-baseline gap-1 text-sm text-gray-400 line-through">
+                          <NumberFlow value={originalMonthlyPrice} format={priceFormat} className="tabular-nums" />
+                          <span>/mês</span>
+                        </span>
                       </p>
                     )}
                   </>
                 )}
               </div>
             </CardHeader>
-            <CardContent className="flex-grow p-6 pt-0">
+            <CardContent className="flex-grow p-6 pt-0 min-h-0">
               {plan.planType === 'service' && plan.serviceOptions && plan.serviceOptions.length > 0 && (
                 <div className="mt-4">
                   <h4 className="text-sm font-semibold mb-3 text-gray-700">Serviços inclusos na sua escolha:</h4>
-                  <div className="space-y-2">
+                  <div className="space-y-2 md:max-h-[220px] md:overflow-y-auto md:pr-1 md:-mr-1">
                     {plan.serviceOptions.map(option => {
                       const selectedIds = getSelectedOptionsForPlan(plan)
                       const isSelected = selectedIds.includes(option.id)

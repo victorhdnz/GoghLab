@@ -151,7 +151,8 @@ export function TeamMembersManager({
                   onChange={(url) => handleUpdate(index, 'image_url', url)}
                   cropType="square"
                   aspectRatio={1}
-                  targetSize={{ width: 200, height: 200 }}
+                  targetSize={{ width: 800, height: 800 }}
+                  recommendedDimensions="800 x 800px para boa qualidade na seção"
                   placeholder="Clique para fazer upload da foto"
                 />
               </div>

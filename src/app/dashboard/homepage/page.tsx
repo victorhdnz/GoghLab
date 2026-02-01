@@ -692,6 +692,19 @@ export default function HomepageEditorPage() {
               order.push('team')
             }
           }
+          if (!order.includes('animated_beam')) {
+            const trustedByIndex = order.indexOf('trusted_by')
+            if (trustedByIndex >= 0) {
+              order.splice(trustedByIndex + 1, 0, 'animated_beam')
+            } else {
+              const heroIndex = order.indexOf('hero')
+              if (heroIndex >= 0) {
+                order.splice(heroIndex + 1, 0, 'animated_beam')
+              } else {
+                order.unshift('animated_beam')
+              }
+            }
+          }
           if (!order.includes('spline')) {
             // Adicionar 'spline' antes de 'contact' se 'contact' existir, senão no final
             const contactIndex = order.indexOf('contact')
@@ -755,17 +768,19 @@ export default function HomepageEditorPage() {
           }
           setSectionOrder(order)
         } else {
-          // Se não houver ordem salva, usar a ordem padrão
+          // Se não houver ordem salva, usar a ordem padrão (inclui animated_beam e team)
           setSectionOrder([
             'hero',
             'video',
             'trusted_by',
+            'animated_beam',
             'features',
             'award',
             'services',
             'comparison',
             'notifications',
             'testimonials',
+            'team',
             'spline',
             'pricing',
             'contact',
@@ -785,6 +800,9 @@ export default function HomepageEditorPage() {
           }
           if (visibility.team === undefined) {
             visibility.team = true
+          }
+          if (visibility.animated_beam === undefined) {
+            visibility.animated_beam = false
           }
           if (visibility.spline === undefined) {
             visibility.spline = false // Desabilitado por padrão para performance
