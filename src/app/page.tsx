@@ -1,3 +1,4 @@
+import { unstable_noStore } from 'next/cache'
 import { createServerClient } from '@/lib/supabase/server'
 import { Service } from '@/types'
 import { HomepageTracker } from '@/components/analytics/HomepageTracker'
@@ -122,6 +123,7 @@ async function resolvePricingFeaturesFromProducts(homepageContent: any) {
 }
 
 export default async function Home() {
+  unstable_noStore() // Garantir que tópicos dos cards de preço sejam sempre resolvidos do DB (products + plan_products)
   const services = await getServices()
   const siteSettings = await getSiteSettings()
   let homepageContent = siteSettings?.homepage_content || {}

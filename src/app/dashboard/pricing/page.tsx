@@ -12,7 +12,7 @@ import Link from 'next/link'
 import { DashboardNavigation } from '@/components/dashboard/DashboardNavigation'
 import { getSiteSettings, saveSiteSettings } from '@/lib/supabase/site-settings-helper'
 import { PriceTier, Feature, ServiceOption } from '@/components/ui/pricing-card'
-import { Plus, Trash2, ChevronDown, ChevronUp, ArrowUp, ArrowDown } from 'lucide-react'
+import { Plus, Trash2, ChevronDown, ChevronUp, ArrowUp, ArrowDown, Pencil, X, Check } from 'lucide-react'
 
 interface PricingSettings {
   pricing_enabled?: boolean
@@ -54,6 +54,10 @@ export default function PricingEditorPage() {
   const [addingProduct, setAddingProduct] = useState(false)
   const [uploadingProductId, setUploadingProductId] = useState<string | null>(null)
   const [reorderingProductId, setReorderingProductId] = useState<string | null>(null)
+  const [editingProductId, setEditingProductId] = useState<string | null>(null)
+  const [editingProductName, setEditingProductName] = useState('')
+  const [editingProductSlug, setEditingProductSlug] = useState('')
+  const [savingProductId, setSavingProductId] = useState<string | null>(null)
   const defaultAgencyPlan: PriceTier = {
     id: 'gogh-agencia',
     name: 'Gogh Agency',
@@ -411,7 +415,10 @@ export default function PricingEditorPage() {
       setNewProductName('')
       setNewProductSlug('')
       const { data } = await (supabase as any).from('products').select('*').eq('is_active', true).order('order_position', { ascending: true })
-      if (data) setProducts(data as Product[])
+      if (data) {
+        setProducts(data as Product[])
+        syncPlanFeaturesFromProducts(planProducts, data as Product[])
+      }
     } catch (e: any) {
       toast.error(e?.message || 'Erro ao criar produto')
     } finally {
@@ -442,6 +449,55 @@ export default function PricingEditorPage() {
     }
   }
 
+  const startEditProduct = (p: Product) => {
+    setEditingProductId(p.id)
+    setEditingProductName(p.name)
+    setEditingProductSlug(p.slug)
+  }
+
+  const cancelEditProduct = () => {
+    setEditingProductId(null)
+    setEditingProductName('')
+    setEditingProductSlug('')
+  }
+
+  const handleUpdateProduct = async (productId: string, name: string, slug: string) => {
+    if (!name.trim()) {
+      toast.error('Nome do produto é obrigatório')
+      return
+    }
+    const slugFinal = slug.trim() || slugFromName(name)
+    setSavingProductId(productId)
+    try {
+      const { error: productError } = await (supabase as any)
+        .from('products')
+        .update({ name: name.trim(), slug: slugFinal })
+        .eq('id', productId)
+      if (productError) throw productError
+      // Espelhar nome/slug em tools para Gerenciar Ferramentas e área do membro sempre refletirem a alteração
+      const product = products.find(pr => pr.id === productId)
+      if (product?.product_type === 'tool') {
+        await (supabase as any)
+          .from('tools')
+          .update({ name: name.trim(), slug: slugFinal })
+          .eq('product_id', productId)
+      }
+      const { data } = await (supabase as any).from('products').select('*').eq('is_active', true).order('order_position', { ascending: true })
+      if (data) {
+        setProducts(data as Product[])
+        syncPlanFeaturesFromProducts(planProducts, data as Product[])
+      }
+      setEditingProductId(null)
+      setEditingProductName('')
+      setEditingProductSlug('')
+      toast.success('Produto atualizado')
+    } catch (e: any) {
+      toast.error(e?.message || 'Erro ao atualizar produto')
+    } finally {
+      setSavingProductId(null)
+    }
+  }
+
   const handleProductIconUpload = async (productId: string, file: File) => {
     setUploadingProductId(productId)
     try {
@@ -454,6 +510,7 @@ export default function PricingEditorPage() {
       if (!response.ok || !data.success) throw new Error(data.error || 'Erro no upload')
       const { error } = await (supabase as any).from('products').update({ icon_url: data.url }).eq('id', productId)
       if (error) throw error
+      // Ícone fica em products; Gerenciar Ferramentas e área do membro leem products(icon_url) via join, então já refletem o novo logo
       const { data: updated } = await (supabase as any).from('products').select('*').eq('is_active', true).order('order_position', { ascending: true })
       if (updated) setProducts(updated as Product[])
       syncPlanFeaturesFromProducts(planProducts, updated || products)
@@ -716,9 +773,56 @@ export default function PricingEditorPage() {
                                     </label>
                                   </div>
                                 </td>
-                                <td className="py-2 pr-4">
-                                  <span className="font-medium">{p.name}</span>
-                                  <span className="text-gray-500 ml-1">({p.slug})</span>
+                                <td className="py-2 pr-4 align-middle">
+                                  {editingProductId === p.id ? (
+                                    <div className="flex flex-col gap-2 max-w-xs">
+                                      <input
+                                        type="text"
+                                        value={editingProductName}
+                                        onChange={(e) => setEditingProductName(e.target.value)}
+                                        placeholder="Nome do produto"
+                                        className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                      />
+                                      <input
+                                        type="text"
+                                        value={editingProductSlug}
+                                        onChange={(e) => setEditingProductSlug(e.target.value)}
+                                        placeholder="Slug (opcional)"
+                                        className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                      />
+                                      <div className="flex items-center gap-2">
+                                        <button
+                                          type="button"
+                                          onClick={() => handleUpdateProduct(p.id, editingProductName, editingProductSlug)}
+                                          disabled={savingProductId === p.id}
+                                          className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-white bg-blue-600 rounded hover:bg-blue-700 disabled:opacity-50"
+                                        >
+                                          {savingProductId === p.id ? '...' : <><Check size={14} /> Salvar</>}
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={cancelEditProduct}
+                                          disabled={savingProductId === p.id}
+                                          className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-gray-700 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50"
+                                        >
+                                          <X size={14} /> Cancelar
+                                        </button>
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <div className="flex items-center gap-2">
+                                      <span className="font-medium">{p.name}</span>
+                                      <span className="text-gray-500">({p.slug})</span>
+                                      <button
+                                        type="button"
+                                        onClick={() => startEditProduct(p)}
+                                        className="p-1 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded"
+                                        title="Editar nome do produto"
+                                      >
+                                        <Pencil size={14} />
+                                      </button>
+                                    </div>
+                                  )}
                                 </td>
                                 <td className="text-center py-2">
                                   <input
