@@ -830,11 +830,6 @@ export default function ToolsPage() {
                         <AlertTriangle className="w-4 h-4" />
                         {hasNewCredentials ? 'Reportar novamente' : 'Reportar Erro na Conta'}
                       </button>
-                      {hasNewCredentials && (
-                        <p className="text-xs text-emerald-600 mt-1.5 text-center">
-                          Suas credenciais foram atualizadas pela equipe. Problema já foi atendido; use o botão acima se precisar reportar de novo.
-                        </p>
-                      )}
                     </div>
                   )}
                   {!hasAccess && (
