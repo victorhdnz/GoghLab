@@ -286,19 +286,6 @@ export const PricingComponent: React.FC<PricingComponentProps> = ({
                         R$ {originalMonthlyPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/mês
                       </p>
                     )}
-                    {/* Total anual menor */}
-                    <p className="text-xs text-gray-500 mt-2">
-                      Cobrado anualmente: R$ {(plan.planType === 'service' && serviceSelection
-                        ? serviceSelection.totalPrice
-                        : plan.priceAnnually
-                      ).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </p>
-                    {/* Economia - apenas se não for serviço */}
-                    {plan.planType !== 'service' && (
-                      <p className="text-xs text-green-600 font-semibold mt-1">
-                        Economia de R$ {((originalMonthlyPrice * 12) - plan.priceAnnually).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/ano
-                      </p>
-                    )}
                   </>
                 )}
               </div>
