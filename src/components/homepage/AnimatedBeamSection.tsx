@@ -22,7 +22,7 @@ interface AnimatedBeamSectionProps {
 }
 
 const Circle = React.forwardRef<
-  HTMLDivElement,
+  HTMLDivElement | null,
   { className?: string; children?: React.ReactNode }
 >(({ className, children }, ref) => {
   return (
