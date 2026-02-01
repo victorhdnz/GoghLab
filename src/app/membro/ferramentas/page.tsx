@@ -76,6 +76,9 @@ export default function ToolsPage() {
   const [showCapcutCredentials, setShowCapcutCredentials] = useState(false)
   const [toolsFromPlan, setToolsFromPlan] = useState<ToolFromDB[]>([])
   const [tutorialModalTool, setTutorialModalTool] = useState<{ name: string; videoUrl: string } | null>(null)
+  const [credentialsModal, setCredentialsModal] = useState<{ toolName: string; emailOrUser: string; password?: string } | null>(null)
+
+  const isAccessLinkUrl = (s: string) => /^https?:\/\//i.test(s?.trim() ?? '')
 
   const supabase = createClient()
 
@@ -758,16 +761,31 @@ export default function ToolsPage() {
                     <p className="text-gogh-grayDark text-sm mb-4">{t.description}</p>
                   )}
                   {hasAccess && accessData?.access_link && (
-                    <a
-                      href={accessData.access_link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gogh-yellow text-gogh-black font-medium rounded-lg hover:bg-gogh-yellow/90 mb-3"
-                    >
-                      <LinkIcon className="w-4 h-4" />
-                      Acessar {t.name}
-                      <ExternalLink className="w-4 h-4" />
-                    </a>
+                    isAccessLinkUrl(accessData.access_link) ? (
+                      <a
+                        href={accessData.access_link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gogh-yellow text-gogh-black font-medium rounded-lg hover:bg-gogh-yellow/90 mb-3"
+                      >
+                        <LinkIcon className="w-4 h-4" />
+                        Acessar {t.name}
+                        <ExternalLink className="w-4 h-4" />
+                      </a>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setCredentialsModal({
+                          toolName: t.name,
+                          emailOrUser: accessData.access_link,
+                          password: accessData.password,
+                        })}
+                        className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gogh-yellow text-gogh-black font-medium rounded-lg hover:bg-gogh-yellow/90 mb-3"
+                      >
+                        <LinkIcon className="w-4 h-4" />
+                        Ver credenciais - {t.name}
+                      </button>
+                    )
                   )}
                   {videoUrl && (
                     <button
@@ -817,6 +835,97 @@ export default function ToolsPage() {
           })}
         </div>
 
+        {/* Modal de Credenciais (ferramentas dinâmicas: email/usuário + senha) */}
+        {credentialsModal && (
+          <div
+            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) setCredentialsModal(null)
+            }}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="bg-gradient-to-br from-gogh-beige-light to-amber-50 rounded-xl shadow-xl border border-amber-200/80 max-w-md w-full p-4 md:p-6"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-base md:text-lg font-bold text-gogh-black">
+                  Credenciais - {credentialsModal.toolName}
+                </h3>
+                <button
+                  onClick={() => setCredentialsModal(null)}
+                  className="text-gogh-grayDark hover:text-gogh-black"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <div className="space-y-4">
+                <div className="bg-amber-50/80 border border-amber-200/60 rounded-lg p-3">
+                  <p className="text-xs text-amber-800">
+                    <strong>Duração:</strong> O acesso é válido por <strong>30 dias</strong> a partir da liberação.
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gogh-grayDark mb-2">Email / Usuário:</label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={credentialsModal.emailOrUser}
+                      readOnly
+                      className="flex-1 px-4 py-2 border border-amber-200 rounded-lg bg-white/80 font-mono text-sm text-gogh-black"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard.writeText(credentialsModal.emailOrUser)
+                        toast.success('Email/Usuário copiado!')
+                      }}
+                      className="px-4 py-2 bg-gogh-yellow text-gogh-black rounded-lg hover:bg-gogh-yellow/90 text-sm font-medium"
+                    >
+                      Copiar
+                    </button>
+                  </div>
+                </div>
+                {credentialsModal.password != null && credentialsModal.password !== '' && (
+                  <div>
+                    <label className="block text-sm font-medium text-gogh-grayDark mb-2">Senha:</label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={credentialsModal.password}
+                        readOnly
+                        className="flex-1 px-4 py-2 border border-amber-200 rounded-lg bg-white/80 font-mono text-sm text-gogh-black"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard.writeText(credentialsModal.password!)
+                          toast.success('Senha copiada!')
+                        }}
+                        className="px-4 py-2 bg-gogh-yellow text-gogh-black rounded-lg hover:bg-gogh-yellow/90 text-sm font-medium"
+                      >
+                        Copiar
+                      </button>
+                    </div>
+                  </div>
+                )}
+                <p className="text-xs text-gogh-grayDark">
+                  Use essas credenciais para fazer login. Você pode copiar cada campo. Se encontrar algum problema, use &quot;Reportar Erro na Conta&quot;.
+                </p>
+              </div>
+              <div className="mt-4">
+                <button
+                  type="button"
+                  onClick={() => setCredentialsModal(null)}
+                  className="w-full px-4 py-2 border border-amber-300 text-gogh-black rounded-lg hover:bg-amber-50/80 transition-colors"
+                >
+                  Fechar
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+
         {/* Modal de Vídeo Tutorial (ferramentas dinâmicas) */}
         {tutorialModalTool && (
           <div
@@ -828,7 +937,7 @@ export default function ToolsPage() {
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="bg-white rounded-xl shadow-xl max-w-sm w-full p-4 md:p-6"
+              className="bg-gradient-to-br from-gogh-beige-light to-amber-50 rounded-xl shadow-xl border border-amber-200/80 max-w-sm w-full p-4 md:p-6"
             >
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-base md:text-lg font-bold text-gogh-black">
@@ -869,7 +978,7 @@ export default function ToolsPage() {
                 )}
               </div>
               <p className="text-xs md:text-sm text-gray-600 mt-4">
-                Assista ao tutorial para aprender a usar a ferramenta.
+                Assista ao tutorial para aprender a entrar na conta e utilizar a ferramenta.
               </p>
             </motion.div>
           </div>
@@ -1011,19 +1120,34 @@ export default function ToolsPage() {
                         </p>
                       </div>
                       
-                      {/* Canva: Link clicável */}
+                      {/* Canva: Link ou credenciais */}
                       {tool.id === 'canva' && (
                         <>
-                          <a
-                            href={tool.accessData.access_link}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gogh-yellow text-gogh-black font-medium rounded-lg hover:bg-gogh-yellow/90 transition-colors"
-                          >
-                            <LinkIcon className="w-4 h-4" />
-                            Link de Ativação {tool.name}
-                            <ExternalLink className="w-4 h-4" />
-                          </a>
+                          {isAccessLinkUrl(tool.accessData.access_link) ? (
+                            <a
+                              href={tool.accessData.access_link}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gogh-yellow text-gogh-black font-medium rounded-lg hover:bg-gogh-yellow/90 transition-colors"
+                            >
+                              <LinkIcon className="w-4 h-4" />
+                              Link de Ativação {tool.name}
+                              <ExternalLink className="w-4 h-4" />
+                            </a>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => setCredentialsModal({
+                                toolName: tool.name,
+                                emailOrUser: tool.accessData.access_link,
+                                password: tool.accessData.password,
+                              })}
+                              className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gogh-yellow text-gogh-black font-medium rounded-lg hover:bg-gogh-yellow/90 transition-colors"
+                            >
+                              <LinkIcon className="w-4 h-4" />
+                              Ver credenciais - {tool.name}
+                            </button>
+                          )}
                           
                           {/* Botão para assistir vídeo tutorial do Canva */}
                           {canvaVideoUrl && (
@@ -1276,6 +1400,97 @@ export default function ToolsPage() {
       )}
 
 
+      {/* Modal de Credenciais (link não é URL: email/usuário + senha) - legado Canva */}
+      {credentialsModal && (
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setCredentialsModal(null)
+          }}
+        >
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-gradient-to-br from-gogh-beige-light to-amber-50 rounded-xl shadow-xl border border-amber-200/80 max-w-md w-full p-4 md:p-6"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-base md:text-lg font-bold text-gogh-black">
+                Credenciais - {credentialsModal.toolName}
+              </h3>
+              <button
+                onClick={() => setCredentialsModal(null)}
+                className="text-gogh-grayDark hover:text-gogh-black"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="space-y-4">
+              <div className="bg-amber-50/80 border border-amber-200/60 rounded-lg p-3">
+                <p className="text-xs text-amber-800">
+                  <strong>Duração:</strong> O acesso é válido por <strong>30 dias</strong> a partir da liberação.
+                </p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gogh-grayDark mb-2">Email / Usuário:</label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={credentialsModal.emailOrUser}
+                    readOnly
+                    className="flex-1 px-4 py-2 border border-amber-200 rounded-lg bg-white/80 font-mono text-sm text-gogh-black"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(credentialsModal.emailOrUser)
+                      toast.success('Email/Usuário copiado!')
+                    }}
+                    className="px-4 py-2 bg-gogh-yellow text-gogh-black rounded-lg hover:bg-gogh-yellow/90 text-sm font-medium"
+                  >
+                    Copiar
+                  </button>
+                </div>
+              </div>
+              {credentialsModal.password != null && credentialsModal.password !== '' && (
+                <div>
+                  <label className="block text-sm font-medium text-gogh-grayDark mb-2">Senha:</label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={credentialsModal.password}
+                      readOnly
+                      className="flex-1 px-4 py-2 border border-amber-200 rounded-lg bg-white/80 font-mono text-sm text-gogh-black"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard.writeText(credentialsModal.password!)
+                        toast.success('Senha copiada!')
+                      }}
+                      className="px-4 py-2 bg-gogh-yellow text-gogh-black rounded-lg hover:bg-gogh-yellow/90 text-sm font-medium"
+                    >
+                      Copiar
+                    </button>
+                  </div>
+                </div>
+              )}
+              <p className="text-xs text-gogh-grayDark">
+                Use essas credenciais para fazer login. Você pode copiar cada campo. Se encontrar algum problema, use &quot;Reportar Erro na Conta&quot;.
+              </p>
+            </div>
+            <div className="mt-4">
+              <button
+                type="button"
+                onClick={() => setCredentialsModal(null)}
+                className="w-full px-4 py-2 border border-amber-300 text-gogh-black rounded-lg hover:bg-amber-50/80 transition-colors"
+              >
+                Fechar
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
       {/* Modal de Vídeo Tutorial Canva */}
       {showCanvaVideoModal && canvaVideoUrl && (
         <div 
@@ -1289,7 +1504,7 @@ export default function ToolsPage() {
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="bg-white rounded-xl shadow-xl max-w-sm w-full p-4 md:p-6"
+            className="bg-gradient-to-br from-gogh-beige-light to-amber-50 rounded-xl shadow-xl border border-amber-200/80 max-w-sm w-full p-4 md:p-6"
           >
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-base md:text-lg font-bold text-gogh-black">
@@ -1351,7 +1566,7 @@ export default function ToolsPage() {
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="bg-white rounded-xl shadow-xl max-w-sm w-full p-4 md:p-6"
+            className="bg-gradient-to-br from-gogh-beige-light to-amber-50 rounded-xl shadow-xl border border-amber-200/80 max-w-sm w-full p-4 md:p-6"
           >
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-base md:text-lg font-bold text-gogh-black">
@@ -1406,7 +1621,7 @@ export default function ToolsPage() {
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="bg-white rounded-xl shadow-xl max-w-md w-full p-6"
+            className="bg-gradient-to-br from-gogh-beige-light to-amber-50 rounded-xl shadow-xl border border-amber-200/80 max-w-md w-full p-6"
           >
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-bold text-gogh-black">
@@ -1500,7 +1715,7 @@ export default function ToolsPage() {
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="bg-white rounded-xl shadow-xl max-w-md w-full p-6"
+            className="bg-gradient-to-br from-gogh-beige-light to-amber-50 rounded-xl shadow-xl border border-amber-200/80 max-w-md w-full p-6"
           >
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-bold text-gogh-black">
