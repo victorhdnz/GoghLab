@@ -108,10 +108,9 @@ async function resolvePricingFeaturesFromProducts(homepageContent: any) {
     const plans = pricing.pricing_plans.map((plan: any) => {
       if (plan.id !== 'gogh-essencial' && plan.id !== 'gogh-pro') return plan
       const dbPlanId = planIdToDb(plan.id)
-      const productIds = planProducts.filter((pp: any) => pp.plan_id === dbPlanId).map((pp: any) => pp.product_id)
-      const features = productIds
-        .map((pid: string) => products.find((p: any) => p.id === pid))
-        .filter(Boolean)
+      const productIdSet = new Set(planProducts.filter((pp: any) => pp.plan_id === dbPlanId).map((pp: any) => pp.product_id))
+      const features = products
+        .filter((p: any) => productIdSet.has(p.id))
         .map((p: any) => ({ name: p.name, isIncluded: true, iconUrl: p.icon_url ?? undefined }))
       return { ...plan, features }
     })

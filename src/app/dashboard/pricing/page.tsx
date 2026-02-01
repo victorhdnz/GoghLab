@@ -12,7 +12,7 @@ import Link from 'next/link'
 import { DashboardNavigation } from '@/components/dashboard/DashboardNavigation'
 import { getSiteSettings, saveSiteSettings } from '@/lib/supabase/site-settings-helper'
 import { PriceTier, Feature, ServiceOption } from '@/components/ui/pricing-card'
-import { Plus, Trash2, ChevronDown, ChevronUp } from 'lucide-react'
+import { Plus, Trash2, ChevronDown, ChevronUp, ArrowUp, ArrowDown } from 'lucide-react'
 
 interface PricingSettings {
   pricing_enabled?: boolean
@@ -53,6 +53,7 @@ export default function PricingEditorPage() {
   const [newProductType, setNewProductType] = useState<'tool' | 'course' | 'prompt' | 'other'>('tool')
   const [addingProduct, setAddingProduct] = useState(false)
   const [uploadingProductId, setUploadingProductId] = useState<string | null>(null)
+  const [reorderingProductId, setReorderingProductId] = useState<string | null>(null)
   const defaultAgencyPlan: PriceTier = {
     id: 'gogh-agencia',
     name: 'Gogh Agency',
@@ -217,11 +218,10 @@ export default function PricingEditorPage() {
           const plans = prev.pricing_plans.map(plan => {
             if (plan.id !== 'gogh-essencial' && plan.id !== 'gogh-pro') return plan
             const dbPlanId = planIdToDb(plan.id)
-            const productIds = pps.filter(pp => pp.plan_id === dbPlanId).map(pp => pp.product_id)
-            const features = productIds
-              .map(pid => prods.find(p => p.id === pid))
-              .filter(Boolean)
-              .map(p => ({ name: (p as Product).name, isIncluded: true, iconUrl: (p as Product).icon_url ?? undefined }))
+            const productIds = new Set(pps.filter(pp => pp.plan_id === dbPlanId).map(pp => pp.product_id))
+            const features = prods
+              .filter(p => productIds.has(p.id))
+              .map(p => ({ name: p.name, isIncluded: true, iconUrl: p.icon_url ?? undefined }))
             return { ...plan, features }
           })
           return { ...prev, pricing_plans: plans }
@@ -248,11 +248,10 @@ export default function PricingEditorPage() {
       const plansToSave = formData.pricing_plans?.map(plan => {
         if (plan.id !== 'gogh-essencial' && plan.id !== 'gogh-pro') return plan
         const dbPlanId = planIdToDb(plan.id)
-        const productIds = planProducts.filter(pp => pp.plan_id === dbPlanId).map(pp => pp.product_id)
-        const features = productIds
-          .map(pid => products.find(p => p.id === pid))
-          .filter(Boolean)
-          .map(p => ({ name: (p as Product).name, isIncluded: true, iconUrl: (p as Product).icon_url ?? undefined }))
+        const productIds = new Set(planProducts.filter(pp => pp.plan_id === dbPlanId).map(pp => pp.product_id))
+        const features = products
+          .filter(p => productIds.has(p.id))
+          .map(p => ({ name: p.name, isIncluded: true, iconUrl: p.icon_url ?? undefined }))
         return { ...plan, features }
       }) ?? formData.pricing_plans
 
@@ -391,6 +390,26 @@ export default function PricingEditorPage() {
   const planHasProduct = (planId: string, productId: string) =>
     planProducts.some(pp => pp.plan_id === planId && pp.product_id === productId)
 
+  const handleMoveProductOrder = async (fromIndex: number, direction: 'up' | 'down') => {
+    const toIndex = direction === 'up' ? fromIndex - 1 : fromIndex + 1
+    if (toIndex < 0 || toIndex >= products.length) return
+    const fromProduct = products[fromIndex]
+    const toProduct = products[toIndex]
+    setReorderingProductId(fromProduct.id)
+    try {
+      await (supabase as any).from('products').update({ order_position: toProduct.order_position }).eq('id', fromProduct.id)
+      await (supabase as any).from('products').update({ order_position: fromProduct.order_position }).eq('id', toProduct.id)
+      const { data } = await (supabase as any).from('products').select('*').eq('is_active', true).order('order_position', { ascending: true })
+      if (data) setProducts(data as Product[])
+      syncPlanFeaturesFromProducts(planProducts, data || products)
+      toast.success('Ordem atualizada')
+    } catch (e: any) {
+      toast.error(e?.message || 'Erro ao reordenar')
+    } finally {
+      setReorderingProductId(null)
+    }
+  }
+
   const handleProductIconUpload = async (productId: string, file: File) => {
     setUploadingProductId(productId)
     try {
@@ -423,11 +442,10 @@ export default function PricingEditorPage() {
         pricing_plans: prev.pricing_plans.map(plan => {
           if (plan.id !== 'gogh-essencial' && plan.id !== 'gogh-pro') return plan
           const dbPlanId = planIdToDb(plan.id)
-          const productIds = ppList.filter(pp => pp.plan_id === dbPlanId).map(pp => pp.product_id)
-          const features = productIds
-            .map(pid => prodList.find(p => p.id === pid))
-            .filter(Boolean)
-            .map(p => ({ name: (p as Product).name, isIncluded: true, iconUrl: (p as Product).icon_url ?? undefined }))
+          const productIds = new Set(ppList.filter(pp => pp.plan_id === dbPlanId).map(pp => pp.product_id))
+          const features = prodList
+            .filter(p => productIds.has(p.id))
+            .map(p => ({ name: p.name, isIncluded: true, iconUrl: p.icon_url ?? undefined }))
           return { ...plan, features }
         }),
       }
@@ -609,6 +627,7 @@ export default function PricingEditorPage() {
                         <table className="min-w-full text-sm">
                           <thead>
                             <tr className="border-b">
+                              <th className="text-left py-2 pr-2 w-20">Ordem</th>
                               <th className="text-left py-2 pr-4">Ícone</th>
                               <th className="text-left py-2 pr-4">Produto</th>
                               <th className="text-center py-2 px-2">Gogh Essencial</th>
@@ -616,8 +635,30 @@ export default function PricingEditorPage() {
                             </tr>
                           </thead>
                           <tbody>
-                            {products.map((p) => (
+                            {products.map((p, index) => (
                               <tr key={p.id} className="border-b border-gray-100">
+                                <td className="py-2 pr-2 align-middle">
+                                  <div className="flex items-center gap-0.5">
+                                    <button
+                                      type="button"
+                                      onClick={() => handleMoveProductOrder(index, 'up')}
+                                      disabled={index === 0 || reorderingProductId === p.id}
+                                      className="p-1 hover:bg-gray-200 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                                      title="Subir"
+                                    >
+                                      <ArrowUp size={16} />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleMoveProductOrder(index, 'down')}
+                                      disabled={index === products.length - 1 || reorderingProductId === p.id}
+                                      className="p-1 hover:bg-gray-200 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                                      title="Descer"
+                                    >
+                                      <ArrowDown size={16} />
+                                    </button>
+                                  </div>
+                                </td>
                                 <td className="py-2 pr-2 align-middle">
                                   <div className="flex items-center gap-2">
                                     {p.icon_url ? (

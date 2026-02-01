@@ -48,12 +48,6 @@ const subscriberMenuItems = [
     icon: Sparkles,
     description: 'Biblioteca de prompts para uso em IAs'
   },
-  { 
-    href: '/membro/perfil', 
-    label: 'Nicho do Perfil', 
-    icon: User,
-    description: 'Configure seu perfil'
-  },
 ]
 
 // Itens do menu que são sempre visíveis (não requerem assinatura)

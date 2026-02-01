@@ -144,6 +144,31 @@ export default function ToolsPage() {
     fetchData()
   }, [user, subscription])
 
+  // Refetch ao voltar para a aba (ex.: admin acabou de liberar acesso)
+  useEffect(() => {
+    const onVisibilityChange = () => {
+      if (document.visibilityState !== 'visible' || !user) return
+      ;(async () => {
+        try {
+          const { data: accessData } = await (supabase as any)
+            .from('tool_access_credentials')
+            .select('*')
+            .eq('user_id', user.id)
+          setToolAccess(accessData || [])
+          const { data: ticketsData } = await (supabase as any)
+            .from('support_tickets')
+            .select('*')
+            .eq('user_id', user.id)
+            .eq('ticket_type', 'tools_access')
+            .in('status', ['open', 'in_progress'])
+          setPendingTickets(ticketsData || [])
+        } catch (_) {}
+      })()
+    }
+    document.addEventListener('visibilitychange', onVisibilityChange)
+    return () => document.removeEventListener('visibilitychange', onVisibilityChange)
+  }, [user])
+
   // Verificar se o acesso foi concedido no período atual ou anterior
   const isAccessFromCurrentPeriod = (access: ToolAccess): boolean => {
     if (!subscription?.current_period_start || !access.access_granted_at) return false
@@ -206,27 +231,49 @@ export default function ToolsPage() {
 
   // Calcular dias restantes até poder solicitar
   // Funciona tanto para novos clientes quanto para renovações
-  const daysUntilCanRequest = () => {
+  const daysUntilCanRequest = (): number | null => {
     if (!subscription) return null
     
-    // Buscar a data de início da assinatura
-    // Prioridade: current_period_start (período atual) > created_at (data de criação)
     let subscriptionStartDate: Date | null = null
-    
     if (subscription.current_period_start) {
       subscriptionStartDate = new Date(subscription.current_period_start)
     } else if ((subscription as any).created_at) {
-      // Fallback para created_at se current_period_start não existir
       subscriptionStartDate = new Date((subscription as any).created_at)
     }
-    
     if (!subscriptionStartDate) return null
     
     const now = new Date()
     const daysSinceStart = Math.floor((now.getTime() - subscriptionStartDate.getTime()) / (1000 * 60 * 60 * 24))
     const daysRemaining = 8 - daysSinceStart
-    
     return daysRemaining > 0 ? daysRemaining : 0
+  }
+
+  // Texto do countdown: "X dias restantes" ou "X horas restantes" quando faltar menos de 24h
+  const countdownLabel = (): string | null => {
+    if (!subscription) return null
+    let subscriptionStartDate: Date | null = null
+    if (subscription.current_period_start) {
+      subscriptionStartDate = new Date(subscription.current_period_start)
+    } else if ((subscription as any).created_at) {
+      subscriptionStartDate = new Date((subscription as any).created_at)
+    }
+    if (!subscriptionStartDate) return null
+    const eighthDay = new Date(subscriptionStartDate)
+    eighthDay.setDate(eighthDay.getDate() + 8)
+    eighthDay.setHours(0, 0, 0, 0)
+    const now = new Date()
+    const msRemaining = eighthDay.getTime() - now.getTime()
+    if (msRemaining <= 0) return null
+    const hoursRemaining = Math.ceil(msRemaining / (1000 * 60 * 60))
+    const daysRemaining = Math.floor(hoursRemaining / 24)
+    if (daysRemaining >= 1) {
+      return `${daysRemaining} dia${daysRemaining > 1 ? 's' : ''} restante${daysRemaining > 1 ? 's' : ''}`
+    }
+    if (hoursRemaining >= 1) {
+      return `${hoursRemaining} hora${hoursRemaining > 1 ? 's' : ''} restante${hoursRemaining > 1 ? 's' : ''}`
+    }
+    const minutesRemaining = Math.ceil(msRemaining / (1000 * 60))
+    return `${minutesRemaining} min restante${minutesRemaining > 1 ? 's' : ''}`
   }
 
   const canRequestForTool = (tool: ToolFromDB) =>
@@ -669,7 +716,7 @@ export default function ToolsPage() {
           className="bg-gradient-to-r from-gogh-yellow/20 to-amber-100 rounded-xl p-5 border border-gogh-yellow/30"
         >
           <p className="text-sm text-gogh-grayDark">
-            Ao solicitar acesso, nossa equipe liberará em até <strong>24 horas úteis</strong>. O link do vídeo tutorial (quando configurado) aparece em cada ferramenta.
+            Ao solicitar acesso, nossa equipe liberará em até <strong>24 horas úteis</strong>. O link do vídeo tutorial aparece em cada ferramenta.
           </p>
         </motion.div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -740,9 +787,18 @@ export default function ToolsPage() {
                           Solicitação em análise
                         </p>
                       ) : !canRequest && t.requires_8_days ? (
-                        <p className="text-sm text-blue-600 mb-2">
-                          Disponível a partir do 8º dia da assinatura. Faltam {daysUntilCanRequest()} dia(s).
-                        </p>
+                        <button
+                          type="button"
+                          disabled
+                          className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gogh-grayLight text-gogh-grayDark font-medium rounded-lg cursor-not-allowed border border-gogh-grayLight"
+                        >
+                          <Clock className="w-4 h-4" />
+                          {countdownLabel() ? (
+                            <>Aguardando: {countdownLabel()}</>
+                          ) : (
+                            <>Aguardando 8º dia da assinatura</>
+                          )}
+                        </button>
                       ) : (
                         <button
                           onClick={() => requestToolAccess(t)}

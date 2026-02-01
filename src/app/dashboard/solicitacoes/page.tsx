@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { motion } from 'framer-motion'
@@ -33,16 +33,25 @@ interface SupportTicket {
   priority: string
   created_at: string
   updated_at: string
+  tool_id?: string | null
   user?: {
     email: string
     full_name: string
   }
 }
 
+interface ToolFromDB {
+  id: string
+  name: string
+  slug: string
+  tutorial_video_url: string | null
+}
+
 interface ToolAccess {
   id: string
   user_id: string
-  tool_type: 'canva' | 'capcut'
+  tool_id?: string | null
+  tool_type: string
   email: string
   access_link?: string
   password?: string
@@ -64,16 +73,11 @@ export default function SolicitacoesPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
   
-  // Form states para links
-  const [canvaLink, setCanvaLink] = useState('')
-  const [capcutEmail, setCapcutEmail] = useState('')
-  const [capcutPassword, setCapcutPassword] = useState('')
-  // Removido: não precisamos mais de estados para vídeos individuais
-  
-  // URLs fixas de vídeos de tutorial (salvas no site_settings)
-  const [defaultCanvaVideoUrl, setDefaultCanvaVideoUrl] = useState<string>('')
-  const [defaultCapcutVideoUrl, setDefaultCapcutVideoUrl] = useState<string>('')
-  const [savingDefaults, setSavingDefaults] = useState(false)
+  // Form state: um conjunto por ticket (ferramenta solicitada)
+  const [accessLink, setAccessLink] = useState('')
+  const [accessPassword, setAccessPassword] = useState('')
+  const [toolsMap, setToolsMap] = useState<Record<string, ToolFromDB>>({})
+  const loadingForRef = useRef<{ userId: string; toolId: string | null } | null>(null)
 
   // Função para validar URL do YouTube (suporta todos os formatos incluindo Shorts)
   const getYouTubeId = (url: string): string | null => {
@@ -98,98 +102,21 @@ export default function SolicitacoesPage() {
 
   useEffect(() => {
     loadTickets()
-    loadDefaultVideoUrls()
   }, [])
-  
-  // Carregar URLs fixas de vídeos de tutorial
-  const loadDefaultVideoUrls = async () => {
-    try {
-      const { data, error } = await (supabase as any)
-        .from('site_settings')
-        .select('value')
-        .eq('key', 'general')
-        .maybeSingle()
-      
-      if (error && error.code !== 'PGRST116') {
-        console.error('Erro ao carregar URLs fixas:', error)
-        return
-      }
-      
-      if (data?.value) {
-        const toolVideos = data.value.tool_tutorial_videos || {}
-        setDefaultCanvaVideoUrl(toolVideos.canva || '')
-        setDefaultCapcutVideoUrl(toolVideos.capcut || '')
-      }
-    } catch (error) {
-      console.error('Erro ao carregar URLs fixas:', error)
-    }
-  }
-  
-  // Salvar URLs fixas de vídeos de tutorial
-  const saveDefaultVideoUrls = async () => {
-    setSavingDefaults(true)
-    try {
-      // Validar URLs
-      if (defaultCanvaVideoUrl && !getYouTubeId(defaultCanvaVideoUrl)) {
-        toast.error('URL do vídeo tutorial do Canva deve ser do YouTube')
-        setSavingDefaults(false)
-        return
-      }
-      
-      if (defaultCapcutVideoUrl && !getYouTubeId(defaultCapcutVideoUrl)) {
-        toast.error('URL do vídeo tutorial do CapCut deve ser do YouTube')
-        setSavingDefaults(false)
-        return
-      }
-      
-      // Buscar dados existentes
-      const { data: existing, error: fetchError } = await (supabase as any)
-        .from('site_settings')
-        .select('value')
-        .eq('key', 'general')
-        .maybeSingle()
-      
-      const existingValue = existing?.value || {}
-      
-      // Atualizar apenas as URLs de vídeos de tutorial
-      const updatedValue = {
-        ...existingValue,
-        tool_tutorial_videos: {
-          canva: defaultCanvaVideoUrl || null,
-          capcut: defaultCapcutVideoUrl || null
-        }
-      }
-      
-      // Salvar no banco
-      const { error: updateError } = await (supabase as any)
-        .from('site_settings')
-        .upsert({
-          key: 'general',
-          value: updatedValue,
-          updated_at: new Date().toISOString()
-        }, {
-          onConflict: 'key'
-        })
-      
-      if (updateError) {
-        throw updateError
-      }
-      
-      toast.success('URLs fixas de vídeos de tutorial salvas com sucesso!')
-    } catch (error: any) {
-      console.error('Erro ao salvar URLs fixas:', error)
-      toast.error(`Erro ao salvar: ${error.message || 'Erro desconhecido'}`)
-    } finally {
-      setSavingDefaults(false)
-    }
-  }
 
   useEffect(() => {
     if (selectedTicket) {
-      loadToolAccess(selectedTicket.user_id)
+      setAccessLink('')
+      setAccessPassword('')
+      const userId = selectedTicket.user_id
+      const toolId = selectedTicket.tool_id ?? null
+      loadingForRef.current = { userId, toolId }
+      loadToolAccessForTicket(userId, toolId)
       loadSubscriptionInfo(selectedTicket.user_id)
     } else {
+      loadingForRef.current = null
       setSubscriptionInfo(null)
+      setToolAccess([])
     }
   }, [selectedTicket])
 
@@ -248,10 +175,9 @@ export default function SolicitacoesPage() {
     }
   }
 
-  const loadTickets = async () => {
+  const loadTickets = async (): Promise<SupportTicket[]> => {
     setLoading(true)
     try {
-      // Buscar tickets primeiro
       const { data: ticketsData, error: ticketsError } = await (supabase as any)
         .from('support_tickets')
         .select('*')
@@ -260,73 +186,109 @@ export default function SolicitacoesPage() {
 
       if (ticketsError) throw ticketsError
 
-      // Buscar perfis dos usuários separadamente
       if (ticketsData && ticketsData.length > 0) {
         const userIds = [...new Set(ticketsData.map((t: any) => t.user_id))]
+        const toolIds = [...new Set(ticketsData.map((t: any) => t.tool_id).filter(Boolean))]
         const { data: profilesData } = await (supabase as any)
           .from('profiles')
           .select('id, email, full_name')
           .in('id', userIds)
-
-        // Combinar dados
-        const ticketsWithUsers = ticketsData.map((ticket: any) => ({
+        let toolsMapNext: Record<string, ToolFromDB> = {}
+        if (toolIds.length > 0) {
+          const { data: toolsData } = await (supabase as any)
+            .from('tools')
+            .select('id, name, slug, tutorial_video_url')
+            .in('id', toolIds)
+          if (toolsData) {
+            toolsData.forEach((t: ToolFromDB) => { toolsMapNext[t.id] = t })
+          }
+        }
+        setToolsMap(toolsMapNext)
+        const ticketsWithUsers: SupportTicket[] = ticketsData.map((ticket: any) => ({
           ...ticket,
           user: profilesData?.find((p: any) => p.id === ticket.user_id) || null
         }))
-
         setTickets(ticketsWithUsers)
-      } else {
-        setTickets([])
+        return ticketsWithUsers
       }
+      setTickets([])
+      return []
     } catch (error: any) {
       console.error('Erro ao carregar tickets:', error)
       toast.error('Erro ao carregar solicitações')
+      return []
     } finally {
       setLoading(false)
     }
   }
 
-  const loadToolAccess = async (userId: string) => {
+  const loadToolAccessForTicket = async (userId: string, toolId: string | null) => {
     try {
+      if (!toolId) {
+        const stillCurrent = loadingForRef.current && loadingForRef.current.userId === userId && loadingForRef.current.toolId === null
+        if (stillCurrent) {
+          setToolAccess([])
+          setAccessLink('')
+          setAccessPassword('')
+        }
+        return
+      }
       const { data, error } = await (supabase as any)
         .from('tool_access_credentials')
         .select('*')
         .eq('user_id', userId)
-        .in('tool_type', ['canva', 'capcut'])
+        .eq('tool_id', toolId)
 
       if (error) throw error
-      
-      setToolAccess(data || [])
-      
-      // Preencher campos com links existentes
-      const canvaAccess = data?.find((t: ToolAccess) => t.tool_type === 'canva')
-      const capcutAccess = data?.find((t: ToolAccess) => t.tool_type === 'capcut')
-      
-      setCanvaLink(canvaAccess?.access_link || '')
-      // Para CapCut, access_link contém o email/usuário e precisamos buscar a senha separadamente
-      setCapcutEmail(capcutAccess?.access_link || capcutAccess?.email || '')
-      setCapcutPassword(capcutAccess?.password || '')
-      
-      // Não precisamos mais carregar vídeos individuais, pois usaremos URLs fixas
+      const list = data || []
+      const existing = list[0]
+      const stillCurrent = loadingForRef.current?.userId === userId && loadingForRef.current?.toolId === toolId
+      if (stillCurrent) {
+        setToolAccess(list)
+        if (existing) {
+          setAccessLink(existing.access_link || '')
+          setAccessPassword(existing.password || '')
+        } else {
+          setAccessLink('')
+          setAccessPassword('')
+        }
+      }
     } catch (error: any) {
       console.error('Erro ao carregar acessos:', error)
+      const stillCurrent = loadingForRef.current?.userId === userId && loadingForRef.current?.toolId === toolId
+      if (stillCurrent) {
+        setToolAccess([])
+        setAccessLink('')
+        setAccessPassword('')
+      }
     }
   }
 
 
   const saveLinks = async () => {
     if (!selectedTicket) return
+    if (!selectedTicket.tool_id) {
+      toast.error('Esta solicitação é antiga e não está vinculada a uma ferramenta. Peça ao cliente para solicitar novamente pela página de ferramentas.')
+      return
+    }
+    const tool = toolsMap[selectedTicket.tool_id]
+    if (!tool) {
+      toast.error('Ferramenta não encontrada. Recarregue a página.')
+      return
+    }
+    if (!accessLink.trim()) {
+      toast.error('Preencha o link ou credencial de acesso.')
+      return
+    }
 
     setSaving(true)
     try {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error('Usuário não autenticado')
 
-      // Verificar se já passaram 8 dias desde o início da assinatura (oitavo dia)
-      // Considera tanto assinaturas Stripe quanto manuais
       const { data: subscriptionData } = await (supabase as any)
         .from('subscriptions')
-        .select('current_period_start, created_at, stripe_subscription_id')
+        .select('current_period_start, created_at')
         .eq('user_id', selectedTicket.user_id)
         .eq('status', 'active')
         .order('created_at', { ascending: false })
@@ -334,276 +296,67 @@ export default function SolicitacoesPage() {
         .maybeSingle()
 
       if (subscriptionData) {
-        // Para assinaturas Stripe, usar current_period_start
-        // Para assinaturas manuais (sem stripe_subscription_id), usar current_period_start ou created_at
-        const subscriptionStartDate = subscriptionData.current_period_start 
+        const subscriptionStartDate = subscriptionData.current_period_start
           ? new Date(subscriptionData.current_period_start)
-          : subscriptionData.created_at 
-            ? new Date(subscriptionData.created_at)
-            : null
-
+          : subscriptionData.created_at ? new Date(subscriptionData.created_at) : null
         if (subscriptionStartDate) {
           const now = new Date()
           const daysSinceStart = Math.floor((now.getTime() - subscriptionStartDate.getTime()) / (1000 * 60 * 60 * 24))
-          
           if (daysSinceStart < 8) {
             const daysRemaining = 8 - daysSinceStart
-            toast.error(
-              `Não é possível liberar o acesso ainda. O cliente precisa aguardar ${daysRemaining} dia${daysRemaining > 1 ? 's' : ''} para completar o período de arrependimento de 7 dias conforme o CDC. O acesso será liberado no oitavo dia.`
-            )
+            toast.error(`Não é possível liberar o acesso ainda. O cliente precisa aguardar ${daysRemaining} dia${daysRemaining > 1 ? 's' : ''} para completar o período de arrependimento (CDC).`)
             setSaving(false)
             return
           }
         }
       }
 
-      // Buscar URLs fixas de vídeos de tutorial do site_settings
-      const { data: settingsData } = await (supabase as any)
-        .from('site_settings')
-        .select('value')
-        .eq('key', 'general')
-        .maybeSingle()
-      
-      const defaultVideos = settingsData?.value?.tool_tutorial_videos || {}
-      const canvaVideoUrl = defaultVideos.canva || null
-      const capcutVideoUrl = defaultVideos.capcut || null
-      
-      // Validar URLs do YouTube se existirem
-      if (canvaVideoUrl && !getYouTubeId(canvaVideoUrl)) {
-        toast.error('URL do vídeo tutorial do Canva (fixa) deve ser do YouTube')
-        setSaving(false)
-        return
+      const nowIso = new Date().toISOString()
+      const existing = toolAccess[0]
+      const payload: any = {
+        user_id: selectedTicket.user_id,
+        tool_id: selectedTicket.tool_id,
+        tool_type: tool.slug,
+        email: selectedTicket.user?.email || 'noreply@example.com',
+        access_link: accessLink.trim(),
+        tutorial_video_url: tool.tutorial_video_url || null,
+        access_granted_at: nowIso,
+        is_active: true,
+        error_reported: false,
+        error_message: null,
+      }
+      if (accessPassword.trim()) payload.password = accessPassword.trim()
+
+      if (existing) {
+        const { error } = await (supabase as any)
+          .from('tool_access_credentials')
+          .update({
+            ...payload,
+            updated_at: nowIso,
+          })
+          .eq('id', existing.id)
+        if (error) throw error
+      } else {
+        const { error } = await (supabase as any)
+          .from('tool_access_credentials')
+          .insert(payload)
+        if (error) throw error
       }
 
-      if (capcutVideoUrl && !getYouTubeId(capcutVideoUrl)) {
-        toast.error('URL do vídeo tutorial do CapCut (fixa) deve ser do YouTube')
-        setSaving(false)
-        return
-      }
-
-      // Salvar/atualizar link do Canva
-      if (canvaLink.trim()) {
-        const canvaAccess = toolAccess.find(t => t.tool_type === 'canva')
-        
-        if (canvaAccess) {
-          // Atualizar existente
-          // Se havia um erro reportado, resetar ao atualizar
-          const updateData: any = {
-            access_link: canvaLink.trim(),
-            email: selectedTicket.user?.email || 'noreply@example.com',
-            tutorial_video_url: canvaVideoUrl,
-            updated_at: new Date().toISOString()
-          }
-          
-          // Se havia erro reportado, resetar
-          if (canvaAccess.error_reported) {
-            updateData.error_reported = false
-            updateData.error_message = null
-          }
-          
-          const { data, error } = await (supabase as any)
-            .from('tool_access_credentials')
-            .update(updateData)
-            .eq('id', canvaAccess.id)
-            .select()
-
-          if (error) {
-            console.error('Erro ao atualizar link do Canva:', error)
-            throw new Error(`Erro ao atualizar link do Canva: ${error.message || 'Erro desconhecido'}`)
-          }
-          
-          if (!data || data.length === 0) {
-            throw new Error('Erro ao atualizar link do Canva: nenhuma linha foi atualizada. Verifique as políticas RLS.')
-          }
-        } else {
-          // Criar novo
-          const { data, error } = await (supabase as any)
-            .from('tool_access_credentials')
-            .insert({
-              user_id: selectedTicket.user_id,
-              tool_type: 'canva',
-              email: selectedTicket.user?.email || 'noreply@example.com',
-              access_link: canvaLink.trim(),
-              tutorial_video_url: canvaVideoUrl, // Vídeo específico do Canva
-              is_active: true
-            })
-            .select()
-
-          if (error) {
-            console.error('Erro ao criar link do Canva:', error)
-            throw new Error(`Erro ao criar link do Canva: ${error.message || 'Erro desconhecido'}`)
-          }
-          
-          if (!data || data.length === 0) {
-            throw new Error('Erro ao criar link do Canva: nenhuma linha foi inserida. Verifique as políticas RLS.')
-          }
-        }
-      }
-
-      // Salvar/atualizar credenciais do CapCut
-      if (capcutEmail.trim()) {
-        const capcutAccess = toolAccess.find(t => t.tool_type === 'capcut')
-        
-        // Preparar objeto de atualização/inserção
-        const capcutData: any = {
-          access_link: capcutEmail.trim(), // Armazena email/usuário no access_link
-          email: selectedTicket.user?.email || 'noreply@example.com',
-          tutorial_video_url: capcutVideoUrl, // Vídeo específico do CapCut
-          updated_at: new Date().toISOString()
-        }
-        
-        // Se havia erro reportado, resetar ao atualizar
-        if (capcutAccess?.error_reported) {
-          capcutData.error_reported = false
-          capcutData.error_message = null
-        }
-        
-        // Adicionar password apenas se a coluna existir (pode não existir se o SQL não foi executado)
-        // Tentar adicionar password, mas não falhar se a coluna não existir
-        if (capcutPassword.trim()) {
-          capcutData.password = capcutPassword.trim()
-        }
-        
-        if (capcutAccess) {
-          // Atualizar existente
-          const { data, error } = await (supabase as any)
-            .from('tool_access_credentials')
-            .update(capcutData)
-            .eq('id', capcutAccess.id)
-            .select()
-
-          if (error) {
-            console.error('Erro ao atualizar credenciais do CapCut:', error)
-            // Se o erro for sobre coluna não encontrada, tentar sem password
-            if (error.message?.includes('password') || error.message?.includes('column')) {
-              delete capcutData.password
-              const { data: retryData, error: retryError } = await (supabase as any)
-                .from('tool_access_credentials')
-                .update(capcutData)
-                .eq('id', capcutAccess.id)
-                .select()
-              
-              if (retryError) {
-                throw new Error(`Erro ao atualizar credenciais do CapCut: ${retryError.message || 'Erro desconhecido'}`)
-              }
-              
-              if (!retryData || retryData.length === 0) {
-                throw new Error('Erro ao atualizar credenciais do CapCut: nenhuma linha foi atualizada. Verifique as políticas RLS.')
-              }
-            } else {
-              throw new Error(`Erro ao atualizar credenciais do CapCut: ${error.message || 'Erro desconhecido'}`)
-            }
-          } else {
-            if (!data || data.length === 0) {
-              throw new Error('Erro ao atualizar credenciais do CapCut: nenhuma linha foi atualizada. Verifique as políticas RLS.')
-            }
-          }
-        } else {
-          // Criar novo
-          const insertData: any = {
-            user_id: selectedTicket.user_id,
-            tool_type: 'capcut',
-            email: selectedTicket.user?.email || 'noreply@example.com',
-            access_link: capcutEmail.trim(),
-            tutorial_video_url: capcutVideoUrl, // Vídeo específico do CapCut
-            is_active: true
-          }
-          
-          // Adicionar password apenas se fornecido
-          if (capcutPassword.trim()) {
-            insertData.password = capcutPassword.trim()
-          }
-          
-          const { data, error } = await (supabase as any)
-            .from('tool_access_credentials')
-            .insert(insertData)
-            .select()
-
-          if (error) {
-            console.error('Erro ao criar credenciais do CapCut:', error)
-            // Se o erro for sobre coluna não encontrada, tentar sem password
-            if (error.message?.includes('password') || error.message?.includes('column')) {
-              delete insertData.password
-              const { data: retryData, error: retryError } = await (supabase as any)
-                .from('tool_access_credentials')
-                .insert(insertData)
-                .select()
-              
-              if (retryError) {
-                throw new Error(`Erro ao criar credenciais do CapCut: ${retryError.message || 'Erro desconhecido'}`)
-              }
-              
-              if (!retryData || retryData.length === 0) {
-                throw new Error('Erro ao criar credenciais do CapCut: nenhuma linha foi inserida. Verifique as políticas RLS.')
-              }
-            } else {
-              throw new Error(`Erro ao criar credenciais do CapCut: ${error.message || 'Erro desconhecido'}`)
-            }
-          } else {
-            if (!data || data.length === 0) {
-              throw new Error('Erro ao criar credenciais do CapCut: nenhuma linha foi inserida. Verifique as políticas RLS.')
-            }
-          }
-        }
-      }
-
-      // Limpar erros reportados quando novos links são salvos
-      if (canvaLink.trim()) {
-        const canvaAccess = toolAccess.find(t => t.tool_type === 'canva')
-        if (canvaAccess && canvaAccess.error_reported) {
-          await (supabase as any)
-            .from('tool_access_credentials')
-            .update({
-              error_reported: false,
-              error_message: null,
-              updated_at: new Date().toISOString()
-            })
-            .eq('id', canvaAccess.id)
-        }
-      }
-
-      if (capcutEmail.trim()) {
-        const capcutAccess = toolAccess.find(t => t.tool_type === 'capcut')
-        if (capcutAccess && capcutAccess.error_reported) {
-          await (supabase as any)
-            .from('tool_access_credentials')
-            .update({
-              error_reported: false,
-              error_message: null,
-              updated_at: new Date().toISOString()
-            })
-            .eq('id', capcutAccess.id)
-        }
-      }
-
-      // Atualizar status do ticket para "resolved" se ambos os links foram enviados
-      // Não atualizar status aqui se o usuário já mudou manualmente
-      // O status será atualizado apenas se ainda estiver como "open"
       if (selectedTicket.status === 'open') {
-        if (canvaLink.trim() && capcutEmail.trim()) {
-          await updateTicketStatus(selectedTicket.id, 'resolved')
-        } else if (canvaLink.trim() || capcutEmail.trim()) {
-          await updateTicketStatus(selectedTicket.id, 'in_progress')
-        }
+        await updateTicketStatus(selectedTicket.id, 'resolved')
       }
 
-      toast.success('Links salvos com sucesso! O cliente já pode ver os links na página de ferramentas.')
-      await loadToolAccess(selectedTicket.user_id)
-      
-      // Recarregar tickets para garantir que tudo está sincronizado, mas preservar o ticket selecionado
+      toast.success('Acesso salvo com sucesso! O cliente já pode ver o link/credenciais na página de ferramentas.')
+      loadingForRef.current = { userId: selectedTicket.user_id, toolId: selectedTicket.tool_id ?? null }
+      await loadToolAccessForTicket(selectedTicket.user_id, selectedTicket.tool_id ?? null)
       const currentSelectedId = selectedTicket.id
-      await loadTickets()
-      
-      // Restaurar o ticket selecionado após recarregar
-      setTimeout(() => {
-        const reloadedTicket = tickets.find(t => t.id === currentSelectedId)
-        if (reloadedTicket) {
-          setSelectedTicket(reloadedTicket)
-        }
-      }, 100)
+      const updatedList = await loadTickets()
+      const reloaded = updatedList.find(t => t.id === currentSelectedId)
+      if (reloaded) setSelectedTicket(reloaded)
     } catch (error: any) {
-      console.error('Erro ao salvar links:', error)
-      toast.error('Erro ao salvar links')
+      console.error('Erro ao salvar:', error)
+      toast.error(error?.message || 'Erro ao salvar links')
     } finally {
       setSaving(false)
     }
@@ -741,103 +494,25 @@ export default function SolicitacoesPage() {
             Solicitações de Ferramentas
           </h1>
           <p className="text-gray-600">
-            Gerencie solicitações de acesso ao Canva Pro e CapCut Pro
+            Gerencie solicitações de acesso às ferramentas. Cada ticket é da ferramenta que o cliente solicitou.
           </p>
         </div>
 
-        {/* Seção de URLs Fixas de Vídeos de Tutorial */}
-        <div className="mb-6 bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between mb-4">
+        {/* Nota: vídeos de tutorial configurados em Gerenciar Ferramentas */}
+        <div className="mb-6 bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+          <div className="flex items-start gap-3">
+            <Video className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
             <div>
-              <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                <Video className="w-5 h-5" />
-                URLs Fixas de Vídeos de Tutorial
-              </h2>
-              <p className="text-sm text-gray-500 mt-1">
-                Configure URLs padrão de vídeos de tutorial que serão usadas para todos os clientes. Se um cliente tiver um vídeo específico, ele terá prioridade.
+              <p className="text-sm text-gray-700">
+                Os vídeos de tutorial são configurados em <strong>Gerenciar Ferramentas</strong> para cada ferramenta. Ao salvar o acesso aqui, o link do tutorial da ferramenta será usado automaticamente para o cliente.
               </p>
-            </div>
-            <button
-              onClick={saveDefaultVideoUrls}
-              disabled={savingDefaults}
-              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-            >
-              <Save className="w-4 h-4" />
-              {savingDefaults ? 'Salvando...' : 'Salvar URLs Fixas'}
-            </button>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Canva */}
-            <div className="space-y-3">
-              <label className="block text-sm font-medium text-gray-700">
-                <div className="flex items-center gap-2">
-                  <Video className="w-4 h-4" />
-                  URL do Vídeo Tutorial - Canva Pro
-                </div>
-              </label>
-              <input
-                type="url"
-                value={defaultCanvaVideoUrl}
-                onChange={(e) => setDefaultCanvaVideoUrl(e.target.value)}
-                placeholder="https://youtube.com/watch?v=..."
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              {defaultCanvaVideoUrl && getYouTubeId(defaultCanvaVideoUrl) && (
-                <div className="mt-2">
-                  <div className="relative max-w-[200px] mx-auto">
-                    <div className="bg-gradient-to-br from-gogh-yellow/10 to-gogh-yellow/5 p-1 rounded-xl">
-                      <div className="bg-black rounded-lg overflow-hidden">
-                        <div className="relative aspect-[9/16] bg-black">
-                          <iframe
-                            src={`https://www.youtube.com/embed/${getYouTubeId(defaultCanvaVideoUrl)}`}
-                            title="Preview Canva"
-                            className="w-full h-full rounded-lg"
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                            allowFullScreen
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-            
-            {/* CapCut */}
-            <div className="space-y-3">
-              <label className="block text-sm font-medium text-gray-700">
-                <div className="flex items-center gap-2">
-                  <Video className="w-4 h-4" />
-                  URL do Vídeo Tutorial - CapCut Pro
-                </div>
-              </label>
-              <input
-                type="url"
-                value={defaultCapcutVideoUrl}
-                onChange={(e) => setDefaultCapcutVideoUrl(e.target.value)}
-                placeholder="https://youtube.com/watch?v=..."
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              {defaultCapcutVideoUrl && getYouTubeId(defaultCapcutVideoUrl) && (
-                <div className="mt-2">
-                  <div className="relative max-w-[200px] mx-auto">
-                    <div className="bg-gradient-to-br from-gogh-yellow/10 to-gogh-yellow/5 p-1 rounded-xl">
-                      <div className="bg-black rounded-lg overflow-hidden">
-                        <div className="relative aspect-[9/16] bg-black">
-                          <iframe
-                            src={`https://www.youtube.com/embed/${getYouTubeId(defaultCapcutVideoUrl)}`}
-                            title="Preview CapCut"
-                            className="w-full h-full rounded-lg"
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                            allowFullScreen
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
+              <Link
+                href="/dashboard/ferramentas"
+                className="inline-flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-800 mt-2"
+              >
+                Ir para Gerenciar Ferramentas
+                <ExternalLink className="w-4 h-4" />
+              </Link>
             </div>
           </div>
         </div>
@@ -903,6 +578,9 @@ export default function SolicitacoesPage() {
                       </div>
                       {getStatusBadge(ticket.status)}
                     </div>
+                    <p className="text-xs text-gray-500 mb-1">
+                      {ticket.tool_id && toolsMap[ticket.tool_id] ? toolsMap[ticket.tool_id].name : 'Ferramenta'}
+                    </p>
                     <p className="text-sm text-gray-600 line-clamp-2">
                       {ticket.subject}
                     </p>
@@ -997,133 +675,92 @@ export default function SolicitacoesPage() {
                     </div>
                   )}
 
-                  {/* Alertas de Erro Reportado */}
-                  {toolAccess.some(t => t.tool_type === 'canva' && t.error_reported) && (
+                  {/* Ticket sem tool_id (solicitação antiga) */}
+                  {selectedTicket.tool_id && !toolsMap[selectedTicket.tool_id] && (
                     <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-                      <div className="flex items-start gap-3">
-                        <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-                        <div className="flex-1">
-                          <h4 className="font-medium text-amber-800 mb-1">
-                            Erro Reportado - Canva Pro
-                          </h4>
-                          <p className="text-sm text-amber-700 mb-2">
-                            {toolAccess.find(t => t.tool_type === 'canva' && t.error_reported)?.error_message || 'Cliente reportou problema com o link'}
-                          </p>
-                          <p className="text-xs text-amber-600">
-                            Atualize o link abaixo para resolver o problema.
-                          </p>
-                        </div>
-                      </div>
+                      <p className="text-sm text-amber-800">Ferramenta não encontrada. Recarregue a página.</p>
                     </div>
                   )}
 
-                  {toolAccess.some(t => t.tool_type === 'capcut' && t.error_reported) && (
-                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-                      <div className="flex items-start gap-3">
-                        <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-                        <div className="flex-1">
-                          <h4 className="font-medium text-amber-800 mb-1">
-                            Erro Reportado - CapCut Pro
-                          </h4>
-                          <p className="text-sm text-amber-700 mb-2">
-                            {toolAccess.find(t => t.tool_type === 'capcut' && t.error_reported)?.error_message || 'Cliente reportou problema com o link'}
-                          </p>
-                          <p className="text-xs text-amber-600">
-                            Atualize o link abaixo para resolver o problema.
-                          </p>
+                  {selectedTicket.tool_id && toolsMap[selectedTicket.tool_id] && (
+                    <>
+                      {/* Alerta de Erro Reportado (desta ferramenta) */}
+                      {toolAccess.some(t => t.error_reported) && (
+                        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                          <div className="flex items-start gap-3">
+                            <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                            <div className="flex-1">
+                              <h4 className="font-medium text-amber-800 mb-1">
+                                Erro Reportado - {toolsMap[selectedTicket.tool_id].name}
+                              </h4>
+                              <p className="text-sm text-amber-700 mb-2">
+                                {toolAccess.find(t => t.error_reported)?.error_message || 'Cliente reportou problema com o link/credenciais'}
+                              </p>
+                              <p className="text-xs text-amber-600">Atualize os campos abaixo para resolver.</p>
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    </div>
-                  )}
+                      )}
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      <div className="flex items-center gap-2">
-                        <LinkIcon className="w-4 h-4" />
-                        Link de Ativação do Canva Pro
-                      </div>
-                    </label>
-                    <input
-                      type="url"
-                      value={canvaLink}
-                      onChange={(e) => setCanvaLink(e.target.value)}
-                      placeholder="https://..."
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                    <p className="text-xs text-gray-500 mt-1">
-                      Cole aqui o link de ativação do Canva Pro para este cliente
-                    </p>
-                  </div>
-
-                  <div className="space-y-3">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      <div className="flex items-center gap-2">
-                        <LinkIcon className="w-4 h-4" />
-                        Credenciais de Login do CapCut Pro
-                      </div>
-                    </label>
-                    <div>
-                      <label className="block text-xs font-medium text-gray-600 mb-1">
-                        Email / Usuário:
-                      </label>
-                      <input
-                        type="text"
-                        value={capcutEmail}
-                        onChange={(e) => setCapcutEmail(e.target.value)}
-                        placeholder="Email ou usuário para login no CapCut"
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium text-gray-600 mb-1">
-                        Senha:
-                      </label>
-                      <input
-                        type="text"
-                        value={capcutPassword}
-                        onChange={(e) => setCapcutPassword(e.target.value)}
-                        placeholder="Senha de acesso ao CapCut"
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
-                    <p className="text-xs text-gray-500">
-                      Cole aqui as credenciais de login do CapCut Pro para este cliente. Você pode copiar cada campo separadamente.
-                    </p>
-                  </div>
-
-                  {/* Nota sobre vídeos de tutorial */}
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <div className="flex items-start gap-3">
-                      <Video className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                      {/* Formulário: link/credenciais para esta ferramenta */}
                       <div>
-                        <h4 className="font-medium text-blue-900 mb-1">Vídeos de Tutorial</h4>
-                        <p className="text-sm text-blue-700">
-                          Os vídeos de tutorial serão automaticamente adicionados usando as URLs fixas configuradas no topo da página. 
-                          Se você configurou URLs fixas para Canva e CapCut, elas serão usadas automaticamente para todos os clientes.
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          <div className="flex items-center gap-2">
+                            <LinkIcon className="w-4 h-4" />
+                            Link ou Email/Usuário - {toolsMap[selectedTicket.tool_id].name}
+                          </div>
+                        </label>
+                        <input
+                          type="text"
+                          value={accessLink}
+                          onChange={(e) => setAccessLink(e.target.value)}
+                          placeholder="https://... ou email/usuário para login"
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                          Cole o link de ativação ou o email/usuário de login para este cliente
                         </p>
                       </div>
-                    </div>
-                  </div>
-
-                  {/* Status dos Links */}
-                  {toolAccess.length > 0 && (
-                    <div className="bg-gray-50 rounded-lg p-4 space-y-2">
-                      <p className="text-sm font-medium text-gray-700 mb-2">Status dos Links Enviados:</p>
-                      {toolAccess.map((access) => (
-                        <div key={access.id} className="flex items-center justify-between text-sm">
-                          <span className="text-gray-600">
-                            {access.tool_type === 'canva' ? 'Canva Pro' : 'CapCut Pro'}:
-                          </span>
-                          {access.access_link ? (
-                            <span className="inline-flex items-center gap-1 text-emerald-600">
-                              <CheckCircle2 className="w-4 h-4" />
-                              Link enviado
-                            </span>
-                          ) : (
-                            <span className="text-gray-400">Aguardando link</span>
-                          )}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Senha (opcional)</label>
+                        <input
+                          type="text"
+                          value={accessPassword}
+                          onChange={(e) => setAccessPassword(e.target.value)}
+                          placeholder="Senha de acesso, se aplicável"
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                      {toolsMap[selectedTicket.tool_id].tutorial_video_url && (
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                          <p className="text-sm text-blue-800">
+                            <Video className="w-4 h-4 inline mr-1" />
+                            Vídeo tutorial desta ferramenta será enviado automaticamente ao cliente (configurado em Gerenciar Ferramentas).
+                          </p>
                         </div>
-                      ))}
+                      )}
+
+                      {/* Status */}
+                      {toolAccess.length > 0 && toolAccess[0].access_link && (
+                        <div className="bg-gray-50 rounded-lg p-4 flex items-center justify-between text-sm">
+                          <span className="text-gray-600">{toolsMap[selectedTicket.tool_id].name}:</span>
+                          <span className="inline-flex items-center gap-1 text-emerald-600">
+                            <CheckCircle2 className="w-4 h-4" />
+                            Link/credenciais enviados
+                          </span>
+                        </div>
+                      )}
+                    </>
+                  )}
+
+                  {!selectedTicket.tool_id && (
+                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                      <p className="text-sm text-amber-800">
+                        Esta solicitação é antiga e não está vinculada a uma ferramenta. Peça ao cliente para solicitar novamente pela página de ferramentas.
+                      </p>
+                      <Link href="/dashboard/ferramentas" className="text-sm font-medium text-blue-600 hover:underline mt-2 inline-block">
+                        Gerenciar Ferramentas
+                      </Link>
                     </div>
                   )}
                 </div>
@@ -1132,7 +769,7 @@ export default function SolicitacoesPage() {
                 <div className="p-4 border-t border-gray-200">
                   <button
                     onClick={saveLinks}
-                    disabled={saving || (!canvaLink.trim() && !capcutEmail.trim())}
+                    disabled={saving || !selectedTicket.tool_id || !toolsMap[selectedTicket.tool_id] || !accessLink.trim()}
                     className="w-full px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
                     {saving ? (
