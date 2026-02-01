@@ -611,6 +611,14 @@ export default function HomepageEditorPage() {
             testimonialsItems = prev.testimonials_items
           }
           
+          // Garantir que team_members seja sempre um array
+          let teamMembers: any[] = []
+          if (Array.isArray(content.team_members)) {
+            teamMembers = content.team_members
+          } else if (Array.isArray(prev.team_members) && prev.team_members.length > 0) {
+            teamMembers = prev.team_members
+          }
+          
           // Sincronizar hero_logo com site_logo (priorizar site_logo se existir)
           // Isso garante que a logo global do site seja usada no editor
           const heroLogo = rawData.site_logo || content.hero_logo || null
