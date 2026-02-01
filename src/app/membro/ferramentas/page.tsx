@@ -186,18 +186,18 @@ export default function ToolsPage() {
     return () => document.removeEventListener('visibilitychange', onVisibilityChange)
   }, [user])
 
-  // Verificar se o acesso foi concedido no perÃ­odo atual ou anterior
+  // Verificar se o acesso foi concedido no período atual ou anterior
   const isAccessFromCurrentPeriod = (access: ToolAccess): boolean => {
     if (!subscription?.current_period_start || !access.access_granted_at) return false
     
     const periodStart = new Date(subscription.current_period_start)
     const accessGranted = new Date(access.access_granted_at)
     
-    // Se o acesso foi concedido apÃ³s o inÃ­cio do perÃ­odo atual, Ã© do perÃ­odo atual
+    // Se o acesso foi concedido após o início do período atual, é do período atual
     return accessGranted >= periodStart
   }
 
-  // Verificar se jÃ¡ tem acesso do perÃ­odo atual ou ticket pendente
+  // Verificar se já tem acesso do período atual ou ticket pendente
   const hasCanvaAccessCurrentPeriod = toolAccess.some(t => 
     t.tool_type === 'canva' && t.is_active && isAccessFromCurrentPeriod(t)
   )
@@ -206,7 +206,7 @@ export default function ToolsPage() {
   )
   const hasBothAccessCurrentPeriod = hasCanvaAccessCurrentPeriod && hasCapcutAccessCurrentPeriod
   
-  // Verificar se tem acesso de perÃ­odo anterior (para mostrar que pode solicitar novamente)
+  // Verificar se tem acesso de período anterior (para mostrar que pode solicitar novamente)
   const hasCanvaAccessOldPeriod = toolAccess.some(t => 
     t.tool_type === 'canva' && t.is_active && !isAccessFromCurrentPeriod(t)
   )
@@ -217,37 +217,37 @@ export default function ToolsPage() {
   
   const hasPendingRequest = pendingTickets.length > 0
 
-  // Verificar se jÃ¡ passaram 8 dias desde o inÃ­cio da assinatura (oitavo dia)
-  // Funciona tanto para novos clientes quanto para renovaÃ§Ãµes
+  // Verificar se já passaram 8 dias desde o início da assinatura (oitavo dia)
+  // Funciona tanto para novos clientes quanto para renovações
   const canRequestTools = () => {
     if (!subscription) return false
     
-    // Buscar a data de inÃ­cio da assinatura
-    // Prioridade: current_period_start (perÃ­odo atual) > created_at (data de criaÃ§Ã£o)
+    // Buscar a data de início da assinatura
+    // Prioridade: current_period_start (período atual) > created_at (data de criação)
     let subscriptionStartDate: Date | null = null
     
     if (subscription.current_period_start) {
       subscriptionStartDate = new Date(subscription.current_period_start)
     } else if ((subscription as any).created_at) {
-      // Fallback para created_at se current_period_start nÃ£o existir
+      // Fallback para created_at se current_period_start não existir
       subscriptionStartDate = new Date((subscription as any).created_at)
     }
     
     if (!subscriptionStartDate) {
-      // Se nÃ£o tem nenhuma data, retornar false
+      // Se não tem nenhuma data, retornar false
       return false
     }
     
     const now = new Date()
     const daysSinceStart = Math.floor((now.getTime() - subscriptionStartDate.getTime()) / (1000 * 60 * 60 * 24))
     
-    // Oitavo dia = jÃ¡ passou o perÃ­odo de arrependimento de 7 dias
-    // Funciona para novos clientes (primeira compra) e renovaÃ§Ãµes
+    // Oitavo dia = já passou o período de arrependimento de 7 dias
+    // Funciona para novos clientes (primeira compra) e renovações
     return daysSinceStart >= 8
   }
 
-  // Calcular dias restantes atÃ© poder solicitar
-  // Funciona tanto para novos clientes quanto para renovaÃ§Ãµes
+  // Calcular dias restantes até poder solicitar
+  // Funciona tanto para novos clientes quanto para renovações
   const daysUntilCanRequest = (): number | null => {
     if (!subscription) return null
     
@@ -265,7 +265,7 @@ export default function ToolsPage() {
     return daysRemaining > 0 ? daysRemaining : 0
   }
 
-  // Texto do countdown: dias e, quando no Ãºltimo dia, "X dia(s) e Y hora(s)" ou sÃ³ horas/min
+  // Texto do countdown: dias e, quando no último dia, "X dia(s) e Y hora(s)" ou só horas/min
   const countdownLabel = (): string | null => {
     if (!subscription) return null
     let subscriptionStartDate: Date | null = null
@@ -306,8 +306,8 @@ export default function ToolsPage() {
       const daysRemaining = daysUntilCanRequest()
       toast.error(
         daysRemaining
-          ? `VocÃª poderÃ¡ solicitar acesso em ${daysRemaining} dia${daysRemaining > 1 ? 's' : ''}.`
-          : 'NÃ£o foi possÃ­vel verificar o perÃ­odo da sua assinatura.'
+          ? `Você poderá solicitar acesso em ${daysRemaining} dia${daysRemaining > 1 ? 's' : ''}.`
+          : 'Não foi possível verificar o período da sua assinatura.'
       )
       return
     }
@@ -318,7 +318,7 @@ export default function ToolsPage() {
         .insert({
           user_id: user.id,
           ticket_type: 'tools_access',
-          subject: `SolicitaÃ§Ã£o de acesso: ${tool.name}`,
+          subject: `Solicitação de acesso: ${tool.name}`,
           status: 'open',
           priority: 'normal',
           tool_id: tool.id,
@@ -331,9 +331,9 @@ export default function ToolsPage() {
         .insert({
           ticket_id: ticketData.id,
           sender_id: user.id,
-          content: `Solicito acesso Ã  ferramenta ${tool.name}.`,
+          content: `Solicito acesso à ferramenta ${tool.name}.`,
         })
-      toast.success('SolicitaÃ§Ã£o enviada!')
+      toast.success('Solicitação enviada!')
       const { data: ticketsData } = await (supabase as any)
         .from('support_tickets')
         .select('*')
@@ -343,7 +343,7 @@ export default function ToolsPage() {
       setPendingTickets(ticketsData || [])
     } catch (error) {
       console.error(error)
-      toast.error('Erro ao enviar solicitaÃ§Ã£o.')
+      toast.error('Erro ao enviar solicitação.')
     } finally {
       setSubmitting(false)
     }
@@ -353,13 +353,13 @@ export default function ToolsPage() {
   const requestToolsAccess = async () => {
     if (!user) return
     
-    // Verificar se jÃ¡ passaram 8 dias (oitavo dia)
+    // Verificar se já passaram 8 dias (oitavo dia)
     if (!canRequestTools()) {
       const daysRemaining = daysUntilCanRequest()
       toast.error(
         daysRemaining 
-          ? `VocÃª poderÃ¡ solicitar acesso Ã s ferramentas em ${daysRemaining} dia${daysRemaining > 1 ? 's' : ''}.`
-          : 'NÃ£o foi possÃ­vel verificar o perÃ­odo de sua assinatura. Entre em contato com o suporte.'
+          ? `Você poderá solicitar acesso às ferramentas em ${daysRemaining} dia${daysRemaining > 1 ? 's' : ''}.`
+          : 'Não foi possível verificar o período de sua assinatura. Entre em contato com o suporte.'
       )
       return
     }
@@ -367,16 +367,16 @@ export default function ToolsPage() {
     setSubmitting(true)
 
     try {
-      // Determinar se Ã© renovaÃ§Ã£o ou primeira solicitaÃ§Ã£o
+      // Determinar se é renovação ou primeira solicitação
       const isRenewal = hasAccessFromOldPeriod
       const subject = isRenewal 
-        ? 'SolicitaÃ§Ã£o de acesso Ã s ferramentas Pro apÃ³s renovaÃ§Ã£o (Canva e CapCut)'
-        : 'SolicitaÃ§Ã£o de acesso Ã s ferramentas Pro (Canva e CapCut)'
+        ? 'Solicitação de acesso às ferramentas Pro após renovação (Canva e CapCut)'
+        : 'Solicitação de acesso às ferramentas Pro (Canva e CapCut)'
       const messageContent = isRenewal
-        ? 'OlÃ¡! Minha assinatura foi renovada e gostaria de solicitar um novo acesso Ã s ferramentas Canva Pro e CapCut Pro para este novo perÃ­odo. Aguardo instruÃ§Ãµes para receber as credenciais.'
-        : 'OlÃ¡! Gostaria de solicitar acesso Ã s ferramentas Canva Pro e CapCut Pro. Aguardo instruÃ§Ãµes para receber as credenciais.'
+        ? 'Olá! Minha assinatura foi renovada e gostaria de solicitar um novo acesso às ferramentas Canva Pro e CapCut Pro para este novo período. Aguardo instruções para receber as credenciais.'
+        : 'Olá! Gostaria de solicitar acesso às ferramentas Canva Pro e CapCut Pro. Aguardo instruções para receber as credenciais.'
 
-      // Criar ticket Ãºnico para ambas as ferramentas
+      // Criar ticket único para ambas as ferramentas
       const { data: ticketData, error: ticketError } = await (supabase as any)
         .from('support_tickets')
         .insert({
@@ -405,11 +405,11 @@ export default function ToolsPage() {
       // Disparar evento Lead do Meta Pixel
       if (typeof window !== 'undefined' && (window as any).fbq) {
         (window as any).fbq('track', 'Lead', {
-          content_name: 'SolicitaÃ§Ã£o de Acesso Ã s Ferramentas Pro'
+          content_name: 'Solicitação de Acesso às Ferramentas Pro'
         })
       }
 
-      toast.success('SolicitaÃ§Ã£o enviada! VocÃª receberÃ¡ o acesso em atÃ© 24 horas apÃ³s a aprovaÃ§Ã£o.')
+      toast.success('Solicitação enviada! Você receberá o acesso em até 24 horas após a aprovação.')
       
       // Atualizar lista de tickets pendentes
       const { data: ticketsData } = await (supabase as any)
@@ -422,7 +422,7 @@ export default function ToolsPage() {
       setPendingTickets(ticketsData || [])
     } catch (error) {
       console.error('Error requesting tools access:', error)
-      toast.error('Erro ao enviar solicitaÃ§Ã£o. Tente novamente.')
+      toast.error('Erro ao enviar solicitação. Tente novamente.')
     } finally {
       setSubmitting(false)
     }
@@ -441,7 +441,7 @@ export default function ToolsPage() {
     try {
       const toolAccessData = toolAccess.find(t => t.tool_type === reportingError || t.tool_id === reportingError)
       if (!toolAccessData) {
-        toast.error('Acesso nÃ£o encontrado')
+        toast.error('Acesso não encontrado')
         return
       }
 
@@ -458,7 +458,7 @@ export default function ToolsPage() {
       if (updateError) throw updateError
 
       // Buscar ou criar ticket para este reporte
-      // Primeiro, verificar se existe ticket aberto para este usuÃ¡rio e tipo
+      // Primeiro, verificar se existe ticket aberto para este usuário e tipo
       const toolName = reportingErrorToolName || (reportingError === 'canva' ? 'Canva Pro' : reportingError === 'capcut' ? 'CapCut Pro' : reportingError)
 
       const { data: existingTickets } = await (supabase as any)
@@ -546,14 +546,14 @@ export default function ToolsPage() {
     {
       id: 'canva',
       name: 'Canva Pro',
-      description: 'Crie designs profissionais com templates premium, elementos exclusivos e recursos avanÃ§ados de ediÃ§Ã£o.',
+      description: 'Crie designs profissionais com templates premium, elementos exclusivos e recursos avançados de edição.',
       icon: Palette,
       color: 'from-purple-500 to-indigo-600',
-      hasAccess: hasCanvaAccessCurrentPeriod, // Apenas acesso do perÃ­odo atual
+      hasAccess: hasCanvaAccessCurrentPeriod, // Apenas acesso do período atual
       accessData: toolAccess.find(t => t.tool_type === 'canva' && isAccessFromCurrentPeriod(t)),
       features: [
         'Templates premium ilimitados',
-        'RemoÃ§Ã£o de fundo com 1 clique',
+        'Remoção de fundo com 1 clique',
         'Kit de marca',
         'Magic Resize',
         '100GB de armazenamento'
@@ -562,17 +562,17 @@ export default function ToolsPage() {
     {
       id: 'capcut',
       name: 'CapCut Pro',
-      description: 'Editor de vÃ­deo profissional com efeitos avanÃ§ados, templates virais e sem marca d\'Ã¡gua.',
+      description: 'Editor de vídeo profissional com efeitos avançados, templates virais e sem marca d\'água.',
       icon: Scissors,
       color: 'from-emerald-500 to-teal-600',
-      hasAccess: hasCapcutAccessCurrentPeriod, // Apenas acesso do perÃ­odo atual
+      hasAccess: hasCapcutAccessCurrentPeriod, // Apenas acesso do período atual
       accessData: toolAccess.find(t => t.tool_type === 'capcut' && isAccessFromCurrentPeriod(t)),
       features: [
-        'Sem marca d\'Ã¡gua',
-        'Efeitos e transiÃ§Ãµes premium',
-        'Templates de tendÃªncia',
-        'Legendas automÃ¡ticas',
-        'ExportaÃ§Ã£o em 4K'
+        'Sem marca d\'água',
+        'Efeitos e transições premium',
+        'Templates de tendência',
+        'Legendas automáticas',
+        'Exportação em 4K'
       ]
     }
   ]
@@ -605,7 +605,7 @@ export default function ToolsPage() {
           <div className="flex items-start gap-4">
             <AlertCircle className="w-6 h-6 text-amber-600 flex-shrink-0 mt-0.5" />
             <div>
-              <h3 className="font-semibold text-amber-900 mb-2">Assinatura NecessÃ¡ria</h3>
+              <h3 className="font-semibold text-amber-900 mb-2">Assinatura Necessária</h3>
               <p className="text-amber-800 mb-4">
                 Você precisa de uma assinatura ativa para acessar as ferramentas do seu plano.
                 {subscription && subscription.current_period_end && new Date(subscription.current_period_end) < new Date() && (
@@ -627,10 +627,10 @@ export default function ToolsPage() {
     )
   }
 
-  // Acesso Ã s ferramentas: plano tem produtos do tipo ferramenta OU legado (apenas Pro)
+  // Acesso às ferramentas: plano tem produtos do tipo ferramenta OU legado (apenas Pro)
   const hasToolsAccess = (toolsFromPlan.length > 0) || (isPro && hasActiveSubscription)
 
-  // Se nÃ£o for Pro, mostrar tela de bloqueio similar Ã  de cursos
+  // Se não for Pro, mostrar tela de bloqueio similar à de cursos
   if (!hasToolsAccess && hasActiveSubscription) {
     return (
       <div className="max-w-4xl mx-auto space-y-8">
@@ -640,7 +640,7 @@ export default function ToolsPage() {
             Ferramentas Pro
           </h1>
           <p className="text-gogh-grayDark">
-            Acesse as melhores ferramentas de criaÃ§Ã£o incluÃ­das na sua assinatura.
+            Acesse as melhores ferramentas de criação incluídas na sua assinatura.
           </p>
         </div>
 
@@ -651,7 +651,7 @@ export default function ToolsPage() {
           className="bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200 rounded-xl p-6"
         >
           <p className="text-amber-800">
-            As ferramentas Pro sÃ£o exclusivas para o plano Pro. <Link href="/#pricing" className="font-medium underline">FaÃ§a upgrade agora</Link>
+            As ferramentas Pro são exclusivas para o plano Pro. <Link href="/#pricing" className="font-medium underline">Faça upgrade agora</Link>
           </p>
         </motion.div>
 
@@ -665,7 +665,7 @@ export default function ToolsPage() {
                 Ferramentas Exclusivas do Plano Pro
               </h3>
               <p className="text-gogh-grayDark mb-6 max-w-md">
-                FaÃ§a upgrade para o plano Pro e tenha acesso completo Ã s ferramentas Canva Pro e CapCut Pro.
+                Faça upgrade para o plano Pro e tenha acesso completo às ferramentas Canva Pro e CapCut Pro.
               </p>
               <Link
                 href="/#pricing"
@@ -715,7 +715,7 @@ export default function ToolsPage() {
     )
   }
 
-  // Layout dinÃ¢mico: ferramentas do plano (tabela tools)
+  // Layout dinâmico: ferramentas do plano (tabela tools)
   if (toolsFromPlan.length > 0) {
     const hasAccessForTool = (t: ToolFromDB) =>
       toolAccess.some(
@@ -739,7 +739,7 @@ export default function ToolsPage() {
         <div>
           <h1 className="text-2xl lg:text-3xl font-bold text-gogh-black mb-2">Ferramentas</h1>
           <p className="text-gogh-grayDark">
-            Ferramentas incluÃ­das no seu plano. Solicite o acesso e use o vÃ­deo tutorial quando disponÃ­vel.
+            Ferramentas incluídas no seu plano. Solicite o acesso e use o vídeo tutorial quando disponível.
           </p>
         </div>
         <motion.div
@@ -748,7 +748,7 @@ export default function ToolsPage() {
           className="bg-gradient-to-r from-gogh-yellow/20 to-amber-100 rounded-xl p-5 border border-gogh-yellow/30"
         >
           <p className="text-sm text-gogh-grayDark">
-            Ao solicitar acesso, nossa equipe liberarÃ¡ em atÃ© <strong>24 horas Ãºteis</strong>. O link do vÃ­deo tutorial aparece em cada ferramenta.
+            Ao solicitar acesso, nossa equipe liberará em até <strong>24 horas úteis</strong>. O link do vídeo tutorial aparece em cada ferramenta.
           </p>
         </motion.div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -845,7 +845,7 @@ export default function ToolsPage() {
                       </button>
                       {hasNewCredentials && (
                         <p className="text-xs text-emerald-600 mt-1.5 text-center">
-                          Problema jÃ¡ foi atendido; use o botÃ£o acima se precisar reportar de novo.
+                          Problema já foi atendido; use o botão acima se precisar reportar de novo.
                         </p>
                       )}
                     </div>
@@ -856,7 +856,7 @@ export default function ToolsPage() {
                         <div className="rounded-lg p-3 border border-emerald-200 bg-emerald-50 mb-3">
                           <p className="text-sm text-emerald-800 flex items-center gap-2">
                             <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
-                            RenovaÃ§Ã£o detectada â€“ solicite o novo acesso para esta ferramenta.
+                            Renovação detectada – solicite o novo acesso para esta ferramenta.
                           </p>
                         </div>
                       )}
@@ -864,10 +864,10 @@ export default function ToolsPage() {
                         <div className="rounded-lg p-3 border border-amber-200 bg-amber-50">
                           <p className="text-sm text-amber-800 flex items-center gap-2">
                             <Clock className="w-4 h-4 flex-shrink-0" />
-                            {isReportPending ? 'Problema reportado â€“ em anÃ¡lise pela equipe' : 'SolicitaÃ§Ã£o em anÃ¡lise'}
+                            {isReportPending ? 'Problema reportado – em análise pela equipe' : 'Solicitação em análise'}
                           </p>
                           <p className="text-xs text-amber-700 mt-1">
-                            {isReportPending ? 'Entraremos em contato em breve.' : 'VocÃª receberÃ¡ o acesso em atÃ© 24 horas Ãºteis.'}
+                            {isReportPending ? 'Entraremos em contato em breve.' : 'Você receberá o acesso em até 24 horas úteis.'}
                           </p>
                         </div>
                       ) : !canRequest && t.requires_8_days ? (
@@ -880,7 +880,7 @@ export default function ToolsPage() {
                           {countdownLabel() ? (
                             <>Aguardando: {countdownLabel()}</>
                           ) : (
-                            <>Aguardando 8Âº dia da assinatura</>
+                            <>Aguardando 8º dia da assinatura</>
                           )}
                         </button>
                       ) : (
@@ -901,7 +901,7 @@ export default function ToolsPage() {
           })}
         </div>
 
-        {/* Modal de Credenciais (ferramentas dinÃ¢micas: email/usuÃ¡rio + senha) */}
+        {/* Modal de Credenciais (ferramentas dinâmicas: email/usuário + senha) */}
         {credentialsModal && (
           <div
             className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
@@ -928,11 +928,11 @@ export default function ToolsPage() {
               <div className="space-y-4">
                 <div className="bg-amber-50/80 border border-amber-200/60 rounded-lg p-3">
                   <p className="text-xs text-amber-800">
-                    <strong>DuraÃ§Ã£o:</strong> O acesso Ã© vÃ¡lido por <strong>30 dias</strong> a partir da liberaÃ§Ã£o.
+                    <strong>Duração:</strong> O acesso é válido por <strong>30 dias</strong> a partir da liberação.
                   </p>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gogh-grayDark mb-2">Email / UsuÃ¡rio:</label>
+                  <label className="block text-sm font-medium text-gogh-grayDark mb-2">Email / Usuário:</label>
                   <div className="flex items-center gap-2">
                     <input
                       type="text"
@@ -944,7 +944,7 @@ export default function ToolsPage() {
                       type="button"
                       onClick={() => {
                         navigator.clipboard.writeText(credentialsModal.emailOrUser)
-                        toast.success('Email/UsuÃ¡rio copiado!')
+                        toast.success('Email/Usuário copiado!')
                       }}
                       className="px-4 py-2 bg-gogh-yellow text-gogh-black rounded-lg hover:bg-gogh-yellow/90 text-sm font-medium"
                     >
@@ -976,7 +976,7 @@ export default function ToolsPage() {
                   </div>
                 )}
                 <p className="text-xs text-gogh-grayDark">
-                  Use essas credenciais para fazer login. VocÃª pode copiar cada campo. Se encontrar algum problema, use &quot;Reportar Erro na Conta&quot;.
+                  Use essas credenciais para fazer login. Você pode copiar cada campo. Se encontrar algum problema, use &quot;Reportar Erro na Conta&quot;.
                 </p>
               </div>
               <div className="mt-4">
@@ -992,7 +992,7 @@ export default function ToolsPage() {
           </div>
         )}
 
-        {/* Modal de VÃ­deo Tutorial (ferramentas dinÃ¢micas) */}
+        {/* Modal de Vídeo Tutorial (ferramentas dinâmicas) */}
         {tutorialModalTool && (
           <div
             className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
@@ -1039,7 +1039,7 @@ export default function ToolsPage() {
                   )
                 })() : (
                   <div className="aspect-[9/16] w-full flex items-center justify-center bg-black rounded-lg">
-                    <p className="text-white text-sm">VÃ­deo nÃ£o disponÃ­vel</p>
+                    <p className="text-white text-sm">Vídeo não disponível</p>
                   </div>
                 )}
               </div>
@@ -1050,7 +1050,7 @@ export default function ToolsPage() {
           </div>
         )}
 
-        {/* Modal de Reporte de Erro (ferramentas dinÃ¢micas) */}
+        {/* Modal de Reporte de Erro (ferramentas dinâmicas) */}
         {showErrorModal && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
             <motion.div
@@ -1075,12 +1075,12 @@ export default function ToolsPage() {
                 </button>
               </div>
               <p className="text-sm text-gogh-grayDark mb-4">
-                Descreva o problema que vocÃª encontrou com a conta (ex: conta com menos dias de duraÃ§Ã£o, credenciais nÃ£o funcionam, etc.):
+                Descreva o problema que você encontrou com a conta (ex: conta com menos dias de duração, credenciais não funcionam, etc.):
               </p>
               <textarea
                 value={errorMessage}
                 onChange={(e) => setErrorMessage(e.target.value)}
-                placeholder="Ex: A conta tem menos de 30 dias, as credenciais nÃ£o funcionam, preciso de uma nova conta, etc..."
+                placeholder="Ex: A conta tem menos de 30 dias, as credenciais não funcionam, preciso de uma nova conta, etc..."
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gogh-yellow resize-none"
                 rows={4}
               />
@@ -1113,13 +1113,13 @@ export default function ToolsPage() {
     )
   }
 
-  // Sem ferramentas no plano: empty state (nÃ£o mostrar Canva/CapCut legado)
+  // Sem ferramentas no plano: empty state (não mostrar Canva/CapCut legado)
   return (
     <div className="max-w-4xl mx-auto space-y-8">
       <div>
         <h1 className="text-2xl lg:text-3xl font-bold text-gogh-black mb-2">Ferramentas</h1>
         <p className="text-gogh-grayDark">
-          Ferramentas incluÃ­das no seu plano. Solicite o acesso e use o vÃ­deo tutorial quando disponÃ­vel.
+          Ferramentas incluídas no seu plano. Solicite o acesso e use o vídeo tutorial quando disponível.
         </p>
       </div>
       <motion.div
@@ -1130,7 +1130,7 @@ export default function ToolsPage() {
         <Wrench className="w-16 h-16 text-gogh-grayLight mx-auto mb-4" />
         <h3 className="text-lg font-semibold text-gogh-black mb-2">Nenhuma ferramenta no momento</h3>
         <p className="text-gogh-grayDark max-w-md mx-auto">
-          NÃ£o hÃ¡ ferramentas configuradas no seu plano. As ferramentas sÃ£o definidas pelo administrador conforme seu plano.
+          Não há ferramentas configuradas no seu plano. As ferramentas são definidas pelo administrador conforme seu plano.
         </p>
       </motion.div>
     </div>
