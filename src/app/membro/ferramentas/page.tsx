@@ -769,6 +769,17 @@ export default function ToolsPage() {
                   </div>
                 </div>
                 <div className="p-6">
+                  {hasAccess && hasNewCredentials && (
+                    <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 p-3">
+                      <p className="text-sm text-emerald-800 font-medium flex items-center gap-2">
+                        <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+                        Suas credenciais foram atualizadas pela equipe. Problema resolvido.
+                      </p>
+                      <p className="text-xs text-emerald-700 mt-1">
+                        Use o botão &quot;Reportar novamente&quot; abaixo se precisar reportar outro problema.
+                      </p>
+                    </div>
+                  )}
                   {t.description && (
                     <p className="text-gogh-grayDark text-sm mb-4">{t.description}</p>
                   )}

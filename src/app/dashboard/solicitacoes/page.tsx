@@ -19,7 +19,8 @@ import {
   ExternalLink,
   AlertTriangle,
   Video,
-  X
+  X,
+  MessageSquare
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import Link from 'next/link'
@@ -78,6 +79,7 @@ export default function SolicitacoesPage() {
   const [accessLink, setAccessLink] = useState('')
   const [accessPassword, setAccessPassword] = useState('')
   const [toolsMap, setToolsMap] = useState<Record<string, ToolFromDB>>({})
+  const [ticketMessages, setTicketMessages] = useState<Array<{ id: string; content: string; sender_id: string; created_at: string }>>([])
   const loadingForRef = useRef<{ userId: string; toolId: string | null } | null>(null)
 
   // Função para validar URL do YouTube (suporta todos os formatos incluindo Shorts)
@@ -109,6 +111,7 @@ export default function SolicitacoesPage() {
     if (selectedTicket) {
       setAccessLink('')
       setAccessPassword('')
+      setTicketMessages([])
       const userId = selectedTicket.user_id
       const toolId = selectedTicket.tool_id ?? null
       const slug = toolId ? toolsMap[toolId]?.slug : undefined
@@ -116,12 +119,29 @@ export default function SolicitacoesPage() {
       loadToolAccessForTicket(userId, toolId, slug)
       const tool = toolId ? toolsMap[toolId] : undefined
       loadSubscriptionInfo(selectedTicket.user_id, tool)
+      loadTicketMessages(selectedTicket.id)
     } else {
       loadingForRef.current = null
       setSubscriptionInfo(null)
       setToolAccess([])
+      setTicketMessages([])
     }
   }, [selectedTicket, toolsMap])
+
+  const loadTicketMessages = async (ticketId: string) => {
+    try {
+      const { data, error } = await (supabase as any)
+        .from('support_messages')
+        .select('id, content, sender_id, created_at')
+        .eq('ticket_id', ticketId)
+        .order('created_at', { ascending: true })
+      if (error) throw error
+      setTicketMessages(data || [])
+    } catch (e) {
+      console.error('Erro ao carregar mensagens do ticket:', e)
+      setTicketMessages([])
+    }
+  }
 
   const loadSubscriptionInfo = async (userId: string, tool?: ToolFromDB | null) => {
     try {
@@ -371,6 +391,7 @@ export default function SolicitacoesPage() {
       toast.success('Acesso salvo com sucesso! O cliente já pode ver o link/credenciais na página de ferramentas.')
       loadingForRef.current = { userId: selectedTicket.user_id, toolId: selectedTicket.tool_id ?? null }
       await loadToolAccessForTicket(selectedTicket.user_id, selectedTicket.tool_id ?? null, tool.slug)
+      await loadTicketMessages(selectedTicket.id)
       const currentSelectedId = selectedTicket.id
       const updatedList = await loadTickets()
       const reloaded = updatedList.find(t => t.id === currentSelectedId)
@@ -641,6 +662,29 @@ export default function SolicitacoesPage() {
 
                 {/* Links Form */}
                 <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                  {/* Mensagens do ticket (motivo do reporte e respostas) */}
+                  {ticketMessages.length > 0 && (
+                    <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+                      <h4 className="text-sm font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                        <MessageSquare className="w-4 h-4" />
+                        Mensagens do ticket
+                      </h4>
+                      <div className="space-y-3 max-h-48 overflow-y-auto">
+                        {ticketMessages.map((msg) => (
+                          <div
+                            key={msg.id}
+                            className="rounded-lg bg-white border border-gray-100 p-3 text-sm"
+                          >
+                            <p className="text-gray-500 text-xs mb-1">
+                              {new Date(msg.created_at).toLocaleString('pt-BR')}
+                            </p>
+                            <p className="text-gray-800 whitespace-pre-wrap">{msg.content}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   {/* Informações da Assinatura - Período de 8 dias (oitavo dia) */}
                   {subscriptionInfo && (
                     <div className={`rounded-lg p-4 border ${
@@ -704,22 +748,26 @@ export default function SolicitacoesPage() {
                   {selectedTicket.tool_id && toolsMap[selectedTicket.tool_id] && (
                     <>
                       {/* Alerta de Erro Reportado (desta ferramenta) */}
-                      {toolAccess.some(t => t.error_reported) && (
-                        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-                          <div className="flex items-start gap-3">
-                            <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-                            <div className="flex-1">
-                              <h4 className="font-medium text-amber-800 mb-1">
-                                Erro Reportado - {toolsMap[selectedTicket.tool_id].name}
-                              </h4>
-                              <p className="text-sm text-amber-700 mb-2">
-                                {toolAccess.find(t => t.error_reported)?.error_message || 'Cliente reportou problema com o link/credenciais'}
-                              </p>
-                              <p className="text-xs text-amber-600">Atualize os campos abaixo para resolver.</p>
+                      {(() => {
+                        const toolSlug = toolsMap[selectedTicket.tool_id]?.slug
+                        const credWithError = toolAccess.find(t => (t.tool_id === selectedTicket.tool_id || (toolSlug && t.tool_type === toolSlug)) && t.error_reported)
+                        return credWithError ? (
+                          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                            <div className="flex items-start gap-3">
+                              <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                              <div className="flex-1">
+                                <h4 className="font-medium text-amber-800 mb-1">
+                                  Erro Reportado - {toolsMap[selectedTicket.tool_id].name}
+                                </h4>
+                                <p className="text-sm text-amber-700 mb-2">
+                                  {credWithError.error_message || 'Cliente reportou problema com o link/credenciais'}
+                                </p>
+                                <p className="text-xs text-amber-600">Atualize os campos abaixo para resolver.</p>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      )}
+                        ) : null
+                      })()}
 
                       {/* Formulário: link/credenciais para esta ferramenta */}
                       <div>
