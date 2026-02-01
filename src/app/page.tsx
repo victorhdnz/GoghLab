@@ -94,10 +94,39 @@ async function getSiteSettings() {
   }
 }
 
+/** Resolve features dos planos Essencial/Pro a partir de products + plan_products (fonte da verdade). */
+async function resolvePricingFeaturesFromProducts(homepageContent: any) {
+  const pricing = homepageContent?.pricing
+  if (!pricing?.pricing_plans?.length) return homepageContent
+  try {
+    const supabase = createServerClient() as any
+    const { data: productsData } = await supabase.from('products').select('*').eq('is_active', true).order('order_position', { ascending: true })
+    const { data: planProductsData } = await supabase.from('plan_products').select('plan_id, product_id')
+    const products = productsData || []
+    const planProducts = planProductsData || []
+    const planIdToDb = (id: string) => (id === 'gogh-essencial' ? 'gogh_essencial' : id === 'gogh-pro' ? 'gogh_pro' : id)
+    const plans = pricing.pricing_plans.map((plan: any) => {
+      if (plan.id !== 'gogh-essencial' && plan.id !== 'gogh-pro') return plan
+      const dbPlanId = planIdToDb(plan.id)
+      const productIds = planProducts.filter((pp: any) => pp.plan_id === dbPlanId).map((pp: any) => pp.product_id)
+      const features = productIds
+        .map((pid: string) => products.find((p: any) => p.id === pid))
+        .filter(Boolean)
+        .map((p: any) => ({ name: p.name, isIncluded: true, iconUrl: p.icon_url ?? undefined }))
+      return { ...plan, features }
+    })
+    return { ...homepageContent, pricing: { ...pricing, pricing_plans: plans } }
+  } catch (e) {
+    console.error('[Homepage] Erro ao resolver features de pricing a partir de produtos:', e)
+    return homepageContent
+  }
+}
+
 export default async function Home() {
   const services = await getServices()
   const siteSettings = await getSiteSettings()
-  const homepageContent = siteSettings?.homepage_content || {}
+  let homepageContent = siteSettings?.homepage_content || {}
+  homepageContent = await resolvePricingFeaturesFromProducts(homepageContent)
 
   // Garantir que arrays sejam sempre arrays válidos
   if (!Array.isArray(homepageContent.notifications_items)) {
