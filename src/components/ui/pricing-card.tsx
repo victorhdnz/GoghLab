@@ -1,13 +1,17 @@
 'use client'
 
 import * as React from 'react'
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Modal } from "@/components/ui/Modal"
-import { Check, X, ChevronRight } from "lucide-react"
+import { Switch } from "@/components/ui/Switch"
+import { Check, X, Star } from "lucide-react"
+import { motion } from "framer-motion"
+import confetti from "canvas-confetti"
+import NumberFlow from "@number-flow/react"
+import { useMobile } from "@/hooks/useMobile"
 
 // --- 1. Typescript Interfaces (API) ---
 
@@ -118,6 +122,8 @@ export const PricingComponent: React.FC<PricingComponentProps> = ({
 }) => {
   const [detailPlan, setDetailPlan] = useState<PriceTier | null>(null)
   const [selectedServiceOptions, setSelectedServiceOptions] = useState<Record<string, string[]>>({})
+  const switchRef = useRef<HTMLDivElement>(null)
+  const isDesktop = !useMobile(768)
 
   const getDefaultSelectedOptions = React.useCallback((plan: PriceTier): string[] => {
     // Começar sem nada selecionado - o usuário escolhe o que quer
@@ -163,38 +169,36 @@ export const PricingComponent: React.FC<PricingComponentProps> = ({
     return null
   }
 
-  // --- 3.1. Billing Toggle ---
+  // --- 3.1. Billing Toggle (Switch + confetti ao ativar anual) ---
+  const handleBillingToggle = (checked: boolean) => {
+    onCycleChange(checked ? 'annually' : 'monthly')
+    if (checked && switchRef.current) {
+      const rect = switchRef.current.getBoundingClientRect()
+      const x = rect.left + rect.width / 2
+      const y = rect.top + rect.height / 2
+      confetti({
+        particleCount: 50,
+        spread: 60,
+        origin: { x: x / window.innerWidth, y: y / window.innerHeight },
+        colors: ['#F7C948', '#E5A800', '#0A0A0A', '#F5F1E8'],
+        ticks: 200,
+        gravity: 1.2,
+        decay: 0.94,
+        startVelocity: 30,
+        shapes: ['circle'],
+      })
+    }
+  }
   const CycleToggle = (
-    <div className="flex justify-center mb-10 mt-2">
-      <ToggleGroup
-        type="single"
-        value={billingCycle}
-        onValueChange={(value) => {
-          if (value && (value === 'monthly' || value === 'annually')) {
-            onCycleChange(value)
-          }
-        }}
-        aria-label="Select billing cycle"
-        className="border border-[#F7C948]/30 rounded-lg p-1 bg-white/80"
-      >
-        <ToggleGroupItem
-          value="monthly"
-          aria-label="Cobrança Mensal"
-          className="px-6 py-1.5 text-sm font-medium text-gray-600 data-[state=on]:bg-[#F7C948] data-[state=on]:text-[#0A0A0A] data-[state=on]:shadow-sm data-[state=on]:border data-[state=on]:border-[#E5A800] rounded-md transition-colors"
-        >
-          Mensal
-        </ToggleGroupItem>
-        <ToggleGroupItem
-          value="annually"
-          aria-label="Cobrança Anual"
-          className="px-6 py-1.5 text-sm font-medium text-gray-600 data-[state=on]:bg-[#F7C948] data-[state=on]:text-[#0A0A0A] data-[state=on]:shadow-sm data-[state=on]:border data-[state=on]:border-[#E5A800] rounded-md transition-colors relative"
-        >
-          Anual
-          <span className="absolute -top-3 right-0 text-xs font-semibold text-[#0A0A0A] bg-[#F7C948] border border-[#E5A800] px-1.5 rounded-full whitespace-nowrap">
-            Economize {annualDiscountPercent}%
-          </span>
-        </ToggleGroupItem>
-      </ToggleGroup>
+    <div ref={switchRef} className="flex justify-center items-center gap-3 mb-10 mt-2">
+      <Switch
+        checked={billingCycle === 'annually'}
+        onCheckedChange={handleBillingToggle}
+        className="[&>div]:!flex [&>div]:!items-center [&>div]:!gap-0"
+      />
+      <span className="text-sm font-semibold text-[#0A0A0A]">
+        Cobrança anual <span className="text-[#E5A800]">(Economize {annualDiscountPercent}%)</span>
+      </span>
     </div>
   )
 
@@ -202,9 +206,11 @@ export const PricingComponent: React.FC<PricingComponentProps> = ({
 
   // Render the list of pricing cards
   const gridCols = plans.length === 2 ? 'md:grid-cols-2 max-w-4xl mx-auto' : 'md:grid-cols-3'
+  const priceFormat = { style: 'currency' as const, currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: 2 }
+
   const PricingCards = (
     <div className={`grid gap-8 ${gridCols} md:gap-6 lg:gap-8`}>
-      {plans.map((plan) => {
+      {plans.map((plan, index) => {
         const isFeatured = plan.isPopular
         const serviceSelection = plan.planType === 'service'
           ? getServiceSelectionSummary(plan, billingCycle)
@@ -216,24 +222,61 @@ export const PricingComponent: React.FC<PricingComponentProps> = ({
         const originalMonthlyPrice = plan.planType === 'service' && serviceSelection
           ? serviceSelection.totalPrice
           : plan.priceMonthly
+        const displayPriceMonthly = plan.planType === 'service' && serviceSelection
+          ? serviceSelection.totalPrice
+          : plan.priceMonthly
+        const displayPriceAnnualMonthly = plan.planType === 'service' && serviceSelection
+          ? serviceSelection.totalPrice / 12
+          : plan.priceAnnually / 12
         const priceSuffix = billingCycle === 'monthly' ? '/mês' : '/ano'
 
         return (
-          <Card
+          <motion.div
             key={plan.id}
+            initial={isDesktop ? { y: 50, opacity: 0.8 } : {}}
+            whileInView={
+              isDesktop
+                ? {
+                    y: isFeatured ? -20 : 0,
+                    opacity: 1,
+                    x: index === plans.length - 1 ? -30 : index === 0 ? 30 : 0,
+                    scale: index === 0 || index === plans.length - 1 ? 0.94 : 1,
+                  }
+                : {}
+            }
+            viewport={{ once: true, margin: '-50px' }}
+            transition={{
+              duration: 1.6,
+              type: 'spring',
+              stiffness: 100,
+              damping: 30,
+              delay: 0.1 * index,
+              opacity: { duration: 0.5 },
+            }}
             className={cn(
-              "flex flex-col transition-all duration-300 shadow-md hover:shadow-xl bg-white border border-[#F7C948]/30 text-[#0A0A0A]",
+              'flex flex-col',
+              !isFeatured && 'mt-5',
+              index === 0 && 'origin-right',
+              index === plans.length - 1 && 'origin-left',
+            )}
+          >
+          <Card
+            className={cn(
+              "flex flex-col transition-all duration-300 text-[#0A0A0A] h-full",
+              "bg-white/85 dark:bg-white/90 backdrop-blur-xl border border-white/60 dark:border-white/40",
+              "shadow-[0_8px_32px_rgba(0,0,0,0.08)] hover:shadow-[0_12px_40px_rgba(0,0,0,0.12)]",
               "transform hover:scale-[1.02] hover:-translate-y-1",
-              isFeatured && "ring-2 ring-[#F7C948] shadow-xl md:scale-[1.02] hover:scale-[1.05] border-[#F7C948]"
+              isFeatured && "ring-2 ring-[#F7C948] shadow-xl md:scale-[1.02] hover:scale-[1.05] border-[#F7C948]/70 bg-white/95 dark:bg-white/95"
             )}
           >
             <CardHeader className="p-6 pb-4">
               <div className="flex justify-between items-start">
                 <CardTitle className="text-2xl font-bold text-[#0A0A0A]">{plan.name}</CardTitle>
                 {isFeatured && (
-                  <span className="text-xs font-semibold px-3 py-1 bg-[#F7C948] text-[#0A0A0A] rounded-full">
-                    Mais Popular
-                  </span>
+                  <div className="flex items-center gap-1 text-xs font-semibold px-3 py-1 bg-[#F7C948] text-[#0A0A0A] rounded-bl-xl rounded-tr-xl">
+                    <Star className="h-4 w-4 fill-current" />
+                    <span>Popular</span>
+                  </div>
                 )}
               </div>
               <CardDescription className="text-sm mt-1 text-gray-600">{plan.description}</CardDescription>
@@ -262,9 +305,13 @@ export const PricingComponent: React.FC<PricingComponentProps> = ({
               <div className="mt-4">
                 {billingCycle === 'monthly' ? (
                   <>
-                    <p className="text-4xl font-extrabold text-[#0A0A0A]">
-                      R$ {currentPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      <span className="text-base font-normal text-gray-500 ml-1">/mês</span>
+                    <p className="text-4xl font-extrabold text-[#0A0A0A] flex flex-wrap items-baseline gap-1">
+                      <NumberFlow
+                        value={displayPriceMonthly}
+                        format={priceFormat}
+                        className="tabular-nums"
+                      />
+                      <span className="text-base font-normal text-gray-500">/mês</span>
                     </p>
                     <p className="text-xs text-gray-500 mt-2">
                       Economize {annualDiscountPercent}% com o plano anual
@@ -272,18 +319,17 @@ export const PricingComponent: React.FC<PricingComponentProps> = ({
                   </>
                 ) : (
                   <>
-                    {/* Destaque: parcela mensal equivalente */}
-                    <p className="text-4xl font-extrabold text-[#0A0A0A]">
-                      R$ {(plan.planType === 'service' && serviceSelection
-                        ? (serviceSelection.totalPrice / 12)
-                        : (plan.priceAnnually / 12)
-                      ).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      <span className="text-base font-normal text-gray-500 ml-1">/mês</span>
+                    <p className="text-4xl font-extrabold text-[#0A0A0A] flex flex-wrap items-baseline gap-1">
+                      <NumberFlow
+                        value={displayPriceAnnualMonthly}
+                        format={priceFormat}
+                        className="tabular-nums"
+                      />
+                      <span className="text-base font-normal text-gray-500">/mês</span>
                     </p>
-                    {/* Preço mensal original riscado - apenas se não for serviço */}
                     {plan.planType !== 'service' && (
                       <p className="text-sm text-gray-400 line-through mt-1">
-                        R$ {originalMonthlyPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/mês
+                        <NumberFlow value={originalMonthlyPrice} format={priceFormat} className="tabular-nums" />/mês
                       </p>
                     )}
                   </>
@@ -401,6 +447,7 @@ export const PricingComponent: React.FC<PricingComponentProps> = ({
               )}
             </CardFooter>
           </Card>
+          </motion.div>
         )
       })}
     </div>

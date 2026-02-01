@@ -17,6 +17,7 @@ import { SectionWrapper } from '@/components/editor/section-wrapper'
 import { ServiceCardsManager, ServiceCard } from '@/components/ui/ServiceCardsManager'
 import { NotificationsManager } from '@/components/ui/NotificationsManager'
 import { TestimonialsManager } from '@/components/ui/TestimonialsManager'
+import { TeamMembersManager } from '@/components/ui/TeamMembersManager'
 
 interface HomepageSettings {
   // Configurações globais do site (afetam todas as páginas)
@@ -90,6 +91,19 @@ interface HomepageSettings {
   }>
   testimonials_duration?: number
 
+  // Seção Equipe (integrantes - estilo testimonial com Instagram)
+  team_enabled?: boolean
+  team_title?: string
+  team_subtitle?: string
+  team_members?: Array<{
+    id: string
+    image_url: string
+    name: string
+    role: string
+    quote: string
+    instagram_url?: string
+  }>
+
   // Seção Spline (3D)
   spline_enabled?: boolean
   spline_title?: string
@@ -117,6 +131,17 @@ interface HomepageSettings {
     logoUrl: string
     enabled: boolean
   }>
+
+  // Seção Animated Beam (fluxo de integrações / plataformas)
+  animated_beam_enabled?: boolean
+  animated_beam_title?: string
+  animated_beam_subtitle?: string
+  animated_beam_items?: Array<{
+    id: string
+    icon_url: string
+    label?: string
+  }>
+  animated_beam_center_icon_url?: string | null
 
   // Seção Award (Medalha de pioneiros)
   award_enabled?: boolean
@@ -234,17 +259,119 @@ function PlatformLogoItem({ platform, index, onUpdate, onRemove, onUpload }: Pla
   )
 }
 
+// Componente para cada ícone do Animated Beam
+interface BeamIconItemProps {
+  item: { id: string; icon_url: string; label?: string }
+  index: number
+  total: number
+  onUpdate: (item: { id: string; icon_url: string; label?: string }) => void
+  onRemove: () => void
+  onMoveUp: () => void
+  onMoveDown: () => void
+  onUpload: (index: number, file: File, setUploading: (u: boolean) => void) => void
+}
+
+function BeamIconItem({ item, index, total, onUpdate, onRemove, onMoveUp, onMoveDown, onUpload }: BeamIconItemProps) {
+  const [uploading, setUploading] = useState(false)
+  return (
+    <div className="bg-gray-50 p-3 rounded-lg border flex items-center gap-3">
+      <div className="w-12 h-12 bg-white rounded-full border flex items-center justify-center overflow-hidden flex-shrink-0">
+        {uploading ? (
+          <div className="animate-spin w-5 h-5 border-2 border-gogh-yellow border-t-transparent rounded-full" />
+        ) : item.icon_url ? (
+          <img src={item.icon_url} alt={item.label || ''} className="w-full h-full object-contain p-1" />
+        ) : (
+          <span className="text-lg">⚡</span>
+        )}
+      </div>
+      <div className="flex-1 min-w-0">
+        <input
+          type="text"
+          value={item.label || ''}
+          onChange={(e) => onUpdate({ ...item, label: e.target.value })}
+          placeholder="Rótulo (opcional)"
+          className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-gogh-yellow"
+        />
+        <div className="flex items-center gap-2 mt-1">
+          <input
+            type="file"
+            accept="image/*"
+            onChange={(e) => { const f = e.target.files?.[0]; if (f) onUpload(index, f, setUploading); e.target.value = '' }}
+            className="hidden"
+            id={`beam-icon-${item.id}`}
+            disabled={uploading}
+          />
+          <label htmlFor={`beam-icon-${item.id}`} className={`text-xs px-2 py-1 rounded cursor-pointer ${uploading ? 'bg-gray-300' : 'bg-gray-200 hover:bg-gray-300'}`}>
+            {uploading ? '⏳' : '📤 Ícone'}
+          </label>
+          {item.icon_url && !uploading && (
+            <button type="button" onClick={() => onUpdate({ ...item, icon_url: '' })} className="text-xs text-red-500">Remover</button>
+          )}
+        </div>
+      </div>
+      <div className="flex flex-col gap-0.5">
+        <button type="button" onClick={onMoveUp} disabled={index === 0} className="p-1 text-gray-500 hover:text-black disabled:opacity-30" title="Subir">▲</button>
+        <button type="button" onClick={onMoveDown} disabled={index === total - 1} className="p-1 text-gray-500 hover:text-black disabled:opacity-30" title="Descer">▼</button>
+        <button type="button" onClick={onRemove} className="p-1 text-red-500 hover:text-red-700" title="Remover">🗑️</button>
+      </div>
+    </div>
+  )
+}
+
+function BeamCenterUploadRow({
+  centerIconUrl,
+  onUpload,
+  onClear,
+}: {
+  centerIconUrl: string | null | undefined
+  onUpload: (file: File, setUploading: (u: boolean) => void) => void
+  onClear: () => void
+}) {
+  const [uploading, setUploading] = useState(false)
+  return (
+    <div className="flex items-center gap-3 mb-4">
+      <div className="w-14 h-14 rounded-full border bg-white flex items-center justify-center overflow-hidden flex-shrink-0">
+        {uploading ? (
+          <div className="animate-spin w-6 h-6 border-2 border-gogh-yellow border-t-transparent rounded-full" />
+        ) : centerIconUrl ? (
+          <img src={centerIconUrl} alt="Central" className="w-full h-full object-contain p-1" />
+        ) : (
+          <span className="text-xl">+</span>
+        )}
+      </div>
+      <div className="flex items-center gap-2">
+        <input
+          type="file"
+          accept="image/*"
+          onChange={(e) => { const f = e.target.files?.[0]; if (f) onUpload(f, setUploading); e.target.value = '' }}
+          className="hidden"
+          id="beam-center-icon"
+          disabled={uploading}
+        />
+        <label htmlFor="beam-center-icon" className={`text-sm px-3 py-1.5 rounded cursor-pointer ${uploading ? 'bg-gray-300' : 'bg-gogh-yellow text-gogh-black hover:bg-gogh-yellow/90'}`}>
+          {uploading ? '⏳ Enviando...' : '📤 Upload ícone central'}
+        </label>
+        {centerIconUrl && !uploading && (
+          <button type="button" onClick={onClear} className="text-sm text-red-500 hover:text-red-700">Remover</button>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // Mapeamento de seções
 const sectionIcons: Record<string, string> = {
   hero: '🎯',
   video: '🎥',
   features: '✨',
   trusted_by: '🤝',
+  animated_beam: '⚡',
   award: '🏆',
   services: '📦',
   comparison: '⚖️',
   notifications: '🔔',
   testimonials: '⭐',
+  team: '👥',
   spline: '🤖',
   pricing: '💰',
   contact: '📞',
@@ -271,11 +398,13 @@ const sectionLabels: Record<string, string> = {
   video: 'Vídeo (Sobre Nós)',
   features: 'O Que Oferecemos (Features)',
   trusted_by: 'Plataformas (Logo Carousel)',
+  animated_beam: 'Fluxo de Integrações (Animated Beam)',
   award: 'Medalha de Pioneiros',
   services: 'Nossos Serviços',
   comparison: 'Comparação (CTA)',
   notifications: 'Notificações (Prova Social)',
   testimonials: 'Depoimentos (Marquee 3D)',
+  team: 'Nossa Equipe',
   spline: 'Spline 3D (Futuro e Evolução)',
   pricing: 'Planos de Assinatura',
   contact: 'Contato',
@@ -292,12 +421,14 @@ export default function HomepageEditorPage() {
     'hero',
     'video',
     'trusted_by',
+    'animated_beam',
     'features',
     'award',
     'services',
     'comparison',
     'notifications',
     'testimonials',
+    'team',
     'spline',
     'pricing',
     'contact',
@@ -309,9 +440,11 @@ export default function HomepageEditorPage() {
     comparison: true,
     notifications: true,
     testimonials: true,
+    team: true,
     spline: false, // Desabilitado por padrão para melhor performance
     pricing: false, // Desabilitado por padrão até ser configurado
     contact: true,
+    animated_beam: false, // Desabilitado até configurar ícones
   })
   const [formData, setFormData] = useState<HomepageSettings>({
     // Configurações globais
@@ -357,6 +490,11 @@ export default function HomepageEditorPage() {
     testimonials_items: [],
     testimonials_duration: 200,
 
+    team_enabled: false,
+    team_title: 'Nossa Equipe',
+    team_subtitle: 'As pessoas por trás do Gogh Lab',
+    team_members: [],
+
     spline_enabled: false, // Desabilitado por padrão para melhor performance
     spline_title: 'O Futuro da Sua Empresa',
     spline_description: 'Estamos aqui para ajudar sua empresa a evoluir e crescer no mundo digital. Com tecnologia de ponta e soluções inovadoras, transformamos sua presença online e impulsionamos seus resultados.',
@@ -390,6 +528,13 @@ export default function HomepageEditorPage() {
       { id: '6', name: 'Automação', logoUrl: '', enabled: true },
       { id: '7', name: 'Meta', logoUrl: '', enabled: true },
     ],
+
+    // Animated Beam - Fluxo de integrações
+    animated_beam_enabled: false,
+    animated_beam_title: '',
+    animated_beam_subtitle: 'Plataformas e ferramentas integradas ao seu fluxo',
+    animated_beam_items: [],
+    animated_beam_center_icon_url: null,
 
     // Award - Medalha de pioneiros
     award_enabled: true,
@@ -491,6 +636,7 @@ export default function HomepageEditorPage() {
             services_cards: servicesCards,
             notifications_items: notificationsItems,
             testimonials_items: testimonialsItems,
+            team_members: teamMembers,
             // Garantir que video_url seja sempre preservado do banco (mas limpar blob URLs)
             video_url: videoUrl,
             video_enabled: content.video_enabled !== undefined ? content.video_enabled : (prev.video_enabled !== undefined ? prev.video_enabled : false),
@@ -528,6 +674,14 @@ export default function HomepageEditorPage() {
               order.splice(contactIndex, 0, 'testimonials')
             } else {
               order.push('testimonials')
+            }
+          }
+          if (!order.includes('team')) {
+            const contactIndex = order.indexOf('contact')
+            if (contactIndex >= 0) {
+              order.splice(contactIndex, 0, 'team')
+            } else {
+              order.push('team')
             }
           }
           if (!order.includes('spline')) {
@@ -621,6 +775,9 @@ export default function HomepageEditorPage() {
           if (visibility.testimonials === undefined) {
             visibility.testimonials = true
           }
+          if (visibility.team === undefined) {
+            visibility.team = true
+          }
           if (visibility.spline === undefined) {
             visibility.spline = false // Desabilitado por padrão para performance
           }
@@ -661,6 +818,7 @@ export default function HomepageEditorPage() {
         services_cards: Array.isArray(formData.services_cards) ? formData.services_cards : [],
         notifications_items: Array.isArray(formData.notifications_items) ? formData.notifications_items : [],
         testimonials_items: Array.isArray(formData.testimonials_items) ? formData.testimonials_items : [],
+        team_members: Array.isArray(formData.team_members) ? formData.team_members : [],
         section_order: sectionOrder,
         section_visibility: sectionVisibility,
         // Garantir que video_url seja sempre salvo (mas limpar blob URLs)
@@ -1107,6 +1265,39 @@ export default function HomepageEditorPage() {
             )}
           </div>
         )
+      case 'team':
+        return (
+          <div className="space-y-4">
+            <Switch
+              label="Habilitar Seção Nossa Equipe"
+              checked={formData.team_enabled ?? false}
+              onCheckedChange={(checked) => setFormData({ ...formData, team_enabled: checked })}
+            />
+            {formData.team_enabled !== false && (
+              <>
+                <Input
+                  label="Título da Seção"
+                  value={formData.team_title || ''}
+                  onChange={(e) => setFormData({ ...formData, team_title: e.target.value })}
+                  placeholder="Ex: Nossa Equipe"
+                />
+                <Input
+                  label="Subtítulo"
+                  value={formData.team_subtitle || ''}
+                  onChange={(e) => setFormData({ ...formData, team_subtitle: e.target.value })}
+                  placeholder="Ex: As pessoas por trás do Gogh Lab"
+                />
+                <div className="border-t border-gray-200 pt-4 mt-4">
+                  <TeamMembersManager
+                    value={formData.team_members || []}
+                    onChange={(members) => setFormData({ ...formData, team_members: members })}
+                    label="Membros da equipe"
+                  />
+                </div>
+              </>
+            )}
+          </div>
+        )
       case 'spline':
         return (
           <div className="space-y-4">
@@ -1383,6 +1574,132 @@ export default function HomepageEditorPage() {
                   <p className="text-sm text-amber-800">
                     <strong>🤝 Dica:</strong> Faça upload das logos de cada plataforma (PNG ou SVG recomendado).
                     Plataformas sem logo personalizada usarão ícones padrão se disponíveis.
+                  </p>
+                </div>
+              </>
+            )}
+          </div>
+        )
+      case 'animated_beam':
+        const handleBeamIconUpload = async (index: number, file: File, setUploading: (u: boolean) => void) => {
+          setUploading(true)
+          try {
+            const fd = new FormData()
+            fd.append('file', file)
+            fd.append('folder', 'logos')
+            fd.append('preserveTransparency', 'true')
+            const res = await fetch('/api/upload', { method: 'POST', body: fd })
+            const data = await res.json()
+            if (!res.ok || !data.success) throw new Error(data.error || 'Erro no upload')
+            const updated = [...(formData.animated_beam_items || [])]
+            updated[index] = { ...updated[index], icon_url: data.url }
+            setFormData({ ...formData, animated_beam_items: updated })
+            toast.success('Ícone enviado!')
+          } catch (err: any) {
+            toast.error(err.message || 'Erro no upload')
+          } finally {
+            setUploading(false)
+          }
+        }
+        const handleBeamCenterUpload = async (file: File, setUploading: (u: boolean) => void) => {
+          setUploading(true)
+          try {
+            const fd = new FormData()
+            fd.append('file', file)
+            fd.append('folder', 'logos')
+            fd.append('preserveTransparency', 'true')
+            const res = await fetch('/api/upload', { method: 'POST', body: fd })
+            const data = await res.json()
+            if (!res.ok || !data.success) throw new Error(data.error || 'Erro no upload')
+            setFormData({ ...formData, animated_beam_center_icon_url: data.url })
+            toast.success('Ícone central enviado!')
+          } catch (err: any) {
+            toast.error(err.message || 'Erro no upload')
+          } finally {
+            setUploading(false)
+          }
+        }
+        return (
+          <div className="space-y-4">
+            <Switch
+              label="Habilitar Fluxo de Integrações (Animated Beam)"
+              checked={formData.animated_beam_enabled ?? false}
+              onCheckedChange={(checked) => setFormData({ ...formData, animated_beam_enabled: checked })}
+            />
+            {formData.animated_beam_enabled !== false && (
+              <>
+                <Input
+                  label="Título da seção"
+                  value={formData.animated_beam_title || ''}
+                  onChange={(e) => setFormData({ ...formData, animated_beam_title: e.target.value })}
+                  placeholder="Ex: Integrações"
+                />
+                <Input
+                  label="Subtítulo"
+                  value={formData.animated_beam_subtitle || ''}
+                  onChange={(e) => setFormData({ ...formData, animated_beam_subtitle: e.target.value })}
+                  placeholder="Ex: Plataformas e ferramentas integradas"
+                />
+                <div className="border-t pt-4 mt-4">
+                  <label className="block text-sm font-medium mb-2">Ícone central (hub)</label>
+                  <BeamCenterUploadRow
+                    centerIconUrl={formData.animated_beam_center_icon_url}
+                    onUpload={handleBeamCenterUpload}
+                    onClear={() => setFormData({ ...formData, animated_beam_center_icon_url: null })}
+                  />
+                </div>
+                <div className="border-t pt-4 mt-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <label className="block text-sm font-medium">Ícones laterais ({formData.animated_beam_items?.length || 0})</label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFormData({
+                          ...formData,
+                          animated_beam_items: [...(formData.animated_beam_items || []), { id: Date.now().toString(), icon_url: '', label: '' }],
+                        })
+                      }}
+                      className="text-sm bg-gogh-yellow text-gogh-black px-3 py-1 rounded-lg hover:bg-gogh-yellow/90"
+                    >
+                      + Adicionar ícone
+                    </button>
+                  </div>
+                  <div className="space-y-3 max-h-96 overflow-y-auto">
+                    {(formData.animated_beam_items || []).map((beamItem, index) => (
+                      <BeamIconItem
+                        key={beamItem.id}
+                        item={beamItem}
+                        index={index}
+                        total={(formData.animated_beam_items || []).length}
+                        onUpdate={(updated) => {
+                          const u = [...(formData.animated_beam_items || [])]
+                          u[index] = updated
+                          setFormData({ ...formData, animated_beam_items: u })
+                        }}
+                        onRemove={() => {
+                          const u = (formData.animated_beam_items || []).filter((_, i) => i !== index)
+                          setFormData({ ...formData, animated_beam_items: u })
+                        }}
+                        onMoveUp={() => {
+                          if (index === 0) return
+                          const u = [...(formData.animated_beam_items || [])]
+                          ;[u[index - 1], u[index]] = [u[index], u[index - 1]]
+                          setFormData({ ...formData, animated_beam_items: u })
+                        }}
+                        onMoveDown={() => {
+                          if (index === (formData.animated_beam_items || []).length - 1) return
+                          const u = [...(formData.animated_beam_items || [])]
+                          ;[u[index], u[index + 1]] = [u[index + 1], u[index]]
+                          setFormData({ ...formData, animated_beam_items: u })
+                        }}
+                        onUpload={handleBeamIconUpload}
+                      />
+                    ))}
+                  </div>
+                </div>
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                  <p className="text-sm text-amber-800">
+                    <strong>⚡ Dica:</strong> Adicione ícones (upload de imagem) para cada “bolinha” lateral. O ícone central pode ser o logo do site ou um upload próprio. As linhas animadas ligam cada ícone lateral ao centro.
                   </p>
                 </div>
               </>

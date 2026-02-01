@@ -16,6 +16,8 @@ import { PricingSection } from './PricingSection'
 import { HomepageVideo } from './HomepageVideo'
 import { TrustedBySection } from './TrustedBySection'
 import { AwardSection } from './AwardSection'
+import { AnimatedBeamSection } from './AnimatedBeamSection'
+import { TeamSection } from './TeamSection'
 import { Highlighter } from '@/components/ui/highlighter'
 import { AuroraText } from '@/components/ui/aurora-text'
 import { FeaturesSectionWithHoverEffects } from '@/components/ui/feature-section-with-hover-effects'
@@ -411,17 +413,52 @@ export function HomepageSections({
     )
   }
 
+  // Função para renderizar seção Nossa Equipe (testimonial style com Instagram)
+  const renderTeamSection = () => {
+    if (homepageContent.team_enabled === false || sectionVisibility.team === false) return null
+    const members = Array.isArray(homepageContent.team_members) ? homepageContent.team_members : []
+    if (members.length === 0) return null
+    return (
+      <TeamSection
+        enabled={homepageContent.team_enabled !== false}
+        title={homepageContent.team_title}
+        subtitle={homepageContent.team_subtitle}
+        members={members}
+        autoplay={true}
+      />
+    )
+  }
+
+  // Função para renderizar seção Animated Beam (integrações / fluxo de plataformas)
+  const renderAnimatedBeamSection = () => {
+    if (homepageContent.animated_beam_enabled === false || sectionVisibility.animated_beam === false) return null
+    const items = Array.isArray(homepageContent.animated_beam_items) ? homepageContent.animated_beam_items : []
+    if (items.length === 0) return null
+    return (
+      <AnimatedBeamSection
+        enabled={homepageContent.animated_beam_enabled !== false}
+        title={homepageContent.animated_beam_title}
+        subtitle={homepageContent.animated_beam_subtitle}
+        items={items}
+        center_icon_url={homepageContent.animated_beam_center_icon_url}
+        site_logo={siteSettings?.site_logo}
+      />
+    )
+  }
+
   // Mapear seções para funções de renderização
   const sectionRenderers: Record<string, () => JSX.Element | null> = {
     hero: renderHeroSection,
     video: renderVideoSection,
     trusted_by: renderTrustedBySection,
+    animated_beam: renderAnimatedBeamSection,
     award: renderAwardSection,
     services: renderServicesSection,
     features: renderFeaturesSection,
     comparison: renderComparisonSection,
     notifications: renderNotificationsSection,
     testimonials: renderTestimonialsSection,
+    team: renderTeamSection,
     spline: renderSplineSection,
     pricing: renderPricingSection,
     contact: renderContactSection,
@@ -430,7 +467,7 @@ export function HomepageSections({
   // Garantir que sectionOrder seja um array válido
   const validSectionOrder = Array.isArray(sectionOrder) && sectionOrder.length > 0 
     ? sectionOrder 
-    : ['hero', 'video', 'trusted_by', 'features', 'services', 'comparison', 'notifications', 'testimonials', 'spline', 'pricing', 'contact']
+    : ['hero', 'video', 'trusted_by', 'features', 'services', 'comparison', 'notifications', 'testimonials', 'team', 'spline', 'pricing', 'contact']
   
   return (
     <>

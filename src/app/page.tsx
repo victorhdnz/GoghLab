@@ -80,6 +80,9 @@ async function getSiteSettings() {
       if (!Array.isArray(homepageContent.testimonials_items)) {
         homepageContent.testimonials_items = []
       }
+      if (!Array.isArray(homepageContent.team_members)) {
+        homepageContent.team_members = []
+      }
       if (!Array.isArray(homepageContent.section_order)) {
         homepageContent.section_order = ['hero', 'services', 'comparison', 'notifications', 'testimonials', 'contact']
       }
@@ -171,6 +174,15 @@ export default async function Home() {
         sectionOrder = [...sectionOrder, 'testimonials']
       }
     }
+    if (!sectionOrder.includes('team')) {
+      const contactIndex = sectionOrder.indexOf('contact')
+      if (contactIndex >= 0) {
+        sectionOrder = [...sectionOrder]
+        sectionOrder.splice(contactIndex, 0, 'team')
+      } else {
+        sectionOrder = [...sectionOrder, 'team']
+      }
+    }
     if (!sectionOrder.includes('spline')) {
       const contactIndex = sectionOrder.indexOf('contact')
       if (contactIndex >= 0) {
@@ -198,11 +210,12 @@ export default async function Home() {
     comparison: true,
     notifications: true,
     testimonials: true,
+    team: true,
     spline: true,
     pricing: false, // Desabilitado por padrão até ser configurado
     contact: true,
   }
-  // Garantir que 'video', 'notifications', 'testimonials', 'spline' e 'pricing' tenham visibilidade definida
+  // Garantir que 'video', 'notifications', 'testimonials', 'team', 'spline' e 'pricing' tenham visibilidade definida
   if (sectionVisibility.video === undefined) {
     sectionVisibility = { ...sectionVisibility, video: false }
   }
@@ -211,6 +224,9 @@ export default async function Home() {
   }
   if (sectionVisibility.testimonials === undefined) {
     sectionVisibility = { ...sectionVisibility, testimonials: true }
+  }
+  if (sectionVisibility.team === undefined) {
+    sectionVisibility = { ...sectionVisibility, team: true }
   }
   if (sectionVisibility.spline === undefined) {
     sectionVisibility = { ...sectionVisibility, spline: true }
