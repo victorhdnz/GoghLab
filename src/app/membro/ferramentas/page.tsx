@@ -801,7 +801,7 @@ export default function ToolsPage() {
                         type="button"
                         onClick={() => setCredentialsModal({
                           toolName: t.name,
-                          emailOrUser: accessData.access_link,
+                          emailOrUser: accessData.access_link ?? '',
                           password: accessData.password,
                         })}
                         className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gogh-yellow text-gogh-black font-medium rounded-lg hover:bg-gogh-yellow/90 mb-3"
