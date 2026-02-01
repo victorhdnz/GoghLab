@@ -45,6 +45,7 @@ interface ToolFromDB {
   name: string
   slug: string
   tutorial_video_url: string | null
+  requires_8_days?: boolean
 }
 
 interface ToolAccess {
@@ -113,7 +114,8 @@ export default function SolicitacoesPage() {
       const slug = toolId ? toolsMap[toolId]?.slug : undefined
       loadingForRef.current = { userId, toolId }
       loadToolAccessForTicket(userId, toolId, slug)
-      loadSubscriptionInfo(selectedTicket.user_id)
+      const tool = toolId ? toolsMap[toolId] : undefined
+      loadSubscriptionInfo(selectedTicket.user_id, tool)
     } else {
       loadingForRef.current = null
       setSubscriptionInfo(null)
@@ -200,7 +202,7 @@ export default function SolicitacoesPage() {
         if (toolIds.length > 0) {
           const { data: toolsData } = await (supabase as any)
             .from('tools')
-            .select('id, name, slug, tutorial_video_url')
+            .select('id, name, slug, tutorial_video_url, requires_8_days')
             .in('id', toolIds)
           if (toolsData) {
             toolsData.forEach((t: ToolFromDB) => { toolsMapNext[t.id] = t })
@@ -296,28 +298,31 @@ export default function SolicitacoesPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error('Usuário não autenticado')
 
-      const { data: subscriptionData } = await (supabase as any)
-        .from('subscriptions')
-        .select('current_period_start, created_at')
-        .eq('user_id', selectedTicket.user_id)
-        .eq('status', 'active')
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle()
+      // Só exige 8 dias se a ferramenta tiver "Exigir 8 dias" ativado
+      if (tool.requires_8_days !== false) {
+        const { data: subscriptionData } = await (supabase as any)
+          .from('subscriptions')
+          .select('current_period_start, created_at')
+          .eq('user_id', selectedTicket.user_id)
+          .eq('status', 'active')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle()
 
-      if (subscriptionData) {
-        const EIGHT_DAYS_MS = 8 * 24 * 60 * 60 * 1000
-        const subscriptionStartDate = subscriptionData.current_period_start
-          ? new Date(subscriptionData.current_period_start)
-          : subscriptionData.created_at ? new Date(subscriptionData.created_at) : null
-        if (subscriptionStartDate) {
-          const msSinceStart = new Date().getTime() - subscriptionStartDate.getTime()
-          if (msSinceStart < EIGHT_DAYS_MS) {
-            const msRemaining = subscriptionStartDate.getTime() + EIGHT_DAYS_MS - Date.now()
-            const daysRemaining = Math.ceil(msRemaining / (1000 * 60 * 60 * 24))
-            toast.error(`Não é possível liberar o acesso ainda. O cliente precisa aguardar ${daysRemaining} dia${daysRemaining > 1 ? 's' : ''} para completar o período de arrependimento (CDC).`)
-            setSaving(false)
-            return
+        if (subscriptionData) {
+          const EIGHT_DAYS_MS = 8 * 24 * 60 * 60 * 1000
+          const subscriptionStartDate = subscriptionData.current_period_start
+            ? new Date(subscriptionData.current_period_start)
+            : subscriptionData.created_at ? new Date(subscriptionData.created_at) : null
+          if (subscriptionStartDate) {
+            const msSinceStart = new Date().getTime() - subscriptionStartDate.getTime()
+            if (msSinceStart < EIGHT_DAYS_MS) {
+              const msRemaining = subscriptionStartDate.getTime() + EIGHT_DAYS_MS - Date.now()
+              const daysRemaining = Math.ceil(msRemaining / (1000 * 60 * 60 * 24))
+              toast.error(`Não é possível liberar o acesso ainda. O cliente precisa aguardar ${daysRemaining} dia${daysRemaining > 1 ? 's' : ''} para completar o período de arrependimento (CDC).`)
+              setSaving(false)
+              return
+            }
           }
         }
       }
@@ -659,10 +664,12 @@ export default function SolicitacoesPage() {
                                 </p>
                               )}
                             </>
+                          ) : subscriptionInfo.canRelease ? (
+                            <p className="text-sm text-emerald-700">
+                              Esta ferramenta não exige espera de 8 dias. Você pode liberar o acesso normalmente.
+                            </p>
                           ) : (
-                            <p className={`text-sm ${
-                              subscriptionInfo.canRelease ? 'text-emerald-700' : 'text-blue-700'
-                            }`}>
+                            <p className="text-sm text-blue-700">
                               Não foi possível verificar o período da assinatura. Verifique manualmente antes de liberar.
                             </p>
                           )}
