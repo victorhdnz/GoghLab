@@ -267,10 +267,11 @@ export const PricingComponent: React.FC<PricingComponentProps> = ({
               opacity: { duration: 0.5 },
             }}
             className={cn(
-              'flex flex-col',
+              'flex flex-col relative',
               !isFeatured && 'mt-5',
               index === 0 && 'origin-right',
               index === plans.length - 1 && 'origin-left',
+              plans.length >= 3 && index === 1 ? 'z-10' : 'z-0',
             )}
           >
           <Card
@@ -356,7 +357,7 @@ export const PricingComponent: React.FC<PricingComponentProps> = ({
               {plan.planType === 'service' && plan.serviceOptions && plan.serviceOptions.length > 0 && (
                 <div className="mt-4">
                   <h4 className="text-sm font-semibold mb-3 text-gray-700">Serviços inclusos na sua escolha:</h4>
-                  <div className="space-y-2 md:max-h-[220px] md:overflow-y-auto md:pr-1 md:-mr-1">
+                  <div className="space-y-2 max-h-[240px] overflow-y-auto pr-1 -mr-1 md:max-h-[220px]">
                     {plan.serviceOptions.map(option => {
                       const selectedIds = getSelectedOptionsForPlan(plan)
                       const isSelected = selectedIds.includes(option.id)

@@ -160,39 +160,33 @@ export function PricingSection({
           featureCategories={featureCategories}
         />
         
-        {/* Terms - Assinatura de Planos */}
+        {/* Terms - Assinatura de Planos (resumido) */}
         <div className="max-w-6xl mx-auto mt-12 p-6 bg-white/50 rounded-lg border border-[#F7C948]/20">
-          <p className="text-center text-sm text-gray-700 mb-3">
-            <strong>Importante:</strong> Ao assinar qualquer plano, você concorda expressamente com os{' '}
+          <p className="text-center text-sm text-gray-700">
+            Ao assinar qualquer plano, você concorda expressamente com os{' '}
             <Link 
               href="/termos-assinatura-planos" 
               className="underline hover:text-[#F7C948] font-semibold text-[#0A0A0A]"
             >
               Termos de Assinatura e Planos
             </Link>
-            , que incluem informações detalhadas sobre:
+            .
+            {hasServicePlan && (
+              <>
+                {' '}
+                Para serviços personalizados, consulte também os{' '}
+                <Link
+                  href="/termos?termo=termos-servicos"
+                  className="underline hover:text-[#F7C948] font-semibold text-[#0A0A0A]"
+                >
+                  Termos de Serviços Personalizados
+                </Link>
+                .
+              </>
+            )}
           </p>
-          <ul className="text-center text-xs text-gray-600 space-y-1 max-w-2xl mx-auto">
-            <li>• Limites de uso mensais de cada recurso (mensagens de IA, cursos, ferramentas Pro, etc.)</li>
-            <li>• Política de cancelamento e reembolso (7 dias de arrependimento conforme CDC)</li>
-            <li>• Renovação automática e alterações nos planos</li>
-            <li>• Limitação de responsabilidade e isenção de garantias</li>
-            <li>• Propriedade intelectual e uso adequado dos recursos</li>
-          </ul>
-          {hasServicePlan && (
-            <p className="text-center text-xs text-gray-600 mt-4">
-              Para serviços personalizados, consulte também os{' '}
-              <Link
-                href="/termos?termo=termos-servicos"
-                className="underline hover:text-[#F7C948] font-semibold text-[#0A0A0A]"
-              >
-                Termos de Serviços Personalizados
-              </Link>
-              .
-            </p>
-          )}
-          <p className="text-center text-xs text-gray-500 mt-4">
-            Leia atentamente os termos antes de realizar a assinatura. Dúvidas? Entre em contato conosco.
+          <p className="text-center text-xs text-gray-500 mt-3">
+            Leia os termos antes de assinar. Dúvidas? Entre em contato.
           </p>
         </div>
       </FadeInElement>

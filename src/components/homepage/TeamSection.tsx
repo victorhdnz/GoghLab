@@ -146,7 +146,7 @@ export function TeamSection({
                         rel="noopener noreferrer"
                         className={cn(
                           'inline-flex items-center gap-2 mt-2 text-sm font-medium text-[#0A0A0A]',
-                          'hover:text-[#E4405F] transition-colors'
+                          'hover:text-[#E5A800] focus:text-[#E5A800] transition-colors'
                         )}
                         aria-label={`Instagram de ${members[active]?.name}`}
                       >
