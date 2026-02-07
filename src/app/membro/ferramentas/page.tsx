@@ -724,7 +724,7 @@ export default function ToolsPage() {
           className="bg-gradient-to-r from-gogh-yellow/20 to-amber-100 rounded-xl p-5 border border-gogh-yellow/30"
         >
           <p className="text-sm text-gogh-grayDark">
-            Ao solicitar acesso, nossa equipe liberará em até <strong>24 horas úteis</strong>. O link do vídeo tutorial aparece em cada ferramenta.
+            Ao solicitar acesso, nossa equipe liberará em até <strong>24 horas úteis</strong>.
           </p>
         </motion.div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
