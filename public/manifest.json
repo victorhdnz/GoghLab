@@ -1,0 +1,11 @@
+{
+  "name": "Gogh Lab - Criatividade guiada por tecnologia",
+  "short_name": "Gogh Lab",
+  "description": "Plataforma com agentes de IA, cursos de edição, ferramentas (Canva, CapCut) e prompts para criação de conteúdo.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F5F1E8",
+  "theme_color": "#F7C948",
+  "lang": "pt-BR",
+  "orientation": "portrait-primary"
+}

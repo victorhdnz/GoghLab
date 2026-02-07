@@ -10,6 +10,7 @@ import { createServerClient } from '@/lib/supabase/server'
 import { NotFoundProvider } from '@/contexts/NotFoundContext'
 import { Providers } from '@/components/providers/Providers'
 import { MetaPixelWrapper } from '@/components/analytics/MetaPixelWrapper'
+import { JsonLd } from '@/components/seo/JsonLd'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -223,7 +224,28 @@ export async function generateMetadata(): Promise<Metadata> {
     metadataBase: new URL(siteUrl),
     title: siteTitle,
     description: siteDescription,
-    keywords: ['serviços digitais', 'criação de sites', 'tráfego pago', 'marketing digital', 'gestão de redes sociais', 'Gogh Lab', 'agentes de IA', siteName],
+    alternates: { canonical: siteUrl },
+    keywords: [
+      'Gogh Lab',
+      siteName,
+      'agentes de IA',
+      'inteligência artificial',
+      'IA para criação de conteúdo',
+      'cursos de edição',
+      'Canva Pro',
+      'CapCut Pro',
+      'ferramentas de criação',
+      'prompts para IA',
+      'ChatGPT',
+      'criação de conteúdo',
+      'marketing digital',
+      'edição de vídeo',
+      'edição de fotos',
+      'tráfego pago',
+      'redes sociais',
+      'serviços digitais',
+      'plataforma de assinatura',
+    ],
     authors: [{ name: siteName }],
     creator: siteName,
     publisher: siteName,
@@ -274,6 +296,7 @@ export default function RootLayout({
   return (
     <html lang="pt-BR">
       <body className={inter.className}>
+        <JsonLd />
         <MetaPixelWrapper />
         <ScrollEnabler />
         <Providers>
