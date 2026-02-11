@@ -15,6 +15,7 @@ import {
 import { cn } from '@/lib/utils'
 import { useCredits } from '@/hooks/useCredits'
 import { AI_Prompt } from '@/components/ui/animated-ai-input'
+import toast from 'react-hot-toast'
 import { TextShimmer } from '@/components/ui/text-shimmer'
 import { ChatWithActions, type ChatMessage } from '@/components/ui/ai-actions'
 import { Button } from '@/components/ui/button'
@@ -134,16 +135,19 @@ export default function CriarGerarPage() {
   const handleSend = useCallback(
     async (message: string, _model?: string) => {
       if (!isAuthenticated) {
+        toast('Faça login para gerar.', { icon: '🔐' })
         router.push('/login?redirect=' + encodeURIComponent('/criar/gerar'))
         return
       }
       if (!hasActiveSubscription) {
+        toast('Assine um plano para usar a criação com IA.', { icon: '📋' })
         router.push('/precos')
         return
       }
       const result = await deduct(activeTab)
       if (!result.ok && result.code === 'insufficient_credits') {
-        setShowCreditModal(true)
+        toast('Créditos insuficientes. Redirecionando para comprar mais.')
+        router.push('/conta#usage')
         return
       }
       if (!result.ok) return
@@ -164,16 +168,19 @@ export default function CriarGerarPage() {
   const handleGenerateWithPrompt = useCallback(
     async (promptItem: CreationPromptItem) => {
       if (!isAuthenticated) {
+        toast('Faça login para gerar.', { icon: '🔐' })
         router.push('/login?redirect=' + encodeURIComponent('/criar/gerar'))
         return
       }
       if (!hasActiveSubscription) {
+        toast('Assine um plano para usar a criação com IA.', { icon: '📋' })
         router.push('/precos')
         return
       }
       const result = await deduct(activeTab)
       if (!result.ok && result.code === 'insufficient_credits') {
-        setShowCreditModal(true)
+        toast('Créditos insuficientes. Redirecionando para comprar mais.')
+        router.push('/conta#usage')
         return
       }
       if (!result.ok) return

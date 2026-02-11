@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { DashboardNavigation } from '@/components/dashboard/DashboardNavigation'
 import { Button } from '@/components/ui/button'
@@ -46,8 +46,6 @@ export default function CriarPromptsPage() {
   const [galleryUseCreationPrompts, setGalleryUseCreationPrompts] = useState(false)
   const [internalTab, setInternalTab] = useState<InternalTab>('prompts')
   const [costByActionGeneral, setCostByActionGeneral] = useState<Record<CreditActionId, number>>({ ...DEFAULT_COST_BY_ACTION })
-  const promptsRef = useRef<CreationPromptItem[]>([])
-  promptsRef.current = prompts
 
   useEffect(() => {
     load()
@@ -135,7 +133,6 @@ export default function CriarPromptsPage() {
       })
       if (!success) throw new Error(error?.message)
       toast.success('Capa atualizada e salva.')
-      promptsRef.current = toSave
     } catch (e: any) {
       console.error(e)
       toast.error(e?.message ?? 'Erro ao salvar')
@@ -348,10 +345,11 @@ export default function CriarPromptsPage() {
                       <ImageUploader
                         value={item.coverImage}
                         onChange={(url) => {
-                          const current = promptsRef.current
-                          const next = current.map((p, i) => i === index ? { ...p, coverImage: url } : p)
-                          setPrompts(next)
-                          savePromptsToServer(next)
+                          setPrompts((prev) => {
+                            const next = prev.map((p, i) => i === index ? { ...p, coverImage: url } : p)
+                            savePromptsToServer(next)
+                            return next
+                          })
                         }}
                         placeholder="Imagem de destaque (opcional se tiver vídeo)"
                         cropType="banner"
@@ -364,12 +362,13 @@ export default function CriarPromptsPage() {
                         inputId={`video-cap-${item.id}`}
                         value={item.coverVideo || ''}
                         onChange={(url) => {
-                          const current = promptsRef.current
-                          const next = current.map((p, i) =>
-                            i === index ? { ...p, coverVideo: url && url.trim() ? url : undefined } : p
-                          )
-                          setPrompts(next)
-                          savePromptsToServer(next)
+                          setPrompts((prev) => {
+                            const next = prev.map((p, i) =>
+                              i === index ? { ...p, coverVideo: url && url.trim() ? url : undefined } : p
+                            )
+                            savePromptsToServer(next)
+                            return next
+                          })
                         }}
                         placeholder="Vídeo para card (opcional)"
                         folder="gallery-videos"
