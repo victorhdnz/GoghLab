@@ -205,7 +205,7 @@ export default async function Home() {
 
   return (
     <HomepageTracker>
-      <div className="min-h-screen bg-[#F5F1E8]">
+      <div className="bg-[#F5F1E8]">
         <HomepageSections
           homepageContent={homepageContent}
           siteSettings={siteSettings}

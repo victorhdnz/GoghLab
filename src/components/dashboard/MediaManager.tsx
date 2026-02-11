@@ -522,7 +522,7 @@ export function MediaManager({
                 ref={fileInputRef}
                 type="file"
                 multiple
-                accept={acceptedTypes.includes('video/*') ? '' : acceptedTypes.join(',')}
+                {...(acceptedTypes.includes('video/*') ? {} : { accept: acceptedTypes.join(',') })}
                 onChange={handleFileSelect}
                 className="hidden"
               />

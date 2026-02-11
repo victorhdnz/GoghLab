@@ -40,6 +40,13 @@ function isValidFileSize(size: number, isVideo: boolean = false): boolean {
   return size <= MAX_FILE_SIZE
 }
 
+// Detectar se é vídeo por MIME ou por extensão (iOS pode enviar file.type vazio)
+function isVideoFile(file: File): boolean {
+  if (file.type && file.type.startsWith('video/')) return true
+  const name = (file.name || '').toLowerCase()
+  return /\.(mp4|mov|m4v|webm|ogg|avi|mkv)$/.test(name)
+}
+
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData()
@@ -75,8 +82,8 @@ export async function POST(request: NextRequest) {
       }, { status: 500 })
     }
 
-    // Detectar tipo de arquivo
-    const isVideo = file.type.startsWith('video/')
+    // Detectar tipo de arquivo (por MIME ou extensão — iOS pode enviar type vazio)
+    const isVideo = isVideoFile(file)
     const resourceType = isVideo ? 'video' : 'image'
 
     // Validar tipo de arquivo

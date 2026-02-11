@@ -350,11 +350,11 @@ export default function CriarGerarPage() {
                 <input
                   ref={videoInputRef}
                   type="file"
-                  accept=""
                   onChange={(e) => {
                     const file = e.target.files?.[0]
                     if (!file) return
-                    const isVideo = file.type.startsWith('video/') || /\.(mp4|mov|m4v|webm|ogg|avi|mkv)$/i.test(file.name)
+                    const name = (file.name || '').toLowerCase()
+                    const isVideo = (file.type && file.type.startsWith('video/')) || /\.(mp4|mov|m4v|webm|ogg|avi|mkv)$/i.test(name)
                     if (!isVideo) {
                       toast.error('Selecione um vídeo (MP4, MOV, WebM, etc.).')
                       e.target.value = ''
