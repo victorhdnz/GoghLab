@@ -23,7 +23,7 @@ export async function GET() {
       .from('site_settings')
       .select('value')
       .eq('key', getCreditsConfigKey())
-      .maybeSingle()
+      .maybeSingle() as { data: { value: unknown } | null }
     const config = (configRow?.value as CreditsConfig) ?? null
 
     const { periodStart, periodEnd } = getMonthBounds()
