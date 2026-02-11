@@ -13,6 +13,7 @@ import type { CarouselApi } from "@/components/ui/carousel";
 import Image from "next/image";
 import Link from "next/link";
 import { getYouTubeEmbedUrl } from "@/lib/utils/youtube";
+import { SparklesText } from "@/components/ui/sparkles-text";
 
 export type GalleryHoverCarouselItem = {
   id: string;
@@ -24,6 +25,10 @@ export type GalleryHoverCarouselItem = {
   url?: string;
   /** Prompt para preencher no Criar com IA ao clicar em "Testar e criar" */
   prompt?: string;
+  /** Quando preenchido (espelho de creation_prompts), link abre o card desse prompt na página Criar */
+  promptId?: string;
+  /** Aba da página Criar (foto | video | roteiro | vangogh) */
+  tabId?: string;
   /** URL do vídeo no Cloudinary (upload) — usado na galeria */
   videoUrl?: string;
   /** URL do YouTube para cards do tipo video (legado; cursos continuam com YouTube) */
@@ -106,16 +111,16 @@ export default function GalleryHoverCarousel({
 
 
   return (
-    <section className="py-32 bg-background">
-      <div className="container mx-auto px-6">
-        <div className="mb-8 flex flex-col justify-between md:mb-14 md:flex-row md:items-end lg:mb-16">
+    <section className="py-12 sm:py-16 md:py-20 bg-background">
+      <div className="container mx-auto px-4 sm:px-6">
+        <div className="mb-6 sm:mb-8 flex flex-col justify-between md:flex-row md:items-end">
           <div className="max-w-2xl">
-            <h3 className="text-lg sm:text-xl lg:text-3xl font-medium text-gray-900 dark:text-white leading-relaxed">
-              {heading}{" "}
-              <span className="text-gray-500 dark:text-gray-400 text-sm sm:text-base lg:text-3xl">
-                {subtitle}
-              </span>
-            </h3>
+            <SparklesText
+              text={heading}
+              className="text-gray-900 dark:text-white"
+              colors={{ first: "#EAB308", second: "#0a0a0a" }}
+              sparklesCount={10}
+            />
           </div>
           <div className="flex gap-2 mt-4 md:mt-0">
             <Button
@@ -149,9 +154,9 @@ export default function GalleryHoverCarousel({
             }}
             className="relative w-full max-w-full"
           >
-            <CarouselContent className="hide-scrollbar w-full max-w-full md:ml-4 md:-mr-4">
+            <CarouselContent className="hide-scrollbar w-full max-w-full md:ml-2 md:-mr-2">
               {items.map((item) => (
-                <CarouselItem key={item.id} className="ml-6 md:max-w-[350px]">
+                <CarouselItem key={item.id} className="ml-4 md:ml-6 md:max-w-[280px] lg:max-w-[300px]">
                   {item.type === "video" && (item.videoUrl || item.youtubeUrl) ? (
                     <VideoCard
                       item={item}
@@ -219,27 +224,34 @@ export default function GalleryHoverCarousel({
 }
 
 function ImageCard({ item }: { item: GalleryHoverCarouselItem }) {
-  const className = "group block relative w-full aspect-video min-h-[200px] md:min-h-[220px]";
+  const className = "group block relative w-full aspect-video min-h-[140px] sm:min-h-[160px] md:min-h-[180px]";
   const content = (
-    <Card className="overflow-hidden rounded-xl h-full w-full rounded-3xl">
-      <div className="relative h-full w-full transition-all duration-500 group-hover:h-1/2">
+    <Card className="overflow-hidden rounded-xl h-full w-full rounded-2xl">
+      <div className="relative h-full w-full bg-muted/50 transition-all duration-500 group-hover:h-1/2">
         <Image
           width={400}
           height={225}
           src={item.image}
           alt={item.title}
-          className="h-full w-full object-cover object-center aspect-video"
+          className="h-full w-full object-contain object-center aspect-video"
+          sizes="(max-width: 768px) 260px, 300px"
         />
         <div className="absolute bottom-0 left-0 w-full h-20 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
       </div>
-      <div className="absolute bottom-0 left-0 w-full px-4 pb-3 transition-all duration-500 group-hover:h-1/2 group-hover:flex flex-col justify-center bg-background/95 backdrop-blur-sm opacity-0 group-hover:opacity-100">
-        <h3 className="text-lg font-medium md:text-xl">{item.title}</h3>
-        <p className="text-muted-foreground text-sm md:text-base line-clamp-2">
+      <div className="absolute bottom-0 left-0 w-full px-3 pb-2 transition-all duration-500 group-hover:h-1/2 group-hover:flex flex-col justify-center bg-background/95 backdrop-blur-sm opacity-0 group-hover:opacity-100">
+        <h3 className="text-base font-medium md:text-lg">{item.title}</h3>
+        <p className="text-muted-foreground text-xs md:text-sm line-clamp-2">
           {item.summary}
         </p>
-        <div className="flex gap-2 mt-2 flex-wrap">
-          {item.prompt && (
-            <Link href={`/criar?prompt=${encodeURIComponent(item.prompt)}`}>
+        <div className="flex gap-1.5 mt-1.5 flex-wrap">
+          {(item.prompt || item.promptId) && (
+            <Link
+              href={
+                item.promptId && item.tabId
+                  ? `/criar?promptId=${encodeURIComponent(item.promptId)}&tab=${encodeURIComponent(item.tabId)}`
+                  : `/criar?prompt=${encodeURIComponent(item.prompt ?? '')}`
+              }
+            >
               <Button size="sm" className="gap-1.5">
                 <Sparkles className="size-4" />
                 Testar e criar
@@ -275,10 +287,10 @@ function VideoCard({
   onPlay: () => void;
 }) {
   return (
-    <div className="group block relative w-full aspect-video min-h-[200px] md:min-h-[220px]">
-      <Card className="overflow-hidden rounded-xl h-full w-full rounded-3xl">
+    <div className="group block relative w-full aspect-video min-h-[140px] sm:min-h-[160px] md:min-h-[180px]">
+      <Card className="overflow-hidden rounded-xl h-full w-full rounded-2xl">
         <div
-          className="relative h-full w-full transition-all duration-500 group-hover:h-1/2 cursor-pointer"
+          className="relative h-full w-full bg-muted/50 transition-all duration-500 group-hover:h-1/2 cursor-pointer"
           onClick={onPlay}
         >
           <Image
@@ -286,7 +298,8 @@ function VideoCard({
             height={225}
             src={item.image}
             alt={item.title}
-            className="h-full w-full object-cover object-center aspect-video"
+            className="h-full w-full object-contain object-center aspect-video"
+            sizes="(max-width: 768px) 260px, 300px"
           />
           <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/30 transition-colors">
             <span className="rounded-full bg-white/90 p-4 text-black shadow-lg transition-transform group-hover:scale-110">
@@ -295,14 +308,21 @@ function VideoCard({
           </div>
           <div className="absolute bottom-0 left-0 w-full h-20 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
         </div>
-        <div className="absolute bottom-0 left-0 w-full px-4 pb-3 transition-all duration-500 group-hover:h-1/2 group-hover:flex flex-col justify-center bg-background/95 backdrop-blur-sm opacity-0 group-hover:opacity-100">
-          <h3 className="text-lg font-medium md:text-xl">{item.title}</h3>
-          <p className="text-muted-foreground text-sm md:text-base line-clamp-2">
+        <div className="absolute bottom-0 left-0 w-full px-3 pb-2 transition-all duration-500 group-hover:h-1/2 group-hover:flex flex-col justify-center bg-background/95 backdrop-blur-sm opacity-0 group-hover:opacity-100">
+          <h3 className="text-base font-medium md:text-lg">{item.title}</h3>
+          <p className="text-muted-foreground text-xs md:text-sm line-clamp-2">
             {item.summary}
           </p>
-          <div className="flex gap-2 mt-2 flex-wrap items-center">
-            {item.prompt && (
-              <Link href={`/criar?prompt=${encodeURIComponent(item.prompt)}`} onClick={(e) => e.stopPropagation()}>
+          <div className="flex gap-1.5 mt-1.5 flex-wrap items-center">
+            {(item.prompt || item.promptId) && (
+              <Link
+                href={
+                  item.promptId && item.tabId
+                    ? `/criar?promptId=${encodeURIComponent(item.promptId)}&tab=${encodeURIComponent(item.tabId)}`
+                    : `/criar?prompt=${encodeURIComponent(item.prompt ?? '')}`
+                }
+                onClick={(e) => e.stopPropagation()}
+              >
                 <Button size="sm" className="gap-1.5">
                   <Sparkles className="size-4" />
                   Testar e criar

@@ -4,12 +4,13 @@ import React from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
-import { Home, CreditCard, MessageCircle, Sparkles, Wrench, BookOpen, User } from 'lucide-react'
+import { Home, CreditCard, MessageCircle, Sparkles, Wrench, BookOpen, User, Menu } from 'lucide-react'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/contexts/AuthContext'
 import type { LucideIcon } from 'lucide-react'
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
 
 interface NavLinkItem {
   label: string
@@ -17,15 +18,17 @@ interface NavLinkItem {
   icon: LucideIcon
   isHash?: boolean
   highlight?: boolean
+  /** No mobile: se true, fica na barra; se false, vai para o menu hamburger */
+  showOnMobileBar?: boolean
 }
 
 const linkConfig: NavLinkItem[] = [
-  { label: 'Início', href: '/', icon: Home },
-  { label: 'Planos', href: '/precos', icon: CreditCard },
-  { label: 'Contato', href: '/#contact-section', icon: MessageCircle, isHash: true },
-  { label: 'Criar', href: '/criar', icon: Sparkles, highlight: true },
-  { label: 'Ferramentas', href: '/ferramentas', icon: Wrench },
-  { label: 'Cursos', href: '/cursos', icon: BookOpen },
+  { label: 'Início', href: '/', icon: Home, showOnMobileBar: true },
+  { label: 'Planos', href: '/precos', icon: CreditCard, showOnMobileBar: false },
+  { label: 'Contato', href: '/#contact-section', icon: MessageCircle, isHash: true, showOnMobileBar: false },
+  { label: 'Criar', href: '/criar', icon: Sparkles, highlight: true, showOnMobileBar: true },
+  { label: 'Ferramentas', href: '/ferramentas', icon: Wrench, showOnMobileBar: false },
+  { label: 'Cursos', href: '/cursos', icon: BookOpen, showOnMobileBar: false },
 ]
 
 export function FloatingHeader() {
@@ -35,16 +38,28 @@ export function FloatingHeader() {
   const [siteName, setSiteName] = React.useState('Gogh Lab')
   const [siteLogo, setSiteLogo] = React.useState<string | null>(null)
   const [logoLoaded, setLogoLoaded] = React.useState(false)
+  const [menuOpen, setMenuOpen] = React.useState(false)
 
-  // Rolagem para seção ao vir de outra página (ex.: clicou em Planos ou Contato)
+  // Rolagem para seção ao vir de outra página (ex.: clicou em Contato)
   React.useEffect(() => {
     if (pathname !== '/') return
     const id = sessionStorage.getItem('scrollToSection')
     if (!id) return
     sessionStorage.removeItem('scrollToSection')
-    setTimeout(() => {
-      document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    }, 400)
+    const scrollToEl = () => {
+      const el = document.getElementById(id)
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        return true
+      }
+      return false
+    }
+    if (scrollToEl()) return
+    const t0 = Date.now()
+    const interval = setInterval(() => {
+      if (scrollToEl() || Date.now() - t0 > 3000) clearInterval(interval)
+    }, 150)
+    return () => clearInterval(interval)
   }, [pathname])
 
   React.useEffect(() => {
@@ -71,13 +86,14 @@ export function FloatingHeader() {
 
   const handleHashLink = (e: React.MouseEvent<HTMLAnchorElement>, hash: string) => {
     e.preventDefault()
+    const sectionId = hash.replace('#', '')
     if (pathname !== '/') {
-      sessionStorage.setItem('scrollToSection', hash.replace('#', ''))
+      sessionStorage.setItem('scrollToSection', sectionId)
       router.push('/')
-    } else {
-      const el = document.getElementById(hash.replace('#', ''))
-      el?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      return
     }
+    const el = document.getElementById(sectionId)
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 
   return (
@@ -126,9 +142,9 @@ export function FloatingHeader() {
             </Link>
           ))}
         </div>
-        {/* Mobile/tablet: ícones para cada item (sem hamburger) */}
-        <div className="flex lg:hidden items-center gap-0.5 sm:gap-1 overflow-x-auto scrollbar-none flex-1 justify-end min-w-0">
-          {linkConfig.map((link) => {
+        {/* Mobile/tablet: poucos itens na barra + resto no menu hamburger */}
+        <div className="flex lg:hidden items-center gap-0.5 sm:gap-1 flex-1 justify-end min-w-0">
+          {linkConfig.filter((l) => l.showOnMobileBar).map((link) => {
             const Icon = link.icon
             const isActive = pathname === link.href || (link.href === '/' && pathname === '/')
             return (
@@ -151,6 +167,48 @@ export function FloatingHeader() {
               </Link>
             )
           })}
+          <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
+            <SheetTrigger asChild>
+              <button
+                type="button"
+                className="flex flex-col items-center justify-center rounded-lg p-1.5 sm:p-2 min-w-[44px] min-h-[44px] hover:bg-accent text-muted-foreground hover:text-foreground"
+                title="Menu"
+                aria-label="Abrir menu"
+              >
+                <Menu className="size-5 sm:size-5" />
+                <span className="text-[10px] sm:text-xs">Menu</span>
+              </button>
+            </SheetTrigger>
+            <SheetContent side="right" className="w-64 pt-8">
+              <nav className="flex flex-col gap-1">
+                {linkConfig.filter((l) => !l.showOnMobileBar).map((link) => {
+                  const Icon = link.icon
+                  return (
+                    <Link
+                      key={link.href}
+                      href={link.href}
+                      onClick={(e) => {
+                        setMenuOpen(false)
+                        if (link.isHash) {
+                          e.preventDefault()
+                          handleHashLink(e, link.href)
+                        }
+                      }}
+                      className={cn(
+                        'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
+                        link.highlight
+                          ? 'bg-primary text-primary-foreground hover:bg-primary/90'
+                          : 'hover:bg-accent text-foreground'
+                      )}
+                    >
+                      <Icon className="size-5 shrink-0" />
+                      {link.label}
+                    </Link>
+                  )
+                })}
+              </nav>
+            </SheetContent>
+          </Sheet>
         </div>
         <div className="flex items-center flex-shrink-0 pl-1">
           <Link href={isAuthenticated ? '/conta' : '/login'}>

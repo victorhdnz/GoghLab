@@ -21,7 +21,9 @@ import {
   Sparkles,
   RefreshCw,
   Wrench,
-  Coins
+  Coins,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react'
 
 type TabType = 'profile' | 'plan'
@@ -43,6 +45,7 @@ export default function AccountPage() {
   const [creditsBalancePurchased, setCreditsBalancePurchased] = useState<number | null>(null)
   const [creditPlans, setCreditPlans] = useState<Array<{ id: string; name: string; credits: number; stripe_checkout_url: string }>>([])
   const [planFeatures, setPlanFeatures] = useState<PlanFeatureItem[]>([])
+  const [planResourcesExpanded, setPlanResourcesExpanded] = useState(false)
   
   // Form state
   const [fullName, setFullName] = useState('')
@@ -604,18 +607,42 @@ export default function AccountPage() {
                 </div>
 
                 {hasActiveSubscription ? (
-                  <ul className="space-y-3">
-                    {planFeatures.length > 0 ? planFeatures.map((feature, index) => (
-                      <li key={index} className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-gogh-yellow/20 rounded-lg flex items-center justify-center">
-                          <feature.icon className="w-4 h-4 text-gogh-black" />
-                        </div>
-                        <span className="text-gogh-black">{feature.text}</span>
-                      </li>
-                    )) : (
-                      <li className="text-sm text-gogh-grayDark">Recursos do plano são configurados no dashboard. Nenhum recurso vinculado ao seu plano no momento.</li>
+                  <>
+                    <ul className="space-y-3">
+                      {planFeatures.length > 0 ?                       (() => {
+                        const initialCount = 4
+                        const visible = planResourcesExpanded ? planFeatures : planFeatures.slice(0, initialCount)
+                        return (
+                          <>
+                            {visible.map((feature, index) => (
+                              <li key={index} className="flex items-center gap-3">
+                                <div className="w-8 h-8 bg-gogh-yellow/20 rounded-lg flex items-center justify-center">
+                                  <feature.icon className="w-4 h-4 text-gogh-black" />
+                                </div>
+                                <span className="text-gogh-black">{feature.text}</span>
+                              </li>
+                            ))}
+                          </>
+                        )
+                      })() : (
+                        <li className="text-sm text-gogh-grayDark">Recursos do plano são configurados no dashboard. Nenhum recurso vinculado ao seu plano no momento.</li>
+                      )}
+                    </ul>
+                    {planFeatures.length > 4 && (
+                      <button
+                        type="button"
+                        onClick={() => setPlanResourcesExpanded((v) => !v)}
+                        className="mt-3 text-sm font-medium text-gogh-black hover:text-gogh-black/80 flex items-center gap-1"
+                      >
+                        {planResourcesExpanded ? (
+                          <> <ChevronUp className="w-4 h-4" /> Ver menos </>
+
+                        ) : (
+                          <> <ChevronDown className="w-4 h-4" /> Ver mais recursos ({planFeatures.length - 4}) </>
+                        )}
+                      </button>
                     )}
-                  </ul>
+                  </>
                 ) : (
                   <ul className="space-y-3">
                     {[

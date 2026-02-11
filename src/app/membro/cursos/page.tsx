@@ -157,13 +157,13 @@ export default function CoursesPage() {
   const capcutCourses = courses.filter(c => c.course_type === 'capcut' || (!c.course_type && c.title?.toLowerCase().includes('capcut')))
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8">
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 space-y-6 sm:space-y-8">
       {/* Header */}
       <div>
-        <h1 className="text-2xl lg:text-3xl font-bold text-gogh-black mb-2">
+        <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gogh-black mb-1 sm:mb-2">
           Cursos
         </h1>
-        <p className="text-gogh-grayDark">
+        <p className="text-sm sm:text-base text-gogh-grayDark">
           Aprenda novas habilidades com nossos cursos exclusivos de criação de conteúdo.
         </p>
       </div>
@@ -199,15 +199,15 @@ export default function CoursesPage() {
             <Palette className="w-5 h-5 text-purple-600" />
             <h2 className="text-xl font-bold text-gogh-black">Cursos de Canva</h2>
           </div>
-          <div className={`grid grid-cols-1 md:grid-cols-2 gap-6 ${!hasCourseAccess ? 'relative' : ''}`}>
+          <div className={`grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 ${!hasCourseAccess ? 'relative' : ''}`}>
             {!hasCourseAccess && (
               <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-10 rounded-xl flex items-center justify-center">
-                <div className="text-center p-8">
-                  <BookOpen className="w-16 h-16 text-gogh-grayDark mx-auto mb-4 opacity-50" />
-                  <h3 className="text-xl font-bold text-gogh-black mb-2">
+                <div className="text-center p-4 sm:p-6 md:p-8">
+                  <BookOpen className="w-12 h-12 sm:w-16 sm:h-16 text-gogh-grayDark mx-auto mb-3 sm:mb-4 opacity-50" />
+                  <h3 className="text-lg sm:text-xl font-bold text-gogh-black mb-2">
                     Cursos Exclusivos do Plano Pro
                   </h3>
-                  <p className="text-gogh-grayDark mb-6 max-w-md">
+                  <p className="text-sm text-gogh-grayDark mb-4 sm:mb-6 max-w-md mx-auto px-2">
                     Faça upgrade para o plano Pro e tenha acesso completo a todos os nossos cursos de Canva e CapCut.
                   </p>
                   <Link
@@ -233,15 +233,15 @@ export default function CoursesPage() {
             <Scissors className="w-5 h-5 text-emerald-600" />
             <h2 className="text-xl font-bold text-gogh-black">Cursos de CapCut</h2>
           </div>
-          <div className={`grid grid-cols-1 md:grid-cols-2 gap-6 ${!hasCourseAccess ? 'relative' : ''}`}>
+          <div className={`grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 ${!hasCourseAccess ? 'relative' : ''}`}>
             {!hasCourseAccess && (
               <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-10 rounded-xl flex items-center justify-center">
-                <div className="text-center p-8">
-                  <BookOpen className="w-16 h-16 text-gogh-grayDark mx-auto mb-4 opacity-50" />
-                  <h3 className="text-xl font-bold text-gogh-black mb-2">
+                <div className="text-center p-4 sm:p-6 md:p-8">
+                  <BookOpen className="w-12 h-12 sm:w-16 sm:h-16 text-gogh-grayDark mx-auto mb-3 sm:mb-4 opacity-50" />
+                  <h3 className="text-lg sm:text-xl font-bold text-gogh-black mb-2">
                     Cursos Exclusivos do Plano Pro
                   </h3>
-                  <p className="text-gogh-grayDark mb-6 max-w-md">
+                  <p className="text-sm text-gogh-grayDark mb-4 sm:mb-6 max-w-md mx-auto px-2">
                     Faça upgrade para o plano Pro e tenha acesso completo a todos os nossos cursos de Canva e CapCut.
                   </p>
                   <Link
@@ -301,12 +301,12 @@ function CourseCard({
       <button
         type="button"
         onClick={() => setExpanded(!expanded)}
-        className="w-full p-6 border-b border-gogh-grayLight text-left hover:bg-amber-50/50 transition-colors rounded-t-xl"
+        className="w-full p-4 sm:p-5 md:p-6 border-b border-gogh-grayLight text-left hover:bg-amber-50/50 transition-colors rounded-t-xl"
       >
-        <div className="flex items-start justify-between gap-3">
+        <div className="flex items-start justify-between gap-2 sm:gap-3">
           <div className="flex-1 min-w-0">
-            <h3 className="text-xl font-bold text-gogh-black mb-2">{course.title}</h3>
-            <p className="text-sm text-gogh-grayDark">{course.description}</p>
+            <h3 className="text-base sm:text-lg md:text-xl font-bold text-gogh-black mb-1 sm:mb-2">{course.title}</h3>
+            <p className="text-xs sm:text-sm text-gogh-grayDark line-clamp-2">{course.description}</p>
             <div className="flex items-center gap-4 mt-4 text-sm text-gogh-grayDark">
               <span className="flex items-center gap-1">
                 <Video className="w-4 h-4" />
@@ -322,7 +322,7 @@ function CourseCard({
 
       {/* Lessons List - visível apenas quando expandido */}
       {expanded && (
-      <div className="p-6">
+      <div className="p-4 sm:p-5 md:p-6">
         {hasAccess ? (
           <div className="space-y-2">
             {course.lessons && course.lessons.length > 0 ? (

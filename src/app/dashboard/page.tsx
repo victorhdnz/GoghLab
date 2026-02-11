@@ -62,6 +62,13 @@ function DashboardContent() {
           icon: Sparkles,
           color: 'bg-yellow-500',
         },
+        {
+          title: 'Prompts de Criação',
+          description: 'Crie e edite os prompts da página Criar com IA e espelhe no carrossel da homepage',
+          href: '/dashboard/criar-prompts',
+          icon: Sparkles,
+          color: 'bg-violet-500',
+        },
       ],
     },
     {

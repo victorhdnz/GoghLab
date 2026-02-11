@@ -1,6 +1,6 @@
 'use client'
 
-import { ArrowRight, Bot, Check, ChevronDown, Paperclip } from 'lucide-react'
+import { ArrowRight, Bot, Check, ChevronDown, Paperclip, Zap } from 'lucide-react'
 import React, { useState, useRef, useCallback, useEffect } from 'react'
 import { Textarea } from '@/components/ui/textarea'
 import { cn } from '@/lib/utils'
@@ -130,9 +130,11 @@ export interface AI_PromptProps {
   className?: string
   /** Valor inicial (ex.: prompt vindo da homepage "Testar e criar") */
   initialValue?: string
+  /** Custo em créditos para exibir no botão Gerar (ex.: 5) */
+  creditCost?: number | null
 }
 
-export function AI_Prompt({ placeholder = 'O que posso criar para você?', onSend, className, initialValue }: AI_PromptProps) {
+export function AI_Prompt({ placeholder = 'O que posso criar para você?', onSend, className, initialValue, creditCost }: AI_PromptProps) {
   const [value, setValue] = useState(initialValue ?? '')
   const { textareaRef, adjustHeight } = useAutoResizeTextarea({ minHeight: 72, maxHeight: 300 })
   const [selectedModel, setSelectedModel] = useState('GPT-4-1 Mini')
@@ -240,18 +242,26 @@ export function AI_Prompt({ placeholder = 'O que posso criar para você?', onSen
               <button
                 type="button"
                 className={cn(
-                  'rounded-lg bg-black/5 p-2 hover:bg-black/10 focus-visible:ring-1 focus-visible:ring-blue-500 focus-visible:ring-offset-0 dark:bg-white/5 dark:hover:bg-white/10'
+                  'rounded-lg px-3 py-2 text-sm font-medium transition-colors focus-visible:ring-1 focus-visible:ring-blue-500 focus-visible:ring-offset-0',
+                  value.trim()
+                    ? 'bg-primary text-primary-foreground hover:bg-primary/90 dark:bg-primary dark:text-primary-foreground'
+                    : 'bg-black/10 text-black/40 dark:bg-white/10 dark:text-white/40 cursor-not-allowed'
                 )}
-                aria-label="Enviar"
+                aria-label={creditCost != null ? `Gerar (${creditCost} créditos)` : 'Enviar'}
                 disabled={!value.trim()}
                 onClick={handleSend}
               >
-                <ArrowRight
-                  className={cn(
-                    'h-4 w-4 transition-opacity duration-200 dark:text-white',
-                    value.trim() ? 'opacity-100' : 'opacity-30'
-                  )}
-                />
+                {creditCost != null ? (
+                  <span className="flex items-center gap-1.5">
+                    Gerar
+                    <span className="flex items-center gap-0.5 opacity-90">
+                      <Zap className="h-3.5 w-3.5" />
+                      {creditCost}
+                    </span>
+                  </span>
+                ) : (
+                  <ArrowRight className="h-4 w-4" />
+                )}
               </button>
             </div>
           </div>

@@ -604,7 +604,7 @@ export default function ToolsPage() {
   const displayToolsForPreview = publicTools.length > 0 ? publicTools : []
   if (!user) {
     return (
-      <div className="max-w-4xl mx-auto space-y-8">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 space-y-6 sm:space-y-8">
         <div>
           <h1 className="text-2xl lg:text-3xl font-bold text-gogh-black mb-2">Ferramentas</h1>
           <p className="text-gogh-grayDark">
@@ -620,7 +620,7 @@ export default function ToolsPage() {
             Você está vendo o catálogo de ferramentas. Para solicitar acesso e usar, <strong>faça login</strong> e assine um plano.
           </p>
         </motion.div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
           {displayToolsForPreview.map((t) => (
             <motion.div
               key={t.id}
@@ -661,7 +661,7 @@ export default function ToolsPage() {
   // Logado mas sem assinatura: mostrar visual e redirecionar para planos ao tentar usar
   if (!hasActiveSubscription) {
     return (
-      <div className="max-w-4xl mx-auto space-y-8">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 space-y-6 sm:space-y-8">
         <div>
           <h1 className="text-2xl lg:text-3xl font-bold text-gogh-black mb-2">Ferramentas</h1>
           <p className="text-gogh-grayDark">
@@ -689,7 +689,7 @@ export default function ToolsPage() {
             </div>
           </div>
         </motion.div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
           {displayToolsForPreview.map((t) => (
             <motion.div
               key={t.id}
@@ -733,7 +733,7 @@ export default function ToolsPage() {
   // Se não for Pro, mostrar tela de bloqueio similar à de cursos
   if (!hasToolsAccess && hasActiveSubscription) {
     return (
-      <div className="max-w-4xl mx-auto space-y-8">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 space-y-6 sm:space-y-8">
         {/* Header */}
         <div>
           <h1 className="text-2xl lg:text-3xl font-bold text-gogh-black mb-2">
@@ -756,10 +756,10 @@ export default function ToolsPage() {
         </motion.div>
 
         {/* Tools Grid com Overlay */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 relative">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 relative">
           {/* Overlay de bloqueio */}
           <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-10 rounded-xl flex items-center justify-center">
-            <div className="text-center p-8">
+            <div className="text-center p-4 sm:p-6 md:p-8">
               <Wrench className="w-16 h-16 text-gogh-grayDark mx-auto mb-4 opacity-50" />
               <h3 className="text-xl font-bold text-gogh-black mb-2">
                 Ferramentas Exclusivas do Plano Pro
@@ -835,7 +835,7 @@ export default function ToolsPage() {
       )
 
     return (
-      <div className="max-w-4xl mx-auto space-y-8">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 space-y-6 sm:space-y-8">
         <div>
           <h1 className="text-2xl lg:text-3xl font-bold text-gogh-black mb-2">Ferramentas</h1>
           <p className="text-gogh-grayDark">
@@ -851,7 +851,7 @@ export default function ToolsPage() {
             Ao solicitar acesso, nossa equipe liberará em até <strong>24 horas úteis</strong>.
           </p>
         </motion.div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
           {toolsFromPlan.map((t, index) => {
             const hasAccess = hasAccessForTool(t)
             const accessData = toolAccess.find(
@@ -1231,7 +1231,7 @@ export default function ToolsPage() {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white rounded-xl border border-gogh-grayLight shadow-sm p-8 text-center"
+        className="bg-white rounded-xl border border-gogh-grayLight shadow-sm p-4 sm:p-6 md:p-8 text-center"
       >
         <Wrench className="w-16 h-16 text-gogh-grayLight mx-auto mb-4" />
         <h3 className="text-lg font-semibold text-gogh-black mb-2">Nenhuma ferramenta no momento</h3>

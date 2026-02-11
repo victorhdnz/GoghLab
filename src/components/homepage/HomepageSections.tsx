@@ -409,11 +409,24 @@ export function HomepageSections({
     )
   }
 
-  // Função para renderizar seção Gallery (carrossel de imagens/vídeos gerados por IA)
+  // Função para renderizar seção Gallery (carrossel: prompts de criação ou cards manuais)
   const renderGallerySection = () => {
     if (homepageContent.gallery_enabled === false || sectionVisibility.gallery === false) return null
     const data = homepageContent.gallery_carousel
-    const items = Array.isArray(data?.items) ? (data.items as GalleryHoverCarouselItem[]) : []
+    const useCreationPrompts = homepageContent.gallery_use_creation_prompts === true && Array.isArray(homepageContent.creation_prompts) && homepageContent.creation_prompts.length > 0
+    const items: GalleryHoverCarouselItem[] = useCreationPrompts
+      ? (homepageContent.creation_prompts as any[]).map((p: any) => ({
+          id: p.id,
+          type: p.coverVideo ? 'video' : 'image',
+          title: p.title,
+          summary: p.subtitle ?? '',
+          image: p.coverImage ?? '',
+          prompt: p.prompt,
+          promptId: p.id,
+          tabId: p.tabId,
+          videoUrl: p.coverVideo,
+        }))
+      : (Array.isArray(data?.items) ? (data.items as GalleryHoverCarouselItem[]) : [])
     if (items.length === 0) return null
     return (
       <GalleryHoverCarousel

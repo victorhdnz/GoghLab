@@ -106,20 +106,20 @@ export function FeaturesSectionWithHoverEffects({
   className,
 }: FeaturesSectionWithHoverEffectsProps) {
   return (
-    <section className={cn("py-16 md:py-24 px-4 bg-gogh-beige", className)}>
-      <div className="max-w-7xl mx-auto">
+    <section className={cn("py-10 md:py-14 px-4 bg-gogh-beige", className)}>
+      <div className="max-w-6xl mx-auto">
         {/* Header */}
-        <div className="text-center mb-12">
-          <h2 className="text-3xl sm:text-4xl font-bold text-gogh-black mb-4">
+        <div className="text-center mb-8">
+          <h2 className="text-2xl sm:text-3xl font-bold text-gogh-black mb-2">
             {title}
           </h2>
-          <p className="text-lg text-gogh-grayDark max-w-2xl mx-auto">
+          <p className="text-base text-gogh-grayDark max-w-xl mx-auto">
             {subtitle}
           </p>
         </div>
 
         {/* Features Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 relative z-10">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 relative z-10">
           {features.map((feature, index) => (
             <Feature 
               key={feature.id || feature.title} 
@@ -144,7 +144,7 @@ const Feature = ({
   return (
     <div
       className={cn(
-        "flex flex-col lg:border-r py-10 relative group/feature border-gogh-yellow/30",
+        "flex flex-col lg:border-r py-5 sm:py-6 px-4 sm:px-6 lg:px-6 relative group/feature border-gogh-yellow/30",
         (index === 0 || index === 4) && "lg:border-l border-gogh-yellow/30",
         index < 4 && "lg:border-b border-gogh-yellow/30"
       )}
@@ -159,20 +159,20 @@ const Feature = ({
       )}
       
       {/* Icon */}
-      <div className="mb-4 relative z-10 px-10 text-gogh-yellow-dark group-hover/feature:text-gogh-yellow transition-colors duration-200">
+      <div className="mb-3 relative z-10 text-gogh-yellow-dark group-hover/feature:text-gogh-yellow transition-colors duration-200 [&>svg]:w-5 [&>svg]:h-5 sm:[&>svg]:w-6 sm:[&>svg]:h-6">
         {icon}
       </div>
       
       {/* Title with animated bar */}
-      <div className="text-lg font-bold mb-2 relative z-10 px-10">
-        <div className="absolute left-0 inset-y-0 h-6 group-hover/feature:h-8 w-1 rounded-tr-full rounded-br-full bg-gogh-yellow/50 group-hover/feature:bg-gogh-yellow transition-all duration-200 origin-center" />
-        <span className="group-hover/feature:translate-x-2 transition duration-200 inline-block text-gogh-black">
+      <div className="text-base font-bold mb-1.5 relative z-10">
+        <div className="absolute left-0 inset-y-0 h-5 group-hover/feature:h-6 w-1 rounded-tr-full rounded-br-full bg-gogh-yellow/50 group-hover/feature:bg-gogh-yellow transition-all duration-200 origin-center" />
+        <span className="group-hover/feature:translate-x-2 transition duration-200 inline-block text-gogh-black pl-2">
           {title}
         </span>
       </div>
       
       {/* Description */}
-      <p className="text-sm text-gogh-grayDark max-w-xs relative z-10 px-10">
+      <p className="text-xs sm:text-sm text-gogh-grayDark max-w-[240px] relative z-10">
         {description}
       </p>
     </div>

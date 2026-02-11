@@ -9,7 +9,7 @@ import { VideoUploader } from '@/components/ui/VideoUploader'
 import { CloudinaryVideoUploader } from '@/components/ui/CloudinaryVideoUploader'
 import { Switch } from '@/components/ui/Switch'
 import { createClient } from '@/lib/supabase/client'
-import { Save, Eye, Trash2 } from 'lucide-react'
+import { Save, Eye, Trash2, Plus } from 'lucide-react'
 import toast from 'react-hot-toast'
 import Link from 'next/link'
 import { DashboardNavigation } from '@/components/dashboard/DashboardNavigation'
@@ -20,6 +20,7 @@ import { NotificationsManager } from '@/components/ui/NotificationsManager'
 import { TestimonialsManager } from '@/components/ui/TestimonialsManager'
 import { TeamMembersManager } from '@/components/ui/TeamMembersManager'
 import type { GalleryHoverCarouselItem } from '@/components/ui/gallery-hover-carousel'
+import type { CreationPromptItem } from '@/types/creation-prompts'
 
 interface HomepageSettings {
   // Configurações globais do site (afetam todas as páginas)
@@ -163,6 +164,10 @@ interface HomepageSettings {
     items?: GalleryHoverCarouselItem[]
     auto_slide_interval?: number
   }
+  /** Quando true, o carrossel da homepage usa os itens de creation_prompts em vez de gallery_carousel.items */
+  gallery_use_creation_prompts?: boolean
+  /** Prompts de criação (Criar com IA): cards na página /criar e opcionalmente no carrossel */
+  creation_prompts?: CreationPromptItem[]
 
   section_order?: string[]
   section_visibility?: Record<string, boolean>
@@ -556,6 +561,9 @@ export default function HomepageEditorPage() {
     award_level: 'gold',
     award_standalone_title: 'Primeira plataforma do Brasil',
     award_standalone_description: 'O Gogh Lab é pioneira em oferecer uma solução completa com agentes de IA, cursos profissionais e acesso às melhores ferramentas de criação — tudo em uma única assinatura.',
+
+    gallery_use_creation_prompts: false,
+    creation_prompts: [],
   })
 
   useEffect(() => {
@@ -660,6 +668,8 @@ export default function HomepageEditorPage() {
             video_enabled: content.video_enabled !== undefined ? content.video_enabled : (prev.video_enabled !== undefined ? prev.video_enabled : false),
             video_title: content.video_title || prev.video_title || '',
             video_subtitle: content.video_subtitle || prev.video_subtitle || '',
+            gallery_use_creation_prompts: content.gallery_use_creation_prompts === true,
+            creation_prompts: Array.isArray(content.creation_prompts) ? content.creation_prompts : [],
           }
         })
         
@@ -780,7 +790,7 @@ export default function HomepageEditorPage() {
               }
             }
           }
-          setSectionOrder(order)
+          setSectionOrder(order.filter((id) => id !== 'creation_prompts'))
         } else {
           // Se não houver ordem salva, usar a ordem padrão (inclui animated_beam e team)
           setSectionOrder([
@@ -861,6 +871,8 @@ export default function HomepageEditorPage() {
         team_members: Array.isArray(formData.team_members) ? formData.team_members : [],
         section_order: sectionOrder,
         section_visibility: sectionVisibility,
+        creation_prompts: Array.isArray(formData.creation_prompts) ? formData.creation_prompts : [],
+        gallery_use_creation_prompts: formData.gallery_use_creation_prompts === true,
         // Garantir que video_url seja sempre salvo (mas limpar blob URLs)
         video_url: (formData.video_url && !formData.video_url.startsWith('blob:')) ? formData.video_url : '',
         video_enabled: formData.video_enabled !== undefined ? formData.video_enabled : false,
@@ -1524,6 +1536,16 @@ export default function HomepageEditorPage() {
             />
             {formData.gallery_enabled !== false && (
               <>
+                <Switch
+                  label="Espelhar galeria nos Prompts de Criação"
+                  checked={formData.gallery_use_creation_prompts === true}
+                  onCheckedChange={(checked) => setFormData({ ...formData, gallery_use_creation_prompts: checked })}
+                />
+                <p className="text-sm text-gray-500 -mt-2">
+                  Quando ativo, o carrossel exibe automaticamente os cards dos prompts configurados na página{' '}
+                  <Link href="/dashboard/criar-prompts" className="text-indigo-600 hover:underline font-medium">Prompts de Criação</Link>
+                  {' '}(título, subtítulo, foto/vídeo de referência e link para Criar com IA).
+                </p>
                 <Input
                   label="Título da seção"
                   value={galleryData.heading || ''}
