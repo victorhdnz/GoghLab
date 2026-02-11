@@ -350,8 +350,18 @@ export default function CriarGerarPage() {
                 <input
                   ref={videoInputRef}
                   type="file"
-                  accept="video/mp4,video/quicktime,video/x-m4v,video/webm,video/ogg,.mp4,.mov,.m4v,.webm,.ogg,.avi,.mkv"
-                  onChange={(e) => setPromptViewFiles((f) => ({ ...f, motionVideo: e.target.files?.[0] ?? f.motionVideo, video: e.target.files?.[0] ?? f.video }))}
+                  accept=""
+                  onChange={(e) => {
+                    const file = e.target.files?.[0]
+                    if (!file) return
+                    const isVideo = file.type.startsWith('video/') || /\.(mp4|mov|m4v|webm|ogg|avi|mkv)$/i.test(file.name)
+                    if (!isVideo) {
+                      toast.error('Selecione um vídeo (MP4, MOV, WebM, etc.).')
+                      e.target.value = ''
+                      return
+                    }
+                    setPromptViewFiles((f) => ({ ...f, motionVideo: file, video: file }))
+                  }}
                   className="sr-only"
                   aria-hidden
                 />

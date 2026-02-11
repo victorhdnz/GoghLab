@@ -18,9 +18,6 @@ interface MediaFile {
   uploadedAt: string
 }
 
-// Accept de vídeo compatível com iOS (evita "The string did not match the expected pattern")
-const VIDEO_ACCEPT_IOS = 'video/mp4,video/quicktime,video/x-m4v,video/webm,video/ogg,.mp4,.mov,.m4v,.webm,.ogg,.avi,.mkv'
-
 interface MediaManagerProps {
   onSelectMedia: (url: string) => void
   acceptedTypes?: string[]
@@ -95,7 +92,7 @@ export function MediaManager({
             name: file.name,
             url: urlData.publicUrl,
             type: file.name.match(/\.(jpg|jpeg|png|gif|webp|svg)$/i) ? 'image' :
-                  file.name.match(/\.(mp4|webm|ogg|mov|avi|mkv)$/i) ? 'video' : 'other',
+                  file.name.match(/\.(mp4|webm|ogg|mov|m4v|avi|mkv)$/i) ? 'video' : 'other',
             size: (file.metadata as any)?.size || file.metadata?.size || 0,
             uploadedAt: file.created_at || file.updated_at || new Date().toISOString()
           }
@@ -130,7 +127,7 @@ export function MediaManager({
         }
 
         // Determinar bucket baseado no tipo de arquivo
-        const isVideo = file.type.startsWith('video/') || file.name.match(/\.(mp4|webm|ogg|mov|avi|mkv)$/i)
+        const isVideo = file.type.startsWith('video/') || file.name.match(/\.(mp4|webm|ogg|mov|m4v|avi|mkv)$/i)
         const bucketName = isVideo ? 'videos' : 'images'
         
         // Gerar nome único
@@ -146,6 +143,7 @@ export function MediaManager({
           'webm': 'video/webm',
           'ogg': 'video/ogg',
           'mov': 'video/quicktime',
+          'm4v': 'video/x-m4v',
           'avi': 'video/x-msvideo',
           'mkv': 'video/x-matroska',
           'jpg': 'image/jpeg',
@@ -524,7 +522,7 @@ export function MediaManager({
                 ref={fileInputRef}
                 type="file"
                 multiple
-                accept={acceptedTypes.map((t) => t === 'video/*' ? VIDEO_ACCEPT_IOS : t).join(',')}
+                accept={acceptedTypes.includes('video/*') ? '' : acceptedTypes.join(',')}
                 onChange={handleFileSelect}
                 className="hidden"
               />

@@ -70,35 +70,50 @@ export function HomepageVideo({ enabled = true, videoUrl, videoAutoplay = false,
         </div>
       )}
 
-      {/* Vídeo Principal - Formato Adaptativo */}
-      {youtubeId && videoUrl ? (() => {
-        const containerClasses = getYouTubeContainerClasses(videoUrl)
-        const embedUrl = getYouTubeEmbedUrl(videoUrl, videoAutoplay, videoAutoplay)
-        
-        return (
-          <div className={`relative ${containerClasses.wrapper}`}>
-            <div className="bg-gradient-to-br from-gogh-yellow/10 to-gogh-yellow/5 p-1 rounded-xl">
-              <div className="bg-black rounded-lg overflow-hidden">
-                <div className={`relative ${containerClasses.aspectRatio} bg-black`}>
-                  <iframe
-                    src={embedUrl || ''}
-                    title={title || 'Vídeo sobre nós'}
-                    className="w-full h-full rounded-lg"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                  />
+      {/* Vídeo Principal - YouTube ou URL direta (ex.: upload Cloudinary) */}
+      {videoUrl ? (
+        youtubeId ? (() => {
+          const containerClasses = getYouTubeContainerClasses(videoUrl)
+          const embedUrl = getYouTubeEmbedUrl(videoUrl, videoAutoplay, videoAutoplay)
+          return (
+            <div className={`relative ${containerClasses.wrapper}`}>
+              <div className="bg-gradient-to-br from-gogh-yellow/10 to-gogh-yellow/5 p-1 rounded-xl">
+                <div className="bg-black rounded-lg overflow-hidden">
+                  <div className={`relative ${containerClasses.aspectRatio} bg-black`}>
+                    <iframe
+                      src={embedUrl || ''}
+                      title={title || 'Vídeo sobre nós'}
+                      className="w-full h-full rounded-lg"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                    />
+                  </div>
                 </div>
               </div>
             </div>
+          )
+        })() : (
+          <div className="relative w-full rounded-xl overflow-hidden bg-black">
+            <div className="aspect-video w-full">
+              <video
+                src={videoUrl}
+                className="w-full h-full object-contain"
+                controls
+                playsInline
+                muted={!videoAutoplay}
+                autoPlay={videoAutoplay}
+                title={title || 'Vídeo sobre nós'}
+              />
+            </div>
           </div>
         )
-      })() : (
+      ) : (
         <div className="relative max-w-[400px] mx-auto">
           <div className="aspect-[9/16] w-full flex items-center justify-center bg-gogh-beige-light border border-gogh-yellow/20 rounded-lg">
             <div className="text-center">
               <div className="text-6xl mb-4">🎥</div>
               <p className="text-gogh-grayDark text-lg">Vídeo não adicionado</p>
-              <p className="text-gogh-grayDark/70 text-sm mt-2">Adicione uma URL do YouTube no editor</p>
+              <p className="text-gogh-grayDark/70 text-sm mt-2">Adicione uma URL do YouTube ou envie um vídeo no editor</p>
             </div>
           </div>
         </div>
