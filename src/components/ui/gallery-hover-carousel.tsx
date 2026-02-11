@@ -202,7 +202,7 @@ export default function GalleryHoverCarousel({
               />
             ) : (
               <iframe
-                src={getYouTubeEmbedUrl(modalVideo.url, true)}
+                src={getYouTubeEmbedUrl(modalVideo.url, true) ?? undefined}
                 title="Vídeo do YouTube"
                 className="absolute inset-0 w-full h-full"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
