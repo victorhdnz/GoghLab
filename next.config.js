@@ -1,7 +1,10 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   experimental: {
-    proxyClientMaxBodySize: 100 * 1024 * 1024, // 100MB para upload de vídeo
+    serverActions: {
+      bodySizeLimit: '500mb', // upload de vídeo (padrão 1MB; vídeos grandes)
+    },
+    proxyClientMaxBodySize: 500 * 1024 * 1024, // 500MB
   },
   images: {
     domains: ['lh3.googleusercontent.com', 'images.unsplash.com', 'res.cloudinary.com'],
