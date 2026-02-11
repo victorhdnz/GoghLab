@@ -104,7 +104,8 @@ export default function AnimatedGenerateButton({
           --highlight-30: hsla(var(--highlight-hue), 100%, 70%, 0.3);
           --highlight-20: hsla(var(--highlight-hue), 100%, 70%, 0.2);
           --highlight-80: hsla(var(--highlight-hue), 100%, 70%, 0.8);
-          --ui-anim-svg-fill: #e8e8e8;
+          --ui-anim-svg-fill: hsl(var(--foreground) / 0.8);
+          --ui-anim-letter-color: hsl(var(--foreground));
         }
 
         .ui-anim-btn::before {
@@ -141,15 +142,15 @@ export default function AnimatedGenerateButton({
         }
 
         .ui-anim-letter {
-          color: #ffffff88;
+          color: var(--ui-anim-letter-color);
           animation: ui-letter-anim 2s ease-in-out infinite;
           transition: color var(--transition), text-shadow var(--transition), opacity var(--transition);
         }
 
         @keyframes ui-letter-anim {
           50% {
-            text-shadow: 0 0 3px #fff8;
-            color: #fff;
+            text-shadow: 0 0 6px hsla(var(--highlight-hue), 80%, 60%, 0.5);
+            color: hsl(var(--highlight-hue), 90%, 45%);
           }
         }
 

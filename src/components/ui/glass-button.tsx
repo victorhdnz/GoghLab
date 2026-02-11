@@ -22,7 +22,7 @@ const glassButtonVariants = cva(
 )
 
 const glassButtonTextVariants = cva(
-  'glass-button-text relative block select-none tracking-tighter',
+  'glass-button-text relative flex items-center justify-center gap-2 flex-nowrap select-none tracking-tighter',
   {
     variants: {
       size: {

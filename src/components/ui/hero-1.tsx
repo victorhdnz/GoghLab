@@ -34,7 +34,7 @@ export function Hero({
   return (
     <section
       id="hero"
-      className="relative mx-auto w-full pt-8 lg:pt-24 px-6 text-center md:px-8 min-h-0 lg:min-h-[calc(100vh-40px)] overflow-x-hidden overflow-y-visible rounded-b-xl bg-[#F5F1E8] dark:bg-[linear-gradient(to_bottom,#0A0A0A,#0A0A0A_30%,#1A1A1A_78%,#2a2a2a_99%)]"
+      className="relative mx-auto w-full pt-8 lg:pt-24 px-6 text-center md:px-8 overflow-x-hidden rounded-b-xl bg-[#F5F1E8] dark:bg-[linear-gradient(to_bottom,#0A0A0A,#0A0A0A_30%,#1A1A1A_78%,#2a2a2a_99%)]"
     >
       {/* Grid BG - cores Gogh */}
       <div
