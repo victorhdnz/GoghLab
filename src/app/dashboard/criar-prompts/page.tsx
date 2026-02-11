@@ -8,11 +8,27 @@ import { Input } from '@/components/ui/Input'
 import { Switch } from '@/components/ui/Switch'
 import { ImageUploader } from '@/components/ui/ImageUploader'
 import { CloudinaryVideoUploader } from '@/components/ui/CloudinaryVideoUploader'
-import { Plus, Trash2, Save } from 'lucide-react'
+import { Plus, Trash2, Save, MessageSquare, LayoutGrid } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { getSiteSettings, saveSiteSettings } from '@/lib/supabase/site-settings-helper'
+import { createClient } from '@/lib/supabase/client'
+import { getCreditsConfigKey, type CreditActionId } from '@/lib/credits'
+import type { CreditsConfig } from '@/lib/credits'
 import type { CreationPromptItem, CreationTabId, InputStructureId } from '@/types/creation-prompts'
 import { INPUT_STRUCTURES } from '@/types/creation-prompts'
+
+const CREDIT_ACTION_LABELS: Record<CreditActionId, string> = {
+  foto: 'Criação de Foto',
+  video: 'Criação de Vídeo',
+  roteiro: 'Vídeo com Roteiro',
+  vangogh: 'Criação de prompts',
+}
+const DEFAULT_COST_BY_ACTION: Record<CreditActionId, number> = {
+  foto: 5,
+  video: 10,
+  roteiro: 15,
+  vangogh: 5,
+}
 
 const TAB_OPTIONS: { value: CreationTabId; label: string }[] = [
   { value: 'foto', label: 'Criação de Foto' },
@@ -21,22 +37,48 @@ const TAB_OPTIONS: { value: CreationTabId; label: string }[] = [
   { value: 'vangogh', label: 'Criação de prompts' },
 ]
 
+type InternalTab = 'prompts' | 'chats_gerais'
+
 export default function CriarPromptsPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [prompts, setPrompts] = useState<CreationPromptItem[]>([])
   const [galleryUseCreationPrompts, setGalleryUseCreationPrompts] = useState(false)
+  const [internalTab, setInternalTab] = useState<InternalTab>('prompts')
+  const [costByActionGeneral, setCostByActionGeneral] = useState<Record<CreditActionId, number>>({ ...DEFAULT_COST_BY_ACTION })
 
   useEffect(() => {
     load()
   }, [])
+
+  useEffect(() => {
+    if (internalTab !== 'chats_gerais') return
+    const supabase = createClient() as any
+    supabase
+      .from('site_settings')
+      .select('value')
+      .eq('key', getCreditsConfigKey())
+      .maybeSingle()
+      .then(({ data }: { data: { value: CreditsConfig } | null }) => {
+        const config = data?.value
+        if (config?.costByAction) {
+          setCostByActionGeneral((prev) => ({ ...prev, ...config.costByAction }))
+        }
+      })
+      .catch(() => {})
+  }, [internalTab])
 
   const load = async () => {
     setLoading(true)
     try {
       const { data } = await getSiteSettings()
       const content = data?.homepage_content ?? {}
-      setPrompts(Array.isArray(content.creation_prompts) ? content.creation_prompts : [])
+      const raw = Array.isArray(content.creation_prompts) ? content.creation_prompts : []
+      setPrompts(raw.map((p: any) => ({
+        ...p,
+        coverImage: p.coverImage ?? '',
+        coverVideo: p.coverVideo && String(p.coverVideo).trim() ? p.coverVideo : undefined,
+      })))
       setGalleryUseCreationPrompts(content.gallery_use_creation_prompts === true)
     } catch (e) {
       console.error(e)
@@ -62,6 +104,31 @@ export default function CriarPromptsPage() {
       })
       if (!success) throw new Error(error?.message)
       toast.success('Prompts de criação salvos. A galeria da homepage espelhará estes cards quando a opção estiver ativa.')
+    } catch (e: any) {
+      console.error(e)
+      toast.error(e?.message ?? 'Erro ao salvar')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  /** Salva uma cópia atualizada dos prompts no servidor (usado após upload/remoção de capa para persistir sem clicar em Salvar). */
+  const savePromptsToServer = async (newPrompts: CreationPromptItem[]) => {
+    setSaving(true)
+    try {
+      const { data: current } = await getSiteSettings()
+      const currentContent = current?.homepage_content ?? {}
+      const updatedContent = {
+        ...currentContent,
+        creation_prompts: newPrompts,
+        gallery_use_creation_prompts: galleryUseCreationPrompts,
+      }
+      const { success, error } = await saveSiteSettings({
+        fieldsToUpdate: { homepage_content: updatedContent },
+        forceUpdate: true,
+      })
+      if (!success) throw new Error(error?.message)
+      toast.success('Capa atualizada e salva.')
     } catch (e: any) {
       console.error(e)
       toast.error(e?.message ?? 'Erro ao salvar')
@@ -99,6 +166,29 @@ export default function CriarPromptsPage() {
     })
   }
 
+  const saveCreditsConfig = async () => {
+    setSaving(true)
+    try {
+      const supabase = createClient() as any
+      const { data: current } = await supabase.from('site_settings').select('value').eq('key', getCreditsConfigKey()).maybeSingle()
+      const existing: CreditsConfig = (current?.value as CreditsConfig) ?? {}
+      const value: CreditsConfig = {
+        ...existing,
+        costByAction: { ...costByActionGeneral },
+      }
+      const { error } = await supabase.from('site_settings').upsert(
+        { key: getCreditsConfigKey(), value, description: 'Créditos IA: custo por tipo de criação (chats gerais)', updated_at: new Date().toISOString() },
+        { onConflict: 'key' }
+      )
+      if (error) throw error
+      toast.success('Custos dos chats gerais salvos.')
+    } catch (e: any) {
+      toast.error(e?.message ?? 'Erro ao salvar')
+    } finally {
+      setSaving(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -112,27 +202,79 @@ export default function CriarPromptsPage() {
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         <DashboardNavigation
           title="Prompts de Criação (Criar com IA)"
-          subtitle="Crie os prompts que aparecem na página Criar e, opcionalmente, no carrossel da homepage"
+          subtitle="Prompts por efeito e custos dos chats gerais"
           backUrl="/dashboard"
           backLabel="Voltar ao Dashboard"
         />
 
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 space-y-6">
           <div className="flex flex-wrap items-center justify-between gap-4">
-            <div>
-              <p className="text-sm text-gray-600">
-                Cada prompt vira um card na página <strong>Criar com IA</strong> (por aba) e, se a galeria espelhar, também no carrossel da homepage. Título, subtítulo, imagem ou vídeo de referência e o prompt (oculto) são espelhados corretamente; ao clicar, o usuário é levado à geração com a ref e o prompt aplicados.
-              </p>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setInternalTab('prompts')}
+                className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${internalTab === 'prompts' ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+              >
+                <LayoutGrid className="h-4 w-4" />
+                Prompts (por efeito)
+              </button>
+              <button
+                type="button"
+                onClick={() => setInternalTab('chats_gerais')}
+                className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${internalTab === 'chats_gerais' ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+              >
+                <MessageSquare className="h-4 w-4" />
+                Chats gerais
+              </button>
             </div>
             <div className="flex items-center gap-2">
               <Link href="/dashboard/homepage" className="text-sm text-gray-500 hover:text-gray-700 underline">
                 Editar Homepage (ativar espelhamento na galeria)
               </Link>
-              <Button onClick={handleSave} disabled={saving} className="gap-2">
-                <Save size={18} />
-                {saving ? 'Salvando...' : 'Salvar'}
-              </Button>
+              {internalTab === 'prompts' && (
+                <Button onClick={handleSave} disabled={saving} className="gap-2">
+                  <Save size={18} />
+                  {saving ? 'Salvando...' : 'Salvar'}
+                </Button>
+              )}
+              {internalTab === 'chats_gerais' && (
+                <Button onClick={saveCreditsConfig} disabled={saving} className="gap-2">
+                  <Save size={18} />
+                  {saving ? 'Salvando...' : 'Salvar'}
+                </Button>
+              )}
             </div>
+          </div>
+
+          {internalTab === 'chats_gerais' && (
+            <div className="border-t pt-6 space-y-4">
+              <p className="text-sm text-gray-600">
+                Custo em créditos para cada tipo de <strong>chat geral</strong> na página Criar (quando o usuário não escolhe um prompt específico e digita livremente). Esses valores aparecem no botão &quot;Gerar&quot; e são descontados ao gerar. Os mesmos custos são usados em Planos de Assinatura para créditos mensais.
+              </p>
+              <div className="grid gap-4 sm:grid-cols-2 max-w-xl">
+                {(['foto', 'video', 'roteiro', 'vangogh'] as CreditActionId[]).map((actionId) => (
+                  <div key={actionId} className="flex items-center gap-3">
+                    <label className="flex-1 text-sm font-medium text-gray-700">{CREDIT_ACTION_LABELS[actionId]}</label>
+                    <Input
+                      type="number"
+                      min={1}
+                      value={String(costByActionGeneral[actionId] ?? DEFAULT_COST_BY_ACTION[actionId])}
+                      onChange={(e) => setCostByActionGeneral((prev) => ({ ...prev, [actionId]: parseInt(e.target.value, 10) || 1 }))}
+                      className="w-20"
+                    />
+                    <span className="text-xs text-gray-500">créditos</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {internalTab === 'prompts' && (
+            <>
+          <div>
+            <p className="text-sm text-gray-600">
+              Cada prompt vira um card na página <strong>Criar com IA</strong> (por aba) e, se a galeria espelhar, também no carrossel da homepage. Título, subtítulo, imagem ou vídeo de referência e o prompt (oculto) são espelhados corretamente; ao clicar, o usuário é levado à geração com a ref e o prompt aplicados.
+            </p>
           </div>
 
           <Switch
@@ -195,10 +337,14 @@ export default function CriarPromptsPage() {
                     </div>
                     <div className="sm:col-span-2">
                       <label className="block text-xs font-medium mb-1">Capa do card (imagem ou vídeo — espelhado na galeria e na página Criar)</label>
-                      <p className="text-xs text-gray-500 mb-1.5">Pode enviar só a imagem, só o vídeo ou os dois. Se enviar só o vídeo, a capa será o próprio vídeo (primeiro frame).</p>
+                      <p className="text-xs text-gray-500 mb-1.5">Pode enviar só a imagem, só o vídeo ou os dois. Se enviar só o vídeo, a capa será o próprio vídeo (primeiro frame). As alterações são salvas automaticamente.</p>
                       <ImageUploader
                         value={item.coverImage}
-                        onChange={(url) => updatePrompt(index, { coverImage: url })}
+                        onChange={(url) => {
+                          const next = prompts.map((p, i) => i === index ? { ...p, coverImage: url } : p)
+                          setPrompts(next)
+                          savePromptsToServer(next)
+                        }}
                         placeholder="Imagem de destaque (opcional se tiver vídeo)"
                         cropType="banner"
                         aspectRatio={16 / 9}
@@ -208,7 +354,13 @@ export default function CriarPromptsPage() {
                       <label className="block text-xs font-medium mb-1">Vídeo de capa (opcional — se não tiver imagem, a capa será o vídeo)</label>
                       <CloudinaryVideoUploader
                         value={item.coverVideo || ''}
-                        onChange={(url) => updatePrompt(index, { coverVideo: url || undefined })}
+                        onChange={(url) => {
+                          const next = prompts.map((p, i) =>
+                            i === index ? { ...p, coverVideo: url && url.trim() ? url : undefined } : p
+                          )
+                          setPrompts(next)
+                          savePromptsToServer(next)
+                        }}
                         placeholder="Vídeo para card (opcional)"
                         folder="gallery-videos"
                       />
@@ -247,6 +399,8 @@ export default function CriarPromptsPage() {
               ))}
             </div>
           </div>
+            </>
+          )}
         </div>
       </div>
     </div>

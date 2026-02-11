@@ -790,7 +790,7 @@ export default function HomepageEditorPage() {
               }
             }
           }
-          setSectionOrder(order.filter((id) => id !== 'creation_prompts'))
+          setSectionOrder(order.filter((id) => id !== 'creation_prompts' && id !== 'pricing'))
         } else {
           // Se não houver ordem salva, usar a ordem padrão (inclui animated_beam e team)
           setSectionOrder([
@@ -869,7 +869,7 @@ export default function HomepageEditorPage() {
         notifications_items: Array.isArray(formData.notifications_items) ? formData.notifications_items : [],
         testimonials_items: Array.isArray(formData.testimonials_items) ? formData.testimonials_items : [],
         team_members: Array.isArray(formData.team_members) ? formData.team_members : [],
-        section_order: sectionOrder,
+        section_order: sectionOrder.filter((id) => id !== 'pricing'),
         section_visibility: sectionVisibility,
         creation_prompts: Array.isArray(formData.creation_prompts) ? formData.creation_prompts : [],
         gallery_use_creation_prompts: formData.gallery_use_creation_prompts === true,

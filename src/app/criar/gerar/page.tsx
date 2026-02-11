@@ -1,17 +1,25 @@
 'use client'
 
-import { useState, useCallback, useEffect, useMemo } from 'react'
+import { useState, useCallback, useEffect, useMemo, type ReactNode } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { ImageIcon, Coins, Zap, ArrowLeft } from 'lucide-react'
+import { ImageIcon, Coins, Zap, ArrowLeft, Video, Sparkles, Bot, ChevronDown, Check } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { cn } from '@/lib/utils'
 import { useCredits } from '@/hooks/useCredits'
 import { AI_Prompt } from '@/components/ui/animated-ai-input'
 import { TextShimmer } from '@/components/ui/text-shimmer'
 import { ChatWithActions, type ChatMessage } from '@/components/ui/ai-actions'
 import { Button } from '@/components/ui/button'
 import type { CreationPromptItem, CreationTabId } from '@/types/creation-prompts'
+import type { CreditActionId } from '@/lib/credits'
 
 const TABS = [
   { id: 'foto', label: 'Criação de Foto' },
@@ -53,6 +61,22 @@ const MODELS_BY_TAB: Record<TabId, { id: string; label: string }[]> = {
   ],
 }
 
+const DALL_E_ICON = (
+  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 256 260" className="h-4 w-4" aria-hidden>
+    <path fill="currentColor" d="M239.184 106.203a64.716 64.716 0 0 0-5.576-53.103C219.452 28.459 191 15.784 163.213 21.74A65.586 65.586 0 0 0 52.096 45.22a64.716 64.716 0 0 0-43.23 31.36c-14.31 24.602-11.061 55.634 8.033 76.74a64.665 64.665 0 0 0 5.525 53.102c14.174 24.65 42.644 37.324 70.446 31.36a64.72 64.72 0 0 0 48.754 21.744c28.481.025 53.714-18.361 62.414-45.481a64.767 64.767 0 0 0 43.229-31.36c14.137-24.558 10.875-55.423-8.083-76.483Z" />
+  </svg>
+)
+
+const MODEL_ICONS: Record<string, ReactNode> = {
+  'default-image': <ImageIcon className="h-4 w-4" />,
+  'dall-e': DALL_E_ICON,
+  'flux': <Sparkles className="h-4 w-4" />,
+  'default-video': <Video className="h-4 w-4" />,
+  'runway': <Video className="h-4 w-4" />,
+  'pika': <Video className="h-4 w-4" />,
+  'default-prompt': <Bot className="h-4 w-4" />,
+}
+
 export default function CriarGerarPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -71,6 +95,16 @@ export default function CriarGerarPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [generating, setGenerating] = useState(false)
   const [showCreditModal, setShowCreditModal] = useState(false)
+  const [publicCostByAction, setPublicCostByAction] = useState<Record<CreditActionId, number> | null>(null)
+
+  useEffect(() => {
+    fetch('/api/credits/costs')
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.costByAction) setPublicCostByAction(data.costByAction)
+      })
+      .catch(() => {})
+  }, [])
 
   const activeTab: TabId = selectedPrompt?.tabId ?? (tabFromUrl && ['foto', 'video', 'roteiro', 'vangogh'].includes(tabFromUrl) ? tabFromUrl : 'foto')
   const availableModels = MODELS_BY_TAB[activeTab] ?? MODELS_BY_TAB.foto
@@ -258,22 +292,37 @@ export default function CriarGerarPage() {
           </div>
           <div className="px-3 py-2.5 border-t space-y-2">
             <div className="flex flex-wrap items-center gap-2">
-              <label htmlFor="prompt-model-select" className="text-xs font-medium text-muted-foreground">
-                Modelo de IA:
-              </label>
-              <select
-                id="prompt-model-select"
-                value={selectedModelId}
-                onChange={(e) => setSelectedModelId(e.target.value)}
-                className="rounded border border-input bg-background px-2 py-1.5 text-xs"
-              >
-                {availableModels.map((m) => (
-                  <option key={m.id} value={m.id}>{m.label}</option>
-                ))}
-              </select>
+              <span className="text-xs font-medium text-muted-foreground">Modelo de IA:</span>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 gap-1.5 rounded-md border-input pl-2 pr-2 text-xs font-normal"
+                  >
+                    {MODEL_ICONS[selectedModelId] ?? <Bot className="h-4 w-4" />}
+                    <span>{availableModels.find((m) => m.id === selectedModelId)?.label ?? selectedModelId}</span>
+                    <ChevronDown className="h-3.5 w-3.5 opacity-50" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="min-w-[12rem]">
+                  {availableModels.map((m) => (
+                    <DropdownMenuItem
+                      key={m.id}
+                      onSelect={() => setSelectedModelId(m.id)}
+                      className="flex items-center justify-between gap-2"
+                    >
+                      <div className="flex items-center gap-2">
+                        {MODEL_ICONS[m.id] ?? <Bot className="h-4 w-4 opacity-70" />}
+                        <span>{m.label}</span>
+                      </div>
+                      {selectedModelId === m.id && <Check className="h-4 w-4 text-primary" />}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
-            <div className="flex items-center justify-between gap-2 flex-wrap">
-              <span className="text-xs text-muted-foreground">Custo: {selectedPrompt.creditCost} créditos</span>
+            <div className="flex items-center justify-end gap-2 flex-wrap">
               <Button onClick={() => handleGenerateWithPrompt(selectedPrompt)} size="sm" className="gap-1.5 text-xs h-8">
                 <Zap className="h-3.5 w-3.5" />
                 Gerar · {selectedPrompt.creditCost} créditos
@@ -295,7 +344,7 @@ export default function CriarGerarPage() {
             placeholder={PLACEHOLDERS[activeTab]}
             onSend={handleSend}
             initialValue={selectedPrompt?.inputStructure === 'text_only' ? selectedPrompt.prompt : promptFromUrl}
-            creditCost={costByAction?.[activeTab] ?? null}
+            creditCost={costByAction?.[activeTab] ?? publicCostByAction?.[activeTab] ?? null}
           />
           {generating && (
             <div className="mt-4 flex items-center gap-2 rounded-lg border bg-muted/50 px-4 py-3">
