@@ -14,7 +14,16 @@ export default async function PrecosPage() {
     .from('site_settings')
     .select('site_name, site_logo, contact_whatsapp, instagram_url, homepage_content')
     .eq('key', 'general')
-    .maybeSingle()
+    .maybeSingle() as {
+      data: {
+        site_name: string | null
+        site_logo: string | null
+        contact_whatsapp: string | null
+        instagram_url: string | null
+        homepage_content: unknown
+      } | null
+      error: unknown
+    }
 
   if (error || !row) {
     return (
