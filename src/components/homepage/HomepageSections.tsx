@@ -148,16 +148,16 @@ export function HomepageSections({
     const buttonLabel = homepageContent.typewriter_button_label || 'Ver planos'
 
     return (
-      <section className="py-16 md:py-24 px-4 bg-[#F5F1E8]">
-        <div className="flex flex-col items-center justify-center min-h-[28rem]">
-          <p className="text-neutral-600 dark:text-neutral-200 text-xs sm:text-base mb-2 text-center">
+      <section className="py-8 md:py-12 px-4 bg-[#F5F1E8]">
+        <div className="flex flex-col items-center justify-center min-h-0">
+          <p className="text-neutral-600 dark:text-neutral-200 text-sm sm:text-base md:text-lg mb-3 sm:mb-4 text-center max-w-xl mx-auto px-2">
             {subtitle}
           </p>
           <TypewriterEffectSmooth words={words} className="justify-center" />
-          <div className="mt-6">
+          <div className="mt-4 sm:mt-6">
             <Link
               href="/precos"
-              className="inline-flex items-center justify-center w-40 h-10 rounded-xl bg-[#0A0A0A] border border-transparent text-white text-sm font-medium hover:opacity-90 transition-opacity dark:bg-white dark:text-[#0A0A0A] dark:border-white"
+              className="inline-flex items-center justify-center min-w-[10rem] w-40 h-11 sm:h-10 rounded-xl bg-[#0A0A0A] border border-transparent text-white text-base sm:text-sm font-medium hover:opacity-90 transition-opacity dark:bg-white dark:text-[#0A0A0A] dark:border-white"
             >
               {buttonLabel}
             </Link>
@@ -172,10 +172,10 @@ export function HomepageSections({
     if (homepageContent?.hero_enabled === false || sectionVisibility?.hero === false) return null
 
     const heroTitle = typeof homepageContent?.hero_title === 'string' ? homepageContent.hero_title : 'Gogh Lab'
-    const heroSubtitle = typeof homepageContent?.hero_description === 'string'
-      ? homepageContent.hero_description
-      : typeof homepageContent?.hero_subtitle === 'string'
-        ? homepageContent.hero_subtitle
+    const heroSubtitle = typeof homepageContent?.hero_subtitle === 'string'
+      ? homepageContent.hero_subtitle
+      : typeof homepageContent?.hero_description === 'string'
+        ? homepageContent.hero_description
         : 'Criatividade guiada por tecnologia. Agentes de IA para criação de conteúdo, redes sociais e anúncios.'
     const ctaLabel = typeof homepageContent?.typewriter_button_label === 'string' ? homepageContent.typewriter_button_label : 'Ver planos'
 

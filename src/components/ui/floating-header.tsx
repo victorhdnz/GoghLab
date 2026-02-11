@@ -102,27 +102,20 @@ function SpotlightNavItem({
   )
 }
 
-// ——— Menu structure for desktop dropdowns and mobile accordion
+// ——— Menu structure: desktop (Início, Criar, Produto dropdown) e mobile (accordion Produto)
 type SubItem = { title: string; description?: string; url: string; icon: React.ElementType }
 const menuWithDropdowns: Array<
   { title: string; url: string; highlight?: boolean; items?: SubItem[] }> = [
   { title: 'Início', url: '/' },
+  { title: 'Criar', url: '/criar', highlight: true },
   {
-    title: 'Ferramentas',
+    title: 'Produto',
     url: '/ferramentas',
     items: [
-      { title: 'Ver ferramentas', description: 'Ferramentas profissionais para criação', url: '/ferramentas', icon: Wrench },
+      { title: 'Ferramentas', description: 'Ferramentas profissionais para criação', url: '/ferramentas', icon: Wrench },
+      { title: 'Cursos', description: 'Cursos e formação', url: '/cursos', icon: BookOpen },
     ],
   },
-  {
-    title: 'Cursos',
-    url: '/cursos',
-    items: [
-      { title: 'Ver cursos', description: 'Cursos e formação', url: '/cursos', icon: BookOpen },
-    ],
-  },
-  { title: 'Criar', url: '/criar', highlight: true },
-  { title: 'Comparar', url: '/comparar' },
 ]
 
 export function FloatingHeader() {
@@ -261,10 +254,18 @@ export function FloatingHeader() {
           </NavigationMenu>
         </div>
 
-        <div className="hidden lg:flex flex-shrink-0">
+        <div className="hidden lg:flex flex-shrink-0 items-center gap-2">
           <Button asChild size="sm" className="rounded-lg">
             <Link href="/precos">Ver planos</Link>
           </Button>
+          <Link
+            href={isAuthenticated ? '/conta' : '/login'}
+            className="flex items-center justify-center w-9 h-9 rounded-lg text-white/90 hover:bg-white/10 hover:text-white transition-colors"
+            title={isAuthenticated ? 'Conta' : 'Entrar'}
+            aria-label={isAuthenticated ? 'Conta' : 'Entrar'}
+          >
+            <User className="w-5 h-5" strokeWidth={2} />
+          </Link>
         </div>
       </nav>
     </header>
@@ -318,58 +319,56 @@ export function FloatingHeader() {
 
   const categoriesSheet = (
     <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
-      <SheetContent side="right" className="w-72 overflow-y-auto">
-        <SheetHeader>
-          <SheetTitle className="flex items-center gap-2">
+      <SheetContent side="right" className="w-[min(85vw,320px)] max-w-[320px] overflow-y-auto overflow-x-hidden pl-6 pr-6 pb-8">
+        <SheetHeader className="pb-4 pr-8">
+          <SheetTitle className="flex items-center gap-2 min-w-0 text-left">
             {siteLogo && (
-              <Image src={siteLogo} alt="" width={24} height={24} className="object-contain" unoptimized={siteLogo.startsWith('http')} />
+              <Image src={siteLogo} alt="" width={24} height={24} className="object-contain flex-shrink-0" unoptimized={siteLogo.startsWith('http')} />
             )}
-            <span>{siteName}</span>
+            <span className="truncate">{siteName}</span>
           </SheetTitle>
         </SheetHeader>
-        <div className="mt-6 flex flex-col gap-4">
+        <div className="mt-2 flex flex-col gap-1">
+          <p className="text-xs text-muted-foreground mb-2 px-1">Menu mobile — atalhos principais estão na barra inferior.</p>
           <Accordion type="single" collapsible className="w-full">
             {menuWithDropdowns.filter((m) => m.items?.length).map((item) => (
               <AccordionItem key={item.title} value={item.title} className="border-b-0">
-                <AccordionTrigger className="py-0 font-semibold hover:no-underline">
+                <AccordionTrigger className="py-2 font-semibold hover:no-underline text-left">
                   {item.title}
                 </AccordionTrigger>
-                <AccordionContent className="mt-2">
+                <AccordionContent className="mt-1 pb-2">
                   {item.items?.map((sub) => {
-                      const SubIcon = sub.icon
-                      return (
-                    <Link
-                      key={sub.url}
-                      href={sub.url}
-                      onClick={() => setMenuOpen(false)}
-                      className="flex gap-4 rounded-md p-3 leading-none outline-none transition-colors hover:bg-muted text-foreground"
-                    >
-                      {SubIcon && <SubIcon className="size-5 shrink-0 text-muted-foreground" />}
-                      <div>
-                        <div className="text-sm font-semibold">{sub.title}</div>
-                        {sub.description && (
-                          <p className="text-sm leading-snug text-muted-foreground">{sub.description}</p>
-                        )}
-                      </div>
-                    </Link>
-                  )
+                    const SubIcon = sub.icon
+                    return (
+                      <Link
+                        key={sub.url}
+                        href={sub.url}
+                        onClick={() => setMenuOpen(false)}
+                        className="flex gap-3 rounded-md p-3 leading-none outline-none transition-colors hover:bg-muted text-foreground min-w-0"
+                      >
+                        {SubIcon && <SubIcon className="size-5 shrink-0 text-muted-foreground" />}
+                        <div className="min-w-0">
+                          <div className="text-sm font-semibold break-words">{sub.title}</div>
+                          {sub.description && (
+                            <p className="text-xs leading-snug text-muted-foreground break-words">{sub.description}</p>
+                          )}
+                        </div>
+                      </Link>
+                    )
                   })}
                 </AccordionContent>
               </AccordionItem>
             ))}
           </Accordion>
-          <div className="border-t pt-4 flex flex-col gap-2">
-            <Link href="/" onClick={() => setMenuOpen(false)} className="font-semibold py-2 hover:underline">
+          <div className="border-t pt-4 mt-2 flex flex-col gap-1">
+            <Link href="/" onClick={() => setMenuOpen(false)} className="font-medium py-2.5 hover:underline break-words">
               Início
             </Link>
-            <Link href="/criar" onClick={() => setMenuOpen(false)} className="font-semibold py-2 hover:underline">
+            <Link href="/criar" onClick={() => setMenuOpen(false)} className="font-medium py-2.5 hover:underline break-words">
               Criar
             </Link>
-            <Link href="/precos" onClick={() => setMenuOpen(false)} className="font-semibold py-2 hover:underline">
+            <Link href="/precos" onClick={() => setMenuOpen(false)} className="font-medium py-2.5 hover:underline break-words">
               Ver planos
-            </Link>
-            <Link href="/comparar" onClick={() => setMenuOpen(false)} className="font-semibold py-2 hover:underline">
-              Comparar
             </Link>
           </div>
         </div>

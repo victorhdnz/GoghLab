@@ -19,6 +19,7 @@ import toast from 'react-hot-toast'
 import { TextShimmer } from '@/components/ui/text-shimmer'
 import { ChatWithActions, type ChatMessage } from '@/components/ui/ai-actions'
 import { Button } from '@/components/ui/button'
+import { GlassButton } from '@/components/ui/glass-button'
 import type { CreationPromptItem, CreationTabId } from '@/types/creation-prompts'
 import type { CreditActionId } from '@/lib/credits'
 
@@ -384,10 +385,14 @@ export default function CriarGerarPage() {
               </DropdownMenu>
             </div>
             <div className="flex items-center justify-end gap-2 flex-wrap">
-              <Button onClick={() => handleGenerateWithPrompt(selectedPrompt)} size="sm" className="gap-1.5 text-xs h-8">
+              <GlassButton
+                size="sm"
+                contentClassName="flex items-center gap-1.5"
+                onClick={() => handleGenerateWithPrompt(selectedPrompt)}
+              >
                 <Zap className="h-3.5 w-3.5" />
-                Gerar · {selectedPrompt.creditCost} créditos
-              </Button>
+                <span>Gerar · {selectedPrompt.creditCost} créditos</span>
+              </GlassButton>
             </div>
           </div>
         </div>

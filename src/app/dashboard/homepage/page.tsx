@@ -1056,6 +1056,9 @@ export default function HomepageEditorPage() {
             />
             {formData.hero_enabled && (
               <>
+                <p className="text-sm text-gray-600 mb-3">
+                  Estes campos preenchem a <strong>Hero (topo da página)</strong>: título grande, subtítulo e descrição. O botão inferior da hero leva para Planos; o link &quot;Next-Gen Productivity&quot; leva para Chats de IA.
+                </p>
                 <div>
                   <label className="block text-sm font-medium mb-2">Logo da Empresa (Favicon e Logo Fixa)</label>
                   <ImageUploader
@@ -1078,26 +1081,24 @@ export default function HomepageEditorPage() {
                     Esta logo aparecerá fixa no topo de todas as páginas e como favicon (ícone da aba).
                   </p>
                 </div>
-                {!formData.hero_logo && (
-                  <Input
-                    label="Título Principal"
-                    value={formData.hero_title || ''}
-                    onChange={(e) => setFormData({ ...formData, hero_title: e.target.value })}
-                    placeholder="Ex: Gogh Lab"
-                  />
-                )}
                 <Input
-                  label="Subtítulo"
+                  label="Título da Hero (texto grande no topo)"
+                  value={formData.hero_title || ''}
+                  onChange={(e) => setFormData({ ...formData, hero_title: e.target.value })}
+                  placeholder="Ex: Gogh Lab"
+                />
+                <Input
+                  label="Subtítulo da Hero (linha abaixo do título)"
                   value={formData.hero_subtitle || ''}
                   onChange={(e) => setFormData({ ...formData, hero_subtitle: e.target.value })}
                   placeholder="Ex: Criatividade guiada por tecnologia"
                 />
                 <div>
-                  <label className="block text-sm font-medium mb-2">Descrição</label>
+                  <label className="block text-sm font-medium mb-2">Descrição (texto adicional da hero, se quiser mais de uma linha)</label>
                   <textarea
                     value={formData.hero_description || ''}
                     onChange={(e) => setFormData({ ...formData, hero_description: e.target.value })}
-                    placeholder="Descrição adicional..."
+                    placeholder="Ex: Ferramentas premium para destacar sua marca no digital!"
                     rows={3}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />

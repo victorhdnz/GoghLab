@@ -171,6 +171,64 @@ canvas {
   background: rgba(0, 0, 0, 0.4);
 }
 
+/* Glass Button (estilo vidro) */
+.glass-button-wrap {
+  position: relative;
+  display: inline-block;
+}
+.glass-button {
+  all: unset;
+  position: relative;
+  isolation: isolate;
+  cursor: pointer;
+  border-radius: 9999px;
+  transition: transform 0.2s, box-shadow 0.2s;
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  color: hsl(var(--foreground));
+}
+.glass-button:hover {
+  background: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.35);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+}
+.glass-button:active {
+  transform: scale(0.98);
+}
+.glass-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+.glass-button-text {
+  position: relative;
+  display: block;
+  user-select: none;
+  letter-spacing: -0.02em;
+}
+.glass-button-shadow {
+  position: absolute;
+  inset: -4px;
+  border-radius: 9999px;
+  background: radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.15), transparent 70%);
+  filter: blur(8px);
+  opacity: 0.8;
+  z-index: -1;
+  pointer-events: none;
+}
+.dark .glass-button {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+}
+.dark .glass-button:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
 @layer utilities {
   .container {
     @apply max-w-7xl mx-auto;

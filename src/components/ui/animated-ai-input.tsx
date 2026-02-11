@@ -6,6 +6,7 @@ import Image from 'next/image'
 import { Textarea } from '@/components/ui/textarea'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import { GlassButton } from '@/components/ui/glass-button'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -295,30 +296,34 @@ export function AI_Prompt({
                   </label>
                 </div>
                 {!isGerarVariant && (
-                  <button
-                    type="button"
-                    className={cn(
-                      'rounded-lg px-3 py-2 text-sm font-medium transition-colors focus-visible:ring-1 focus-visible:ring-blue-500 focus-visible:ring-offset-0',
-                      value.trim()
-                        ? 'bg-primary text-primary-foreground hover:bg-primary/90 dark:bg-primary dark:text-primary-foreground'
-                        : 'bg-black/10 text-black/40 dark:bg-white/10 dark:text-white/40 cursor-not-allowed'
-                    )}
-                    aria-label={creditCost != null ? `Gerar (${creditCost} créditos)` : 'Enviar'}
-                    disabled={!value.trim()}
-                    onClick={handleSend}
-                  >
-                    {creditCost != null ? (
-                      <span className="flex items-center gap-1.5">
-                        Gerar
-                        <span className="flex items-center gap-0.5 opacity-90">
-                          <Zap className="h-3.5 w-3.5" />
-                          {creditCost}
-                        </span>
-                      </span>
-                    ) : (
+                  creditCost != null ? (
+                    <GlassButton
+                      size="sm"
+                      contentClassName="flex items-center gap-1.5"
+                      aria-label={`Gerar (${creditCost} créditos)`}
+                      disabled={!value.trim()}
+                      onClick={handleSend}
+                    >
+                      <span>Gerar</span>
+                      <Zap className="h-3.5 w-3.5" />
+                      <span className="opacity-90">{creditCost} créditos</span>
+                    </GlassButton>
+                  ) : (
+                    <button
+                      type="button"
+                      className={cn(
+                        'rounded-lg px-3 py-2 text-sm font-medium transition-colors focus-visible:ring-1 focus-visible:ring-blue-500 focus-visible:ring-offset-0',
+                        value.trim()
+                          ? 'bg-primary text-primary-foreground hover:bg-primary/90 dark:bg-primary dark:text-primary-foreground'
+                          : 'bg-black/10 text-black/40 dark:bg-white/10 dark:text-white/40 cursor-not-allowed'
+                      )}
+                      aria-label="Enviar"
+                      disabled={!value.trim()}
+                      onClick={handleSend}
+                    >
                       <ArrowRight className="h-4 w-4" />
-                    )}
-                  </button>
+                    </button>
+                  )
                 )}
               </div>
             </div>
@@ -327,15 +332,15 @@ export function AI_Prompt({
       </div>
       {isGerarVariant && (
         <div className="mt-3 flex justify-end">
-          <Button
-            type="button"
+          <GlassButton
+            size="default"
+            contentClassName="flex items-center gap-2"
             disabled={!value.trim()}
             onClick={handleSend}
-            className="gap-1.5"
           >
-            <Zap className="h-4 w-4" />
-            {creditCost != null ? `Gerar · ${creditCost} créditos` : 'Gerar'}
-          </Button>
+            <span>{creditCost != null ? `Gerar · ${creditCost} créditos` : 'Gerar'}</span>
+            <Zap className="h-5 w-5" />
+          </GlassButton>
         </div>
       )}
     </div>
