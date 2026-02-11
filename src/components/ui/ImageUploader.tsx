@@ -101,7 +101,7 @@ export function ImageUploader({
       if (uploading) return
       const file = e.dataTransfer.files?.[0]
       if (file && file.type.startsWith('image/')) {
-        const fakeEvent = { target: { files: [file] } } as React.ChangeEvent<HTMLInputElement>
+        const fakeEvent = { target: { files: [file] } } as unknown as React.ChangeEvent<HTMLInputElement>
         handleFileSelect(fakeEvent)
       } else {
         toast.error('Arraste apenas arquivos de imagem.')
