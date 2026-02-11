@@ -46,23 +46,23 @@ export const AnimatedList = React.memo(
       }
     }, [children])
 
-    // Intersection Observer para detectar quando o componente está visível
+    // Intersection Observer: só ativar a animação quando entrar na tela.
+    // Não resetar ao dar scroll (só recarrega a página para reiniciar).
+    const hasBeenVisibleRef = useRef(false)
     useEffect(() => {
       const observer = new IntersectionObserver(
         (entries) => {
           entries.forEach((entry) => {
             if (entry.isIntersecting) {
+              hasBeenVisibleRef.current = true
               setIsVisible(true)
-            } else {
-              // Resetar quando sair do viewport para que volte a funcionar quando retornar
-              setIsVisible(false)
-              setIndex(0)
             }
+            // Não fazer nada quando sair do viewport: não resetar index nem isVisible
           })
         },
         {
-          threshold: 0.1, // Começar quando 10% do componente estiver visível
-          rootMargin: '50px', // Começar 50px antes de entrar no viewport
+          threshold: 0.1,
+          rootMargin: '50px',
         }
       )
 

@@ -144,7 +144,7 @@ export default function GalleryHoverCarousel({
           </div>
         </div>
 
-        <div className="w-full max-w-full">
+        <div className="w-full max-w-full overflow-hidden">
           <Carousel
             setApi={setCarouselApi}
             opts={{
@@ -154,9 +154,9 @@ export default function GalleryHoverCarousel({
             }}
             className="relative w-full max-w-full"
           >
-            <CarouselContent className="hide-scrollbar w-full max-w-full md:ml-2 md:-mr-2">
+            <CarouselContent className="hide-scrollbar w-full max-w-full md:ml-2 md:-mr-2 -ml-2 md:ml-2">
               {items.map((item) => (
-                <CarouselItem key={item.id} className="ml-3 md:ml-4 md:max-w-[220px] lg:max-w-[240px]">
+                <CarouselItem key={item.id} className="pl-2 pr-1 md:pl-4 md:pr-0 w-[165px] sm:w-[200px] md:w-[220px] lg:w-[240px] shrink-0 flex">
                   {item.type === "video" && (item.videoUrl || item.youtubeUrl) ? (
                     <VideoCard
                       item={item}

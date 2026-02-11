@@ -45,11 +45,11 @@ export const SplineSection = memo(function SplineSection({
     <section 
       ref={ref}
       className="relative bg-[#F5F1E8] text-[#0A0A0A] py-10 md:py-14 px-4"
-      style={{ minHeight: '320px' }}
+      style={{ minHeight: '360px' }}
     >
-      <div className="container mx-auto max-w-4xl overflow-hidden">
+      <div className="container mx-auto max-w-6xl overflow-hidden">
         <FadeInElement>
-          <div className="w-full h-[280px] sm:h-[320px] md:h-[380px] bg-[#0A0A0A] relative overflow-hidden rounded-xl border border-[#F7C948]/30 shadow-lg">
+          <div className="w-full h-[340px] sm:h-[380px] md:h-[500px] bg-[#0A0A0A] relative overflow-hidden rounded-2xl border border-[#F7C948]/30 shadow-xl">
             <Spotlight
               className="-top-40 left-0 md:left-60 md:-top-20"
               fill="#F7C948"
@@ -57,18 +57,18 @@ export const SplineSection = memo(function SplineSection({
             
             <div className="flex h-full flex-col md:flex-row relative z-10">
               {/* Left content - Texto */}
-              <div className="flex-1 p-4 md:p-6 relative z-10 flex flex-col justify-center min-w-0">
-                <h2 className="text-lg md:text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-b from-white to-gray-400 mb-2">
+              <div className="flex-1 p-5 md:p-8 relative z-10 flex flex-col justify-center min-w-0">
+                <h2 className="text-xl md:text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-b from-white to-gray-400 mb-3">
                   {title || 'O Futuro da Sua Empresa'}
                 </h2>
-                <p className="text-xs md:text-sm text-gray-300 max-w-md leading-relaxed line-clamp-3 sm:line-clamp-none">
+                <p className="text-sm md:text-base text-gray-300 max-w-xl leading-relaxed line-clamp-3 sm:line-clamp-none">
                   {description || 'Estamos aqui para ajudar sua empresa a evoluir e crescer no mundo digital. Com tecnologia de ponta e soluções inovadoras, transformamos sua presença online e impulsionamos seus resultados.'}
                 </p>
               </div>
 
-              {/* Right content - Spline Scene */}
+              {/* Right content - Spline Scene - mais altura para o robô não cortar */}
               <div 
-                className="flex-1 relative min-h-[180px] sm:min-h-[200px] md:min-h-0" 
+                className="flex-1 relative min-h-[220px] sm:min-h-[260px] md:min-h-0" 
                 style={{ 
                   willChange: 'auto',
                   // SEMPRE permitir scroll vertical no mobile
