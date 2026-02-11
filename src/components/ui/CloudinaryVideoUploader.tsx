@@ -15,8 +15,11 @@ interface CloudinaryVideoUploaderProps {
   inputId?: string
 }
 
-const VIDEO_TYPES = ['video/mp4', 'video/webm', 'video/ogg', 'video/quicktime', 'video/x-msvideo']
-const VIDEO_EXT = ['.mp4', '.webm', '.ogg', '.mov', '.avi', '.mkv']
+// Tipos e extensões para validação no JS
+const VIDEO_TYPES = ['video/mp4', 'video/webm', 'video/ogg', 'video/quicktime', 'video/x-m4v', 'video/x-msvideo']
+const VIDEO_EXT = ['.mp4', '.webm', '.ogg', '.mov', '.m4v', '.avi', '.mkv']
+// Accept compatível com iOS (evita "The string did not match the expected pattern")
+const VIDEO_ACCEPT = 'video/mp4,video/quicktime,video/x-m4v,video/webm,video/ogg,.mp4,.mov,.m4v,.webm,.ogg,.avi,.mkv'
 
 export function CloudinaryVideoUploader({
   value,
@@ -86,7 +89,7 @@ export function CloudinaryVideoUploader({
       <input
         ref={fileInputRef}
         type="file"
-        accept={VIDEO_TYPES.join(',') + ',' + VIDEO_EXT.join(',')}
+        accept={VIDEO_ACCEPT}
         onChange={handleFile}
         disabled={uploading}
         className="hidden"

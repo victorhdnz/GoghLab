@@ -350,7 +350,7 @@ export default function CriarGerarPage() {
                 <input
                   ref={videoInputRef}
                   type="file"
-                  accept="video/*"
+                  accept="video/mp4,video/quicktime,video/x-m4v,video/webm,video/ogg,.mp4,.mov,.m4v,.webm,.ogg,.avi,.mkv"
                   onChange={(e) => setPromptViewFiles((f) => ({ ...f, motionVideo: e.target.files?.[0] ?? f.motionVideo, video: e.target.files?.[0] ?? f.video }))}
                   className="sr-only"
                   aria-hidden

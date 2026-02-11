@@ -18,6 +18,9 @@ interface MediaFile {
   uploadedAt: string
 }
 
+// Accept de vídeo compatível com iOS (evita "The string did not match the expected pattern")
+const VIDEO_ACCEPT_IOS = 'video/mp4,video/quicktime,video/x-m4v,video/webm,video/ogg,.mp4,.mov,.m4v,.webm,.ogg,.avi,.mkv'
+
 interface MediaManagerProps {
   onSelectMedia: (url: string) => void
   acceptedTypes?: string[]
@@ -521,7 +524,7 @@ export function MediaManager({
                 ref={fileInputRef}
                 type="file"
                 multiple
-                accept={acceptedTypes.join(',')}
+                accept={acceptedTypes.map((t) => t === 'video/*' ? VIDEO_ACCEPT_IOS : t).join(',')}
                 onChange={handleFileSelect}
                 className="hidden"
               />

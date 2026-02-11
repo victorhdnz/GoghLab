@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
       .toLowerCase()
     
     const fileExt = sanitizedName.split('.').pop() || 'mp4'
-    const validExtensions = ['mp4', 'webm', 'ogg', 'mov', 'avi', 'mkv']
+    const validExtensions = ['mp4', 'webm', 'ogg', 'mov', 'm4v', 'avi', 'mkv']
     const finalExt = validExtensions.includes(fileExt.toLowerCase()) ? fileExt.toLowerCase() : 'mp4'
     
     // Gerar nome único: timestamp + random + extensão
