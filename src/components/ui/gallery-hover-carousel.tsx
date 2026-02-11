@@ -217,42 +217,44 @@ export default function GalleryHoverCarousel({
 }
 
 function ImageCard({ item }: { item: GalleryHoverCarouselItem }) {
-  const Wrapper = item.url ? Link : "div";
-  const wrapperProps = item.url ? { href: item.url } : {};
-  return (
-    <Wrapper
-      {...wrapperProps}
-      className="group block relative w-full aspect-video min-h-[200px] md:min-h-[220px]"
-    >
-      <Card className="overflow-hidden rounded-xl h-full w-full rounded-3xl">
-        <div className="relative h-full w-full transition-all duration-500 group-hover:h-1/2">
-          <Image
-            width={400}
-            height={225}
-            src={item.image}
-            alt={item.title}
-            className="h-full w-full object-cover object-center aspect-video"
-          />
-          <div className="absolute bottom-0 left-0 w-full h-20 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-        </div>
-        <div className="absolute bottom-0 left-0 w-full px-4 transition-all duration-500 group-hover:h-1/2 group-hover:flex flex-col justify-center bg-background/95 backdrop-blur-sm opacity-0 group-hover:opacity-100">
-          <h3 className="text-lg font-medium md:text-xl">{item.title}</h3>
-          <p className="text-muted-foreground text-sm md:text-base line-clamp-2">
-            {item.summary}
-          </p>
-          {item.url && (
-            <Button
-              variant="outline"
-              size="icon"
-              className="absolute bottom-2 right-2 border border-gray-200 dark:border-gray-800 hover:-rotate-45 transition-all duration-500 rounded-full mt-2 px-0 flex items-center gap-1 text-primary hover:text-primary/80"
-            >
-              <ArrowRight className="size-4" />
-            </Button>
-          )}
-        </div>
-      </Card>
-    </Wrapper>
+  const className = "group block relative w-full aspect-video min-h-[200px] md:min-h-[220px]";
+  const content = (
+    <Card className="overflow-hidden rounded-xl h-full w-full rounded-3xl">
+      <div className="relative h-full w-full transition-all duration-500 group-hover:h-1/2">
+        <Image
+          width={400}
+          height={225}
+          src={item.image}
+          alt={item.title}
+          className="h-full w-full object-cover object-center aspect-video"
+        />
+        <div className="absolute bottom-0 left-0 w-full h-20 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+      </div>
+      <div className="absolute bottom-0 left-0 w-full px-4 transition-all duration-500 group-hover:h-1/2 group-hover:flex flex-col justify-center bg-background/95 backdrop-blur-sm opacity-0 group-hover:opacity-100">
+        <h3 className="text-lg font-medium md:text-xl">{item.title}</h3>
+        <p className="text-muted-foreground text-sm md:text-base line-clamp-2">
+          {item.summary}
+        </p>
+        {item.url && (
+          <Button
+            variant="outline"
+            size="icon"
+            className="absolute bottom-2 right-2 border border-gray-200 dark:border-gray-800 hover:-rotate-45 transition-all duration-500 rounded-full mt-2 px-0 flex items-center gap-1 text-primary hover:text-primary/80"
+          >
+            <ArrowRight className="size-4" />
+          </Button>
+        )}
+      </div>
+    </Card>
   );
+  if (item.url) {
+    return (
+      <Link href={item.url} className={className}>
+        {content}
+      </Link>
+    );
+  }
+  return <div className={className}>{content}</div>;
 }
 
 function VideoCard({
