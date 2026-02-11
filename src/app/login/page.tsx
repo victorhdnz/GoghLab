@@ -7,6 +7,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { motion } from 'framer-motion'
 import { Sparkles, ArrowLeft, CheckCircle2, AlertCircle } from 'lucide-react'
+import { LumaSpin } from '@/components/ui/luma-spin'
 import { createClient } from '@/lib/supabase/client'
 
 export default function LoginPage() {
@@ -79,7 +80,7 @@ export default function LoginPage() {
     return (
       <div className="min-h-screen bg-gogh-beige flex items-center justify-center">
         <div className="text-center">
-          <div className="w-16 h-16 border-4 border-gogh-yellow border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <LumaSpin size="lg" className="mx-auto mb-4" />
           <p className="text-gogh-grayDark">Carregando...</p>
         </div>
       </div>
@@ -173,7 +174,7 @@ export default function LoginPage() {
             >
               {signingIn ? (
                 <>
-                  <div className="w-5 h-5 border-2 border-gogh-grayDark border-t-transparent rounded-full animate-spin" />
+                  <LumaSpin size="sm" />
                   <span>Conectando...</span>
                 </>
               ) : (

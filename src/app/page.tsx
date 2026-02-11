@@ -117,7 +117,7 @@ export default async function Home() {
   }
 
   // Ordem padrão das seções (pricing está em página própria /precos)
-  let sectionOrder = homepageContent.section_order || ['hero', 'video', 'trusted_by', 'features', 'gallery', 'services', 'comparison', 'notifications', 'testimonials', 'team', 'spline', 'contact']
+  let sectionOrder = homepageContent.section_order || ['hero', 'typewriter', 'video', 'trusted_by', 'features', 'gallery', 'services', 'comparison', 'notifications', 'testimonials', 'team', 'spline', 'contact']
   // Garantir que 'video', 'notifications', 'testimonials', 'spline' estejam na ordem se não estiverem
   if (Array.isArray(sectionOrder)) {
     if (!sectionOrder.includes('video')) {
@@ -169,6 +169,7 @@ export default async function Home() {
 
   let sectionVisibility = homepageContent.section_visibility || {
     hero: true,
+    typewriter: true,
     video: false,
     services: true,
     comparison: true,
@@ -197,6 +198,9 @@ export default async function Home() {
   }
   if (sectionVisibility.gallery === undefined) {
     sectionVisibility = { ...sectionVisibility, gallery: true }
+  }
+  if (sectionVisibility.typewriter === undefined) {
+    sectionVisibility = { ...sectionVisibility, typewriter: true }
   }
 
   return (

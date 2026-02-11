@@ -10,6 +10,7 @@ import { CloudinaryVideoUploader } from '@/components/ui/CloudinaryVideoUploader
 import { Switch } from '@/components/ui/Switch'
 import { createClient } from '@/lib/supabase/client'
 import { Save, Eye, Trash2, Plus } from 'lucide-react'
+import { LumaSpin } from '@/components/ui/luma-spin'
 import toast from 'react-hot-toast'
 import Link from 'next/link'
 import { DashboardNavigation } from '@/components/dashboard/DashboardNavigation'
@@ -33,6 +34,11 @@ interface HomepageSettings {
   hero_subtitle?: string
   hero_description?: string
   hero_background_image?: string
+
+  typewriter_enabled?: boolean
+  typewriter_subtitle?: string
+  typewriter_words?: Array<{ text: string; highlight?: boolean }>
+  typewriter_button_label?: string
 
   video_enabled?: boolean
   video_url?: string
@@ -191,7 +197,7 @@ function PlatformLogoItem({ platform, index, onUpdate, onRemove, onUpload }: Pla
         {/* Preview da Logo */}
         <div className="w-16 h-16 bg-white rounded-lg border flex items-center justify-center overflow-hidden flex-shrink-0">
           {uploading ? (
-            <div className="animate-spin w-6 h-6 border-2 border-gogh-yellow border-t-transparent rounded-full" />
+            <LumaSpin size="sm" />
           ) : platform.logoUrl ? (
             <img 
               src={platform.logoUrl} 
@@ -292,7 +298,7 @@ function BeamIconItem({ item, index, total, onUpdate, onRemove, onMoveUp, onMove
     <div className="bg-gray-50 p-3 rounded-lg border flex items-center gap-3">
       <div className="w-12 h-12 bg-white rounded-full border flex items-center justify-center overflow-hidden flex-shrink-0">
         {uploading ? (
-          <div className="animate-spin w-5 h-5 border-2 border-gogh-yellow border-t-transparent rounded-full" />
+          <LumaSpin size="sm" />
         ) : item.icon_url ? (
           <img src={item.icon_url} alt={item.label || ''} className="w-full h-full object-contain p-1" />
         ) : (
@@ -347,7 +353,7 @@ function BeamCenterUploadRow({
     <div className="flex items-center gap-3 mb-4">
       <div className="w-14 h-14 rounded-full border bg-white flex items-center justify-center overflow-hidden flex-shrink-0">
         {uploading ? (
-          <div className="animate-spin w-6 h-6 border-2 border-gogh-yellow border-t-transparent rounded-full" />
+          <LumaSpin size="sm" />
         ) : centerIconUrl ? (
           <img src={centerIconUrl} alt="Central" className="w-full h-full object-contain p-1" />
         ) : (
@@ -377,6 +383,7 @@ function BeamCenterUploadRow({
 // Mapeamento de seções
 const sectionIcons: Record<string, string> = {
   hero: '🎯',
+  typewriter: '⌨️',
   video: '🎥',
   features: '✨',
   trusted_by: '🤝',
@@ -410,6 +417,7 @@ function getYouTubeId(url: string): string | null {
 
 const sectionLabels: Record<string, string> = {
   hero: 'Hero (Principal)',
+  typewriter: 'Typewriter (Texto animado + Planos)',
   video: 'Vídeo (Sobre Nós)',
   features: 'O Que Oferecemos (Features)',
   trusted_by: 'Plataformas (Logo Carousel)',
@@ -434,6 +442,7 @@ export default function HomepageEditorPage() {
   const [expandedSection, setExpandedSection] = useState<string | null>('hero')
   const [sectionOrder, setSectionOrder] = useState<string[]>([
     'hero',
+    'typewriter',
     'video',
     'trusted_by',
     'animated_beam',
@@ -450,6 +459,7 @@ export default function HomepageEditorPage() {
   ])
   const [sectionVisibility, setSectionVisibility] = useState<Record<string, boolean>>({
     hero: true,
+    typewriter: true,
     video: false,
     services: true,
     comparison: true,
@@ -472,6 +482,17 @@ export default function HomepageEditorPage() {
     hero_subtitle: 'Criatividade guiada por tecnologia',
     hero_description: 'Agentes de IA para criação de conteúdo, redes sociais e anúncios',
     hero_background_image: '',
+
+    typewriter_enabled: true,
+    typewriter_subtitle: 'O caminho para a liberdade começa aqui.',
+    typewriter_words: [
+      { text: 'Crie', highlight: false },
+      { text: 'incríveis', highlight: false },
+      { text: 'conteúdos', highlight: false },
+      { text: 'com', highlight: false },
+      { text: 'IA.', highlight: true },
+    ],
+    typewriter_button_label: 'Ver planos',
 
     services_enabled: true,
     services_title: 'Nossos Serviços',
@@ -686,6 +707,14 @@ export default function HomepageEditorPage() {
               order.unshift('video')
             }
           }
+          if (!order.includes('typewriter')) {
+            const heroIndex = order.indexOf('hero')
+            if (heroIndex >= 0) {
+              order.splice(heroIndex + 1, 0, 'typewriter')
+            } else {
+              order.unshift('typewriter')
+            }
+          }
           if (!order.includes('notifications')) {
             // Adicionar 'notifications' antes de 'contact' se 'contact' existir, senão no final
             const contactIndex = order.indexOf('contact')
@@ -795,6 +824,7 @@ export default function HomepageEditorPage() {
           // Se não houver ordem salva, usar a ordem padrão (inclui animated_beam e team)
           setSectionOrder([
             'hero',
+            'typewriter',
             'video',
             'trusted_by',
             'animated_beam',
@@ -827,6 +857,9 @@ export default function HomepageEditorPage() {
           }
           if (visibility.animated_beam === undefined) {
             visibility.animated_beam = false
+          }
+          if (visibility.typewriter === undefined) {
+            visibility.typewriter = true
           }
           if (visibility.spline === undefined) {
             visibility.spline = false // Desabilitado por padrão para performance
@@ -1079,6 +1112,88 @@ export default function HomepageEditorPage() {
                     aspectRatio={16 / 9}
                   />
                 </div>
+              </>
+            )}
+          </div>
+        )
+
+      case 'typewriter':
+        return (
+          <div className="space-y-4">
+            <Switch
+              label="Habilitar Seção Typewriter (texto animado + botão para planos)"
+              checked={formData.typewriter_enabled ?? true}
+              onCheckedChange={(checked) => setFormData({ ...formData, typewriter_enabled: checked })}
+            />
+            {formData.typewriter_enabled !== false && (
+              <>
+                <Input
+                  label="Texto acima do typewriter (subtítulo)"
+                  value={formData.typewriter_subtitle || ''}
+                  onChange={(e) => setFormData({ ...formData, typewriter_subtitle: e.target.value })}
+                  placeholder="Ex: O caminho para a liberdade começa aqui."
+                />
+                <div>
+                  <label className="block text-sm font-medium mb-2">Palavras do texto animado (uma por linha ou separadas por vírgula)</label>
+                  <p className="text-xs text-gray-500 mb-1">A última palavra aparecerá em amarelo. Adicione ou edite os itens abaixo.</p>
+                  <div className="space-y-2 max-h-48 overflow-y-auto">
+                    {(formData.typewriter_words || []).map((w, i) => (
+                      <div key={i} className="flex gap-2 items-center">
+                        <input
+                          type="text"
+                          value={w.text}
+                          onChange={(e) => {
+                            const u = [...(formData.typewriter_words || [])]
+                            u[i] = { ...u[i], text: e.target.value }
+                            setFormData({ ...formData, typewriter_words: u })
+                          }}
+                          placeholder="Palavra"
+                          className="flex-1 px-2 py-1.5 text-sm border border-gray-300 rounded-lg"
+                        />
+                        <label className="flex items-center gap-1 text-xs whitespace-nowrap">
+                          <input
+                            type="checkbox"
+                            checked={w.highlight === true}
+                            onChange={(e) => {
+                              const u = [...(formData.typewriter_words || [])]
+                              u[i] = { ...u[i], highlight: e.target.checked }
+                              setFormData({ ...formData, typewriter_words: u })
+                            }}
+                          />
+                          Amarelo
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const u = (formData.typewriter_words || []).filter((_, j) => j !== i)
+                            setFormData({ ...formData, typewriter_words: u })
+                          }}
+                          className="text-red-500 hover:text-red-700 p-1"
+                          title="Remover"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() => setFormData({
+                        ...formData,
+                        typewriter_words: [...(formData.typewriter_words || []), { text: '', highlight: false }],
+                      })}
+                      className="text-sm bg-gogh-yellow text-gogh-black px-3 py-1.5 rounded-lg hover:bg-gogh-yellow/90"
+                    >
+                      + Adicionar palavra
+                    </button>
+                  </div>
+                </div>
+                <Input
+                  label="Texto do botão (link vai para /precos)"
+                  value={formData.typewriter_button_label || ''}
+                  onChange={(e) => setFormData({ ...formData, typewriter_button_label: e.target.value })}
+                  placeholder="Ex: Ver planos"
+                />
+                <p className="text-xs text-gray-500">O botão leva sempre para a página de planos (/precos). A última palavra do texto animado é exibida em amarelo.</p>
               </>
             )}
           </div>
@@ -1536,13 +1651,13 @@ export default function HomepageEditorPage() {
             {formData.gallery_enabled !== false && (
               <>
                 <Switch
-                  label="Espelhar galeria nos Prompts de Criação"
+                  label="Espelhar galeria na Criação"
                   checked={formData.gallery_use_creation_prompts === true}
                   onCheckedChange={(checked) => setFormData({ ...formData, gallery_use_creation_prompts: checked })}
                 />
                 <p className="text-sm text-gray-500 -mt-2">
                   Quando ativo, o carrossel exibe automaticamente os cards dos prompts configurados na página{' '}
-                  <Link href="/dashboard/criar-prompts" className="text-indigo-600 hover:underline font-medium">Prompts de Criação</Link>
+                  <Link href="/dashboard/criar-prompts" className="text-indigo-600 hover:underline font-medium">Criação (Prompts e IAs)</Link>
                   {' '}(título, foto/vídeo de referência e link para Criar com IA).
                 </p>
                 <Input
@@ -2020,7 +2135,7 @@ export default function HomepageEditorPage() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black"></div>
+        <LumaSpin size="default" />
       </div>
     )
   }

@@ -15,6 +15,7 @@ import {
   ChevronDown,
   ChevronUp
 } from 'lucide-react'
+import { LumaSpin } from '@/components/ui/luma-spin'
 import Link from 'next/link'
 import { 
   getYouTubeId, 
@@ -146,7 +147,7 @@ export default function CoursesPage() {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
-          <div className="w-12 h-12 border-4 border-gogh-yellow border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <LumaSpin size="default" className="mx-auto mb-4" />
           <p className="text-gogh-grayDark">Carregando cursos...</p>
         </div>
       </div>

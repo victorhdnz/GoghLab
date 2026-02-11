@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/Input'
 import { Switch } from '@/components/ui/Switch'
 import { Plus, Edit, Trash2, Wrench, Video, Clock } from 'lucide-react'
+import { LumaSpin } from '@/components/ui/luma-spin'
 import toast from 'react-hot-toast'
 import Link from 'next/link'
 
@@ -156,7 +157,7 @@ export default function DashboardFerramentasPage() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black" />
+        <LumaSpin size="default" />
       </div>
     )
   }

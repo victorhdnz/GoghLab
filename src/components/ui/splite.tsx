@@ -1,6 +1,7 @@
 'use client'
 
 import { Suspense, lazy } from 'react'
+import { LumaSpin } from '@/components/ui/luma-spin'
 const Spline = lazy(() => import('@splinetool/react-spline'))
 
 interface SplineSceneProps {
@@ -13,7 +14,7 @@ export function SplineScene({ scene, className }: SplineSceneProps) {
     <Suspense 
       fallback={
         <div className="w-full h-full flex items-center justify-center">
-          <div className="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
+          <LumaSpin size="sm" />
         </div>
       }
     >

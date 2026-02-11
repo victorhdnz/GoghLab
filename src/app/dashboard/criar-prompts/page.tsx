@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/Input'
 import { Switch } from '@/components/ui/Switch'
 import { ImageUploader } from '@/components/ui/ImageUploader'
 import { CloudinaryVideoUploader } from '@/components/ui/CloudinaryVideoUploader'
-import { Plus, Trash2, Save, MessageSquare, LayoutGrid } from 'lucide-react'
+import { Plus, Trash2, Save, MessageSquare, LayoutGrid, Bot } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { getSiteSettings, saveSiteSettings } from '@/lib/supabase/site-settings-helper'
 import { createClient } from '@/lib/supabase/client'
@@ -37,7 +37,18 @@ const TAB_OPTIONS: { value: CreationTabId; label: string }[] = [
   { value: 'vangogh', label: 'Criação de prompts' },
 ]
 
-type InternalTab = 'prompts' | 'chats_gerais'
+type InternalTab = 'prompts' | 'chats_gerais' | 'modelos_ia'
+
+export interface CreationAIModelRow {
+  id: string
+  name: string
+  logo_url: string | null
+  can_image: boolean
+  can_video: boolean
+  can_prompt: boolean
+  is_active: boolean
+  order_position: number
+}
 
 export default function CriarPromptsPage() {
   const [loading, setLoading] = useState(true)
@@ -46,6 +57,8 @@ export default function CriarPromptsPage() {
   const [galleryUseCreationPrompts, setGalleryUseCreationPrompts] = useState(false)
   const [internalTab, setInternalTab] = useState<InternalTab>('prompts')
   const [costByActionGeneral, setCostByActionGeneral] = useState<Record<CreditActionId, number>>({ ...DEFAULT_COST_BY_ACTION })
+  const [creationModels, setCreationModels] = useState<CreationAIModelRow[]>([])
+  const [creationModelsLoading, setCreationModelsLoading] = useState(false)
 
   useEffect(() => {
     load()
@@ -66,6 +79,28 @@ export default function CriarPromptsPage() {
         }
       })
       .catch(() => {})
+  }, [internalTab])
+
+  const loadCreationModels = async () => {
+    setCreationModelsLoading(true)
+    try {
+      const supabase = createClient() as any
+      const { data, error } = await supabase
+        .from('creation_ai_models')
+        .select('id, name, logo_url, can_image, can_video, can_prompt, is_active, order_position')
+        .order('order_position', { ascending: true })
+      if (error) throw error
+      setCreationModels(data ?? [])
+    } catch (e: any) {
+      toast.error(e?.message ?? 'Erro ao carregar modelos de IA')
+      setCreationModels([])
+    } finally {
+      setCreationModelsLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    if (internalTab === 'modelos_ia') loadCreationModels()
   }, [internalTab])
 
   const load = async () => {
@@ -170,6 +205,71 @@ export default function CriarPromptsPage() {
     })
   }
 
+  const saveCreationModel = async (row: CreationAIModelRow) => {
+    try {
+      const supabase = createClient() as any
+      const { error } = await supabase
+        .from('creation_ai_models')
+        .update({
+          name: row.name,
+          logo_url: row.logo_url || null,
+          can_image: row.can_image,
+          can_video: row.can_video,
+          can_prompt: row.can_prompt,
+          order_position: row.order_position,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', row.id)
+      if (error) throw error
+      toast.success('Modelo atualizado.')
+      setCreationModels((prev) => prev.map((m) => (m.id === row.id ? { ...row } : m)))
+    } catch (e: any) {
+      toast.error(e?.message ?? 'Erro ao salvar')
+    }
+  }
+
+  const addCreationModel = async () => {
+    try {
+      const supabase = createClient() as any
+      const maxOrder = Math.max(0, ...creationModels.map((m) => m.order_position))
+      const { data, error } = await supabase
+        .from('creation_ai_models')
+        .insert({
+          name: 'Novo modelo',
+          can_image: false,
+          can_video: false,
+          can_prompt: true,
+          is_active: true,
+          order_position: maxOrder + 1,
+        })
+        .select('id, name, logo_url, can_image, can_video, can_prompt, is_active, order_position')
+        .single()
+      if (error) throw error
+      toast.success('Modelo adicionado. Edite o nome, logo e funções.')
+      setCreationModels((prev) => [...prev, data])
+    } catch (e: any) {
+      toast.error(e?.message ?? 'Erro ao adicionar')
+    }
+  }
+
+  const removeCreationModel = async (id: string) => {
+    try {
+      const supabase = createClient() as any
+      const { error } = await supabase.from('creation_ai_models').delete().eq('id', id)
+      if (error) throw error
+      toast.success('Modelo removido.')
+      setCreationModels((prev) => prev.filter((m) => m.id !== id))
+    } catch (e: any) {
+      toast.error(e?.message ?? 'Erro ao remover')
+    }
+  }
+
+  const updateCreationModel = (id: string, updates: Partial<CreationAIModelRow>) => {
+    setCreationModels((prev) =>
+      prev.map((m) => (m.id === id ? { ...m, ...updates } : m))
+    )
+  }
+
   const saveCreditsConfig = async () => {
     setSaving(true)
     try {
@@ -205,8 +305,8 @@ export default function CriarPromptsPage() {
     <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         <DashboardNavigation
-          title="Prompts de Criação (Criar com IA)"
-          subtitle="Prompts por efeito e custos dos chats gerais"
+          title="Criação (Prompts e IAs)"
+          subtitle="Prompts por efeito, custos dos chats gerais e modelos de IA"
           backUrl="/dashboard"
           backLabel="Voltar ao Dashboard"
         />
@@ -230,6 +330,14 @@ export default function CriarPromptsPage() {
                 <MessageSquare className="h-4 w-4" />
                 Chats gerais
               </button>
+              <button
+                type="button"
+                onClick={() => setInternalTab('modelos_ia')}
+                className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${internalTab === 'modelos_ia' ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+              >
+                <Bot className="h-4 w-4" />
+                Modelos de IA
+              </button>
             </div>
             <div className="flex items-center gap-2">
               <Link href="/dashboard/homepage" className="text-sm text-gray-500 hover:text-gray-700 underline">
@@ -247,8 +355,111 @@ export default function CriarPromptsPage() {
                   {saving ? 'Salvando...' : 'Salvar'}
                 </Button>
               )}
+              {internalTab === 'modelos_ia' && (
+                <Button onClick={addCreationModel} disabled={creationModelsLoading} variant="outline" className="gap-2">
+                  <Plus size={18} />
+                  Adicionar modelo
+                </Button>
+              )}
             </div>
           </div>
+
+          {internalTab === 'modelos_ia' && (
+            <div className="border-t pt-6 space-y-4">
+              <p className="text-sm text-gray-600">
+                Modelos de IA exibidos no seletor da página <strong>Criar</strong>. Cada modelo aparece apenas nas abas em que tiver a função ativa (ex.: um modelo só de imagem não aparece em Vídeo). Faça upload da logo para exibir no chat; sem logo, usa ícone padrão.
+              </p>
+              {creationModelsLoading ? (
+                <p className="text-sm text-gray-500">Carregando modelos...</p>
+              ) : (
+                <div className="space-y-4 max-h-[60vh] overflow-y-auto">
+                  {creationModels.map((row) => (
+                    <div key={row.id} className="bg-gray-50 p-4 rounded-lg border">
+                      <div className="flex items-start justify-between gap-2 mb-3">
+                        <span className="text-sm font-bold text-gray-500">Modelo</span>
+                        <button
+                          type="button"
+                          onClick={() => removeCreationModel(row.id)}
+                          className="text-red-500 hover:text-red-700 p-1"
+                          title="Remover"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <Input
+                          label="Nome (ex.: Nano Banana, DALL·E)"
+                          value={row.name}
+                          onChange={(e) => updateCreationModel(row.id, { name: e.target.value })}
+                          placeholder="Nome do modelo"
+                        />
+                        <div className="sm:col-span-2">
+                          <label className="block text-xs font-medium mb-1">Logo (opcional)</label>
+                          <ImageUploader
+                            value={row.logo_url ?? ''}
+                            onChange={(url) => {
+                              updateCreationModel(row.id, { logo_url: url || null })
+                              saveCreationModel({ ...row, logo_url: url || null })
+                            }}
+                            placeholder="Upload da logo do modelo"
+                            className="max-w-xs"
+                          />
+                        </div>
+                        <div className="sm:col-span-2 flex flex-wrap gap-4">
+                          <label className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              checked={row.can_image}
+                              onChange={(e) => updateCreationModel(row.id, { can_image: e.target.checked })}
+                              className="rounded border-gray-300"
+                            />
+                            <span className="text-sm">Aparece na aba Criação de Foto</span>
+                          </label>
+                          <label className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              checked={row.can_video}
+                              onChange={(e) => updateCreationModel(row.id, { can_video: e.target.checked })}
+                              className="rounded border-gray-300"
+                            />
+                            <span className="text-sm">Aparece em Vídeo / Vídeo com Roteiro</span>
+                          </label>
+                          <label className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              checked={row.can_prompt}
+                              onChange={(e) => updateCreationModel(row.id, { can_prompt: e.target.checked })}
+                              className="rounded border-gray-300"
+                            />
+                            <span className="text-sm">Aparece em Criação de prompts</span>
+                          </label>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium mb-1">Ordem</label>
+                          <input
+                            type="number"
+                            min={0}
+                            value={row.order_position}
+                            onChange={(e) => updateCreationModel(row.id, { order_position: parseInt(e.target.value, 10) || 0 })}
+                            className="w-20 px-2 py-1.5 text-sm border border-gray-300 rounded-lg"
+                          />
+                        </div>
+                      </div>
+                      <div className="mt-3">
+                        <Button type="button" size="sm" onClick={() => saveCreationModel(creationModels.find((m) => m.id === row.id) ?? row)} className="gap-1.5">
+                          <Save size={14} />
+                          Salvar este modelo
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                  {creationModels.length === 0 && !creationModelsLoading && (
+                    <p className="text-sm text-gray-500">Nenhum modelo. Clique em &quot;Adicionar modelo&quot; ou rode a migration que insere os padrões.</p>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
 
           {internalTab === 'chats_gerais' && (
             <div className="border-t pt-6 space-y-4">

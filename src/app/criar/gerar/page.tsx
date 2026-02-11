@@ -38,8 +38,8 @@ const PLACEHOLDERS: Record<TabId, string> = {
   vangogh: 'Descreva o que deseja criar com o prompt...',
 }
 
-/** Modelos de IA disponíveis por tipo (foto vs vídeo). Será expandido quando as APIs forem integradas. */
-const MODELS_BY_TAB: Record<TabId, { id: string; label: string }[]> = {
+/** Fallback quando a API de modelos não retorna dados. */
+const MODELS_BY_TAB_FALLBACK: Record<TabId, { id: string; label: string }[]> = {
   foto: [
     { id: 'default-image', label: 'Padrão (imagem)' },
     { id: 'dall-e', label: 'DALL·E' },
@@ -78,6 +78,15 @@ const MODEL_ICONS: Record<string, ReactNode> = {
   'default-prompt': <Bot className="h-4 w-4" />,
 }
 
+interface CreationModelOption {
+  id: string
+  name: string
+  logo_url: string | null
+  can_image?: boolean
+  can_video?: boolean
+  can_prompt?: boolean
+}
+
 export default function CriarGerarPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -97,6 +106,7 @@ export default function CriarGerarPage() {
   const [generating, setGenerating] = useState(false)
   const [showCreditModal, setShowCreditModal] = useState(false)
   const [publicCostByAction, setPublicCostByAction] = useState<Record<CreditActionId, number> | null>(null)
+  const [creationModelsApi, setCreationModelsApi] = useState<CreationModelOption[]>([])
 
   useEffect(() => {
     fetch('/api/credits/costs')
@@ -107,15 +117,52 @@ export default function CriarGerarPage() {
       .catch(() => {})
   }, [])
 
+  useEffect(() => {
+    fetch('/api/creation-ai-models')
+      .then((r) => r.json())
+      .then((data) => {
+        if (Array.isArray(data.models)) {
+          setCreationModelsApi(
+            data.models.map((m: CreationModelOption & { can_image?: boolean; can_video?: boolean; can_prompt?: boolean }) => ({
+              id: m.id,
+              name: m.name,
+              logo_url: m.logo_url ?? null,
+              can_image: m.can_image,
+              can_video: m.can_video,
+              can_prompt: m.can_prompt,
+            }))
+          )
+        }
+      })
+      .catch(() => {})
+  }, [])
+
   const activeTab: TabId = selectedPrompt?.tabId ?? (tabFromUrl && ['foto', 'video', 'roteiro', 'vangogh'].includes(tabFromUrl) ? tabFromUrl : 'foto')
-  const availableModels = MODELS_BY_TAB[activeTab] ?? MODELS_BY_TAB.foto
+
+  const availableModels = useMemo(() => {
+    type Cap = 'can_image' | 'can_video' | 'can_prompt'
+    const cap: Record<TabId, Cap> = {
+      foto: 'can_image',
+      video: 'can_video',
+      roteiro: 'can_video',
+      vangogh: 'can_prompt',
+    }
+    const key = cap[activeTab]
+    if (!key || creationModelsApi.length === 0) {
+      const fallback = MODELS_BY_TAB_FALLBACK[activeTab] ?? MODELS_BY_TAB_FALLBACK.foto
+      return fallback.map((m) => ({ id: m.id, name: m.label, logo_url: null as string | null }))
+    }
+    return creationModelsApi
+      .filter((m) => m[key] === true)
+      .map((m) => ({ id: m.id, name: m.name, logo_url: m.logo_url }))
+  }, [activeTab, creationModelsApi])
+
   const [selectedModelId, setSelectedModelId] = useState<string>(availableModels[0]?.id ?? 'default-image')
 
   useEffect(() => {
-    const models = MODELS_BY_TAB[activeTab] ?? MODELS_BY_TAB.foto
-    const firstId = models[0]?.id
-    setSelectedModelId((prev) => (firstId && models.some((m) => m.id === prev)) ? prev : (firstId ?? prev))
-  }, [activeTab])
+    const firstId = availableModels[0]?.id
+    setSelectedModelId((prev) => (firstId && availableModels.some((m) => m.id === prev)) ? prev : (firstId ?? prev))
+  }, [activeTab, availableModels])
 
   useEffect(() => {
     fetch('/api/creation-prompts')
@@ -307,8 +354,13 @@ export default function CriarGerarPage() {
                     size="sm"
                     className="h-8 gap-1.5 rounded-md border-input pl-2 pr-2 text-xs font-normal"
                   >
-                    {MODEL_ICONS[selectedModelId] ?? <Bot className="h-4 w-4" />}
-                    <span>{availableModels.find((m) => m.id === selectedModelId)?.label ?? selectedModelId}</span>
+                    {(() => {
+                  const sel = availableModels.find((m) => m.id === selectedModelId)
+                  return sel?.logo_url ? (
+                    <span className="relative h-4 w-4 shrink-0 overflow-hidden rounded"><Image src={sel.logo_url} alt="" width={16} height={16} className="object-contain" /></span>
+                  ) : (MODEL_ICONS[selectedModelId] ?? <Bot className="h-4 w-4" />)
+                })()}
+                    <span>{availableModels.find((m) => m.id === selectedModelId)?.name ?? selectedModelId}</span>
                     <ChevronDown className="h-3.5 w-3.5 opacity-50" />
                   </Button>
                 </DropdownMenuTrigger>
@@ -320,8 +372,10 @@ export default function CriarGerarPage() {
                       className="flex items-center justify-between gap-2"
                     >
                       <div className="flex items-center gap-2">
-                        {MODEL_ICONS[m.id] ?? <Bot className="h-4 w-4 opacity-70" />}
-                        <span>{m.label}</span>
+                        {m.logo_url ? (
+                          <span className="relative h-4 w-4 shrink-0 overflow-hidden rounded"><Image src={m.logo_url} alt="" width={16} height={16} className="object-contain" /></span>
+                        ) : (MODEL_ICONS[m.id] ?? <Bot className="h-4 w-4 opacity-70" />)}
+                        <span>{m.name}</span>
                       </div>
                       {selectedModelId === m.id && <Check className="h-4 w-4 text-primary" />}
                     </DropdownMenuItem>
@@ -352,6 +406,9 @@ export default function CriarGerarPage() {
             onSend={handleSend}
             initialValue={selectedPrompt?.inputStructure === 'text_only' ? selectedPrompt.prompt : promptFromUrl}
             creditCost={costByAction?.[activeTab] ?? publicCostByAction?.[activeTab] ?? null}
+            models={availableModels}
+            selectedModelId={selectedModelId}
+            onModelChange={setSelectedModelId}
           />
           {generating && (
             <div className="mt-4 flex items-center gap-2 rounded-lg border bg-muted/50 px-4 py-3">

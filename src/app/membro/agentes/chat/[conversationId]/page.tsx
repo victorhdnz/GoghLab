@@ -9,7 +9,6 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { 
   ArrowLeft, 
   Send, 
-  Loader2, 
   Bot, 
   User, 
   RefreshCw,
@@ -17,6 +16,7 @@ import {
   Sparkles,
   Trash2
 } from 'lucide-react'
+import { LumaSpin } from '@/components/ui/luma-spin'
 import ReactMarkdown from 'react-markdown'
 
 interface AIAgent {
@@ -622,7 +622,7 @@ export default function ChatPage() {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
-          <div className="w-12 h-12 border-4 border-gogh-yellow border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <LumaSpin size="default" className="mx-auto mb-4" />
           <p className="text-gogh-grayDark">Carregando conversa...</p>
         </div>
       </div>
@@ -775,7 +775,7 @@ export default function ChatPage() {
             animate={{ opacity: 1, y: 0 }}
             className="flex items-center justify-center gap-3 py-4"
           >
-            <Loader2 className="w-5 h-5 text-gogh-yellow animate-spin" />
+            <LumaSpin size="sm" />
             <span className="text-sm text-gogh-grayDark">
               Configurando o agente com suas informações do perfil... (não desconta do seu limite diário)
             </span>
@@ -971,7 +971,7 @@ export default function ChatPage() {
             `}
           >
             {isSending ? (
-              <Loader2 className="w-5 h-5 animate-spin" />
+              <LumaSpin size="sm" />
             ) : (
               <Send className="w-5 h-5" />
             )}

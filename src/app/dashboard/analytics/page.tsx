@@ -11,6 +11,7 @@ import toast from 'react-hot-toast'
 import Link from 'next/link'
 import { DashboardNavigation } from '@/components/dashboard/DashboardNavigation'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
+import { LumaSpin } from '@/components/ui/luma-spin'
 
 interface AnalyticsSummary {
   totalViews: number
@@ -782,7 +783,7 @@ export default function AnalyticsPage() {
                 disabled={deleting || loading}
                 className="px-6 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center gap-2 disabled:opacity-50"
               >
-                <Trash2 size={18} className={deleting ? 'animate-spin' : ''} />
+                {deleting ? <LumaSpin size="sm" className="flex-shrink-0" /> : <Trash2 size={18} />}
                 Apagar Dados
               </button>
               <button
@@ -790,7 +791,7 @@ export default function AnalyticsPage() {
                 disabled={loading}
                 className="px-6 py-2.5 bg-black text-white rounded-lg hover:bg-gray-800 flex items-center gap-2 disabled:opacity-50"
               >
-                <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
+                {loading ? <LumaSpin size="sm" className="flex-shrink-0" /> : <RefreshCw size={18} />}
                 Atualizar
               </button>
             </div>

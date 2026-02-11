@@ -13,6 +13,7 @@ import {
   CheckCircle2,
   MessageCircle
 } from 'lucide-react'
+import { LumaSpin } from '@/components/ui/luma-spin'
 
 /** Limites de quantidade dos serviços personalizados (mensal e anual). Definidos nos termos. */
 const SERVICE_QUANTITY_LIMITS: Record<string, { quantity: number; label: string }> = {
@@ -161,7 +162,7 @@ export default function ServicosPage() {
     return (
       <div className="max-w-4xl mx-auto">
         <div className="flex items-center justify-center py-20">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gogh-black"></div>
+          <LumaSpin size="default" />
         </div>
       </div>
     )

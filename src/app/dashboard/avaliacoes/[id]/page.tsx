@@ -9,6 +9,7 @@ import { StarRating } from '@/components/ui/StarRating'
 import { createClient } from '@/lib/supabase/client'
 import { ServiceTestimonial, Service } from '@/types'
 import { Save } from 'lucide-react'
+import { LumaSpin } from '@/components/ui/luma-spin'
 import toast from 'react-hot-toast'
 import { BackButton } from '@/components/ui/BackButton'
 
@@ -126,7 +127,7 @@ export default function EditAvaliacaoPage({ params }: EditAvaliacaoPageProps) {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-black"></div>
+        <LumaSpin size="default" />
       </div>
     )
   }

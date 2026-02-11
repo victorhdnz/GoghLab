@@ -1,47 +1,147 @@
 'use client'
 
-import React from 'react'
+import React, { useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { usePathname, useRouter } from 'next/navigation'
-import { Home, CreditCard, Sparkles, Wrench, BookOpen, User, Menu } from 'lucide-react'
-import { buttonVariants } from '@/components/ui/button'
+import { usePathname } from 'next/navigation'
+import {
+  Home,
+  CreditCard,
+  Sparkles,
+  Wrench,
+  BookOpen,
+  User,
+  Layers,
+} from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/contexts/AuthContext'
-import type { LucideIcon } from 'lucide-react'
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from '@/components/ui/sheet'
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion'
+import {
+  NavigationMenu,
+  NavigationMenuContent,
+  NavigationMenuItem,
+  NavigationMenuLink,
+  NavigationMenuList,
+  NavigationMenuTrigger,
+} from '@/components/ui/navigation-menu'
 
-interface NavLinkItem {
+// ——— Spotlight nav item (mobile bottom bar)
+function SpotlightNavItem({
+  icon: Icon,
+  isActive,
+  onClick,
+  indicatorPosition,
+  position,
+  href,
+  label,
+}: {
+  icon: React.ElementType
+  isActive: boolean
+  onClick?: () => void
+  indicatorPosition: number
+  position: number
+  href?: string
   label: string
-  href: string
-  icon: LucideIcon
-  isHash?: boolean
-  highlight?: boolean
-  /** No mobile: se true, fica na barra (ordem: 1 Início, 2 Criar, 4 Planos); Conta = 3) */
-  showOnMobileBar?: boolean
-  /** Ordem na barra do telefone: 1 Início, 2 Criar, 4 Planos. Conta é 3 (renderizado separado) */
-  mobileOrder?: number
+}) {
+  const distance = Math.abs(indicatorPosition - position)
+  const spotlightOpacity = isActive ? 1 : Math.max(0, 1 - distance * 0.6)
+  const content = (
+    <>
+      <div
+        className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-12 h-24 bg-gradient-to-b from-white/40 to-transparent blur-lg rounded-full transition-opacity duration-400"
+        style={{
+          opacity: spotlightOpacity,
+          transitionDelay: isActive ? '0.1s' : '0s',
+        }}
+      />
+      <Icon
+        className={cn(
+          'w-6 h-6 transition-colors duration-200',
+          isActive ? 'text-white' : 'text-gray-500 hover:text-gray-300'
+        )}
+        strokeWidth={isActive ? 2.5 : 2}
+      />
+    </>
+  )
+  if (href) {
+    return (
+      <Link
+        href={href}
+        className="relative flex items-center justify-center w-12 h-12 mx-2 transition-all duration-400"
+        title={label}
+        aria-label={label}
+      >
+        {content}
+      </Link>
+    )
+  }
+  return (
+    <button
+      type="button"
+      className="relative flex items-center justify-center w-12 h-12 mx-2 transition-all duration-400"
+      onClick={onClick}
+      title={label}
+      aria-label={label}
+    >
+      {content}
+    </button>
+  )
 }
 
-const linkConfig: NavLinkItem[] = [
-  { label: 'Início', href: '/', icon: Home, showOnMobileBar: true, mobileOrder: 1 },
-  { label: 'Planos', href: '/precos', icon: CreditCard, showOnMobileBar: true, mobileOrder: 4 },
-  { label: 'Criar', href: '/criar', icon: Sparkles, highlight: true, showOnMobileBar: true, mobileOrder: 2 },
-  { label: 'Ferramentas', href: '/ferramentas', icon: Wrench, showOnMobileBar: false },
-  { label: 'Cursos', href: '/cursos', icon: BookOpen, showOnMobileBar: false },
+// ——— Menu structure for desktop dropdowns and mobile accordion
+type SubItem = { title: string; description?: string; url: string; icon: React.ElementType }
+const menuWithDropdowns: Array<
+  { title: string; url: string; highlight?: boolean; items?: SubItem[] }> = [
+  { title: 'Início', url: '/' },
+  {
+    title: 'Ferramentas',
+    url: '/ferramentas',
+    items: [
+      { title: 'Ver ferramentas', description: 'Ferramentas profissionais para criação', url: '/ferramentas', icon: Wrench },
+    ],
+  },
+  {
+    title: 'Cursos',
+    url: '/cursos',
+    items: [
+      { title: 'Ver cursos', description: 'Cursos e formação', url: '/cursos', icon: BookOpen },
+    ],
+  },
+  { title: 'Criar', url: '/criar', highlight: true },
+  { title: 'Comparar', url: '/comparar' },
 ]
 
 export function FloatingHeader() {
   const pathname = usePathname()
-  const router = useRouter()
   const { isAuthenticated } = useAuth()
-  const [siteName, setSiteName] = React.useState('Gogh Lab')
-  const [siteLogo, setSiteLogo] = React.useState<string | null>(null)
-  const [logoLoaded, setLogoLoaded] = React.useState(false)
-  const [menuOpen, setMenuOpen] = React.useState(false)
+  const [siteName, setSiteName] = useState('Gogh Lab')
+  const [siteLogo, setSiteLogo] = useState<string | null>(null)
+  const [menuOpen, setMenuOpen] = useState(false)
+  const [mobileActiveIndex, setMobileActiveIndex] = useState(0)
 
-  // Rolagem para seção ao vir de outra página (ex.: clicou em Contato)
+  // Sincronizar ícone ativo no mobile com a rota atual
+  React.useEffect(() => {
+    if (pathname === '/') setMobileActiveIndex(0)
+    else if (pathname === '/criar' || pathname?.startsWith('/criar/')) setMobileActiveIndex(2)
+    else if (pathname === '/precos') setMobileActiveIndex(3)
+    else if (pathname === '/conta' || pathname?.startsWith('/conta/') || pathname === '/login') setMobileActiveIndex(4)
+    else if (pathname === '/ferramentas' || pathname === '/cursos') setMobileActiveIndex(1)
+  }, [pathname])
+
   React.useEffect(() => {
     if (pathname !== '/') return
     const id = sessionStorage.getItem('scrollToSection')
@@ -78,169 +178,210 @@ export function FloatingHeader() {
         }
       } catch (e) {
         console.error('FloatingHeader site_settings:', e)
-      } finally {
-        setLogoLoaded(true)
       }
     }
     load()
   }, [])
 
-  const handleHashLink = (e: React.MouseEvent<HTMLAnchorElement>, hash: string) => {
-    e.preventDefault()
-    const sectionId = hash.replace('#', '')
-    if (pathname !== '/') {
-      sessionStorage.setItem('scrollToSection', sectionId)
-      router.push('/')
-      return
-    }
-    const el = document.getElementById(sectionId)
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
-  }
-
-  return (
-    <header
-      className={cn(
-        'fixed top-0 left-0 right-0 z-50',
-        'w-full border-b shadow-sm',
-        'bg-background/95 supports-[backdrop-filter]:bg-background/80 backdrop-blur-lg'
-      )}
-    >
-      <nav className="relative mx-auto flex items-center justify-between gap-2 px-3 sm:px-4 py-2 min-h-12 max-w-7xl">
-        <Link
-          href="/"
-          className="hover:bg-accent flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 flex-shrink-0 min-w-0 z-10"
-        >
-          {!logoLoaded ? (
-            <span className="size-6 sm:size-7 rounded bg-muted/40 flex-shrink-0 inline-block" aria-hidden />
-          ) : siteLogo ? (
+  // ——— Desktop: navbar centralizada, não full-width; dropdowns + um botão Ver planos
+  const desktopNav = (
+    <header className="fixed top-0 left-0 right-0 z-50 flex justify-center px-3 py-3 md:py-4 pointer-events-none">
+      <nav className="pointer-events-auto relative flex items-center justify-between gap-4 w-full max-w-5xl px-4 py-2.5 bg-black/90 backdrop-blur-sm rounded-2xl shadow-lg border border-white/10">
+        <Link href="/" className="flex items-center gap-2 flex-shrink-0 min-w-0" prefetch>
+          {siteLogo ? (
             <Image
               src={siteLogo}
               alt={siteName}
-              width={28}
-              height={28}
-              className="size-6 sm:size-7 object-contain flex-shrink-0"
+              width={32}
+              height={32}
+              className="h-8 w-8 object-contain flex-shrink-0"
               unoptimized={siteLogo.startsWith('http')}
               priority
             />
           ) : (
-            <span className="font-mono text-sm sm:text-base font-bold truncate">{siteName}</span>
+            <span className="text-lg font-semibold text-white truncate">{siteName}</span>
           )}
         </Link>
-        {/* Desktop: links centralizados + ícone de usuário à direita */}
-        <div className="hidden lg:flex absolute left-0 right-0 justify-center items-center pointer-events-none">
-          <div className="flex items-center gap-1 pointer-events-auto">
-            {linkConfig.map((link) => (
-              <Link
-                key={link.href}
-                className={
-                  link.highlight
-                    ? buttonVariants({ variant: 'default', size: 'sm' })
-                    : buttonVariants({ variant: 'ghost', size: 'sm' })
-                }
-                href={link.href}
-                onClick={link.isHash ? (e) => handleHashLink(e, link.href) : undefined}
-              >
-                {link.label}
-              </Link>
-            ))}
-          </div>
-        </div>
-        <div className="hidden lg:flex flex-shrink-0 z-10">
-          <Link
-            href={isAuthenticated ? '/conta' : '/login'}
-            title={isAuthenticated ? 'Minha conta' : 'Entrar'}
-            aria-label={isAuthenticated ? 'Minha conta' : 'Entrar'}
-            className={cn(
-              'flex items-center justify-center rounded-full p-2 transition-colors',
-              pathname === '/conta' || pathname?.startsWith('/conta/')
-                ? 'bg-accent text-accent-foreground'
-                : 'text-muted-foreground hover:bg-accent hover:text-foreground'
-            )}
-          >
-            <User className="size-5" />
-          </Link>
-        </div>
-        {/* Mobile: ordem Início, Criar, Planos, Menu; Conta por último à direita */}
-        <div className="flex lg:hidden items-center justify-center gap-0.5 sm:gap-1 flex-1 min-w-0">
-          {(() => {
-            const barLinks = linkConfig
-              .filter((l) => l.showOnMobileBar)
-              .sort((a, b) => (a.mobileOrder ?? 99) - (b.mobileOrder ?? 99))
-            const contaActive = pathname === '/conta' || pathname?.startsWith('/conta/')
-            const contaClass = cn(
-              'flex flex-col items-center justify-center rounded-lg p-1.5 sm:p-2 min-w-[40px] min-h-[44px]',
-              contaActive ? 'bg-accent text-accent-foreground' : isAuthenticated ? 'hover:bg-accent text-muted-foreground hover:text-foreground' : 'bg-primary text-primary-foreground hover:bg-primary/90'
-            )
-            return (
-              <>
-                {barLinks.map((link) => {
-                  const Icon = link.icon
-                  const isActive = pathname === link.href || (link.href === '/' && pathname === '/')
+
+        <div className="hidden lg:flex absolute left-1/2 -translate-x-1/2 items-center">
+          <NavigationMenu>
+            <NavigationMenuList className="gap-1 bg-transparent">
+              {menuWithDropdowns.map((item) => {
+                if (item.items?.length) {
                   return (
-                    <Link
-                      key={link.href}
-                      href={link.href}
-                      onClick={link.isHash ? (e) => handleHashLink(e, link.href) : undefined}
-                      className={cn(
-                        'flex flex-col items-center justify-center rounded-lg p-1.5 sm:p-2 min-w-[40px] min-h-[44px]',
-                        link.highlight ? 'bg-primary text-primary-foreground hover:bg-primary/90' : isActive ? 'bg-accent text-accent-foreground' : 'hover:bg-accent text-muted-foreground hover:text-foreground'
-                      )}
-                      title={link.label}
-                    >
-                      <Icon className="size-5 sm:size-5" />
-                      <span className="text-[9px] sm:text-[10px] truncate w-full text-center">{link.label}</span>
-                    </Link>
+                    <NavigationMenuItem key={item.title} className="text-white/90">
+                      <NavigationMenuTrigger className="bg-transparent text-white/90 hover:bg-white/10 hover:text-white data-[state=open]:bg-white/10">
+                        {item.title}
+                      </NavigationMenuTrigger>
+                      <NavigationMenuContent>
+                        <ul className="w-72 p-3">
+                          {item.items.map((sub) => {
+                          const SubIcon = sub.icon
+                          return (
+                            <li key={sub.url}>
+                              <NavigationMenuLink asChild>
+                                <Link
+                                  href={sub.url}
+                                  className="flex select-none gap-4 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-muted hover:text-accent-foreground text-foreground"
+                                >
+                                  {SubIcon && <SubIcon className="size-5 shrink-0 text-muted-foreground" />}
+                                  <div>
+                                    <div className="text-sm font-semibold">{sub.title}</div>
+                                    {sub.description && (
+                                      <p className="text-sm leading-snug text-muted-foreground">{sub.description}</p>
+                                    )}
+                                  </div>
+                                </Link>
+                              </NavigationMenuLink>
+                            </li>
+                          )
+                          })}
+                        </ul>
+                      </NavigationMenuContent>
+                    </NavigationMenuItem>
                   )
-                })}
-                <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
-                  <SheetTrigger asChild>
-                    <button
-                      type="button"
-                      className="flex flex-col items-center justify-center rounded-lg p-1.5 sm:p-2 min-w-[40px] min-h-[44px] hover:bg-accent text-muted-foreground hover:text-foreground"
-                      title="Menu"
-                      aria-label="Abrir menu"
-                    >
-                      <Menu className="size-5 sm:size-5" />
-                      <span className="text-[9px] sm:text-[10px]">Menu</span>
-                    </button>
-                  </SheetTrigger>
-                  <SheetContent side="right" className="w-64 pt-8">
-                    <nav className="flex flex-col gap-1">
-                      {linkConfig.filter((l) => !l.showOnMobileBar).map((link) => {
-                        const Icon = link.icon
-                        return (
-                          <Link
-                            key={link.href}
-                            href={link.href}
-                            onClick={(e) => {
-                              setMenuOpen(false)
-                              if (link.isHash) {
-                                e.preventDefault()
-                                handleHashLink(e, link.href)
-                              }
-                            }}
-                            className={cn(
-                              'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
-                              link.highlight ? 'bg-primary text-primary-foreground hover:bg-primary/90' : 'hover:bg-accent text-foreground'
-                            )}
-                          >
-                            <Icon className="size-5 shrink-0" />
-                            {link.label}
-                          </Link>
-                        )
-                      })}
-                    </nav>
-                  </SheetContent>
-                </Sheet>
-                <Link href={isAuthenticated ? '/conta' : '/login'} className={contaClass} title={isAuthenticated ? 'Conta' : 'Entrar'}>
-                  <User className="size-5 sm:size-5" />
-                  <span className="text-[9px] sm:text-[10px] truncate w-full text-center">{isAuthenticated ? 'Conta' : 'Entrar'}</span>
-                </Link>
-              </>
-            )
-          })()}
+                }
+                return (
+                  <NavigationMenuItem key={item.title}>
+                    <NavigationMenuLink asChild>
+                      <Link
+                        href={item.url}
+                        className={cn(
+                          'inline-flex h-9 w-max items-center justify-center rounded-md px-4 py-2 text-sm font-medium transition-colors hover:bg-white/10',
+                          item.highlight ? 'bg-primary text-primary-foreground hover:bg-primary/90' : 'text-white/90 hover:text-white'
+                        )}
+                      >
+                        {item.title}
+                      </Link>
+                    </NavigationMenuLink>
+                  </NavigationMenuItem>
+                )
+              })}
+            </NavigationMenuList>
+          </NavigationMenu>
+        </div>
+
+        <div className="hidden lg:flex flex-shrink-0">
+          <Button asChild size="sm" className="rounded-lg">
+            <Link href="/precos">Ver planos</Link>
+          </Button>
         </div>
       </nav>
     </header>
+  )
+
+  // ——— Mobile: barra inferior estilo spotlight (centralizada, não full-width) + Sheet com accordion de categorias
+  const mobileNavItems = [
+    { index: 0, icon: Home, label: 'Início', href: '/' },
+    { index: 1, icon: Layers, label: 'Categorias', openSheet: true },
+    { index: 2, icon: Sparkles, label: 'Criar', href: '/criar' },
+    { index: 3, icon: CreditCard, label: 'Planos', href: '/precos' },
+    { index: 4, icon: User, label: isAuthenticated ? 'Conta' : 'Entrar', href: isAuthenticated ? '/conta' : '/login' },
+  ]
+
+  const mobileBar = (
+    <div className="fixed bottom-4 left-0 right-0 z-50 flex justify-center px-4 lg:hidden pointer-events-none">
+      <nav
+        className="pointer-events-auto relative flex items-center px-2 py-3 bg-black/90 backdrop-blur-sm rounded-2xl shadow-lg border border-white/10"
+        style={{ width: 'min(100% - 2rem, 22rem)' }}
+      >
+        <div
+          className="absolute top-0 h-[2px] bg-white transition-all duration-400 ease-in-out"
+          style={{
+            left: `${mobileActiveIndex * 56 + 16}px`,
+            width: '40px',
+            transform: 'translateY(-1px)',
+          }}
+        />
+        {mobileNavItems.map((item) => (
+          <SpotlightNavItem
+            key={item.label}
+            icon={item.icon}
+            isActive={mobileActiveIndex === item.index}
+            indicatorPosition={mobileActiveIndex}
+            position={item.index}
+            href={item.openSheet ? undefined : item.href}
+            label={item.label}
+            onClick={
+              item.openSheet
+                ? () => {
+                    setMobileActiveIndex(1)
+                    setMenuOpen(true)
+                  }
+                : undefined
+            }
+          />
+        ))}
+      </nav>
+    </div>
+  )
+
+  const categoriesSheet = (
+    <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
+      <SheetContent side="right" className="w-72 overflow-y-auto">
+        <SheetHeader>
+          <SheetTitle className="flex items-center gap-2">
+            {siteLogo && (
+              <Image src={siteLogo} alt="" width={24} height={24} className="object-contain" unoptimized={siteLogo.startsWith('http')} />
+            )}
+            <span>{siteName}</span>
+          </SheetTitle>
+        </SheetHeader>
+        <div className="mt-6 flex flex-col gap-4">
+          <Accordion type="single" collapsible className="w-full">
+            {menuWithDropdowns.filter((m) => m.items?.length).map((item) => (
+              <AccordionItem key={item.title} value={item.title} className="border-b-0">
+                <AccordionTrigger className="py-0 font-semibold hover:no-underline">
+                  {item.title}
+                </AccordionTrigger>
+                <AccordionContent className="mt-2">
+                  {item.items?.map((sub) => {
+                      const SubIcon = sub.icon
+                      return (
+                    <Link
+                      key={sub.url}
+                      href={sub.url}
+                      onClick={() => setMenuOpen(false)}
+                      className="flex gap-4 rounded-md p-3 leading-none outline-none transition-colors hover:bg-muted text-foreground"
+                    >
+                      {SubIcon && <SubIcon className="size-5 shrink-0 text-muted-foreground" />}
+                      <div>
+                        <div className="text-sm font-semibold">{sub.title}</div>
+                        {sub.description && (
+                          <p className="text-sm leading-snug text-muted-foreground">{sub.description}</p>
+                        )}
+                      </div>
+                    </Link>
+                  )
+                  })}
+                </AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
+          <div className="border-t pt-4 flex flex-col gap-2">
+            <Link href="/" onClick={() => setMenuOpen(false)} className="font-semibold py-2 hover:underline">
+              Início
+            </Link>
+            <Link href="/criar" onClick={() => setMenuOpen(false)} className="font-semibold py-2 hover:underline">
+              Criar
+            </Link>
+            <Link href="/precos" onClick={() => setMenuOpen(false)} className="font-semibold py-2 hover:underline">
+              Ver planos
+            </Link>
+            <Link href="/comparar" onClick={() => setMenuOpen(false)} className="font-semibold py-2 hover:underline">
+              Comparar
+            </Link>
+          </div>
+        </div>
+      </SheetContent>
+    </Sheet>
+  )
+
+  return (
+    <>
+      {desktopNav}
+      {mobileBar}
+      {categoriesSheet}
+    </>
   )
 }

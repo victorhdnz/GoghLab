@@ -22,6 +22,7 @@ import {
   X,
   MessageSquare
 } from 'lucide-react'
+import { LumaSpin } from '@/components/ui/luma-spin'
 import toast from 'react-hot-toast'
 import Link from 'next/link'
 
@@ -587,7 +588,7 @@ export default function SolicitacoesPage() {
             <div className="overflow-y-auto max-h-[calc(100vh-300px)]">
               {loading ? (
                 <div className="p-8 text-center">
-                  <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+                  <LumaSpin size="sm" className="mx-auto mb-4" />
                   <p className="text-gray-500">Carregando...</p>
                 </div>
               ) : filteredTickets.length === 0 ? (
@@ -865,7 +866,7 @@ export default function SolicitacoesPage() {
                   >
                     {saving ? (
                       <>
-                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        <LumaSpin size="sm" className="flex-shrink-0" />
                         Salvando...
                       </>
                     ) : (

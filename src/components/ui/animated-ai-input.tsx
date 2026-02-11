@@ -2,6 +2,7 @@
 
 import { ArrowRight, Bot, Check, ChevronDown, Paperclip, Zap } from 'lucide-react'
 import React, { useState, useRef, useCallback, useEffect } from 'react'
+import Image from 'next/image'
 import { Textarea } from '@/components/ui/textarea'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -124,6 +125,12 @@ const MODEL_ICONS: Record<string, React.ReactNode> = {
   'GPT-4-1': OPENAI_ICON,
 }
 
+export interface CreationAIModelOption {
+  id: string
+  name: string
+  logo_url: string | null
+}
+
 export interface AI_PromptProps {
   placeholder?: string
   onSend?: (message: string, model: string) => void
@@ -132,14 +139,35 @@ export interface AI_PromptProps {
   initialValue?: string
   /** Custo em créditos para exibir no botão Gerar (ex.: 5) */
   creditCost?: number | null
-  /** Quando "gerar": só área de texto + botão "Gerar · X créditos" abaixo (sem barra com modelo/envio dentro do chat) */
+  /** Quando "gerar": área de texto + seletor de modelo (se models passado) + botão "Gerar · X créditos" abaixo */
   variant?: 'default' | 'gerar'
+  /** Modelos do dashboard (filtrados por aba); quando passado, o dropdown usa esta lista e mostra logo */
+  models?: CreationAIModelOption[]
+  /** ID do modelo selecionado (controlado pelo pai quando models é passado) */
+  selectedModelId?: string
+  /** Callback quando o usuário troca o modelo (quando models é passado) */
+  onModelChange?: (modelId: string) => void
 }
 
-export function AI_Prompt({ placeholder = 'O que posso criar para você?', onSend, className, initialValue, creditCost, variant = 'default' }: AI_PromptProps) {
+export function AI_Prompt({
+  placeholder = 'O que posso criar para você?',
+  onSend,
+  className,
+  initialValue,
+  creditCost,
+  variant = 'default',
+  models: propsModels,
+  selectedModelId: propsSelectedModelId,
+  onModelChange,
+}: AI_PromptProps) {
   const [value, setValue] = useState(initialValue ?? '')
   const { textareaRef, adjustHeight } = useAutoResizeTextarea({ minHeight: 72, maxHeight: 300 })
   const [selectedModel, setSelectedModel] = useState('GPT-4-1 Mini')
+  const useControlledModels = Array.isArray(propsModels) && propsModels.length > 0
+  const selectedId = useControlledModels ? (propsSelectedModelId ?? propsModels[0]?.id ?? '') : selectedModel
+  const displayModels = useControlledModels ? propsModels : AI_MODELS.map((name) => ({ id: name, name, logo_url: null as string | null }))
+  const selectedOption = displayModels.find((m) => m.id === selectedId) ?? displayModels[0]
+  const showModelBar = !useControlledModels ? !(variant === 'gerar') : true
 
   useEffect(() => {
     if (initialValue !== undefined) {
@@ -151,7 +179,7 @@ export function AI_Prompt({ placeholder = 'O que posso criar para você?', onSen
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey && value.trim()) {
       e.preventDefault()
-      onSend?.(value.trim(), selectedModel)
+      onSend?.(value.trim(), selectedId)
       setValue('')
       adjustHeight(true)
     }
@@ -159,12 +187,19 @@ export function AI_Prompt({ placeholder = 'O que posso criar para você?', onSen
 
   const handleSend = () => {
     if (!value.trim()) return
-    onSend?.(value.trim(), selectedModel)
+    onSend?.(value.trim(), selectedId)
     setValue('')
     adjustHeight(true)
   }
 
   const isGerarVariant = variant === 'gerar'
+  const selectModel = (idOrName: string) => {
+    if (useControlledModels) {
+      onModelChange?.(idOrName)
+    } else {
+      setSelectedModel(idOrName)
+    }
+  }
 
   return (
     <div className={cn('w-full max-w-2xl py-4', className)}>
@@ -176,7 +211,7 @@ export function AI_Prompt({ placeholder = 'O que posso criar para você?', onSen
               placeholder={placeholder}
               className={cn(
                 'min-h-[72px] w-full resize-none border-none bg-black/5 px-4 py-3 placeholder:text-black/70 focus-visible:ring-0 focus-visible:ring-offset-0 dark:bg-white/5 dark:text-white dark:placeholder:text-white/70',
-                isGerarVariant ? 'rounded-xl' : 'rounded-xl rounded-b-none'
+                showModelBar ? 'rounded-xl rounded-b-none' : 'rounded-xl'
               )}
               ref={textareaRef}
               onKeyDown={handleKeyDown}
@@ -186,7 +221,7 @@ export function AI_Prompt({ placeholder = 'O que posso criar para você?', onSen
               }}
             />
           </div>
-          {!isGerarVariant && (
+          {showModelBar && (
             <div className="flex h-14 items-center rounded-b-xl bg-black/5 dark:bg-white/5">
               <div className="flex w-[calc(100%-24px)] items-center justify-between px-3 pb-3">
                 <div className="flex items-center gap-2">
@@ -198,16 +233,24 @@ export function AI_Prompt({ placeholder = 'O que posso criar para você?', onSen
                       >
                         <AnimatePresence mode="wait">
                           <motion.div
-                            key={selectedModel}
+                            key={selectedId}
                             initial={{ opacity: 0, y: -5 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: 5 }}
                             transition={{ duration: 0.15 }}
                             className="flex items-center gap-1"
                           >
-                            {MODEL_ICONS[selectedModel]}
-                            {selectedModel}
-                            <ChevronDown className="h-3 w-3 opacity-50" />
+                            {selectedOption && 'logo_url' in selectedOption && selectedOption.logo_url ? (
+                              <span className="relative h-4 w-4 shrink-0 overflow-hidden rounded">
+                                <Image src={selectedOption.logo_url} alt="" width={16} height={16} className="object-contain" />
+                              </span>
+                            ) : useControlledModels ? (
+                              <Bot className="h-4 w-4 opacity-70" />
+                            ) : (
+                              MODEL_ICONS[selectedOption?.name ?? '']
+                            )}
+                            <span className="truncate max-w-[120px]">{selectedOption?.name ?? selectedId}</span>
+                            <ChevronDown className="h-3 w-3 opacity-50 shrink-0" />
                           </motion.div>
                         </AnimatePresence>
                       </Button>
@@ -218,17 +261,23 @@ export function AI_Prompt({ placeholder = 'O que posso criar para você?', onSen
                         'bg-gradient-to-b from-white via-white to-neutral-100 dark:from-neutral-950 dark:via-neutral-900 dark:to-neutral-800'
                       )}
                     >
-                      {AI_MODELS.map((model) => (
+                      {displayModels.map((model) => (
                         <DropdownMenuItem
-                          key={model}
-                          onSelect={() => setSelectedModel(model)}
+                          key={model.id}
+                          onSelect={() => selectModel(model.id)}
                           className="flex items-center justify-between gap-2"
                         >
                           <div className="flex items-center gap-2">
-                            {MODEL_ICONS[model] ?? <Bot className="h-4 w-4 opacity-50" />}
-                            <span>{model}</span>
+                            {'logo_url' in model && model.logo_url ? (
+                              <span className="relative h-4 w-4 shrink-0 overflow-hidden rounded">
+                                <Image src={model.logo_url} alt="" width={16} height={16} className="object-contain" />
+                              </span>
+                            ) : (
+                              <Bot className="h-4 w-4 opacity-50" />
+                            )}
+                            <span>{model.name}</span>
                           </div>
-                          {selectedModel === model && <Check className="h-4 w-4 text-blue-500" />}
+                          {selectedId === model.id && <Check className="h-4 w-4 text-blue-500" />}
                         </DropdownMenuItem>
                       ))}
                     </DropdownMenuContent>
@@ -245,30 +294,32 @@ export function AI_Prompt({ placeholder = 'O que posso criar para você?', onSen
                     <Paperclip className="h-4 w-4 transition-colors" />
                   </label>
                 </div>
-                <button
-                  type="button"
-                  className={cn(
-                    'rounded-lg px-3 py-2 text-sm font-medium transition-colors focus-visible:ring-1 focus-visible:ring-blue-500 focus-visible:ring-offset-0',
-                    value.trim()
-                      ? 'bg-primary text-primary-foreground hover:bg-primary/90 dark:bg-primary dark:text-primary-foreground'
-                      : 'bg-black/10 text-black/40 dark:bg-white/10 dark:text-white/40 cursor-not-allowed'
-                  )}
-                  aria-label={creditCost != null ? `Gerar (${creditCost} créditos)` : 'Enviar'}
-                  disabled={!value.trim()}
-                  onClick={handleSend}
-                >
-                  {creditCost != null ? (
-                    <span className="flex items-center gap-1.5">
-                      Gerar
-                      <span className="flex items-center gap-0.5 opacity-90">
-                        <Zap className="h-3.5 w-3.5" />
-                        {creditCost}
+                {!isGerarVariant && (
+                  <button
+                    type="button"
+                    className={cn(
+                      'rounded-lg px-3 py-2 text-sm font-medium transition-colors focus-visible:ring-1 focus-visible:ring-blue-500 focus-visible:ring-offset-0',
+                      value.trim()
+                        ? 'bg-primary text-primary-foreground hover:bg-primary/90 dark:bg-primary dark:text-primary-foreground'
+                        : 'bg-black/10 text-black/40 dark:bg-white/10 dark:text-white/40 cursor-not-allowed'
+                    )}
+                    aria-label={creditCost != null ? `Gerar (${creditCost} créditos)` : 'Enviar'}
+                    disabled={!value.trim()}
+                    onClick={handleSend}
+                  >
+                    {creditCost != null ? (
+                      <span className="flex items-center gap-1.5">
+                        Gerar
+                        <span className="flex items-center gap-0.5 opacity-90">
+                          <Zap className="h-3.5 w-3.5" />
+                          {creditCost}
+                        </span>
                       </span>
-                    </span>
-                  ) : (
-                    <ArrowRight className="h-4 w-4" />
-                  )}
-                </button>
+                    ) : (
+                      <ArrowRight className="h-4 w-4" />
+                    )}
+                  </button>
+                )}
               </div>
             </div>
           )}

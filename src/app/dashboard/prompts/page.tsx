@@ -6,6 +6,7 @@ import { DashboardNavigation } from '@/components/dashboard/DashboardNavigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/Input'
 import { Plus, Edit, Trash2, ArrowLeft, FolderOpen, FileText } from 'lucide-react'
+import { LumaSpin } from '@/components/ui/luma-spin'
 import toast from 'react-hot-toast'
 import Link from 'next/link'
 
@@ -180,7 +181,7 @@ export default function DashboardPromptsPage() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black" />
+        <LumaSpin size="default" />
       </div>
     )
   }

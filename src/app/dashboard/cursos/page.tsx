@@ -17,6 +17,7 @@ import {
   ArrowUp,
   ArrowDown
 } from 'lucide-react'
+import { LumaSpin } from '@/components/ui/luma-spin'
 import toast from 'react-hot-toast'
 import Link from 'next/link'
 import { VideoUploader } from '@/components/ui/VideoUploader'
@@ -504,7 +505,7 @@ export default function CursosPage() {
 
         {loading ? (
           <div className="text-center py-12">
-            <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+            <LumaSpin size="default" className="mx-auto mb-4" />
             <p className="text-gray-500">Carregando cursos...</p>
           </div>
         ) : (

@@ -16,6 +16,7 @@ import {
   IconX,
   IconSparkles,
 } from "@tabler/icons-react"
+import { LumaSpin } from '@/components/ui/luma-spin'
 
 interface GlobalTopic {
   id: string
@@ -167,7 +168,7 @@ function ComparisonTable({
   if (loading) {
     return (
       <div className="min-h-screen bg-gogh-beige flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-gogh-yellow"></div>
+        <LumaSpin size="default" />
       </div>
     )
   }

@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/Input'
 import { DashboardNavigation } from '@/components/dashboard/DashboardNavigation'
 import { createClient } from '@/lib/supabase/client'
 import { Save, FileText, Shield, Truck, RotateCcw, Plus, Trash2, Edit, X } from 'lucide-react'
+import { LumaSpin } from '@/components/ui/luma-spin'
 import toast from 'react-hot-toast'
 import { slugify } from '@/lib/utils/format'
 
@@ -1020,7 +1021,7 @@ export default function DashboardTermsPage() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-black"></div>
+        <LumaSpin size="default" />
       </div>
     )
   }

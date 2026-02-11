@@ -21,6 +21,7 @@ import {
   ExternalLink,
   Briefcase
 } from 'lucide-react'
+import { LumaSpin } from '@/components/ui/luma-spin'
 import { motion, AnimatePresence } from 'framer-motion'
 import { createClient } from '@/lib/supabase/client'
 
@@ -231,7 +232,7 @@ export default function MemberLayout({ children }: MemberLayoutProps) {
     return (
       <div className="min-h-screen bg-gogh-beige flex items-center justify-center">
         <div className="text-center">
-          <div className="w-16 h-16 border-4 border-gogh-yellow border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <LumaSpin size="lg" className="mx-auto mb-4" />
           <p className="text-gogh-grayDark">Carregando...</p>
         </div>
       </div>
@@ -471,7 +472,7 @@ export default function MemberLayout({ children }: MemberLayoutProps) {
               className="w-full flex items-center gap-3 px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
             >
               {signingOut ? (
-                <div className="w-5 h-5 border-2 border-red-600 border-t-transparent rounded-full animate-spin" />
+                <LumaSpin size="sm" />
               ) : (
                 <LogOut className="w-5 h-5" />
               )}

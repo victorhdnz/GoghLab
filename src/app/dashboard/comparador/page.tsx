@@ -9,6 +9,7 @@ import { ImageUploader } from '@/components/ui/ImageUploader'
 import { createClient } from '@/lib/supabase/client'
 import { CompanyComparison } from '@/types'
 import { Eye, Save, ChevronDown, ChevronUp, Edit2, X, Plus, Check, ArrowUp, ArrowDown } from 'lucide-react'
+import { LumaSpin } from '@/components/ui/luma-spin'
 import toast from 'react-hot-toast'
 import Link from 'next/link'
 import { BackButton } from '@/components/ui/BackButton'
@@ -468,7 +469,7 @@ export default function ComparadorDashboardPage() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-black"></div>
+        <LumaSpin size="default" />
       </div>
     )
   }

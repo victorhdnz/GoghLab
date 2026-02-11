@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { getSiteUrl } from '@/lib/utils/siteUrl'
-import { Loader2 } from 'lucide-react'
+import { LumaSpin } from '@/components/ui/luma-spin'
 import toast from 'react-hot-toast'
 
 interface GoogleLoginButtonProps {
@@ -72,7 +72,7 @@ export function GoogleLoginButton({
     >
       {loading ? (
         <>
-          <Loader2 className="w-5 h-5 animate-spin" />
+          <LumaSpin size="sm" />
           <span>Conectando...</span>
         </>
       ) : (

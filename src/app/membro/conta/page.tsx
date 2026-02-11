@@ -7,6 +7,7 @@ import { motion } from 'framer-motion'
 import Link from 'next/link'
 import Image from 'next/image'
 import toast from 'react-hot-toast'
+import { LumaSpin } from '@/components/ui/luma-spin'
 import { 
   User, 
   Shield, 
@@ -482,7 +483,7 @@ export default function AccountPage() {
                     >
                       {openingPortal ? (
                         <>
-                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          <LumaSpin size="sm" />
                           Abrindo...
                         </>
                       ) : (
@@ -509,7 +510,7 @@ export default function AccountPage() {
                     >
                       {openingPortal ? (
                         <>
-                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          <LumaSpin size="sm" />
                           Abrindo...
                         </>
                       ) : (

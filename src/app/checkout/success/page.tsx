@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { CheckCircle, Loader2 } from 'lucide-react'
+import { CheckCircle } from 'lucide-react'
+import { LumaSpin } from '@/components/ui/luma-spin'
 import { Button } from '@/components/ui/button'
 
 export default function CheckoutSuccessPage() {
@@ -45,7 +46,7 @@ export default function CheckoutSuccessPage() {
     return (
       <div className="min-h-screen bg-[#F5F1E8] flex items-center justify-center">
         <div className="text-center">
-          <Loader2 className="w-12 h-12 animate-spin text-[#F7C948] mx-auto mb-4" />
+          <LumaSpin size="default" className="mx-auto mb-4" />
           <p className="text-[#0A0A0A]">Processando sua assinatura...</p>
         </div>
       </div>

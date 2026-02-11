@@ -22,6 +22,8 @@ import { AuroraText } from '@/components/ui/aurora-text'
 import { FeaturesSectionWithHoverEffects } from '@/components/ui/feature-section-with-hover-effects'
 import GalleryHoverCarousel from '@/components/ui/gallery-hover-carousel'
 import type { GalleryHoverCarouselItem } from '@/components/ui/gallery-hover-carousel'
+import { TypewriterEffectSmooth } from '@/components/ui/typewriter-effect'
+import { Hero } from '@/components/ui/hero-1'
 
 interface HomepageSectionsProps {
   homepageContent: any
@@ -128,60 +130,60 @@ export function HomepageSections({
     )
   }
 
-  // Função para renderizar seção Hero
-  const renderHeroSection = () => {
-    if (homepageContent.hero_enabled === false || sectionVisibility.hero === false) return null
-    
+  // Função para renderizar seção Typewriter (texto animado + botão planos)
+  const renderTypewriterSection = () => {
+    if (homepageContent.typewriter_enabled === false || sectionVisibility.typewriter === false) return null
+    const wordsRaw = Array.isArray(homepageContent.typewriter_words) ? homepageContent.typewriter_words : []
+    const words = wordsRaw.length > 0
+      ? wordsRaw.map((w: { text: string; highlight?: boolean }, i: number) => ({
+          text: typeof w.text === 'string' ? w.text : '',
+          className: w.highlight === true || i === wordsRaw.length - 1 ? 'text-yellow-500 dark:text-yellow-500' : undefined,
+        }))
+      : [
+          { text: 'Crie', className: undefined },
+          { text: 'com', className: undefined },
+          { text: 'IA.', className: 'text-yellow-500 dark:text-yellow-500' },
+        ]
+    const subtitle = homepageContent.typewriter_subtitle || 'O caminho para a liberdade começa aqui.'
+    const buttonLabel = homepageContent.typewriter_button_label || 'Ver planos'
+
     return (
-      <section className="relative bg-[#F5F1E8] text-[#0A0A0A] py-10 md:py-14 px-4 overflow-hidden">
-        {homepageContent.hero_background_image && (
-          <div className="absolute inset-0 z-0 opacity-20">
-            <Image
-              src={homepageContent.hero_background_image}
-              alt="Background"
-              fill
-              className="object-cover"
-              priority
-            />
+      <section className="py-16 md:py-24 px-4 bg-[#F5F1E8]">
+        <div className="flex flex-col items-center justify-center min-h-[28rem]">
+          <p className="text-neutral-600 dark:text-neutral-200 text-xs sm:text-base mb-2 text-center">
+            {subtitle}
+          </p>
+          <TypewriterEffectSmooth words={words} className="justify-center" />
+          <div className="mt-6">
+            <Link
+              href="/precos"
+              className="inline-flex items-center justify-center w-40 h-10 rounded-xl bg-[#0A0A0A] border border-transparent text-white text-sm font-medium hover:opacity-90 transition-opacity dark:bg-white dark:text-[#0A0A0A] dark:border-white"
+            >
+              {buttonLabel}
+            </Link>
           </div>
-        )}
-        <div className="container mx-auto max-w-5xl text-center relative z-10 pt-16 md:pt-20">
-          {homepageContent.hero_subtitle && (() => {
-            const { firstPart, secondPart } = splitTextForHighlights(homepageContent.hero_subtitle)
-            return (
-              <FadeInElement delay={0}>
-                <p className="text-lg sm:text-xl md:text-2xl lg:text-3xl text-[#0A0A0A] max-w-3xl mx-auto font-bold mb-4 leading-tight px-4">
-                  <span className="inline-block relative z-0 mb-2 md:mb-0">
-                    <Highlighter action="underline" color="#F7C948" isView={true}>
-                      {firstPart}
-                    </Highlighter>
-                  </span>
-                  {secondPart && (
-                    <>
-                      {homepageContent.hero_subtitle.includes(',') ? ',' : ' '}
-                      {' '}
-                      <span className="inline-block relative z-0 mt-2 md:mt-0">
-                        <Highlighter action="highlight" color="#F7C948" isView={true}>
-                          {secondPart}
-                        </Highlighter>
-                      </span>
-                    </>
-                  )}
-                </p>
-              </FadeInElement>
-            )
-          })()}
-          {homepageContent.hero_description && (
-            <FadeInElement delay={0.2}>
-              <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-[#0A0A0A] max-w-3xl mx-auto font-bold px-4">
-                <AuroraText colors={["#F7C948", "#E5A800", "#0A0A0A", "#F7C948", "#E5A800"]} speed={1}>
-                  {homepageContent.hero_description}
-                </AuroraText>
-              </p>
-            </FadeInElement>
-          )}
         </div>
       </section>
+    )
+  }
+
+  // Função para renderizar seção Hero (hero-1 com paleta Gogh, eyebrow → chats IA, CTA Shimmer → planos)
+  const renderHeroSection = () => {
+    if (homepageContent.hero_enabled === false || sectionVisibility.hero === false) return null
+
+    const heroTitle = homepageContent.hero_title || 'Gogh Lab'
+    const heroSubtitle = homepageContent.hero_description || homepageContent.hero_subtitle || 'Criatividade guiada por tecnologia. Agentes de IA para criação de conteúdo, redes sociais e anúncios.'
+    const ctaLabel = homepageContent.typewriter_button_label || 'Ver planos'
+
+    return (
+      <Hero
+        eyebrow="Next-Gen Productivity"
+        eyebrowHref="/membro/agentes"
+        title={heroTitle}
+        subtitle={heroSubtitle}
+        ctaLabel={ctaLabel}
+        ctaHref="/precos"
+      />
     )
   }
 
@@ -458,6 +460,7 @@ export function HomepageSections({
   // Mapear seções para funções de renderização
   const sectionRenderers: Record<string, () => JSX.Element | null> = {
     hero: renderHeroSection,
+    typewriter: renderTypewriterSection,
     video: renderVideoSection,
     trusted_by: renderTrustedBySection,
     animated_beam: renderAnimatedBeamSection,

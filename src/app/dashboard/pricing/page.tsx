@@ -13,6 +13,7 @@ import { DashboardNavigation } from '@/components/dashboard/DashboardNavigation'
 import { getSiteSettings, saveSiteSettings } from '@/lib/supabase/site-settings-helper'
 import { PriceTier, Feature, ServiceOption } from '@/components/ui/pricing-card'
 import { Plus, Trash2, ChevronDown, ChevronUp, ArrowUp, ArrowDown, Pencil, X, Check, Zap } from 'lucide-react'
+import { LumaSpin } from '@/components/ui/luma-spin'
 import { getCreditsConfigKey, getCreditPlansKey, type CreditsConfig, type CreditActionId, type CreditPlan } from '@/lib/credits'
 
 interface PricingSettings {
@@ -691,7 +692,7 @@ export default function PricingEditorPage() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black"></div>
+        <LumaSpin size="default" />
       </div>
     )
   }

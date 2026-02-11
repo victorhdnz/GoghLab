@@ -5,7 +5,8 @@ import { useUserLocation } from '@/hooks/useUserLocation'
 import { formatCurrency } from '@/lib/utils/format'
 import { Input } from '@/components/ui/Input'
 import { Button } from '@/components/ui/button'
-import { Loader2, Truck, MapPin } from 'lucide-react'
+import { Truck, MapPin } from 'lucide-react'
+import { LumaSpin } from '@/components/ui/luma-spin'
 import toast from 'react-hot-toast'
 import { useRouter } from 'next/navigation'
 
@@ -189,7 +190,7 @@ export function ShippingCalculator({
             variant="outline"
           >
             {loading ? (
-              <Loader2 className="animate-spin" size={16} />
+              <LumaSpin size="sm" />
             ) : (
               'Calcular'
             )}
@@ -199,7 +200,7 @@ export function ShippingCalculator({
 
       {loading && (
         <div className="flex items-center justify-center py-4">
-          <Loader2 className="animate-spin text-gray-400" size={24} />
+          <LumaSpin size="sm" className="text-gray-400" />
           <span className="ml-2 text-sm text-gray-600">
             Calculando opções de frete...
           </span>

@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { FileText, Shield, Truck, RotateCcw, Loader2, ChevronRight, ArrowLeft, Home } from 'lucide-react'
+import { FileText, Shield, Truck, RotateCcw, ChevronRight, ArrowLeft, Home } from 'lucide-react'
+import { LumaSpin } from '@/components/ui/luma-spin'
 import { TermsContent } from '@/components/ui/TermsContent'
 
 interface Term {
@@ -107,7 +108,7 @@ export default function TermosPage() {
       <div className="min-h-screen bg-white py-20">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
           <div className="text-center">
-            <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-gray-400" />
+            <LumaSpin size="md" className="mx-auto mb-4" />
             <p className="text-gray-600">Carregando termos...</p>
           </div>
         </div>

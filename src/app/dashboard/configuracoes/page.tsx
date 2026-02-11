@@ -7,6 +7,7 @@ import { ImageUploader } from '@/components/ui/ImageUploader'
 import { Input } from '@/components/ui/Input'
 import { Button } from '@/components/ui/button'
 import { Settings, ArrowLeft, Save, Trash2, Phone, Image as ImageIcon } from 'lucide-react'
+import { LumaSpin } from '@/components/ui/luma-spin'
 import toast from 'react-hot-toast'
 import Link from 'next/link'
 
@@ -107,7 +108,7 @@ export default function ConfiguracoesPage() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="w-16 h-16 border-4 border-gray-900 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <LumaSpin size="lg" className="mx-auto mb-4" />
           <p className="text-gray-600">Carregando configurações...</p>
         </div>
       </div>
@@ -260,7 +261,7 @@ export default function ConfiguracoesPage() {
             >
               {saving ? (
                 <>
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                  <LumaSpin size="sm" className="mr-2 flex-shrink-0" />
                   Salvando...
                 </>
               ) : (

@@ -40,7 +40,7 @@ export function ConditionalLayout({ children }: ConditionalLayoutProps) {
     <>
       <MainBackground />
       <FloatingHeader />
-      <div className="pt-16 sm:pt-20 md:pt-24">{children}</div>
+      <div className="pt-16 sm:pt-20 md:pt-24 pb-24 lg:pb-0">{children}</div>
       <ConditionalWhatsAppFloat />
     </>
   )
