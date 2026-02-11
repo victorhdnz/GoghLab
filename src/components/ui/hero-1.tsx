@@ -4,6 +4,7 @@ import { ChevronRight } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { ShimmerButton } from '@/components/ui/shimmer-button'
+import { WorldMap } from '@/components/ui/world-map'
 
 // Paleta Gogh Lab: yellow #F7C948, black #0A0A0A, beige #F5F1E8
 const GOGH_BLACK = '#0A0A0A'
@@ -33,17 +34,11 @@ export function Hero({
   return (
     <section
       id="hero"
-      className="relative mx-auto w-full pt-40 px-6 text-center md:px-8 min-h-[calc(100vh-40px)] overflow-x-hidden overflow-y-visible rounded-b-xl bg-[linear-gradient(to_bottom,#F5F1E8,#FBF8F3_50%,#e8e8e8_88%)] dark:bg-[linear-gradient(to_bottom,#0A0A0A,#0A0A0A_30%,#1A1A1A_78%,#2a2a2a_99%)]"
+      className="relative mx-auto w-full pt-20 lg:pt-40 px-6 text-center md:px-8 min-h-[calc(100vh-40px)] overflow-x-hidden overflow-y-visible rounded-b-xl bg-[linear-gradient(to_bottom,#F5F1E8,#FBF8F3_50%,#e8e8e8_88%)] dark:bg-[linear-gradient(to_bottom,#0A0A0A,#0A0A0A_30%,#1A1A1A_78%,#2a2a2a_99%)]"
     >
       {/* Grid BG - cores Gogh */}
       <div
         className="absolute -z-10 inset-0 opacity-80 h-[600px] w-full bg-[linear-gradient(to_right,#e8e4dc_1px,transparent_1px),linear-gradient(to_bottom,#e8e4dc_1px,transparent_1px)] dark:bg-[linear-gradient(to_right,#1A1A1A_1px,transparent_1px),linear-gradient(to_bottom,#1A1A1A_1px,transparent_1px)] bg-[size:6rem_5rem] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_0%,#000_70%,transparent_110%)]"
-      />
-
-      {/* Radial Accent - borda amarelo Gogh (posicionado para não cortar; overflow-y-visible na section) */}
-      <div
-        className="absolute left-1/2 top-[85%] sm:top-[88%] lg:top-[90%] -translate-x-1/2 -translate-y-1/2 w-[min(140vw,900px)] h-[min(80vw,500px)] sm:h-[min(70vw,450px)] lg:h-[400px] lg:w-[900px] rounded-[100%] border-2 border-[#F7C948] bg-white dark:bg-[#0A0A0A] bg-[radial-gradient(closest-side,#F5F1E8_82%,#0A0A0A)] dark:bg-[radial-gradient(closest-side,#0A0A0A_82%,#1A1A1A)] animate-fade-up pointer-events-none"
-        aria-hidden
       />
 
       {/* Eyebrow - link para página dos chats de IA */}
@@ -81,9 +76,14 @@ export function Hero({
         </div>
       )}
 
+      {/* World map - efeito abaixo do texto (só o mapa, sem texto do demo) */}
+      <div className="mt-8 md:mt-12 w-full max-w-4xl mx-auto px-0 opacity-0 [animation-fill-mode:forwards] animate-fade-in-up motion-reduce:opacity-100" style={{ animationDelay: '0.2s' }}>
+        <WorldMap theme="light" lineColor="#F7C948" />
+      </div>
+
       {/* Bottom Fade */}
       <div
-        className="animate-fade-up relative mt-32 opacity-0 [perspective:2000px] after:absolute after:inset-0 after:z-50 after:[background:linear-gradient(to_top,#F5F1E8_10%,transparent)] dark:after:[background:linear-gradient(to_top,hsl(var(--background))_10%,transparent)]"
+        className="animate-fade-up relative mt-16 opacity-0 [perspective:2000px] after:absolute after:inset-0 after:z-50 after:[background:linear-gradient(to_top,#F5F1E8_10%,transparent)] dark:after:[background:linear-gradient(to_top,hsl(var(--background))_10%,transparent)]"
       />
     </section>
   )
