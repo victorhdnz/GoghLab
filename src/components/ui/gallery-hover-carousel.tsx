@@ -111,39 +111,37 @@ export default function GalleryHoverCarousel({
 
   return (
     <section className="py-8 md:py-10 bg-background">
-      <div className="container mx-auto px-4 max-w-4xl">
-        <div className="mb-4 flex flex-col justify-between md:flex-row md:items-end">
-          <div className="max-w-md">
-            <SparklesText
-              text={heading}
-              className="text-gray-900 dark:text-white"
-              colors={{ first: "#EAB308", second: "#0a0a0a" }}
-              sparklesCount={10}
-            />
-          </div>
-          <div className="flex gap-2 mt-4 md:mt-0">
+      <div className="container mx-auto px-4 max-w-4xl flex flex-col items-center">
+        <div className="mb-4 w-full flex flex-col sm:flex-row items-center justify-center gap-3">
+          <SparklesText
+            text={heading}
+            className="text-gray-900 dark:text-white text-lg sm:text-xl md:text-2xl text-center"
+            colors={{ first: "#EAB308", second: "#0a0a0a" }}
+            sparklesCount={10}
+          />
+          <div className="flex gap-2">
             <Button
               variant="outline"
               size="icon"
               onClick={() => carouselApi?.scrollPrev()}
               disabled={!canScrollPrev}
-              className="h-9 w-9 rounded-full"
+              className="h-8 w-8 rounded-full"
             >
-              <ChevronLeft className="h-4 w-4" />
+              <ChevronLeft className="h-3.5 w-3.5" />
             </Button>
             <Button
               variant="outline"
               size="icon"
               onClick={() => carouselApi?.scrollNext()}
               disabled={!canScrollNext}
-              className="h-9 w-9 rounded-full"
+              className="h-8 w-8 rounded-full"
             >
-              <ChevronRight className="h-4 w-4" />
+              <ChevronRight className="h-3.5 w-3.5" />
             </Button>
           </div>
         </div>
 
-        <div className="w-full max-w-full overflow-hidden">
+        <div className="w-full max-w-full overflow-hidden flex justify-center">
           <Carousel
             setApi={setCarouselApi}
             opts={{
@@ -236,12 +234,12 @@ function ImageCard({ item }: { item: GalleryHoverCarouselItem }) {
           sizes="(max-width: 640px) 168px, (max-width: 768px) 188px, 200px"
         />
       </div>
-      <div className="p-3 flex flex-col flex-1 min-w-0">
-        <p className="font-medium text-sm line-clamp-1 text-foreground">{item.title}</p>
-        <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">
+      <div className="p-3 flex flex-col flex-1 min-w-0 items-center text-center">
+        <p className="font-medium text-xs sm:text-sm line-clamp-1 text-foreground w-full">{item.title}</p>
+        <p className="text-[11px] sm:text-xs text-muted-foreground line-clamp-2 mt-0.5 w-full">
           {item.summary}
         </p>
-        <div className="flex gap-1.5 mt-2 flex-wrap">
+        <div className="flex gap-1.5 mt-2 flex-wrap justify-center">
           {(item.prompt || item.promptId) && (
             <Link
               href={
@@ -250,16 +248,16 @@ function ImageCard({ item }: { item: GalleryHoverCarouselItem }) {
                   : `/criar/gerar?prompt=${encodeURIComponent(item.prompt ?? '')}`
               }
             >
-              <Button size="sm" className="gap-1 text-xs h-7">
-                <Sparkles className="size-3.5" />
+              <Button size="sm" className="gap-1 text-xs h-6">
+                <Sparkles className="size-3" />
                 Testar e criar
               </Button>
             </Link>
           )}
           {item.url && (
             <Link href={item.url}>
-              <Button variant="outline" size="icon" className="rounded-full h-7 w-7">
-                <ArrowRight className="size-3.5" />
+              <Button variant="outline" size="icon" className="rounded-full h-6 w-6">
+                <ArrowRight className="size-3" />
               </Button>
             </Link>
           )}
@@ -305,12 +303,12 @@ function VideoCard({
             </span>
           </div>
         </div>
-        <div className="p-3 flex flex-col flex-1 min-w-0">
-          <p className="font-medium text-sm line-clamp-1 text-foreground">{item.title}</p>
-          <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">
+        <div className="p-3 flex flex-col flex-1 min-w-0 items-center text-center">
+          <p className="font-medium text-xs sm:text-sm line-clamp-1 text-foreground w-full">{item.title}</p>
+          <p className="text-[11px] sm:text-xs text-muted-foreground line-clamp-2 mt-0.5 w-full">
             {item.summary}
           </p>
-          <div className="flex gap-1.5 mt-2 flex-wrap items-center">
+          <div className="flex gap-1.5 mt-2 flex-wrap items-center justify-center">
             {(item.prompt || item.promptId) && (
               <Link
                 href={
@@ -320,8 +318,8 @@ function VideoCard({
                 }
                 onClick={(e) => e.stopPropagation()}
               >
-                <Button size="sm" className="gap-1 text-xs h-7">
-                  <Sparkles className="size-3.5" />
+                <Button size="sm" className="gap-1 text-xs h-6">
+                  <Sparkles className="size-3" />
                   Testar e criar
                 </Button>
               </Link>
@@ -333,9 +331,9 @@ function VideoCard({
                 e.stopPropagation();
                 onPlay();
               }}
-              className="rounded-full h-7 w-7"
+              className="rounded-full h-6 w-6"
             >
-              <Play className="size-3.5" />
+              <Play className="size-3" />
             </Button>
           </div>
         </div>
