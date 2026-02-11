@@ -88,8 +88,19 @@ export function CloudinaryVideoUploader({
     if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
+  const handleUrlSubmit = (url: string) => {
+    const trimmed = url.trim()
+    if (!trimmed) return
+    if (!trimmed.startsWith('http://') && !trimmed.startsWith('https://')) {
+      toast.error('Cole uma URL válida (ex: https://res.cloudinary.com/...)')
+      return
+    }
+    onChange(trimmed)
+    toast.success('URL do vídeo definida.')
+  }
+
   return (
-    <div className={`space-y-2 ${className}`}>
+    <div className={`space-y-3 ${className}`}>
       <label className="block text-sm font-medium text-gray-700">
         Vídeo (Cloudinary)
       </label>
@@ -125,15 +136,32 @@ export function CloudinaryVideoUploader({
           </button>
         </div>
       ) : (
-        <label
-          htmlFor={inputId}
-          className={`flex flex-col items-center justify-center gap-2 w-full min-h-[100px] border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors ${uploading ? 'opacity-60 pointer-events-none' : ''}`}
-        >
-          <Upload className="h-8 w-8 text-gray-400" />
-          <span className="text-sm text-gray-600 text-center px-2">
-            {uploading ? 'Enviando vídeo...' : placeholder}
-          </span>
-        </label>
+        <>
+          <label
+            htmlFor={inputId}
+            className={`flex flex-col items-center justify-center gap-2 w-full min-h-[100px] border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors ${uploading ? 'opacity-60 pointer-events-none' : ''}`}
+          >
+            <Upload className="h-8 w-8 text-gray-400" />
+            <span className="text-sm text-gray-600 text-center px-2">
+              {uploading ? 'Enviando vídeo...' : placeholder}
+            </span>
+          </label>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-gray-500 whitespace-nowrap">Ou cole a URL:</span>
+            <input
+              type="url"
+              placeholder="https://res.cloudinary.com/..."
+              className="flex-1 min-w-0 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              onBlur={(e) => handleUrlSubmit(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                  handleUrlSubmit((e.target as HTMLInputElement).value)
+                }
+              }}
+            />
+          </div>
+        </>
       )}
     </div>
   )
