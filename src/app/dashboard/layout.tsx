@@ -6,9 +6,7 @@ import { DashboardPasswordProtection } from '@/components/dashboard/DashboardPas
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   return (
     <DashboardPasswordProtection>
-      <div className="max-w-5xl mx-auto w-full">
-        {children}
-      </div>
+      {children}
     </DashboardPasswordProtection>
   )
 }
