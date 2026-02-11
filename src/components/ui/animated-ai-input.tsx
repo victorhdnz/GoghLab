@@ -1,7 +1,7 @@
 'use client'
 
 import { ArrowRight, Bot, Check, ChevronDown, Paperclip } from 'lucide-react'
-import { useState, useRef, useCallback, useEffect } from 'react'
+import React, { useState, useRef, useCallback, useEffect } from 'react'
 import { Textarea } from '@/components/ui/textarea'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -137,7 +137,7 @@ export function AI_Prompt({ placeholder = 'O que posso criar para você?', onSen
   const { textareaRef, adjustHeight } = useAutoResizeTextarea({ minHeight: 72, maxHeight: 300 })
   const [selectedModel, setSelectedModel] = useState('GPT-4-1 Mini')
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (initialValue !== undefined) {
       setValue(initialValue)
       adjustHeight()
