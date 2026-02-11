@@ -3,6 +3,7 @@
 import { SplineScene } from '@/components/ui/splite'
 import { Spotlight } from '@/components/ui/spotlight'
 import { FadeInElement } from '@/components/ui/FadeInElement'
+import { LumaSpin } from '@/components/ui/luma-spin'
 import { useInView } from 'react-intersection-observer'
 import { useState, useEffect, memo } from 'react'
 
