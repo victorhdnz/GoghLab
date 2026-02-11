@@ -1,5 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  experimental: {
+    proxyClientMaxBodySize: 100 * 1024 * 1024, // 100MB para upload de vídeo
+  },
   images: {
     domains: ['lh3.googleusercontent.com', 'images.unsplash.com', 'res.cloudinary.com'],
     remotePatterns: [

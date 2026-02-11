@@ -55,7 +55,16 @@ export function CloudinaryVideoUploader({
         method: 'POST',
         body: formData,
       })
-      const data = await res.json()
+      const text = await res.text()
+      let data: { error?: string; url?: string }
+      try {
+        data = text ? JSON.parse(text) : {}
+      } catch {
+        if (res.status === 413 || text.includes('Request Entity Too Large') || text.includes('too large')) {
+          throw new Error('Vídeo muito grande para upload direto. Tente um arquivo menor ou comprima o vídeo.')
+        }
+        throw new Error('Resposta inválida do servidor. Tente novamente.')
+      }
       if (!res.ok) {
         throw new Error(data.error || 'Erro no upload')
       }
