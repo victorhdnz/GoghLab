@@ -194,17 +194,18 @@ export default function CriarPromptsPage() {
                       />
                     </div>
                     <div className="sm:col-span-2">
-                      <label className="block text-xs font-medium mb-1">Capa / imagem do card (espelhado na galeria e na página Criar)</label>
+                      <label className="block text-xs font-medium mb-1">Capa do card (imagem ou vídeo — espelhado na galeria e na página Criar)</label>
+                      <p className="text-xs text-gray-500 mb-1.5">Pode enviar só a imagem, só o vídeo ou os dois. Se enviar só o vídeo, a capa será o próprio vídeo (primeiro frame).</p>
                       <ImageUploader
                         value={item.coverImage}
                         onChange={(url) => updatePrompt(index, { coverImage: url })}
-                        placeholder="Imagem de destaque"
+                        placeholder="Imagem de destaque (opcional se tiver vídeo)"
                         cropType="banner"
                         aspectRatio={16 / 9}
                       />
                     </div>
                     <div className="sm:col-span-2">
-                      <label className="block text-xs font-medium mb-1">Vídeo de capa (opcional)</label>
+                      <label className="block text-xs font-medium mb-1">Vídeo de capa (opcional — se não tiver imagem, a capa será o vídeo)</label>
                       <CloudinaryVideoUploader
                         value={item.coverVideo || ''}
                         onChange={(url) => updatePrompt(index, { coverVideo: url || undefined })}

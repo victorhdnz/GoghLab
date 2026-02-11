@@ -286,17 +286,27 @@ function VideoCard({
     <div className="block w-full">
       <div className="rounded-xl border-2 border-border bg-card overflow-hidden h-full w-full max-w-full flex flex-col transition-all hover:shadow-md hover:border-primary/50">
         <div
-          className="relative w-full aspect-video min-h-0 bg-muted/50 flex-shrink-0 cursor-pointer"
+          className="relative w-full aspect-video min-h-0 bg-muted/50 flex-shrink-0 cursor-pointer overflow-hidden"
           onClick={onPlay}
         >
-          <Image
-            width={400}
-            height={225}
-            src={item.image}
-            alt={item.title}
-            className="h-full w-full object-cover object-center"
-            sizes="(max-width: 640px) 168px, (max-width: 768px) 188px, 200px"
-          />
+          {item.image ? (
+            <Image
+              width={400}
+              height={225}
+              src={item.image}
+              alt={item.title}
+              className="h-full w-full object-cover object-center"
+              sizes="(max-width: 640px) 168px, (max-width: 768px) 188px, 200px"
+            />
+          ) : item.videoUrl ? (
+            <video
+              src={item.videoUrl}
+              className="h-full w-full object-cover object-center"
+              muted
+              playsInline
+              preload="metadata"
+            />
+          ) : null}
           <div className="absolute inset-0 flex items-center justify-center bg-black/20 hover:bg-black/30 transition-colors">
             <span className="rounded-full bg-white/90 p-2 text-black shadow-lg">
               <Play className="h-5 w-5 fill-current" />
@@ -324,17 +334,6 @@ function VideoCard({
                 </Button>
               </Link>
             )}
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={(e) => {
-                e.stopPropagation();
-                onPlay();
-              }}
-              className="rounded-full h-7 w-7"
-            >
-              <Play className="size-3.5" />
-            </Button>
           </div>
         </div>
       </div>
