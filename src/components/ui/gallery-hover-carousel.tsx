@@ -111,35 +111,35 @@ export default function GalleryHoverCarousel({
 
 
   return (
-    <section className="py-8 sm:py-10 md:py-12 bg-background">
-      <div className="container mx-auto px-3 sm:px-4 max-w-4xl">
-        <div className="mb-4 sm:mb-6 flex flex-col justify-between md:flex-row md:items-end">
-          <div className="max-w-xl">
+    <section className="py-8 md:py-10 bg-background">
+      <div className="container mx-auto px-3 sm:px-4 max-w-3xl">
+        <div className="mb-3 sm:mb-4 flex flex-col justify-between md:flex-row md:items-end">
+          <div className="max-w-md">
             <SparklesText
               text={heading}
-              className="text-gray-900 dark:text-white"
+              className="text-gray-900 dark:text-white text-lg sm:text-xl"
               colors={{ first: "#EAB308", second: "#0a0a0a" }}
               sparklesCount={10}
             />
           </div>
-          <div className="flex gap-2 mt-4 md:mt-0">
+          <div className="flex gap-1.5 mt-3 md:mt-0">
             <Button
               variant="outline"
               size="icon"
               onClick={() => carouselApi?.scrollPrev()}
               disabled={!canScrollPrev}
-              className="h-10 w-10 rounded-full"
+              className="h-8 w-8 rounded-full"
             >
-              <ChevronLeft className="h-4 w-4" />
+              <ChevronLeft className="h-3.5 w-3.5" />
             </Button>
             <Button
               variant="outline"
               size="icon"
               onClick={() => carouselApi?.scrollNext()}
               disabled={!canScrollNext}
-              className="h-10 w-10 rounded-full"
+              className="h-8 w-8 rounded-full"
             >
-              <ChevronRight className="h-4 w-4" />
+              <ChevronRight className="h-3.5 w-3.5" />
             </Button>
           </div>
         </div>
@@ -154,9 +154,9 @@ export default function GalleryHoverCarousel({
             }}
             className="relative w-full max-w-full"
           >
-            <CarouselContent className="hide-scrollbar w-full max-w-full md:ml-2 md:-mr-2 -ml-2 md:ml-2">
+            <CarouselContent className="hide-scrollbar w-full max-w-full -ml-2 md:ml-0">
               {items.map((item) => (
-                <CarouselItem key={item.id} className="pl-2 pr-1 md:pl-4 md:pr-0 w-[165px] sm:w-[200px] md:w-[220px] lg:w-[240px] shrink-0 flex">
+                <CarouselItem key={item.id} className="pl-2 pr-1.5 w-[152px] shrink-0 flex">
                   {item.type === "video" && (item.videoUrl || item.youtubeUrl) ? (
                     <VideoCard
                       item={item}
@@ -227,22 +227,22 @@ function ImageCard({ item }: { item: GalleryHoverCarouselItem }) {
   const className = "block w-full";
   const content = (
     <Card className="overflow-hidden rounded-lg h-full w-full flex flex-col">
-      <div className="relative w-full aspect-video min-h-[90px] sm:min-h-[100px] bg-muted/50 flex-shrink-0">
+      <div className="relative w-full aspect-video min-h-[72px] bg-muted/50 flex-shrink-0">
         <Image
-          width={320}
-          height={180}
+          width={240}
+          height={135}
           src={item.image}
           alt={item.title}
           className="h-full w-full object-cover object-center"
-          sizes="(max-width: 768px) 200px, 240px"
+          sizes="152px"
         />
       </div>
-      <div className="p-2 sm:p-2.5 flex flex-col flex-1 min-w-0 bg-background">
-        <h3 className="text-xs font-medium sm:text-sm line-clamp-1">{item.title}</h3>
-        <p className="text-muted-foreground text-[11px] sm:text-xs line-clamp-2 mt-0.5">
+      <div className="p-1.5 flex flex-col flex-1 min-w-0 bg-background">
+        <h3 className="text-[11px] font-medium line-clamp-1">{item.title}</h3>
+        <p className="text-muted-foreground text-[10px] line-clamp-2 mt-0.5">
           {item.summary}
         </p>
-        <div className="flex gap-1 mt-1.5 flex-wrap">
+        <div className="flex gap-1 mt-1 flex-wrap">
           {(item.prompt || item.promptId) && (
             <Link
               href={
@@ -251,16 +251,16 @@ function ImageCard({ item }: { item: GalleryHoverCarouselItem }) {
                   : `/criar/gerar?prompt=${encodeURIComponent(item.prompt ?? '')}`
               }
             >
-              <Button size="sm" className="gap-1 text-[11px] h-7">
-                <Sparkles className="size-3.5" />
+              <Button size="sm" className="gap-0.5 text-[10px] h-6">
+                <Sparkles className="size-3" />
                 Testar e criar
               </Button>
             </Link>
           )}
           {item.url && (
             <Link href={item.url}>
-              <Button variant="outline" size="icon" className="rounded-full h-8 w-8">
-                <ArrowRight className="size-3.5" />
+              <Button variant="outline" size="icon" className="rounded-full h-6 w-6">
+                <ArrowRight className="size-3" />
               </Button>
             </Link>
           )}
@@ -289,29 +289,29 @@ function VideoCard({
     <div className="block w-full">
       <Card className="overflow-hidden rounded-lg h-full w-full flex flex-col">
         <div
-          className="relative w-full aspect-video min-h-[90px] sm:min-h-[100px] bg-muted/50 flex-shrink-0 cursor-pointer"
+          className="relative w-full aspect-video min-h-[72px] bg-muted/50 flex-shrink-0 cursor-pointer"
           onClick={onPlay}
         >
           <Image
-            width={320}
-            height={180}
+            width={240}
+            height={135}
             src={item.image}
             alt={item.title}
             className="h-full w-full object-cover object-center"
-            sizes="(max-width: 768px) 200px, 240px"
+            sizes="152px"
           />
           <div className="absolute inset-0 flex items-center justify-center bg-black/20 hover:bg-black/30 transition-colors">
-            <span className="rounded-full bg-white/90 p-2 text-black shadow-lg">
-              <Play className="h-5 w-5 sm:h-6 sm:w-6 fill-current" />
+            <span className="rounded-full bg-white/90 p-1.5 text-black shadow-lg">
+              <Play className="h-4 w-4 fill-current" />
             </span>
           </div>
         </div>
-        <div className="p-2 sm:p-2.5 flex flex-col flex-1 min-w-0 bg-background">
-          <h3 className="text-xs font-medium sm:text-sm line-clamp-1">{item.title}</h3>
-          <p className="text-muted-foreground text-[11px] sm:text-xs line-clamp-2 mt-0.5">
+        <div className="p-1.5 flex flex-col flex-1 min-w-0 bg-background">
+          <h3 className="text-[11px] font-medium line-clamp-1">{item.title}</h3>
+          <p className="text-muted-foreground text-[10px] line-clamp-2 mt-0.5">
             {item.summary}
           </p>
-          <div className="flex gap-1 mt-1.5 flex-wrap items-center">
+          <div className="flex gap-1 mt-1 flex-wrap items-center">
             {(item.prompt || item.promptId) && (
               <Link
                 href={
@@ -321,8 +321,8 @@ function VideoCard({
                 }
                 onClick={(e) => e.stopPropagation()}
               >
-                <Button size="sm" className="gap-1 text-[11px] h-7">
-                  <Sparkles className="size-3.5" />
+                <Button size="sm" className="gap-0.5 text-[10px] h-6">
+                  <Sparkles className="size-3" />
                   Testar e criar
                 </Button>
               </Link>
@@ -334,7 +334,7 @@ function VideoCard({
                 e.stopPropagation();
                 onPlay();
               }}
-              className="rounded-full h-7 w-7"
+              className="rounded-full h-6 w-6"
             >
               <Play className="size-3" />
             </Button>
