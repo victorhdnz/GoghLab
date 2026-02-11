@@ -21,8 +21,8 @@ interface HeroProps {
 }
 
 export function Hero({
-  eyebrow = 'Next-Gen Productivity',
-  eyebrowHref = '/membro/agentes',
+  eyebrow = 'Criar',
+  eyebrowHref = '/criar',
   title,
   subtitle,
   ctaLabel = 'Ver planos',
@@ -34,7 +34,7 @@ export function Hero({
   return (
     <section
       id="hero"
-      className="relative mx-auto w-full pt-20 lg:pt-40 px-6 text-center md:px-8 min-h-[calc(100vh-40px)] overflow-x-hidden overflow-y-visible rounded-b-xl bg-[linear-gradient(to_bottom,#F5F1E8,#FBF8F3_50%,#e8e8e8_88%)] dark:bg-[linear-gradient(to_bottom,#0A0A0A,#0A0A0A_30%,#1A1A1A_78%,#2a2a2a_99%)]"
+      className="relative mx-auto w-full pt-8 lg:pt-24 px-6 text-center md:px-8 min-h-[calc(100vh-40px)] overflow-x-hidden overflow-y-visible rounded-b-xl bg-[linear-gradient(to_bottom,#F5F1E8,#FBF8F3_50%,#e8e8e8_88%)] dark:bg-[linear-gradient(to_bottom,#0A0A0A,#0A0A0A_30%,#1A1A1A_78%,#2a2a2a_99%)]"
     >
       {/* Grid BG - cores Gogh */}
       <div
@@ -78,7 +78,17 @@ export function Hero({
 
       {/* World map - efeito abaixo do texto (só o mapa, sem texto do demo) */}
       <div className="mt-8 md:mt-12 w-full max-w-4xl mx-auto px-0 opacity-0 [animation-fill-mode:forwards] animate-fade-in-up motion-reduce:opacity-100" style={{ animationDelay: '0.2s' }}>
-        <WorldMap theme="light" lineColor="#F7C948" />
+        <WorldMap
+          theme="light"
+          lineColor="#F7C948"
+          dots={[
+            { start: { lat: 64.2, lng: -149.5 }, end: { lat: 34.05, lng: -118.24 } },
+            { start: { lat: 64.2, lng: -149.5 }, end: { lat: -15.8, lng: -47.9 } },
+            { start: { lat: -15.8, lng: -47.9 }, end: { lat: 38.72, lng: -9.14 } },
+            { start: { lat: 51.51, lng: -0.13 }, end: { lat: 28.61, lng: 77.21 } },
+            { start: { lat: 28.61, lng: 77.21 }, end: { lat: -1.29, lng: 36.82 } },
+          ]}
+        />
       </div>
 
       {/* Bottom Fade */}

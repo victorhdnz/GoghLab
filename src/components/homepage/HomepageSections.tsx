@@ -181,8 +181,8 @@ export function HomepageSections({
 
     return (
       <Hero
-        eyebrow="Next-Gen Productivity"
-        eyebrowHref="/membro/agentes"
+        eyebrow="Criar"
+        eyebrowHref="/criar"
         title={heroTitle}
         subtitle={heroSubtitle}
         ctaLabel={ctaLabel}

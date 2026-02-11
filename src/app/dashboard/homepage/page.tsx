@@ -1057,7 +1057,7 @@ export default function HomepageEditorPage() {
             {formData.hero_enabled && (
               <>
                 <p className="text-sm text-gray-600 mb-3">
-                  Estes campos preenchem a <strong>Hero (topo da página)</strong>: título grande, subtítulo e descrição. O botão inferior da hero leva para Planos; o link &quot;Next-Gen Productivity&quot; leva para Chats de IA.
+                  Estes campos preenchem a <strong>Hero (topo da página)</strong>: título, subtítulo e botões. O link &quot;Criar&quot; leva para a página de criação; o botão inferior leva para Planos.
                 </p>
                 <div>
                   <label className="block text-sm font-medium mb-2">Logo da Empresa (Favicon e Logo Fixa)</label>
@@ -1093,16 +1093,6 @@ export default function HomepageEditorPage() {
                   onChange={(e) => setFormData({ ...formData, hero_subtitle: e.target.value })}
                   placeholder="Ex: Criatividade guiada por tecnologia"
                 />
-                <div>
-                  <label className="block text-sm font-medium mb-2">Descrição (texto adicional da hero, se quiser mais de uma linha)</label>
-                  <textarea
-                    value={formData.hero_description || ''}
-                    onChange={(e) => setFormData({ ...formData, hero_description: e.target.value })}
-                    placeholder="Ex: Ferramentas premium para destacar sua marca no digital!"
-                    rows={3}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
                 <div>
                   <label className="block text-sm font-medium mb-2">Imagem de Fundo (Opcional)</label>
                   <ImageUploader
