@@ -45,6 +45,15 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     const Comp = asChild ? Slot : "button"
     // Se não especificar type e não for asChild, usar "button" como padrão para evitar submit acidental
     const buttonType = type || (asChild ? undefined : "button")
+    // Com asChild, Slot exige exatamente UM filho (React.Children.only). Não adicionar LumaSpin nesse caso.
+    const content = asChild ? children : (
+      <>
+        {isLoading && (
+          <LumaSpin size="sm" className="mr-2" />
+        )}
+        {children}
+      </>
+    )
     return (
       <Comp
         className={cn(buttonVariants({ variant, size, className }))}
@@ -53,10 +62,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         type={buttonType}
         {...props}
       >
-        {isLoading && (
-          <LumaSpin size="sm" className="mr-2" />
-        )}
-        {children}
+        {content}
       </Comp>
     )
   },
