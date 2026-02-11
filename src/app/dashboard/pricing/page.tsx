@@ -12,7 +12,8 @@ import Link from 'next/link'
 import { DashboardNavigation } from '@/components/dashboard/DashboardNavigation'
 import { getSiteSettings, saveSiteSettings } from '@/lib/supabase/site-settings-helper'
 import { PriceTier, Feature, ServiceOption } from '@/components/ui/pricing-card'
-import { Plus, Trash2, ChevronDown, ChevronUp, ArrowUp, ArrowDown, Pencil, X, Check } from 'lucide-react'
+import { Plus, Trash2, ChevronDown, ChevronUp, ArrowUp, ArrowDown, Pencil, X, Check, Zap } from 'lucide-react'
+import { getCreditsConfigKey, getCreditPlansKey, type CreditsConfig, type CreditActionId, type CreditPlan } from '@/lib/credits'
 
 interface PricingSettings {
   pricing_enabled?: boolean
@@ -50,7 +51,7 @@ export default function PricingEditorPage() {
   const [planProducts, setPlanProducts] = useState<PlanProduct[]>([])
   const [newProductName, setNewProductName] = useState('')
   const [newProductSlug, setNewProductSlug] = useState('')
-  const [newProductType, setNewProductType] = useState<'tool' | 'course' | 'prompt' | 'other'>('tool')
+  const [newProductType, setNewProductType] = useState<'tool' | 'course' | 'credits' | 'other'>('tool')
   const [addingProduct, setAddingProduct] = useState(false)
   const [uploadingProductId, setUploadingProductId] = useState<string | null>(null)
   const [reorderingProductId, setReorderingProductId] = useState<string | null>(null)
@@ -59,6 +60,15 @@ export default function PricingEditorPage() {
   const [editingProductSlug, setEditingProductSlug] = useState('')
   const [savingProductId, setSavingProductId] = useState<string | null>(null)
   const [deletingProductId, setDeletingProductId] = useState<string | null>(null)
+  const [savingCredits, setSavingCredits] = useState(false)
+  const [monthlyCredits, setMonthlyCredits] = useState<Record<string, number>>({ gogh_essencial: 50, gogh_pro: 200 })
+  const [costByAction, setCostByAction] = useState<Record<CreditActionId, number>>({
+    foto: 5,
+    video: 10,
+    roteiro: 15,
+    vangogh: 5,
+  })
+  const [creditPlans, setCreditPlans] = useState<CreditPlan[]>([])
   const defaultAgencyPlan: PriceTier = {
     id: 'gogh-agencia',
     name: 'Gogh Agency',
@@ -211,7 +221,7 @@ export default function PricingEditorPage() {
       try {
         const { data: productsData } = await (supabase as any).from('products').select('*').eq('is_active', true).order('order_position', { ascending: true })
         const { data: planProductsData } = await (supabase as any).from('plan_products').select('plan_id, product_id')
-        if (productsData) setProducts(productsData as Product[])
+        if (productsData) setProducts(sortProductsCreditsFirst(productsData as Product[]))
         if (planProductsData) setPlanProducts(planProductsData as PlanProduct[])
 
         // Sincronizar features dos planos Essencial/Pro a partir dos produtos atribuídos
@@ -233,6 +243,31 @@ export default function PricingEditorPage() {
         })
       } catch (_) {
         // Tabelas podem não existir ainda (migration não rodada)
+      }
+
+      // Config de Créditos IA (site_settings)
+      try {
+        const { data: configRow } = await (supabase as any)
+          .from('site_settings')
+          .select('value')
+          .eq('key', getCreditsConfigKey())
+          .maybeSingle()
+        const config = (configRow?.value as CreditsConfig) ?? null
+        if (config?.monthlyCreditsByPlan) {
+          setMonthlyCredits((prev) => ({ ...prev, ...config.monthlyCreditsByPlan }))
+        }
+        if (config?.costByAction) {
+          setCostByAction((prev) => ({ ...prev, ...config.costByAction }))
+        }
+        const { data: plansData } = await (supabase as any)
+          .from('site_settings')
+          .select('value')
+          .eq('key', getCreditPlansKey())
+          .maybeSingle()
+        const plans = Array.isArray(plansData?.value) ? plansData.value : []
+        setCreditPlans(plans)
+      } catch (_) {
+        // ignorar
       }
     } catch (error: any) {
       console.error('Erro ao carregar configurações:', error)
@@ -284,6 +319,53 @@ export default function PricingEditorPage() {
       toast.error('Erro ao salvar configurações de pricing.')
     } finally {
       setSaving(false)
+    }
+  }
+
+  const CREDIT_ACTION_LABELS: Record<CreditActionId, string> = {
+    foto: 'Criação de Foto',
+    video: 'Criação de Vídeo',
+    roteiro: 'Vídeo com Roteiro completo',
+    vangogh: 'Van Gogh',
+  }
+  const PLAN_IDS_CREDITS = ['gogh_essencial', 'gogh_pro'] as const
+
+  const handleSaveCredits = async () => {
+    setSavingCredits(true)
+    try {
+      const value: CreditsConfig = {
+        monthlyCreditsByPlan: { ...monthlyCredits },
+        costByAction: { ...costByAction },
+      }
+      const { error } = await (supabase as any)
+        .from('site_settings')
+        .upsert(
+          {
+            key: getCreditsConfigKey(),
+            value,
+            description: 'Créditos IA: créditos mensais por plano e custo por tipo de criação',
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: 'key' }
+        )
+      if (error) throw error
+      const { error: plansError } = await (supabase as any)
+        .from('site_settings')
+        .upsert(
+          {
+            key: getCreditPlansKey(),
+            value: creditPlans,
+            description: 'Planos de créditos avulsos (exibidos na área de conta em Uso)',
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: 'key' }
+        )
+      if (plansError) throw plansError
+      toast.success('Configurações de créditos salvas!')
+    } catch (e: any) {
+      toast.error(e?.message ?? 'Erro ao salvar créditos')
+    } finally {
+      setSavingCredits(false)
     }
   }
 
@@ -362,6 +444,13 @@ export default function PricingEditorPage() {
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-|-$/g, '')
 
+  const sortProductsCreditsFirst = (list: Product[]) =>
+    [...list].sort((a, b) => {
+      if (a.product_type === 'credits' && b.product_type !== 'credits') return -1
+      if (b.product_type === 'credits' && a.product_type !== 'credits') return 1
+      return a.order_position - b.order_position
+    })
+
   const handleAddProduct = async () => {
     if (!newProductName.trim()) {
       toast.error('Nome do produto é obrigatório')
@@ -370,15 +459,24 @@ export default function PricingEditorPage() {
     const slug = newProductSlug.trim() || slugFromName(newProductName)
     setAddingProduct(true)
     try {
+      if (newProductType === 'credits') {
+        for (const p of products) {
+          await (supabase as any).from('products').update({ order_position: p.order_position + 1 }).eq('id', p.id)
+        }
+      }
+      const insertPayload: Record<string, unknown> = {
+        name: newProductName.trim(),
+        slug,
+        product_type: newProductType,
+        order_position: newProductType === 'credits' ? 0 : products.length,
+        is_active: true,
+      }
+      if (newProductType === 'credits') {
+        insertPayload.icon_url = '/icons/lightning-credits.svg'
+      }
       const { data: insertedProduct, error } = await (supabase as any)
         .from('products')
-        .insert({
-          name: newProductName.trim(),
-          slug,
-          product_type: newProductType,
-          order_position: products.length,
-          is_active: true,
-        })
+        .insert(insertPayload)
         .select()
         .single()
       if (error) throw error
@@ -417,8 +515,8 @@ export default function PricingEditorPage() {
       setNewProductSlug('')
       const { data } = await (supabase as any).from('products').select('*').eq('is_active', true).order('order_position', { ascending: true })
       if (data) {
-        setProducts(data as Product[])
-        syncPlanFeaturesFromProducts(planProducts, data as Product[])
+        setProducts(sortProductsCreditsFirst(data as Product[]))
+        syncPlanFeaturesFromProducts(planProducts, sortProductsCreditsFirst(data as Product[]))
       }
     } catch (e: any) {
       toast.error(e?.message || 'Erro ao criar produto')
@@ -440,7 +538,7 @@ export default function PricingEditorPage() {
       await (supabase as any).from('products').update({ order_position: toProduct.order_position }).eq('id', fromProduct.id)
       await (supabase as any).from('products').update({ order_position: fromProduct.order_position }).eq('id', toProduct.id)
       const { data } = await (supabase as any).from('products').select('*').eq('is_active', true).order('order_position', { ascending: true })
-      if (data) setProducts(data as Product[])
+      if (data) setProducts(sortProductsCreditsFirst(data as Product[]))
       syncPlanFeaturesFromProducts(planProducts, data || products)
       toast.success('Ordem atualizada')
     } catch (e: any) {
@@ -485,7 +583,7 @@ export default function PricingEditorPage() {
       }
       const { data } = await (supabase as any).from('products').select('*').eq('is_active', true).order('order_position', { ascending: true })
       if (data) {
-        setProducts(data as Product[])
+        setProducts(sortProductsCreditsFirst(data as Product[]))
         syncPlanFeaturesFromProducts(planProducts, data as Product[])
       }
       setEditingProductId(null)
@@ -516,7 +614,7 @@ export default function PricingEditorPage() {
       if (error) throw error
       const { data: productsData } = await (supabase as any).from('products').select('*').eq('is_active', true).order('order_position', { ascending: true })
       const { data: planProductsData } = await (supabase as any).from('plan_products').select('plan_id, product_id')
-      if (productsData) setProducts(productsData as Product[])
+      if (productsData) setProducts(sortProductsCreditsFirst(productsData as Product[]))
       if (planProductsData) setPlanProducts(planProductsData as PlanProduct[])
       syncPlanFeaturesFromProducts(planProductsData || [], productsData || [])
       toast.success(product.product_type === 'tool' ? 'Produto e ferramenta excluídos' : 'Produto excluído')
@@ -541,7 +639,7 @@ export default function PricingEditorPage() {
       if (error) throw error
       // Ícone fica em products; Gerenciar Ferramentas e área do membro leem products(icon_url) via join, então já refletem o novo logo
       const { data: updated } = await (supabase as any).from('products').select('*').eq('is_active', true).order('order_position', { ascending: true })
-      if (updated) setProducts(updated as Product[])
+      if (updated) setProducts(sortProductsCreditsFirst(updated as Product[]))
       syncPlanFeaturesFromProducts(planProducts, updated || products)
       toast.success('Ícone do produto atualizado')
     } catch (e: any) {
@@ -705,7 +803,7 @@ export default function PricingEditorPage() {
                 <div className="space-y-4">
                   <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
                     <p className="text-sm text-amber-800">
-                      <strong>Produtos</strong> definem o que cada plano inclui (ferramentas, cursos, prompts). Crie produtos aqui e marque em cada plano (Gogh Essencial / Gogh Pro) quais produtos estão incluídos. O checkout continua usando os <strong>Price IDs fixos do Stripe</strong> configurados em cada plano abaixo.
+                      <strong>Produtos</strong> definem o que cada plano inclui (ferramentas, cursos, créditos). Crie produtos aqui e marque em cada plano (Gogh Essencial / Gogh Pro) quais produtos estão incluídos. Abaixo você também configura os <strong>créditos IA</strong> (mensais por plano, custo por criação e planos avulsos). O checkout continua usando os <strong>Price IDs fixos do Stripe</strong> configurados em cada plano.
                     </p>
                   </div>
                   <div className="flex flex-wrap gap-2 items-center">
@@ -731,7 +829,7 @@ export default function PricingEditorPage() {
                     >
                       <option value="tool">Ferramenta</option>
                       <option value="course">Curso</option>
-                      <option value="prompt">Prompt</option>
+                      <option value="credits">Créditos</option>
                       <option value="other">Outro</option>
                     </select>
                     <Button onClick={handleAddProduct} disabled={addingProduct}>
@@ -779,27 +877,33 @@ export default function PricingEditorPage() {
                                 </td>
                                 <td className="py-2 pr-2 align-middle">
                                   <div className="flex items-center gap-2">
-                                    {p.icon_url ? (
+                                    {p.product_type === 'credits' ? (
+                                      <div className="h-10 w-10 rounded-lg border border-amber-200 bg-amber-50 flex items-center justify-center text-amber-600" title="Créditos">
+                                        <Zap size={22} strokeWidth={2} />
+                                      </div>
+                                    ) : p.icon_url ? (
                                       <img src={p.icon_url} alt="" className="h-10 w-10 rounded-lg object-cover border border-gray-200" />
                                     ) : (
                                       <div className="h-10 w-10 rounded-lg border border-dashed border-gray-300 bg-gray-50 flex items-center justify-center text-gray-400 text-xs">Ícone</div>
                                     )}
-                                    <label className="cursor-pointer">
-                                      <input
-                                        type="file"
-                                        accept="image/jpeg,image/png,image/webp,image/gif"
-                                        className="sr-only"
-                                        disabled={uploadingProductId === p.id}
-                                        onChange={(e) => {
-                                          const file = e.target.files?.[0]
-                                          if (file) handleProductIconUpload(p.id, file)
-                                          e.target.value = ''
-                                        }}
-                                      />
-                                      <span className="text-xs text-blue-600 hover:underline">
-                                        {uploadingProductId === p.id ? 'Enviando...' : p.icon_url ? 'Trocar' : 'Upload'}
-                                      </span>
-                                    </label>
+                                    {p.product_type !== 'credits' && (
+                                      <label className="cursor-pointer">
+                                        <input
+                                          type="file"
+                                          accept="image/jpeg,image/png,image/webp,image/gif"
+                                          className="sr-only"
+                                          disabled={uploadingProductId === p.id}
+                                          onChange={(e) => {
+                                            const file = e.target.files?.[0]
+                                            if (file) handleProductIconUpload(p.id, file)
+                                            e.target.value = ''
+                                          }}
+                                        />
+                                        <span className="text-xs text-blue-600 hover:underline">
+                                          {uploadingProductId === p.id ? 'Enviando...' : p.icon_url ? 'Trocar' : 'Upload'}
+                                        </span>
+                                      </label>
+                                    )}
                                   </div>
                                 </td>
                                 <td className="py-2 pr-4 align-middle">
@@ -889,6 +993,144 @@ export default function PricingEditorPage() {
                       </div>
                     </div>
                   )}
+
+                  {/* Configuração de Créditos IA */}
+                  <div className="border-t pt-6 mt-6 space-y-6">
+                    <h4 className="font-semibold flex items-center gap-2">
+                      <Zap size={18} className="text-amber-500" />
+                      Configuração de Créditos IA
+                    </h4>
+                    <p className="text-sm text-gray-600">
+                      Créditos mensais por plano, custo por tipo de criação e planos avulsos (compra na área de conta).
+                    </p>
+                    <div className="grid gap-6 sm:grid-cols-1 lg:grid-cols-2">
+                      <div className="space-y-3">
+                        <h5 className="text-sm font-medium text-gray-700">Créditos mensais por plano</h5>
+                        {PLAN_IDS_CREDITS.map((planId) => (
+                          <div key={planId} className="flex items-center gap-4">
+                            <label className="w-36 text-sm text-gray-700 capitalize">
+                              {planId.replace('_', ' ')}
+                            </label>
+                            <input
+                              type="number"
+                              min={0}
+                              value={monthlyCredits[planId] ?? 0}
+                              onChange={(e) =>
+                                setMonthlyCredits((prev) => ({
+                                  ...prev,
+                                  [planId]: parseInt(e.target.value, 10) || 0,
+                                }))
+                              }
+                              className="w-24 rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                            />
+                            <span className="text-sm text-gray-500">créditos/mês</span>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="space-y-3">
+                        <h5 className="text-sm font-medium text-gray-700">Custo em créditos por função</h5>
+                        {(Object.keys(CREDIT_ACTION_LABELS) as CreditActionId[]).map((actionId) => (
+                          <div key={actionId} className="flex items-center gap-4">
+                            <label className="flex-1 text-sm text-gray-700">
+                              {CREDIT_ACTION_LABELS[actionId]}
+                            </label>
+                            <input
+                              type="number"
+                              min={0}
+                              value={costByAction[actionId] ?? 0}
+                              onChange={(e) =>
+                                setCostByAction((prev) => ({
+                                  ...prev,
+                                  [actionId]: parseInt(e.target.value, 10) || 0,
+                                }))
+                              }
+                              className="w-20 rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                            />
+                            <span className="text-sm text-gray-500">créditos</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="space-y-3">
+                      <h5 className="text-sm font-medium text-gray-700">Planos de créditos avulsos</h5>
+                      <p className="text-xs text-gray-500">
+                        Aparecem na área de conta (Uso) para compra de créditos extras. Informe o link do checkout Stripe.
+                      </p>
+                      <div className="space-y-3">
+                        {creditPlans.map((plan, index) => (
+                          <div key={plan.id} className="flex flex-wrap items-center gap-2 p-3 rounded-lg border border-gray-200 bg-gray-50/50">
+                            <input
+                              type="text"
+                              placeholder="Nome (ex: 50 créditos)"
+                              value={plan.name}
+                              onChange={(e) => {
+                                const next = [...creditPlans]
+                                next[index] = { ...next[index], name: e.target.value }
+                                setCreditPlans(next)
+                              }}
+                              className="flex-1 min-w-[120px] rounded-lg border border-gray-300 px-3 py-1.5 text-sm"
+                            />
+                            <input
+                              type="number"
+                              min={1}
+                              placeholder="Créditos"
+                              value={plan.credits || ''}
+                              onChange={(e) => {
+                                const next = [...creditPlans]
+                                next[index] = { ...next[index], credits: parseInt(e.target.value, 10) || 0 }
+                                setCreditPlans(next)
+                              }}
+                              className="w-20 rounded-lg border border-gray-300 px-3 py-1.5 text-sm"
+                            />
+                            <input
+                              type="url"
+                              placeholder="URL checkout Stripe"
+                              value={plan.stripe_checkout_url || ''}
+                              onChange={(e) => {
+                                const next = [...creditPlans]
+                                next[index] = { ...next[index], stripe_checkout_url: e.target.value }
+                                setCreditPlans(next)
+                              }}
+                              className="flex-1 min-w-[180px] rounded-lg border border-gray-300 px-3 py-1.5 text-sm"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setCreditPlans((prev) => prev.filter((_, i) => i !== index))}
+                              className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                              title="Remover"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
+                        ))}
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setCreditPlans((prev) => [
+                              ...prev,
+                              {
+                                id: `plan-${Date.now()}`,
+                                name: '',
+                                credits: 0,
+                                stripe_checkout_url: '',
+                                order: prev.length,
+                              },
+                            ])
+                          }
+                          className="inline-flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-gray-900 border border-dashed border-gray-300 rounded-lg px-3 py-2"
+                        >
+                          <Plus size={16} />
+                          Adicionar plano de créditos
+                        </button>
+                      </div>
+                    </div>
+                    <div className="flex justify-end">
+                      <Button onClick={handleSaveCredits} disabled={savingCredits} className="gap-2">
+                        <Save size={18} />
+                        {savingCredits ? 'Salvando...' : 'Salvar créditos'}
+                      </Button>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>

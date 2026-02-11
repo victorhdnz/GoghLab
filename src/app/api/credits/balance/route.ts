@@ -66,16 +66,29 @@ export async function GET() {
       balance = monthly
     }
 
+    // Créditos comprados à parte (não renovam por mês)
+    const { data: purchasedRows } = await (supabase as any)
+      .from('user_usage')
+      .select('usage_count')
+      .eq('user_id', user.id)
+      .eq('feature_key', 'ai_credits_purchased')
+    const balancePurchased = Array.isArray(purchasedRows)
+      ? purchasedRows.reduce((sum: number, r: { usage_count?: number }) => sum + (Number(r?.usage_count) || 0), 0)
+      : 0
+    const balanceMonthly = Number(balance)
+    const totalBalance = balanceMonthly + balancePurchased
+
     const costByAction: Record<CreditActionId, number> = {
       foto: getCreditCost('foto', config),
       video: getCreditCost('video', config),
       roteiro: getCreditCost('roteiro', config),
-      prompts: getCreditCost('prompts', config),
       vangogh: getCreditCost('vangogh', config),
     }
 
     return NextResponse.json({
-      balance: Number(balance),
+      balance: totalBalance,
+      balanceMonthly,
+      balancePurchased,
       periodStart,
       periodEnd,
       costByAction,

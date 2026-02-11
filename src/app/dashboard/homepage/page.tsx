@@ -1635,6 +1635,20 @@ export default function HomepageEditorPage() {
                               aspectRatio={16 / 9}
                             />
                           </div>
+                          <div>
+                            <label className="block text-xs font-medium mb-1">Prompt para &quot;Testar e criar&quot;</label>
+                            <textarea
+                              value={item.prompt ?? ''}
+                              onChange={(e) => {
+                                const updated = [...galleryItems]
+                                updated[index] = { ...updated[index], prompt: e.target.value || undefined }
+                                setGalleryData({ ...galleryData, items: updated })
+                              }}
+                              rows={2}
+                              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg"
+                              placeholder="Texto que será colado no Criar com IA ao clicar em Testar e criar"
+                            />
+                          </div>
                           {item.type === 'image' && (
                             <Input
                               label="Link ao clicar (opcional)"

@@ -20,43 +20,16 @@ import {
   Scissors,
   Sparkles,
   RefreshCw,
-  Zap,
   Wrench,
   Coins
 } from 'lucide-react'
 
 type TabType = 'profile' | 'plan'
 
-interface AgentUsage {
-  agentId: string
-  agentName: string
-  current: number
-  limit: number
-}
-
-interface UsageStats {
-  agents: AgentUsage[]
-}
-
-
-const getPlanFeatures = (hasActive: boolean, pro: boolean) => {
-  if (!hasActive) return []
-
-  return pro
-    ? [
-        { text: '20 interações por dia', icon: MessageSquare },
-        { text: 'Todos os agentes', icon: Sparkles },
-        { text: 'Todos os cursos', icon: BookOpen },
-        { text: 'Canva Pro', icon: Palette },
-        { text: 'CapCut Pro', icon: Scissors },
-      ]
-    : [
-        { text: '8 interações por dia', icon: MessageSquare },
-        { text: 'Agentes básicos', icon: Sparkles },
-        { text: 'Cursos de Canva e CapCut', icon: BookOpen },
-        { text: 'Canva Pro', icon: Palette },
-        { text: 'CapCut Pro', icon: Scissors },
-      ]
+/** Recursos do plano vindo do dashboard (plan_products + products) */
+interface PlanFeatureItem {
+  text: string
+  icon: React.ComponentType<{ className?: string }>
 }
 
 export default function AccountPage() {
@@ -64,12 +37,12 @@ export default function AccountPage() {
   const [activeTab, setActiveTab] = useState<TabType>('profile')
   const [saving, setSaving] = useState(false)
   const [openingPortal, setOpeningPortal] = useState(false)
-  const [usageStats, setUsageStats] = useState<UsageStats | null>(null)
-  const [loadingUsage, setLoadingUsage] = useState(false)
   const [hasServiceSubscriptions, setHasServiceSubscriptions] = useState(false)
   const [hasStripeServiceSubscription, setHasStripeServiceSubscription] = useState(false)
-  const [creditsBalance, setCreditsBalance] = useState<number | null>(null)
+  const [creditsBalanceMonthly, setCreditsBalanceMonthly] = useState<number | null>(null)
+  const [creditsBalancePurchased, setCreditsBalancePurchased] = useState<number | null>(null)
   const [creditPlans, setCreditPlans] = useState<Array<{ id: string; name: string; credits: number; stripe_checkout_url: string }>>([])
+  const [planFeatures, setPlanFeatures] = useState<PlanFeatureItem[]>([])
   
   // Form state
   const [fullName, setFullName] = useState('')
@@ -139,103 +112,67 @@ export default function AccountPage() {
     }
   }, [])
 
-  // Buscar uso do usuário POR AGENTE
-  useEffect(() => {
-    const fetchUsage = async () => {
-      if (!user || !hasActiveSubscription) {
-        setUsageStats(null)
-        return
-      }
-
-      setLoadingUsage(true)
-      try {
-        // Buscar todos os agentes ativos
-        const { data: agentsData, error: agentsError } = await (supabase as any)
-          .from('ai_agents')
-          .select('id, name, is_premium')
-          .eq('is_active', true)
-          .order('order_position', { ascending: true })
-
-        if (agentsError) throw agentsError
-
-        // Filtrar apenas agentes que o usuário tem acesso
-        const accessibleAgents = agentsData.filter((agent: any) => {
-          // Se for premium, só mostra se o usuário for Pro
-          if (agent.is_premium && !isPro) return false
-          return true
-        })
-
-        // Buscar uso diário POR AGENTE (hoje)
-        const today = new Date()
-        today.setHours(0, 0, 0, 0)
-        const todayStr = today.toISOString().split('T')[0]
-
-        // Limite diário POR AGENTE: Essencial = 8, Pro = 20
-        const limit = isPro ? 20 : 8
-
-        // Buscar uso de cada agente
-        const agentUsages: AgentUsage[] = await Promise.all(
-          accessibleAgents.map(async (agent: any) => {
-            const featureKeyForAgent = `ai_interactions_${agent.id}`
-            
-            const { data: usageData } = await (supabase as any)
-              .from('user_usage')
-              .select('usage_count')
-              .eq('user_id', user.id)
-              .eq('feature_key', featureKeyForAgent)
-              .gte('period_start', todayStr)
-              .maybeSingle()
-
-            return {
-              agentId: agent.id,
-              agentName: agent.name,
-              current: usageData?.usage_count || 0,
-              limit: limit
-            }
-          })
-        )
-
-        setUsageStats({
-          agents: agentUsages
-        })
-      } catch (error) {
-        console.error('Erro ao buscar uso:', error)
-      } finally {
-        setLoadingUsage(false)
-      }
-    }
-
-    fetchUsage()
-    
-    // Atualizar uso quando a página ganha foco (usuário volta para a aba)
-    const handleFocus = () => {
-      fetchUsage()
-    }
-    window.addEventListener('focus', handleFocus)
-    
-    return () => {
-      window.removeEventListener('focus', handleFocus)
-    }
-  }, [user, hasActiveSubscription, isPro])
-
-  // Créditos IA (saldo do mês)
+  // Créditos IA (mensais + comprados separados)
   useEffect(() => {
     if (!user || !hasActiveSubscription) {
-      setCreditsBalance(null)
+      setCreditsBalanceMonthly(null)
+      setCreditsBalancePurchased(null)
       return
     }
     const fetchCredits = async () => {
       try {
         const res = await fetch('/api/credits/balance', { credentials: 'include' })
         const data = await res.json()
-        if (res.ok && typeof data.balance === 'number') setCreditsBalance(data.balance)
-        else setCreditsBalance(null)
+        if (res.ok) {
+          setCreditsBalanceMonthly(typeof data.balanceMonthly === 'number' ? data.balanceMonthly : data.balance ?? null)
+          setCreditsBalancePurchased(typeof data.balancePurchased === 'number' ? data.balancePurchased : 0)
+        } else {
+          setCreditsBalanceMonthly(null)
+          setCreditsBalancePurchased(null)
+        }
       } catch {
-        setCreditsBalance(null)
+        setCreditsBalanceMonthly(null)
+        setCreditsBalancePurchased(null)
       }
     }
     fetchCredits()
   }, [user, hasActiveSubscription])
+
+  // Recursos do plano (espelhar o que está cadastrado no dashboard: plan_products + products)
+  useEffect(() => {
+    if (!hasActiveSubscription || !subscription?.plan_id) {
+      setPlanFeatures([])
+      return
+    }
+    const load = async () => {
+      try {
+        const planId = subscription.plan_id
+        const { data: planProductsData } = await (supabase as any)
+          .from('plan_products')
+          .select('product_id')
+          .eq('plan_id', planId)
+        const productIds = (planProductsData || []).map((pp: { product_id: string }) => pp.product_id)
+        if (productIds.length === 0) {
+          setPlanFeatures([])
+          return
+        }
+        const { data: productsData } = await (supabase as any)
+          .from('products')
+          .select('id, name')
+          .in('id', productIds)
+          .eq('is_active', true)
+          .order('order_position', { ascending: true })
+        const features: PlanFeatureItem[] = (productsData || []).map((p: { id: string; name: string }) => ({
+          text: p.name || 'Recurso do plano',
+          icon: Sparkles,
+        }))
+        setPlanFeatures(features)
+      } catch {
+        setPlanFeatures([])
+      }
+    }
+    load()
+  }, [hasActiveSubscription, subscription?.plan_id])
 
   // Planos de créditos avulsos (para exibir na seção Uso)
   useEffect(() => {
@@ -408,8 +345,6 @@ export default function AccountPage() {
     { id: 'profile' as TabType, label: 'Perfil', icon: User },
     { id: 'plan' as TabType, label: 'Plano & Uso', icon: CreditCard },
   ]
-
-  const planFeatures = getPlanFeatures(hasActiveSubscription, isPro)
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -609,91 +544,52 @@ export default function AccountPage() {
             <div id="usage" className="bg-white rounded-2xl border border-gogh-grayLight p-6 lg:p-8 space-y-6 scroll-mt-6">
               {/* Créditos IA / Uso */}
               {hasActiveSubscription && (
-                <div>
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-3">
+                <div className="space-y-6">
+                  <div>
+                    <div className="flex items-center gap-3 mb-4">
                       <Coins className="w-5 h-5 text-gogh-grayDark" />
                       <h3 className="text-lg font-bold text-gogh-black">Créditos para criação com IA</h3>
                     </div>
-                  </div>
-                  <p className="text-sm text-gogh-grayDark mb-2">
-                    Créditos deste mês: <strong className="text-gogh-black">{creditsBalance !== null ? creditsBalance : '—'}</strong>
-                  </p>
-                  <p className="text-xs text-gogh-grayDark mb-4">
-                    Os créditos são usados ao criar fotos, vídeos, roteiros e prompts com IA. Eles renovam todo mês conforme seu plano.
-                  </p>
-                  {creditPlans.length > 0 ? (
-                    <div className="space-y-2">
-                      <p className="text-sm font-medium text-gogh-black mb-2">Comprar mais créditos</p>
-                      <div className="flex flex-wrap gap-2">
-                        {creditPlans.map((plan) => (
-                          <a
-                            key={plan.id}
-                            href={plan.stripe_checkout_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gogh-yellow text-gogh-black font-medium hover:bg-gogh-yellow/90 transition-colors text-sm"
-                          >
-                            {plan.name} ({plan.credits} créditos)
-                            <ExternalLink className="w-3 h-3" />
-                          </a>
-                        ))}
+                    <p className="text-xs text-gogh-grayDark mb-4">
+                      Os créditos são usados ao criar fotos, vídeos, roteiros e prompts com IA.
+                    </p>
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <div className="rounded-xl border border-gogh-grayLight bg-gogh-beige/30 p-4">
+                        <p className="text-xs font-medium text-gogh-grayDark mb-1">Créditos mensais</p>
+                        <p className="text-2xl font-bold text-gogh-black">
+                          {creditsBalanceMonthly !== null ? creditsBalanceMonthly : '—'}
+                        </p>
+                        <p className="text-xs text-gogh-grayDark mt-1">Renovam todo mês conforme seu plano.</p>
+                      </div>
+                      <div className="rounded-xl border border-gogh-grayLight bg-gogh-beige/30 p-4">
+                        <p className="text-xs font-medium text-gogh-grayDark mb-1">Créditos comprados</p>
+                        <p className="text-2xl font-bold text-gogh-black">
+                          {creditsBalancePurchased !== null ? creditsBalancePurchased : '—'}
+                        </p>
+                        <p className="text-xs text-gogh-grayDark mt-1">Pacotes avulsos que você comprou.</p>
                       </div>
                     </div>
-                  ) : (
-                    <p className="text-sm text-gogh-grayDark">Planos de créditos avulsos serão exibidos aqui quando configurados.</p>
-                  )}
-                </div>
-              )}
-
-              {/* Uso de Mensagens de IA POR AGENTE */}
-              {hasActiveSubscription && usageStats && usageStats.agents && usageStats.agents.length > 0 && (
-                <div>
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-3">
-                      <Zap className="w-5 h-5 text-gogh-grayDark" />
-                      <h3 className="text-lg font-bold text-gogh-black">Interações de IA por Agente</h3>
-                    </div>
-                    <span className="text-sm text-gogh-grayDark">Hoje</span>
-                  </div>
-                  <div className="space-y-4">
-                    {usageStats.agents.map((agentUsage) => {
-                      const percentage = Math.min(
-                        (agentUsage.current / agentUsage.limit) * 100,
-                        100
-                      )
-                      const isLimitReached = agentUsage.current >= agentUsage.limit
-                      
-                      return (
-                        <div key={agentUsage.agentId} className="space-y-2">
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm font-medium text-gogh-black">
-                              {agentUsage.agentName}
-                            </span>
-                            <span className={`text-sm font-medium ${
-                              isLimitReached ? 'text-amber-700' : 'text-gogh-grayDark'
-                            }`}>
-                              {agentUsage.current} / {agentUsage.limit}
-                            </span>
-                          </div>
-                          <div className="h-2 bg-gogh-grayLight rounded-full overflow-hidden">
-                            <div 
-                              className={`h-full rounded-full transition-all duration-500 ${
-                                isLimitReached
-                                  ? 'bg-gradient-to-r from-amber-500 to-amber-600'
-                                  : 'bg-gradient-to-r from-purple-500 to-indigo-500'
-                              }`}
-                              style={{ width: `${percentage}%` }}
-                            />
-                          </div>
-                          {isLimitReached && (
-                            <p className="text-xs text-amber-700 font-medium">
-                              Limite atingido para hoje
-                            </p>
-                          )}
+                    {creditPlans.length > 0 ? (
+                      <div className="space-y-2 mt-4">
+                        <p className="text-sm font-medium text-gogh-black mb-2">Comprar mais créditos</p>
+                        <div className="flex flex-wrap gap-2">
+                          {creditPlans.map((plan) => (
+                            <a
+                              key={plan.id}
+                              href={plan.stripe_checkout_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gogh-yellow text-gogh-black font-medium hover:bg-gogh-yellow/90 transition-colors text-sm"
+                            >
+                              {plan.name} ({plan.credits} créditos)
+                              <ExternalLink className="w-3 h-3" />
+                            </a>
+                          ))}
                         </div>
-                      )
-                    })}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-gogh-grayDark mt-4">Planos de créditos avulsos serão exibidos aqui quando configurados.</p>
+                    )}
                   </div>
                 </div>
               )}
@@ -709,14 +605,16 @@ export default function AccountPage() {
 
                 {hasActiveSubscription ? (
                   <ul className="space-y-3">
-                    {planFeatures.map((feature, index) => (
+                    {planFeatures.length > 0 ? planFeatures.map((feature, index) => (
                       <li key={index} className="flex items-center gap-3">
                         <div className="w-8 h-8 bg-gogh-yellow/20 rounded-lg flex items-center justify-center">
                           <feature.icon className="w-4 h-4 text-gogh-black" />
                         </div>
                         <span className="text-gogh-black">{feature.text}</span>
                       </li>
-                    ))}
+                    )) : (
+                      <li className="text-sm text-gogh-grayDark">Recursos do plano são configurados no dashboard. Nenhum recurso vinculado ao seu plano no momento.</li>
+                    )}
                   </ul>
                 ) : (
                   <ul className="space-y-3">

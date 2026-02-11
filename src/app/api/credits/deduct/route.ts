@@ -21,7 +21,7 @@ export async function POST(request: Request) {
 
     const body = await request.json().catch(() => ({}))
     const actionId = body?.actionId as CreditActionId | undefined
-    const validActions: CreditActionId[] = ['foto', 'video', 'roteiro', 'prompts', 'vangogh']
+    const validActions: CreditActionId[] = ['foto', 'video', 'roteiro', 'vangogh']
     if (!actionId || !validActions.includes(actionId)) {
       return NextResponse.json({ error: 'actionId inválido' }, { status: 400 })
     }

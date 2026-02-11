@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, ChevronLeft, ChevronRight, Play, X } from "lucide-react";
+import { ArrowRight, ChevronLeft, ChevronRight, Play, X, Sparkles } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,8 @@ export type GalleryHoverCarouselItem = {
   image: string;
   /** Link opcional para cards do tipo image */
   url?: string;
+  /** Prompt para preencher no Criar com IA ao clicar em "Testar e criar" */
+  prompt?: string;
   /** URL do vídeo no Cloudinary (upload) — usado na galeria */
   videoUrl?: string;
   /** URL do YouTube para cards do tipo video (legado; cursos continuam com YouTube) */
@@ -230,24 +232,32 @@ function ImageCard({ item }: { item: GalleryHoverCarouselItem }) {
         />
         <div className="absolute bottom-0 left-0 w-full h-20 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
       </div>
-      <div className="absolute bottom-0 left-0 w-full px-4 transition-all duration-500 group-hover:h-1/2 group-hover:flex flex-col justify-center bg-background/95 backdrop-blur-sm opacity-0 group-hover:opacity-100">
+      <div className="absolute bottom-0 left-0 w-full px-4 pb-3 transition-all duration-500 group-hover:h-1/2 group-hover:flex flex-col justify-center bg-background/95 backdrop-blur-sm opacity-0 group-hover:opacity-100">
         <h3 className="text-lg font-medium md:text-xl">{item.title}</h3>
         <p className="text-muted-foreground text-sm md:text-base line-clamp-2">
           {item.summary}
         </p>
-        {item.url && (
-          <Button
-            variant="outline"
-            size="icon"
-            className="absolute bottom-2 right-2 border border-gray-200 dark:border-gray-800 hover:-rotate-45 transition-all duration-500 rounded-full mt-2 px-0 flex items-center gap-1 text-primary hover:text-primary/80"
-          >
-            <ArrowRight className="size-4" />
-          </Button>
-        )}
+        <div className="flex gap-2 mt-2 flex-wrap">
+          {item.prompt && (
+            <Link href={`/criar?prompt=${encodeURIComponent(item.prompt)}`}>
+              <Button size="sm" className="gap-1.5">
+                <Sparkles className="size-4" />
+                Testar e criar
+              </Button>
+            </Link>
+          )}
+          {item.url && (
+            <Link href={item.url}>
+              <Button variant="outline" size="icon" className="rounded-full">
+                <ArrowRight className="size-4" />
+              </Button>
+            </Link>
+          )}
+        </div>
       </div>
     </Card>
   );
-  if (item.url) {
+  if (item.url && !item.prompt) {
     return (
       <Link href={item.url} className={className}>
         {content}
@@ -285,22 +295,32 @@ function VideoCard({
           </div>
           <div className="absolute bottom-0 left-0 w-full h-20 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
         </div>
-        <div className="absolute bottom-0 left-0 w-full px-4 transition-all duration-500 group-hover:h-1/2 group-hover:flex flex-col justify-center bg-background/95 backdrop-blur-sm opacity-0 group-hover:opacity-100">
+        <div className="absolute bottom-0 left-0 w-full px-4 pb-3 transition-all duration-500 group-hover:h-1/2 group-hover:flex flex-col justify-center bg-background/95 backdrop-blur-sm opacity-0 group-hover:opacity-100">
           <h3 className="text-lg font-medium md:text-xl">{item.title}</h3>
           <p className="text-muted-foreground text-sm md:text-base line-clamp-2">
             {item.summary}
           </p>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={(e) => {
-              e.stopPropagation();
-              onPlay();
-            }}
-            className="absolute bottom-2 right-2 border border-gray-200 dark:border-gray-800 hover:-rotate-45 transition-all duration-500 rounded-full mt-2 px-0 flex items-center gap-1 text-primary hover:text-primary/80"
-          >
-            <Play className="size-4" />
-          </Button>
+          <div className="flex gap-2 mt-2 flex-wrap items-center">
+            {item.prompt && (
+              <Link href={`/criar?prompt=${encodeURIComponent(item.prompt)}`} onClick={(e) => e.stopPropagation()}>
+                <Button size="sm" className="gap-1.5">
+                  <Sparkles className="size-4" />
+                  Testar e criar
+                </Button>
+              </Link>
+            )}
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={(e) => {
+                e.stopPropagation();
+                onPlay();
+              }}
+              className="rounded-full"
+            >
+              <Play className="size-4" />
+            </Button>
+          </div>
         </div>
       </Card>
     </div>

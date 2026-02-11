@@ -22,29 +22,17 @@ export function MainBackground() {
       return
     }
 
-    // Se estiver na página inicial, usar preto como base (seções terão suas próprias cores)
-    if (pathname === '/') {
-      main.style.backgroundColor = '#000000'
-      main.style.background = '#000000'
-      if (body) {
-        body.style.backgroundColor = '#000000'
-        body.style.background = '#000000'
-      }
-      if (html) {
-        html.style.backgroundColor = '#000000'
-        html.style.background = '#000000'
-      }
-    } else {
-      main.style.backgroundColor = '#ffffff'
-      main.style.background = '#ffffff'
-      if (body) {
-        body.style.backgroundColor = '#ffffff'
-        body.style.background = '#ffffff'
-      }
-      if (html) {
-        html.style.backgroundColor = '#ffffff'
-        html.style.background = '#ffffff'
-      }
+    // Bege Gogh Lab (#F5F1E8) em todas as páginas para consistência (acima do nav e fundo geral)
+    const beige = '#F5F1E8'
+    main.style.backgroundColor = beige
+    main.style.background = beige
+    if (body) {
+      body.style.backgroundColor = beige
+      body.style.background = beige
+    }
+    if (html) {
+      html.style.backgroundColor = beige
+      html.style.background = beige
     }
 
     return () => {

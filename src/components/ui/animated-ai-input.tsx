@@ -128,12 +128,21 @@ export interface AI_PromptProps {
   placeholder?: string
   onSend?: (message: string, model: string) => void
   className?: string
+  /** Valor inicial (ex.: prompt vindo da homepage "Testar e criar") */
+  initialValue?: string
 }
 
-export function AI_Prompt({ placeholder = 'O que posso criar para você?', onSend, className }: AI_PromptProps) {
-  const [value, setValue] = useState('')
+export function AI_Prompt({ placeholder = 'O que posso criar para você?', onSend, className, initialValue }: AI_PromptProps) {
+  const [value, setValue] = useState(initialValue ?? '')
   const { textareaRef, adjustHeight } = useAutoResizeTextarea({ minHeight: 72, maxHeight: 300 })
   const [selectedModel, setSelectedModel] = useState('GPT-4-1 Mini')
+
+  React.useEffect(() => {
+    if (initialValue !== undefined) {
+      setValue(initialValue)
+      adjustHeight()
+    }
+  }, [initialValue])
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey && value.trim()) {

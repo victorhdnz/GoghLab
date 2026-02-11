@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect, useMemo } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-import { ImageIcon, Video, FileText, MessageSquare, Palette, Coins } from 'lucide-react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { ImageIcon, Video, FileText, Palette, Coins } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useCredits } from '@/hooks/useCredits'
 import { AI_Prompt } from '@/components/ui/animated-ai-input'
@@ -16,7 +16,6 @@ const TABS = [
   { id: 'foto', label: 'Criação de Foto', icon: ImageIcon },
   { id: 'video', label: 'Criação de Vídeo', icon: Video },
   { id: 'roteiro', label: 'Vídeo com Roteiro', icon: FileText },
-  { id: 'prompts', label: 'Prompts para IAs', icon: MessageSquare },
   { id: 'vangogh', label: 'Van Gogh', icon: Palette },
 ] as const
 
@@ -26,12 +25,16 @@ const PLACEHOLDERS: Record<TabId, string> = {
   foto: 'Descreva a imagem ou foto que deseja criar...',
   video: 'Descreva o vídeo ou cena que deseja gerar...',
   roteiro: 'Conte a história: ideias de takes, falas e estrutura de roteiro completa para produção de vídeo...',
-  prompts: 'Descreva o que precisa: prompts para usar em todas as IAs...',
   vangogh: 'Descreva no estilo Van Gogh o que deseja criar...',
 }
 
 export default function CriarPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const promptFromUrl = useMemo(() => {
+    const p = searchParams.get('prompt')
+    return p ? decodeURIComponent(p) : ''
+  }, [searchParams])
   const { isAuthenticated, hasActiveSubscription, loading } = useAuth()
   const { balance, costByAction, loading: creditsLoading, deduct, refetch: refetchCredits } = useCredits()
   const [activeTab, setActiveTab] = useState<TabId>('foto')
@@ -184,10 +187,11 @@ export default function CriarPage() {
         </div>
       )}
 
-      {/* Área do input de IA */}
+      {/* Área do input de IA (prompt da URL preenche ao vir do "Testar e criar" da homepage) */}
       <AI_Prompt
         placeholder={PLACEHOLDERS[activeTab]}
         onSend={handleSend}
+        initialValue={promptFromUrl}
       />
 
       {/* Estado "Gerando..." */}

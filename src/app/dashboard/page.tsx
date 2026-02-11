@@ -18,7 +18,6 @@ import {
   Wrench,
   BookOpen,
   Settings,
-  Coins,
 } from 'lucide-react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
@@ -179,7 +178,7 @@ function DashboardContent() {
     },
     {
       title: 'Configurações',
-      description: 'Configure logo, WhatsApp e créditos IA',
+      description: 'Configure logo e número de WhatsApp para suporte',
       icon: Settings,
       items: [
         {
@@ -188,13 +187,6 @@ function DashboardContent() {
           href: '/dashboard/configuracoes',
           icon: Settings,
           color: 'bg-gray-600',
-        },
-        {
-          title: 'Créditos IA',
-          description: 'Créditos mensais por plano e custo por criação (foto, vídeo, roteiro, prompts)',
-          href: '/dashboard/creditos',
-          icon: Coins,
-          color: 'bg-amber-500',
         },
       ],
     },

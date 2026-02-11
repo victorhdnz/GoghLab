@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Lock, Eye, EyeOff, AlertCircle } from 'lucide-react'
+import { DashboardNotificationBell } from './DashboardNotificationBell'
 
 const DASHBOARD_PASSWORD = 'Goghlab053149@'
 const STORAGE_KEY = 'dashboard_password_verified'
@@ -150,7 +151,12 @@ export function DashboardPasswordProtection({ children }: DashboardPasswordProte
     )
   }
 
-  // Se está verificado, mostrar conteúdo do dashboard
-  return <>{children}</>
+  // Se está verificado, mostrar conteúdo do dashboard com sino de notificações fixo
+  return (
+    <>
+      <DashboardNotificationBell />
+      {children}
+    </>
+  )
 }
 

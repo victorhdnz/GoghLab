@@ -49,7 +49,7 @@ export default async function PrecosPage() {
   const enabled = pricing.pricing_enabled === true && hasPlans
 
   return (
-    <div className="min-h-screen bg-black">
+    <div className="min-h-screen bg-[#F5F1E8]">
       <PricingSection
         enabled={enabled}
         title={pricing.pricing_title}
