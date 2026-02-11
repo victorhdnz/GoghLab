@@ -77,11 +77,14 @@ export default function AnimatedGenerateButton({
               generating ? 'opacity-0' : 'animate-[ui-appear_1s_ease-in-out_forwards]'
             )}
           >
-            {Array.from(labelIdle).map((ch, i) => (
-              <span key={i} className="ui-anim-letter inline-block">
-                {ch}
-              </span>
-            ))}
+            {Array.from(labelIdle).map((ch, i) => {
+              const isSpace = ch === ' ' || ch === '\u00A0' || /\s/.test(ch)
+              return (
+                <span key={i} className={clsx('ui-anim-letter inline-block', isSpace && 'ui-anim-space')}>
+                  {isSpace ? '\u00A0' : ch}
+                </span>
+              )
+            })}
           </div>
           <div
             className={clsx(
@@ -89,11 +92,14 @@ export default function AnimatedGenerateButton({
               generating ? 'opacity-100' : 'opacity-0'
             )}
           >
-            {Array.from(labelActive).map((ch, i) => (
-              <span key={i} className="ui-anim-letter inline-block">
-                {ch}
-              </span>
-            ))}
+            {Array.from(labelActive).map((ch, i) => {
+              const isSpace = ch === ' ' || ch === '\u00A0' || /\s/.test(ch)
+              return (
+                <span key={i} className={clsx('ui-anim-letter inline-block', isSpace && 'ui-anim-space')}>
+                  {isSpace ? '\u00A0' : ch}
+                </span>
+              )
+            })}
           </div>
         </div>
       </button>
@@ -149,6 +155,10 @@ export default function AnimatedGenerateButton({
           letter-spacing: 0.02em;
           animation: ui-letter-anim 2s ease-in-out infinite;
           transition: color var(--transition), text-shadow var(--transition), opacity var(--transition);
+        }
+        .ui-anim-letter.ui-anim-space {
+          min-width: 0.35em;
+          letter-spacing: 0;
         }
 
         @keyframes ui-letter-anim {
