@@ -169,11 +169,15 @@ export function HomepageSections({
 
   // Função para renderizar seção Hero (hero-1 com paleta Gogh, eyebrow → chats IA, CTA Shimmer → planos)
   const renderHeroSection = () => {
-    if (homepageContent.hero_enabled === false || sectionVisibility.hero === false) return null
+    if (homepageContent?.hero_enabled === false || sectionVisibility?.hero === false) return null
 
-    const heroTitle = homepageContent.hero_title || 'Gogh Lab'
-    const heroSubtitle = homepageContent.hero_description || homepageContent.hero_subtitle || 'Criatividade guiada por tecnologia. Agentes de IA para criação de conteúdo, redes sociais e anúncios.'
-    const ctaLabel = homepageContent.typewriter_button_label || 'Ver planos'
+    const heroTitle = typeof homepageContent?.hero_title === 'string' ? homepageContent.hero_title : 'Gogh Lab'
+    const heroSubtitle = typeof homepageContent?.hero_description === 'string'
+      ? homepageContent.hero_description
+      : typeof homepageContent?.hero_subtitle === 'string'
+        ? homepageContent.hero_subtitle
+        : 'Criatividade guiada por tecnologia. Agentes de IA para criação de conteúdo, redes sociais e anúncios.'
+    const ctaLabel = typeof homepageContent?.typewriter_button_label === 'string' ? homepageContent.typewriter_button_label : 'Ver planos'
 
     return (
       <Hero

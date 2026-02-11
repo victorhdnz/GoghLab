@@ -28,6 +28,8 @@ export function Hero({
   ctaHref = '/precos',
 }: HeroProps) {
   const router = useRouter()
+  const safeTitle = typeof title === 'string' ? title : 'Gogh Lab'
+  const safeSubtitle = typeof subtitle === 'string' ? subtitle : 'Criatividade guiada por tecnologia.'
   return (
     <section
       id="hero"
@@ -46,7 +48,7 @@ export function Hero({
       {/* Eyebrow - link para página dos chats de IA */}
       {eyebrow && (
         <Link href={eyebrowHref} className="group inline-block">
-          <span className="text-sm text-[#0A0A0A] dark:text-gray-400 font-geist mx-auto px-5 py-2 bg-gradient-to-tr from-[#F7C948]/10 via-gray-400/5 to-transparent border-[2px] border-[#0A0A0A]/10 dark:border-white/5 rounded-3xl w-fit tracking-tight uppercase flex items-center justify-center gap-2">
+          <span className="text-sm text-[#0A0A0A] dark:text-gray-400 mx-auto px-5 py-2 bg-gradient-to-tr from-[#F7C948]/10 via-gray-400/5 to-transparent border-[2px] border-[#0A0A0A]/10 dark:border-white/5 rounded-3xl w-fit tracking-tight uppercase flex items-center justify-center gap-2">
             {eyebrow}
             <ChevronRight className="inline w-4 h-4 ml-0 transition-transform duration-300 group-hover:translate-x-1" />
           </span>
@@ -55,12 +57,12 @@ export function Hero({
 
       {/* Title - preto/amarelo Gogh */}
       <h1 className="animate-fade-in-up -translate-y-4 text-balance bg-gradient-to-br from-[#0A0A0A] to-[#0A0A0A]/40 bg-clip-text py-6 text-5xl font-semibold leading-none tracking-tighter text-transparent opacity-0 sm:text-6xl md:text-7xl lg:text-8xl dark:from-white dark:to-white/40">
-        {title}
+        {safeTitle}
       </h1>
 
       {/* Subtitle */}
       <p className="animate-fade-in-up mb-12 -translate-y-4 text-balance text-lg tracking-tight text-[#0A0A0A]/80 dark:text-gray-400 opacity-0 md:text-xl">
-        {subtitle}
+        {safeSubtitle}
       </p>
 
       {/* CTA - ShimmerButton que leva para planos */}
@@ -70,7 +72,7 @@ export function Hero({
             type="button"
             background={GOGH_BLACK}
             shimmerColor="#F7C948"
-            className="mt-[-20px] w-fit md:w-52 z-20 font-geist tracking-tighter text-center text-lg text-white border-[#0A0A0A]"
+            className="mt-[-20px] w-fit md:w-52 z-20 tracking-tighter text-center text-lg text-white border-[#0A0A0A]"
             onClick={() => router.push(ctaHref)}
           >
             <span className="relative z-10 whitespace-nowrap">{ctaLabel}</span>
