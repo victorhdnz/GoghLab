@@ -14,11 +14,11 @@ VALUES (
 
 ## 1. Aceitação dos Termos
 
-Ao contratar os serviços personalizados oferecidos pela Gogh Lab, você concorda expressamente com os termos e condições estabelecidos neste documento. A contratação de qualquer serviço implica na aceitação integral e irrestrita de todas as cláusulas aqui dispostas.
+Ao contratar os serviços personalizados oferecidos pelo Gogh Lab, você concorda expressamente com os termos e condições estabelecidos neste documento. A contratação de qualquer serviço implica na aceitação integral e irrestrita de todas as cláusulas aqui dispostas.
 
 ## 2. Serviços Disponíveis
 
-A Gogh Lab oferece os seguintes serviços personalizados:
+O Gogh Lab oferece os seguintes serviços personalizados:
 
 ### 2.1. Marketing (Tráfego Pago)
 - Criação e gestão de campanhas publicitárias
@@ -63,10 +63,10 @@ O cliente pode selecionar quais serviços deseja contratar durante o processo de
 ## 4. Execução dos Serviços
 
 ### 4.1. Prazo de Início
-Os serviços contratados terão início após a confirmação do pagamento e serão executados pela equipe da Gogh Lab.
+Os serviços contratados terão início após a confirmação do pagamento e serão executados pela equipe do Gogh Lab.
 
 ### 4.2. Comunicação
-A comunicação entre cliente e equipe será realizada principalmente via WhatsApp, utilizando o número de suporte oficial da Gogh Lab.
+A comunicação entre cliente e equipe será realizada principalmente via WhatsApp, utilizando o número de suporte oficial do Gogh Lab.
 
 ### 4.3. Materiais e Informações
 O cliente se compromete a fornecer todos os materiais, informações e acessos necessários para a execução dos serviços contratados em tempo hábil.
@@ -77,15 +77,15 @@ O cliente se compromete a fornecer todos os materiais, informações e acessos n
 Os prazos de entrega variam conforme o serviço contratado e serão comunicados ao cliente no momento da contratação ou início do projeto.
 
 ### 5.2. Atrasos
-Em caso de atraso na entrega, a Gogh Lab se compromete a comunicar o cliente com antecedência e propor soluções alternativas quando possível.
+Em caso de atraso na entrega, o Gogh Lab se compromete a comunicar o cliente com antecedência e propor soluções alternativas quando possível.
 
 ## 6. Custos e Investimentos em Campanhas
 
 ### 6.1. Créditos de Tráfego Pago
-Para o serviço de Marketing (Tráfego Pago), os créditos utilizados nas campanhas publicitárias serão de responsabilidade do cliente. A Gogh Lab não se responsabiliza pelo pagamento de créditos ou investimentos em plataformas de publicidade (Google Ads, Meta Ads, etc.). O cliente deve fornecer acesso às contas de publicidade e será responsável por todos os custos relacionados aos créditos utilizados nas campanhas.
+Para o serviço de Marketing (Tráfego Pago), os créditos utilizados nas campanhas publicitárias serão de responsabilidade do cliente. O Gogh Lab não se responsabiliza pelo pagamento de créditos ou investimentos em plataformas de publicidade (Google Ads, Meta Ads, etc.). O cliente deve fornecer acesso às contas de publicidade e será responsável por todos os custos relacionados aos créditos utilizados nas campanhas.
 
 ### 6.2. Gestão e Otimização
-A Gogh Lab se responsabiliza pela criação, gestão e otimização das campanhas, mas não pelos custos de créditos publicitários, que são de total responsabilidade do cliente.
+O Gogh Lab se responsabiliza pela criação, gestão e otimização das campanhas, mas não pelos custos de créditos publicitários, que são de total responsabilidade do cliente.
 
 ## 7. Cancelamento e Reembolso
 
@@ -93,26 +93,26 @@ A Gogh Lab se responsabiliza pela criação, gestão e otimização das campanha
 O cliente pode cancelar a assinatura de serviços a qualquer momento, respeitando o período de arrependimento de 7 (sete) dias conforme o Código de Defesa do Consumidor.
 
 ### 7.2. Reembolso
-Reembolsos serão processados conforme a política de reembolso da Gogh Lab e a legislação vigente, especialmente o Código de Defesa do Consumidor.
+Reembolsos serão processados conforme a política de reembolso do Gogh Lab e a legislação vigente, especialmente o Código de Defesa do Consumidor.
 
-### 7.3. Cancelamento pela Gogh Lab
-A Gogh Lab se reserva o direito de cancelar serviços em caso de descumprimento contratual pelo cliente ou impossibilidade técnica de execução.
+### 7.3. Cancelamento pelo Gogh Lab
+O Gogh Lab se reserva o direito de cancelar serviços em caso de descumprimento contratual pelo cliente ou impossibilidade técnica de execução.
 
 ## 8. Propriedade Intelectual
 
 ### 8.1. Materiais Criados
-Todos os materiais criados pela Gogh Lab durante a execução dos serviços contratados serão de propriedade do cliente após o pagamento integral dos serviços.
+Todos os materiais criados pelo Gogh Lab durante a execução dos serviços contratados serão de propriedade do cliente após o pagamento integral dos serviços.
 
 ### 8.2. Uso de Materiais
 O cliente pode utilizar os materiais entregues conforme sua necessidade, respeitando eventuais restrições de uso de terceiros (imagens, músicas, etc.).
 
 ## 9. Confidencialidade
 
-A Gogh Lab se compromete a manter a confidencialidade de todas as informações e materiais fornecidos pelo cliente durante a execução dos serviços.
+O Gogh Lab se compromete a manter a confidencialidade de todas as informações e materiais fornecidos pelo cliente durante a execução dos serviços.
 
 ## 10. Limitação de Responsabilidade
 
-A Gogh Lab não se responsabiliza por:
+O Gogh Lab não se responsabiliza por:
 - Resultados específicos de campanhas publicitárias ou estratégias de marketing
 - Problemas técnicos de terceiros (plataformas, servidores, etc.)
 - Alterações em políticas de plataformas que afetem a execução dos serviços
@@ -120,11 +120,11 @@ A Gogh Lab não se responsabiliza por:
 
 ## 11. Alterações nos Termos
 
-A Gogh Lab se reserva o direito de alterar estes termos a qualquer momento, notificando os clientes através dos canais oficiais de comunicação.
+O Gogh Lab se reserva o direito de alterar estes termos a qualquer momento, notificando os clientes através dos canais oficiais de comunicação.
 
 ## 12. Contato
 
-Para dúvidas, sugestões ou reclamações sobre os serviços personalizados, entre em contato através do WhatsApp de suporte ou e-mail oficial da Gogh Lab.
+Para dúvidas, sugestões ou reclamações sobre os serviços personalizados, entre em contato através do WhatsApp de suporte ou e-mail oficial do Gogh Lab.
 
 ---
 

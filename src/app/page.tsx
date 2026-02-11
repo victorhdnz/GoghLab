@@ -3,8 +3,6 @@ import { createServerClient } from '@/lib/supabase/server'
 import { Service } from '@/types'
 import { HomepageTracker } from '@/components/analytics/HomepageTracker'
 import { HomepageSections } from '@/components/homepage/HomepageSections'
-import { FixedLogo } from '@/components/layout/FixedLogo'
-import { NavigationTabs } from '@/components/ui/NavigationTabs'
 
 // Forçar renderização dinâmica porque usamos cookies
 export const dynamic = 'force-dynamic'
@@ -86,6 +84,9 @@ async function getSiteSettings() {
       if (!Array.isArray(homepageContent.section_order)) {
         homepageContent.section_order = ['hero', 'services', 'comparison', 'notifications', 'testimonials', 'contact']
       }
+      if (homepageContent.gallery_carousel && !Array.isArray(homepageContent.gallery_carousel.items)) {
+        homepageContent.gallery_carousel = { ...homepageContent.gallery_carousel, items: [] }
+      }
     }
 
     return {
@@ -98,39 +99,11 @@ async function getSiteSettings() {
   }
 }
 
-/** Resolve features dos planos Essencial/Pro a partir de products + plan_products (fonte da verdade). */
-async function resolvePricingFeaturesFromProducts(homepageContent: any) {
-  const pricing = homepageContent?.pricing
-  if (!pricing?.pricing_plans?.length) return homepageContent
-  try {
-    const supabase = createServerClient() as any
-    const { data: productsData } = await supabase.from('products').select('*').eq('is_active', true).order('order_position', { ascending: true })
-    const { data: planProductsData } = await supabase.from('plan_products').select('plan_id, product_id')
-    const products = productsData || []
-    const planProducts = planProductsData || []
-    const planIdToDb = (id: string) => (id === 'gogh-essencial' ? 'gogh_essencial' : id === 'gogh-pro' ? 'gogh_pro' : id)
-    const plans = pricing.pricing_plans.map((plan: any) => {
-      if (plan.id !== 'gogh-essencial' && plan.id !== 'gogh-pro') return plan
-      const dbPlanId = planIdToDb(plan.id)
-      const productIdSet = new Set(planProducts.filter((pp: any) => pp.plan_id === dbPlanId).map((pp: any) => pp.product_id))
-      const features = products
-        .filter((p: any) => productIdSet.has(p.id))
-        .map((p: any) => ({ name: p.name, isIncluded: true, iconUrl: p.icon_url ?? undefined }))
-      return { ...plan, features }
-    })
-    return { ...homepageContent, pricing: { ...pricing, pricing_plans: plans } }
-  } catch (e) {
-    console.error('[Homepage] Erro ao resolver features de pricing a partir de produtos:', e)
-    return homepageContent
-  }
-}
-
 export default async function Home() {
-  unstable_noStore() // Garantir que tópicos dos cards de preço sejam sempre resolvidos do DB (products + plan_products)
+  unstable_noStore()
   const services = await getServices()
   const siteSettings = await getSiteSettings()
-  let homepageContent = siteSettings?.homepage_content || {}
-  homepageContent = await resolvePricingFeaturesFromProducts(homepageContent)
+  const homepageContent = siteSettings?.homepage_content || {}
 
   // Garantir que arrays sejam sempre arrays válidos
   if (!Array.isArray(homepageContent.notifications_items)) {
@@ -143,9 +116,9 @@ export default async function Home() {
     homepageContent.services_cards = []
   }
 
-  // Ordem padrão das seções
-  let sectionOrder = homepageContent.section_order || ['hero', 'video', 'services', 'comparison', 'notifications', 'testimonials', 'spline', 'pricing', 'contact']
-  // Garantir que 'video', 'notifications', 'testimonials', 'spline' e 'pricing' estejam na ordem se não estiverem
+  // Ordem padrão das seções (pricing está em página própria /precos)
+  let sectionOrder = homepageContent.section_order || ['hero', 'video', 'trusted_by', 'features', 'gallery', 'services', 'comparison', 'notifications', 'testimonials', 'team', 'spline', 'contact']
+  // Garantir que 'video', 'notifications', 'testimonials', 'spline' estejam na ordem se não estiverem
   if (Array.isArray(sectionOrder)) {
     if (!sectionOrder.includes('video')) {
       const heroIndex = sectionOrder.indexOf('hero')
@@ -192,15 +165,6 @@ export default async function Home() {
         sectionOrder = [...sectionOrder, 'spline']
       }
     }
-    if (!sectionOrder.includes('pricing')) {
-      const contactIndex = sectionOrder.indexOf('contact')
-      if (contactIndex >= 0) {
-        sectionOrder = [...sectionOrder]
-        sectionOrder.splice(contactIndex, 0, 'pricing')
-      } else {
-        sectionOrder = [...sectionOrder, 'pricing']
-      }
-    }
   }
 
   let sectionVisibility = homepageContent.section_visibility || {
@@ -212,10 +176,10 @@ export default async function Home() {
     testimonials: true,
     team: true,
     spline: true,
-    pricing: false, // Desabilitado por padrão até ser configurado
     contact: true,
+    gallery: true,
   }
-  // Garantir que 'video', 'notifications', 'testimonials', 'team', 'spline' e 'pricing' tenham visibilidade definida
+  // Garantir que 'video', 'notifications', 'testimonials', 'team', 'spline' e 'gallery' tenham visibilidade definida
   if (sectionVisibility.video === undefined) {
     sectionVisibility = { ...sectionVisibility, video: false }
   }
@@ -231,24 +195,12 @@ export default async function Home() {
   if (sectionVisibility.spline === undefined) {
     sectionVisibility = { ...sectionVisibility, spline: true }
   }
-  if (sectionVisibility.pricing === undefined) {
-    sectionVisibility = { ...sectionVisibility, pricing: false }
+  if (sectionVisibility.gallery === undefined) {
+    sectionVisibility = { ...sectionVisibility, gallery: true }
   }
-
-  // Verificar se pricing está habilitado (sectionVisibility.pricing E pricing.pricing_enabled)
-  const pricing = homepageContent.pricing || {}
-  const pricingEnabled = sectionVisibility.pricing === true && pricing.pricing_enabled === true
-
-  // Extrair logo do siteSettings para passar como prop (carregamento imediato)
-  let siteLogo = siteSettings?.site_logo || null
-  if (!siteLogo && homepageContent?.hero_logo) {
-    siteLogo = homepageContent.hero_logo
-  }
-  const siteName = siteSettings?.site_name || 'Gogh Lab'
 
   return (
     <HomepageTracker>
-      <FixedLogo logo={siteLogo} siteName={siteName} />
       <div className="min-h-screen bg-black">
         <HomepageSections
           homepageContent={homepageContent}
@@ -257,7 +209,6 @@ export default async function Home() {
           sectionVisibility={sectionVisibility}
           sectionOrder={sectionOrder}
         />
-        <NavigationTabs variant="homepage" pricingEnabled={pricingEnabled} />
       </div>
     </HomepageTracker>
   )

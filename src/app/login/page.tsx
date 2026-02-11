@@ -207,7 +207,7 @@ export default function LoginPage() {
           <div className="px-8 py-4 bg-gogh-grayLight/30 border-t border-gogh-grayLight text-center">
             <p className="text-xs text-gogh-grayDark">
               Ainda não tem uma assinatura?{' '}
-              <Link href="/#pricing" className="text-gogh-yellow hover:underline font-medium">
+              <Link href="/precos" className="text-gogh-yellow hover:underline font-medium">
                 Conheça nossos planos
               </Link>
             </p>

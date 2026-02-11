@@ -647,10 +647,10 @@ export default function ChatPage() {
             )}
           </p>
           <Link 
-            href="/#pricing" 
+            href="/precos" 
             className="inline-flex items-center gap-2 px-6 py-3 bg-gogh-yellow text-gogh-black font-medium rounded-lg hover:bg-gogh-yellow/80 transition-colors"
           >
-            Ver Planos e Assinar
+            Ver planos (é necessário ter um plano para usar)
           </Link>
         </div>
       </div>

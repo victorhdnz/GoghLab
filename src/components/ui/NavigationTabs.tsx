@@ -27,19 +27,7 @@ export function NavigationTabs({ variant, pricingEnabled = true, className }: Na
     if (!section) return
 
     if (section === 'pricing') {
-      setTimeout(() => {
-        const pricingSection = document.getElementById('pricing-section')
-        if (pricingSection) {
-          const headerOffset = 100
-          const elementPosition = pricingSection.getBoundingClientRect().top
-          const offsetPosition = elementPosition + window.pageYOffset - headerOffset
-          
-          window.scrollTo({
-            top: offsetPosition,
-            behavior: 'smooth'
-          })
-        }
-      }, 100)
+      router.push('/precos')
     } else if (section === 'contact') {
       setTimeout(() => {
         const contactSection = document.getElementById('contact-section')

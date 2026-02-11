@@ -2,68 +2,46 @@ import { TermsContent } from '@/components/ui/TermsContent'
 
 const DEFAULT_CONTENT = `# Termos de Uso
 
-## 1. Aceitação dos Termos
+## 1. Aceitação
 
-Ao acessar e utilizar este site, você concorda em cumprir e estar vinculado aos seguintes termos e condições de uso. Se você não concorda com alguma parte destes termos, não deve utilizar nosso site.
+Ao acessar e utilizar o site e os serviços do Gogh Lab, você concorda com estes Termos de Uso e com nossa Política de Privacidade. O Gogh Lab é uma plataforma digital de ferramentas e recursos com inteligência artificial para criadores de conteúdo. Se você não concordar com alguma parte destes termos, não deve utilizar a plataforma.
 
-## 2. Uso do Site
+## 2. Descrição dos Serviços
 
-Você concorda em usar este site apenas para fins legais e de acordo com estes termos:
+O Gogh Lab oferece homepage de apresentação da plataforma, página dedicada de planos e preços (/precos), área de membros com agentes e recursos de IA, ferramentas profissionais integradas ao plano, cursos e criação com IA. O uso efetivo dos recursos que exijam assinatura está condicionado à contratação de um plano e aos Termos de Assinatura e Planos.
 
-- Não utilizar o site de forma fraudulenta ou enganosa
-- Não realizar atividades que possam danificar, desabilitar ou sobrecarregar o site
-- Não tentar obter acesso não autorizado a áreas restritas do site
-- Não usar o site para transmitir qualquer material malicioso ou prejudicial
+## 3. Uso Adequado
 
-## 3. Conta do Usuário
+Você concorda em utilizar a plataforma apenas para fins legais e em não utilizá-la de forma fraudulenta, para danificar sistemas ou a experiência de outros usuários, obter acesso não autorizado ou violar direitos de terceiros ou de propriedade intelectual.
 
-Ao criar uma conta, você é responsável por manter a segurança de sua senha e por todas as atividades que ocorram sob sua conta. Você concorda em:
+## 4. Conta e Responsabilidade
 
-- Fornecer informações precisas e atualizadas
-- Manter a confidencialidade de sua senha
-- Notificar-nos imediatamente sobre qualquer uso não autorizado
-- Ser responsável por todas as atividades em sua conta
+Você é responsável por manter a confidencialidade do acesso à sua conta e por todas as atividades realizadas nela, e deve fornecer informações verdadeiras e atualizadas.
 
-## 4. Produtos e Preços
+## 5. Planos e Preços
 
-Nos esforçamos para fornecer informações precisas sobre produtos e preços. No entanto:
-
-- Reservamos o direito de corrigir erros de preços a qualquer momento
-- Os preços estão sujeitos a alterações sem aviso prévio
-- As imagens dos produtos são apenas ilustrativas
-- Podemos limitar as quantidades de produtos por pessoa ou por pedido
-
-## 5. Pagamentos
-
-Aceitamos diversos métodos de pagamento. Ao fazer um pedido, você concorda em:
-
-- Fornecer informações de pagamento precisas e atualizadas
-- Autorizar o uso de seu método de pagamento selecionado
-- Reconhecer que os pagamentos são processados por processadores terceirizados seguros
+Os planos, preços e condições estão na página de planos (/precos) e nos Termos de Assinatura e Planos. Alterações para novos ciclos serão comunicadas conforme a legislação aplicável.
 
 ## 6. Propriedade Intelectual
 
-Todo o conteúdo deste site, incluindo textos, gráficos, logotipos, ícones, imagens, clipes de áudio e software, é propriedade da MV Company ou de seus fornecedores de conteúdo e está protegido por leis de direitos autorais e outras leis de propriedade intelectual.
+O conteúdo da plataforma é de propriedade do Gogh Lab ou de seus licenciadores. O conteúdo que você gerar por meio dos recursos da plataforma é de sua responsabilidade.
 
 ## 7. Limitação de Responsabilidade
 
-Em nenhuma circunstância a MV Company será responsável por danos indiretos, incidentais, especiais, consequenciais ou punitivos, incluindo perda de lucros, dados, uso ou outras perdas intangíveis, resultantes do uso ou incapacidade de usar o site.
+A plataforma é fornecida "como está". Na medida permitida pela lei, o Gogh Lab não se responsabiliza por danos indiretos, consequenciais ou perda de dados ou lucros. Em nenhuma hipótese a responsabilidade total excederá o valor pago por você nos últimos 12 meses.
 
-## 8. Alterações nos Termos
+## 8. Alterações
 
-Reservamos o direito de modificar estes termos a qualquer momento. As alterações entrarão em vigor imediatamente após sua publicação no site. É sua responsabilidade revisar periodicamente estes termos.
+Reservamo-nos o direito de modificar estes termos. Alterações relevantes serão comunicadas por e-mail ou aviso na plataforma. O uso continuado constitui aceitação dos novos termos.
 
-## 9. Lei Aplicável
+## 9. Lei Aplicável e Foro
 
-Estes termos são regidos e interpretados de acordo com as leis do Brasil. Qualquer disputa relacionada a estes termos será resolvida nos tribunais competentes.
+Estes termos são regidos pelas leis do Brasil. Qualquer disputa será submetida ao foro da comarca de Uberlândia/MG.
 
 ## 10. Contato
 
-Se você tiver dúvidas sobre estes termos de uso, entre em contato conosco:
-
-**Email:** contato.goghlab@gmail.com
-
-**Telefone:** (34) 98413-6291`
+**E-mail:** contato.goghlab@gmail.com  
+**WhatsApp:** (34) 98413-6291`
 
 export default function TermosUso() {
   return (

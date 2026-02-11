@@ -45,7 +45,7 @@ export async function POST(request: Request) {
       ],
       mode: 'subscription',
       success_url: `${baseUrl}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${baseUrl}/#pricing-section`,
+      cancel_url: `${baseUrl}/precos`,
       // Se o usuário estiver logado, preencher o email
       customer_email: user?.email || undefined,
       // Metadados para identificar o plano

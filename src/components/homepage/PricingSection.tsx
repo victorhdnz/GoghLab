@@ -74,7 +74,7 @@ export function PricingSection({
 
         if (data.requiresAuth) {
           alert('Você precisa estar logado para contratar este serviço. Redirecionando para login...')
-          window.location.href = `/login?redirect=${encodeURIComponent(window.location.pathname + '#pricing-section')}&plan=${planId}&cycle=${cycle}`
+          window.location.href = `/login?redirect=${encodeURIComponent('/precos')}&plan=${planId}&cycle=${cycle}`
           return
         }
 
@@ -131,7 +131,7 @@ export function PricingSection({
         } else if (data.requiresAuth) {
           // Se precisar de autenticação, redirecionar para login
           alert('Você precisa estar logado para comprar um plano. Redirecionando para login...')
-          window.location.href = `/login?redirect=${encodeURIComponent(window.location.pathname + '#pricing-section')}&plan=${planId}&cycle=${cycle}`
+          window.location.href = `/login?redirect=${encodeURIComponent('/precos')}&plan=${planId}&cycle=${cycle}`
         } else {
           console.error('Erro ao criar sessão de checkout:', data.error)
           alert(data.error || 'Erro ao processar pagamento. Tente novamente.')
@@ -142,7 +142,7 @@ export function PricingSection({
       }
     } else {
       // Fallback: redirecionar para página de login/cadastro se não tiver Stripe configurado
-      window.location.href = `/login?plan=${planId}&cycle=${cycle}`
+      window.location.href = `/login?redirect=${encodeURIComponent('/precos')}&plan=${planId}&cycle=${cycle}`
     }
   }
 

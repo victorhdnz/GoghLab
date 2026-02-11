@@ -21,7 +21,8 @@ import {
   Sparkles,
   RefreshCw,
   Zap,
-  Wrench
+  Wrench,
+  Coins
 } from 'lucide-react'
 
 type TabType = 'profile' | 'plan'
@@ -67,6 +68,8 @@ export default function AccountPage() {
   const [loadingUsage, setLoadingUsage] = useState(false)
   const [hasServiceSubscriptions, setHasServiceSubscriptions] = useState(false)
   const [hasStripeServiceSubscription, setHasStripeServiceSubscription] = useState(false)
+  const [creditsBalance, setCreditsBalance] = useState<number | null>(null)
+  const [creditPlans, setCreditPlans] = useState<Array<{ id: string; name: string; credits: number; stripe_checkout_url: string }>>([])
   
   // Form state
   const [fullName, setFullName] = useState('')
@@ -124,6 +127,17 @@ export default function AccountPage() {
       setFullName(profile.full_name || '')
     }
   }, [profile])
+
+  // Abrir aba Plano e rolar até #usage quando o link for /conta#usage
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    if (window.location.hash === '#usage') {
+      setActiveTab('plan')
+      setTimeout(() => {
+        document.getElementById('usage')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      }, 300)
+    }
+  }, [])
 
   // Buscar uso do usuário POR AGENTE
   useEffect(() => {
@@ -203,6 +217,43 @@ export default function AccountPage() {
       window.removeEventListener('focus', handleFocus)
     }
   }, [user, hasActiveSubscription, isPro])
+
+  // Créditos IA (saldo do mês)
+  useEffect(() => {
+    if (!user || !hasActiveSubscription) {
+      setCreditsBalance(null)
+      return
+    }
+    const fetchCredits = async () => {
+      try {
+        const res = await fetch('/api/credits/balance', { credentials: 'include' })
+        const data = await res.json()
+        if (res.ok && typeof data.balance === 'number') setCreditsBalance(data.balance)
+        else setCreditsBalance(null)
+      } catch {
+        setCreditsBalance(null)
+      }
+    }
+    fetchCredits()
+  }, [user, hasActiveSubscription])
+
+  // Planos de créditos avulsos (para exibir na seção Uso)
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const { data } = await (supabase as any)
+          .from('site_settings')
+          .select('value')
+          .eq('key', 'ai_credits_plans')
+          .maybeSingle()
+        const plans = Array.isArray(data?.value) ? data.value : []
+        setCreditPlans(plans)
+      } catch {
+        setCreditPlans([])
+      }
+    }
+    load()
+  }, [supabase])
 
 
   // Listener para atualização de assinatura
@@ -538,13 +589,13 @@ export default function AccountPage() {
                       <span className="font-bold text-gogh-grayDark">Plano Gratuito</span>
                     </div>
                     <p className="text-gogh-grayDark mb-2">
-                      Você não está usando todo o potencial da Gogh Lab.
+                      Você não está usando todo o potencial do Gogh Lab.
                     </p>
                     <p className="text-gogh-grayDark text-sm mb-6">
                       Faça upgrade para desbloquear todos os recursos disponíveis.
                     </p>
                     <Link
-                      href="/#pricing"
+                      href="/precos"
                       className="inline-flex items-center gap-2 px-6 py-3 bg-gogh-yellow text-gogh-black font-medium rounded-xl hover:bg-gogh-yellow/90 transition-colors"
                     >
                       Ver todos os planos
@@ -555,7 +606,46 @@ export default function AccountPage() {
             </div>
 
             {/* Usage & Features */}
-            <div className="bg-white rounded-2xl border border-gogh-grayLight p-6 lg:p-8 space-y-6">
+            <div id="usage" className="bg-white rounded-2xl border border-gogh-grayLight p-6 lg:p-8 space-y-6 scroll-mt-6">
+              {/* Créditos IA / Uso */}
+              {hasActiveSubscription && (
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      <Coins className="w-5 h-5 text-gogh-grayDark" />
+                      <h3 className="text-lg font-bold text-gogh-black">Créditos para criação com IA</h3>
+                    </div>
+                  </div>
+                  <p className="text-sm text-gogh-grayDark mb-2">
+                    Créditos deste mês: <strong className="text-gogh-black">{creditsBalance !== null ? creditsBalance : '—'}</strong>
+                  </p>
+                  <p className="text-xs text-gogh-grayDark mb-4">
+                    Os créditos são usados ao criar fotos, vídeos, roteiros e prompts com IA. Eles renovam todo mês conforme seu plano.
+                  </p>
+                  {creditPlans.length > 0 ? (
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium text-gogh-black mb-2">Comprar mais créditos</p>
+                      <div className="flex flex-wrap gap-2">
+                        {creditPlans.map((plan) => (
+                          <a
+                            key={plan.id}
+                            href={plan.stripe_checkout_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gogh-yellow text-gogh-black font-medium hover:bg-gogh-yellow/90 transition-colors text-sm"
+                          >
+                            {plan.name} ({plan.credits} créditos)
+                            <ExternalLink className="w-3 h-3" />
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gogh-grayDark">Planos de créditos avulsos serão exibidos aqui quando configurados.</p>
+                  )}
+                </div>
+              )}
+
               {/* Uso de Mensagens de IA POR AGENTE */}
               {hasActiveSubscription && usageStats && usageStats.agents && usageStats.agents.length > 0 && (
                 <div>

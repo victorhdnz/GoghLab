@@ -27,7 +27,7 @@ export function AwardSection({
   date = "Brasil 2025",
   level = "gold",
   standaloneTitle = "Primeira plataforma do Brasil",
-  standaloneDescription = "A Gogh Lab é pioneira em oferecer uma solução completa com agentes de IA, cursos profissionais e acesso às melhores ferramentas de criação — tudo em uma única assinatura.",
+  standaloneDescription = "O Gogh Lab é pioneira em oferecer uma solução completa com agentes de IA, cursos profissionais e acesso às melhores ferramentas de criação — tudo em uma única assinatura.",
 }: AwardSectionProps) {
   if (variant === "alongside-video") {
     // Versão compacta para ficar ao lado do vídeo

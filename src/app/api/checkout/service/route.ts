@@ -110,7 +110,7 @@ export async function POST(request: Request) {
       ],
       mode: 'subscription',
       success_url: `${baseUrl}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${baseUrl}/#pricing-section`,
+      cancel_url: `${baseUrl}/precos`,
       customer_email: user?.email || undefined,
       metadata: {
         planId,

@@ -2,7 +2,7 @@
 
 import { ReactNode } from 'react'
 import { usePathname } from 'next/navigation'
-import { Header } from './Header'
+import { FloatingHeader } from '@/components/ui/floating-header'
 import { Footer } from './Footer'
 import { MainBackground } from './MainBackground'
 import { ConditionalWhatsAppFloat } from './ConditionalWhatsAppFloat'
@@ -28,7 +28,7 @@ export function ConditionalLayout({ children }: ConditionalLayoutProps) {
   return (
     <>
       <MainBackground />
-      <Header />
+      <FloatingHeader />
       {children}
       <Footer />
       <ConditionalWhatsAppFloat />

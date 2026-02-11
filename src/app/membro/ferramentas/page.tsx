@@ -591,7 +591,7 @@ export default function ToolsPage() {
                 )}
               </p>
               <Link 
-                href="/#pricing" 
+                href="/precos" 
                 className="inline-flex items-center gap-2 px-4 py-2 bg-gogh-yellow text-gogh-black font-medium rounded-lg hover:bg-gogh-yellow/80 transition-colors"
               >
                 Ver Planos e Assinar
@@ -627,7 +627,7 @@ export default function ToolsPage() {
           className="bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200 rounded-xl p-6"
         >
           <p className="text-amber-800">
-            As ferramentas Pro são exclusivas para o plano Pro. <Link href="/#pricing" className="font-medium underline">Faça upgrade agora</Link>
+            As ferramentas Pro são exclusivas para o plano Pro. <Link href="/precos" className="font-medium underline">Faça upgrade agora</Link>
           </p>
         </motion.div>
 
@@ -644,7 +644,7 @@ export default function ToolsPage() {
                 Faça upgrade para o plano Pro e tenha acesso completo às ferramentas Canva Pro e CapCut Pro.
               </p>
               <Link
-                href="/#pricing"
+                href="/precos"
                 className="inline-flex items-center gap-2 px-6 py-3 bg-gogh-yellow text-gogh-black font-medium rounded-xl hover:bg-gogh-yellow/90 transition-colors"
               >
                 Fazer Upgrade

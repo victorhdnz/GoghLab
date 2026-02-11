@@ -12,7 +12,6 @@ import { FadeInElement } from '@/components/ui/FadeInElement'
 import { NotificationsSection } from './NotificationsSection'
 import { TestimonialsSection } from './TestimonialsSection'
 import { SplineSection } from './SplineSection'
-import { PricingSection } from './PricingSection'
 import { HomepageVideo } from './HomepageVideo'
 import { TrustedBySection } from './TrustedBySection'
 import { AwardSection } from './AwardSection'
@@ -21,6 +20,8 @@ import { TeamSection } from './TeamSection'
 import { Highlighter } from '@/components/ui/highlighter'
 import { AuroraText } from '@/components/ui/aurora-text'
 import { FeaturesSectionWithHoverEffects } from '@/components/ui/feature-section-with-hover-effects'
+import GalleryHoverCarousel from '@/components/ui/gallery-hover-carousel'
+import type { GalleryHoverCarouselItem } from '@/components/ui/gallery-hover-carousel'
 
 interface HomepageSectionsProps {
   homepageContent: any
@@ -122,7 +123,7 @@ export function HomepageSections({
         date={homepageContent.award_date || "Brasil 2025"}
         level={homepageContent.award_level || "gold"}
         standaloneTitle={homepageContent.award_standalone_title || "Primeira plataforma do Brasil"}
-        standaloneDescription={homepageContent.award_standalone_description || "A Gogh Lab é pioneira em oferecer uma solução completa com agentes de IA, cursos profissionais e acesso às melhores ferramentas de criação — tudo em uma única assinatura."}
+        standaloneDescription={homepageContent.award_standalone_description || "O Gogh Lab é pioneira em oferecer uma solução completa com agentes de IA, cursos profissionais e acesso às melhores ferramentas de criação — tudo em uma única assinatura."}
       />
     )
   }
@@ -252,7 +253,7 @@ export function HomepageSections({
                     <GitCompare size={40} className="text-[#0A0A0A]" />
                   </div>
                   <h2 className="text-3xl md:text-4xl font-semibold text-[#0A0A0A] mb-4 tracking-tight">
-                    {homepageContent.comparison_cta_title || 'Compare a Gogh Lab'}
+                    {homepageContent.comparison_cta_title || 'Compare o Gogh Lab'}
                   </h2>
                   {homepageContent.comparison_cta_description && (
                     <p className="text-gray-600 text-lg md:text-xl font-light max-w-2xl">
@@ -326,27 +327,6 @@ export function HomepageSections({
         title={homepageContent.spline_title || 'O Futuro da Sua Empresa'}
         description={homepageContent.spline_description || 'Estamos aqui para ajudar sua empresa a evoluir e crescer no mundo digital. Com tecnologia de ponta e soluções inovadoras, transformamos sua presença online e impulsionamos seus resultados.'}
         sceneUrl={homepageContent.spline_scene_url || 'https://prod.spline.design/kZDDjO5HuC9GJUM2/scene.splinecode'}
-      />
-    )
-  }
-
-  // Função para renderizar seção de Pricing
-  // A seção depende tanto de pricing_enabled da página de pricing quanto de sectionVisibility.pricing
-  const renderPricingSection = () => {
-    const pricing = homepageContent.pricing || {}
-    
-    // A seção só aparece se estiver habilitada na página de pricing E se sectionVisibility.pricing for true
-    if (pricing.pricing_enabled !== true || sectionVisibility.pricing === false) return null
-
-    return (
-      <PricingSection
-        enabled={true}
-        title={pricing.pricing_title}
-        description={pricing.pricing_description}
-        annualDiscount={pricing.pricing_annual_discount}
-        plans={pricing.pricing_plans}
-        whatsappNumber={pricing.pricing_whatsapp_number || siteSettings?.contact_whatsapp}
-        featureCategories={pricing.feature_categories || []}
       />
     )
   }
@@ -429,6 +409,22 @@ export function HomepageSections({
     )
   }
 
+  // Função para renderizar seção Gallery (carrossel de imagens/vídeos gerados por IA)
+  const renderGallerySection = () => {
+    if (homepageContent.gallery_enabled === false || sectionVisibility.gallery === false) return null
+    const data = homepageContent.gallery_carousel
+    const items = Array.isArray(data?.items) ? (data.items as GalleryHoverCarouselItem[]) : []
+    if (items.length === 0) return null
+    return (
+      <GalleryHoverCarousel
+        heading={data?.heading ?? 'Projetos em destaque'}
+        subtitle={data?.subtitle ?? 'Explore nossa coleção de imagens e vídeos criados com IA.'}
+        items={items}
+        autoSlideInterval={typeof data?.auto_slide_interval === 'number' ? data.auto_slide_interval : 5000}
+      />
+    )
+  }
+
   // Função para renderizar seção Animated Beam (integrações / fluxo de plataformas)
   const renderAnimatedBeamSection = () => {
     if (homepageContent.animated_beam_enabled === false || sectionVisibility.animated_beam === false) return null
@@ -453,6 +449,7 @@ export function HomepageSections({
     trusted_by: renderTrustedBySection,
     animated_beam: renderAnimatedBeamSection,
     award: renderAwardSection,
+    gallery: renderGallerySection,
     services: renderServicesSection,
     features: renderFeaturesSection,
     comparison: renderComparisonSection,
@@ -460,14 +457,13 @@ export function HomepageSections({
     testimonials: renderTestimonialsSection,
     team: renderTeamSection,
     spline: renderSplineSection,
-    pricing: renderPricingSection,
     contact: renderContactSection,
   }
 
   // Garantir que sectionOrder seja um array válido
   const validSectionOrder = Array.isArray(sectionOrder) && sectionOrder.length > 0 
     ? sectionOrder 
-    : ['hero', 'video', 'trusted_by', 'features', 'services', 'comparison', 'notifications', 'testimonials', 'team', 'spline', 'pricing', 'contact']
+    : ['hero', 'video', 'trusted_by', 'features', 'gallery', 'services', 'comparison', 'notifications', 'testimonials', 'team', 'spline', 'contact']
   
   return (
     <>
@@ -479,7 +475,7 @@ export function HomepageSections({
           return null
         }
         
-        // Verificar sectionVisibility para todas as seções, incluindo pricing
+        // Verificar sectionVisibility para todas as seções
         if (sectionVisibility[sectionId] === false) {
           return null
         }

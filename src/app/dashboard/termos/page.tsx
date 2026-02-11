@@ -26,6 +26,15 @@ interface TermSection {
   level: number // 1, 2 ou 3 (para #, ##, ###)
 }
 
+// Chaves dos termos que a plataforma utiliza (Gogh Lab — plataforma digital, sem e-commerce)
+const ALLOWED_TERM_KEYS = [
+  'politica-privacidade',
+  'termos-uso',
+  'termos-login-google',
+  'termos-assinatura-planos',
+  'termos-servicos',
+]
+
 const TERMS_CONFIG = [
   {
     key: 'politica-privacidade',
@@ -33,40 +42,69 @@ const TERMS_CONFIG = [
     icon: 'shield',
     defaultContent: `# Política de Privacidade
 
-## 1. Aceitação dos Termos
+## 1. Introdução
 
-Ao acessar e utilizar este site, você concorda em cumprir e estar vinculado aos seguintes termos e condições de uso. Se você não concorda com alguma parte destes termos, não deve utilizar nosso site.
+O Gogh Lab ("nós", "nosso" ou "plataforma") é uma plataforma digital de ferramentas e recursos com inteligência artificial voltada a criadores de conteúdo. Esta Política de Privacidade descreve como tratamos suas informações pessoais ao utilizar nosso site, aplicação e serviços.
 
-## 2. Uso do Site
+Ao acessar ou usar a plataforma Gogh Lab, você concorda com o tratamento dos seus dados conforme descrito nesta política. Em caso de discordância, solicitamos que não utilize nossos serviços.
 
-Você concorda em usar este site apenas para fins legais e de acordo com estes termos:
+## 2. Dados que Coletamos
 
-- Não utilizar o site de forma fraudulenta ou enganosa
-- Não realizar atividades que possam danificar, desabilitar ou sobrecarregar o site
-- Não tentar obter acesso não autorizado a áreas restritas do site
-- Não usar o site para transmitir qualquer material malicioso ou prejudicial
+### 2.1. Dados fornecidos por você
 
-## 3. Informações Coletadas
+- **Conta e autenticação**: nome, e-mail, foto de perfil (quando utiliza login com Google ou cadastro por e-mail)
+- **Pagamento**: os dados de cartão e pagamento são processados diretamente pela Stripe; não armazenamos número completo de cartão
+- **Comunicação**: mensagens enviadas por e-mail, WhatsApp ou canais oficiais da plataforma
+- **Uso da plataforma**: conteúdo que você gera (textos, preferências), interações com agentes de IA e ferramentas, dentro dos limites e finalidades do serviço
 
-Coletamos informações que você nos fornece diretamente, como:
+### 2.2. Dados coletados automaticamente
 
-- Nome e informações de contato
-- Informações de endereço
-- Informações de pagamento
-- Outras informações que você escolhe fornecer
+- **Uso do site**: endereço IP, tipo de navegador, páginas visitadas, tempo de uso, para melhorar a experiência e a segurança
+- **Cookies e tecnologias similares**: para sessão, preferências e análise de uso, conforme esta política e nossa configuração de cookies
 
-## 4. Uso das Informações
+## 3. Finalidades do Tratamento
 
-Utilizamos as informações coletadas para:
+Utilizamos seus dados para:
 
-- Processar e entregar seus pedidos
-- Comunicar-nos com você sobre seu pedido
-- Enviar atualizações sobre nossos produtos e serviços
-- Melhorar nossos serviços e experiência do usuário
+- Criar e gerenciar sua conta e acesso à plataforma
+- Prestar os serviços contratados (planos de assinatura, ferramentas, cursos, agentes de IA)
+- Processar pagamentos e renovação de assinaturas (via Stripe)
+- Enviar comunicações sobre a conta, serviços, alterações importantes e, quando autorizado, ofertas e novidades
+- Garantir segurança, prevenir fraudes e cumprir obrigações legais
+- Melhorar produtos, recursos e experiência do usuário (incluindo análises agregadas e anônimas)
 
-## 5. Proteção dos Dados
+## 4. Base Legal (LGPD)
 
-Implementamos medidas de segurança adequadas para proteger suas informações pessoais contra acesso não autorizado, alteração, divulgação ou destruição.`,
+O tratamento dos seus dados pessoais está fundamentado, conforme o caso, em: execução de contrato (prestação dos serviços), consentimento (quando aplicável), cumprimento de obrigação legal e legítimo interesse (segurança, melhorias, comunicação essencial).
+
+## 5. Compartilhamento de Dados
+
+Não vendemos seus dados pessoais. Podemos compartilhar dados apenas:
+
+- Com **prestadores de serviço** necessários à operação (hospedagem, e-mail, pagamento via Stripe, autenticação), sob obrigações de confidencialidade e segurança
+- Por **exigência legal** ou decisão de autoridade competente
+- Com seu **consentimento** explícito, quando aplicável
+
+## 6. Retenção e Exclusão
+
+Mantemos seus dados pelo tempo necessário para cumprir as finalidades descritas e obrigações legais. Após o encerramento da conta ou fim da relação contratual, podemos reter dados por período legal ou para exercício de direitos. Você pode solicitar acesso, correção, anonimização ou exclusão dos dados, nos termos da LGPD, através dos canais de contato indicados abaixo.
+
+## 7. Segurança
+
+Adotamos medidas técnicas e organizacionais para proteger seus dados contra acesso não autorizado, alteração, divulgação ou destruição, em conformidade com as boas práticas e a LGPD.
+
+## 8. Alterações
+
+Podemos atualizar esta Política de Privacidade. Alterações relevantes serão comunicadas por e-mail ou aviso na plataforma. O uso continuado após a divulgação constitui aceitação da nova versão.
+
+## 9. Contato
+
+Para dúvidas, exercício de direitos ou reclamações sobre privacidade:
+
+- **E-mail**: contato.goghlab@gmail.com
+- **WhatsApp**: [número configurado na plataforma]
+
+**Última atualização**: Janeiro de 2026`,
   },
   {
     key: 'termos-uso',
@@ -74,100 +112,67 @@ Implementamos medidas de segurança adequadas para proteger suas informações p
     icon: 'file-text',
     defaultContent: `# Termos de Uso
 
-## 1. Aceitação dos Termos
+## 1. Aceitação
 
-Ao acessar e utilizar este site, você concorda em cumprir e estar vinculado aos seguintes termos e condições de uso. Se você não concorda com alguma parte destes termos, não deve utilizar nosso site.
+Ao acessar e utilizar o site e os serviços do Gogh Lab, você concorda com estes Termos de Uso e com nossa Política de Privacidade. O Gogh Lab é uma plataforma digital que oferece ferramentas, agentes de IA, cursos e recursos para criadores de conteúdo. Se você não concordar com alguma parte destes termos, não deve utilizar a plataforma.
 
-## 2. Uso do Site
+## 2. Descrição dos Serviços
 
-Você concorda em usar este site apenas para fins legais e de acordo com estes termos:
+O Gogh Lab oferece:
 
-- Não utilizar o site de forma fraudulenta ou enganosa
-- Não realizar atividades que possam danificar, desabilitar ou sobrecarregar o site
-- Não tentar obter acesso não autorizado a áreas restritas do site
-- Não usar o site para transmitir qualquer material malicioso ou prejudicial
+- **Homepage e divulgação**: o site apresenta a plataforma, cases e informações. Os planos e preços estão disponíveis em página dedicada (/precos).
+- **Área de membros**: após login e, quando aplicável, assinatura ativa, o usuário acessa agentes e recursos de IA (chat), ferramentas profissionais integradas ao plano, cursos e outros recursos do plano contratado.
+- **Criação com IA**: funcionalidades de geração de conteúdo (texto, imagens, vídeos, roteiros, etc.) sujeitas aos limites do plano e à política de uso.
 
-## 3. Conta do Usuário
+O uso efetivo de recursos que exijam assinatura está condicionado à contratação de um plano e ao cumprimento dos Termos de Assinatura e Planos.
 
-Ao criar uma conta, você é responsável por manter a segurança de sua senha e por todas as atividades que ocorram sob sua conta. Você concorda em:
+## 3. Uso Adequado da Plataforma
 
-- Fornecer informações precisas e atualizadas
-- Manter a confidencialidade de sua senha
-- Notificar-nos imediatamente sobre qualquer uso não autorizado
-- Ser responsável por todas as atividades em sua conta
+Você concorda em utilizar a plataforma apenas para fins legais e lícitos, e em não:
 
-## 4. Produtos e Preços
+- Utilizar o serviço de forma fraudulenta ou para burlar limites ou restrições
+- Danificar, sobrecarregar ou comprometer a infraestrutura ou a experiência de outros usuários
+- Tentar obter acesso não autorizado a sistemas, contas ou dados de terceiros
+- Transmitir vírus, malware ou qualquer conteúdo que prejudique a plataforma ou terceiros
+- Violar direitos de propriedade intelectual ou de imagem do Gogh Lab ou de terceiros
+- Utilizar a plataforma para atividades ilegais ou que violem políticas de terceiros (redes sociais, provedores, etc.)
 
-Nos esforços para fornecer informações precisas sobre produtos e preços. No entanto:
+A violação destas regras pode resultar em suspensão ou encerramento da conta, sem prejuízo de outras medidas legais.
 
-- Os preços estão sujeitos a alterações sem aviso prévio
-- Reservamo-nos o direito de corrigir erros de preços
-- As imagens dos produtos são apenas ilustrativas`,
-  },
-  {
-    key: 'politica-entrega',
-    title: 'Política de Entrega',
-    icon: 'truck',
-    defaultContent: `# Política de Entrega
+## 4. Conta e Responsabilidade
 
-## 1. Prazos de Entrega
+- Você é responsável por manter a confidencialidade do acesso à sua conta e por todas as atividades realizadas nela.
+- Deve fornecer informações verdadeiras e atualizadas e notificar-nos sobre uso não autorizado.
+- Menores de 18 anos devem utilizar a plataforma com supervisão e responsabilidade do responsável legal.
 
-Os prazos de entrega são calculados a partir da confirmação do pagamento e podem variar de acordo com a localidade:
+## 5. Planos e Preços
 
-- **Uberlândia/MG**: Até 24 horas
-- **Outras cidades**: 3 a 10 dias úteis
+Os planos de assinatura, preços, recursos e limites estão descritos na página de planos (/precos) e nos Termos de Assinatura e Planos. Alterações de preços ou condições para novos ciclos serão comunicadas conforme a legislação aplicável. O uso da plataforma após a contratação implica aceitação desses termos específicos.
 
-## 2. Custos de Entrega
+## 6. Propriedade Intelectual
 
-Os custos de entrega são calculados no momento da finalização da compra e variam de acordo com:
+Todo o conteúdo da plataforma (textos, marcas, interfaces, cursos, agentes de IA e demais materiais) é de propriedade do Gogh Lab ou de seus licenciadores e está protegido por leis de propriedade intelectual. O conteúdo que você gerar por meio dos recursos da plataforma é de sua responsabilidade; você não pode usar a plataforma para violar direitos de terceiros nem para treinar ou alimentar modelos de IA concorrentes sem autorização.
 
-- Local de entrega
-- Peso e dimensões do produto
-- Forma de envio escolhida
+## 7. Limitação de Responsabilidade
 
-## 3. Formas de Entrega
+A plataforma é fornecida "como está". Na medida permitida pela lei, o Gogh Lab não se responsabiliza por danos indiretos, incidentais, consequenciais ou punitivos, incluindo perda de dados ou lucros. Não garantimos resultados específicos do uso de ferramentas ou de IA. Em nenhuma hipótese nossa responsabilidade total excederá o valor pago por você nos últimos 12 meses em relação aos serviços do Gogh Lab.
 
-Oferecemos as seguintes formas de entrega:
+## 8. Alterações nos Termos
 
-- Entrega expressa (disponível para Uberlândia)
-- Entrega padrão (correios)
-- Retirada na loja (gratuita)
+Reservamo-nos o direito de modificar estes Termos de Uso. Alterações relevantes serão comunicadas por e-mail ou aviso na plataforma. O uso continuado após a divulgação constitui aceitação dos novos termos.
 
-## 4. Rastreamento
+## 9. Lei Aplicável e Foro
 
-Após a postagem, você receberá um código de rastreamento por e-mail para acompanhar seu pedido.`,
-  },
-  {
-    key: 'trocas-devolucoes',
-    title: 'Trocas e Devoluções',
-    icon: 'rotate-ccw',
-    defaultContent: `# Trocas e Devoluções
+Estes termos são regidos pelas leis da República Federativa do Brasil. Qualquer disputa será submetida ao foro da comarca de Uberlândia/MG, com renúncia a qualquer outro, por mais privilegiado que seja.
 
-## 1. Prazo para Troca/Devolução
+## 10. Contato
 
-Você tem até **7 dias corridos** a partir da data de recebimento do produto para solicitar troca ou devolução, conforme o Código de Defesa do Consumidor.
+Para dúvidas sobre estes Termos de Uso:
 
-## 2. Condições para Troca/Devolução
+- **E-mail**: contato.goghlab@gmail.com
+- **WhatsApp**: [número configurado na plataforma]
 
-O produto deve estar:
-
-- Nas condições originais de venda
-- Com todas as etiquetas e embalagens originais
-- Sem sinais de uso ou danos
-- Acompanhado da nota fiscal
-
-## 3. Processo de Troca/Devolução
-
-Para solicitar troca ou devolução:
-
-1. Entre em contato conosco através do WhatsApp ou e-mail
-2. Informe o motivo da troca/devolução
-3. Aguarde nossa resposta com as instruções
-4. Envie o produto conforme as instruções recebidas
-
-## 4. Reembolso
-
-Em caso de devolução, o reembolso será processado no mesmo método de pagamento utilizado na compra, em até 10 dias úteis após o recebimento do produto em nossa loja.`,
+**Última atualização**: Janeiro de 2026`,
   },
   {
     key: 'termos-login-google',
@@ -183,7 +188,7 @@ Ao utilizar a autenticação via Google para acessar a plataforma Gogh Lab, voc�
 
 ### 2.1. Processo de Autenticação
 
-A autenticação é realizada através da plataforma Google OAuth, utilizando suas credenciais da conta Google. Ao clicar em "Continuar com Google", você será redirecionado para a página de autenticação do Google, onde deverá autorizar o acesso da Gogh Lab aos dados básicos da sua conta.
+A autenticação é realizada através da plataforma Google OAuth, utilizando suas credenciais da conta Google. Ao clicar em "Continuar com Google", você será redirecionado para a página de autenticação do Google, onde deverá autorizar o acesso do Gogh Lab aos dados básicos da sua conta.
 
 ### 2.2. Dados Coletados
 
@@ -209,7 +214,7 @@ Os dados coletados são utilizados exclusivamente para:
 Você é o único responsável por:
 
 - Manter a segurança e confidencialidade das credenciais da sua conta Google
-- Notificar imediatamente a Gogh Lab sobre qualquer uso não autorizado da sua conta
+- Notificar imediatamente o Gogh Lab sobre qualquer uso não autorizado da sua conta
 - Garantir que possui autorização para utilizar a conta Google informada
 - Todas as atividades realizadas através da sua conta autenticada
 
@@ -220,17 +225,17 @@ Você concorda em:
 - Utilizar a plataforma apenas para fins legais e lícitos
 - Não compartilhar suas credenciais de acesso com terceiros
 - Não realizar atividades que possam comprometer a segurança da plataforma
-- Respeitar os direitos de propriedade intelectual da Gogh Lab e de terceiros
+- Respeitar os direitos de propriedade intelectual do Gogh Lab e de terceiros
 
 ## 4. Privacidade e Proteção de Dados
 
 ### 4.1. Conformidade Legal
 
-A Gogh Lab está em conformidade com a Lei Geral de Proteção de Dados (LGPD - Lei nº 13.709/2018) e demais legislações aplicáveis. O tratamento dos seus dados pessoais segue rigorosamente os princípios estabelecidos na legislação vigente.
+O Gogh Lab está em conformidade com a Lei Geral de Proteção de Dados (LGPD - Lei nº 13.709/2018) e demais legislações aplicáveis. O tratamento dos seus dados pessoais segue rigorosamente os princípios estabelecidos na legislação vigente.
 
 ### 4.2. Compartilhamento de Dados
 
-A Gogh Lab **não compartilha, vende ou aluga** seus dados pessoais para terceiros, exceto:
+O Gogh Lab **não compartilha, vende ou aluga** seus dados pessoais para terceiros, exceto:
 
 - Quando necessário para o cumprimento de obrigações legais
 - Com seu consentimento expresso
@@ -244,7 +249,7 @@ Seus dados serão mantidos enquanto sua conta estiver ativa ou enquanto necessá
 
 ### 5.1. Serviços de Terceiros
 
-A Gogh Lab utiliza os serviços de autenticação do Google, que são fornecidos e gerenciados exclusivamente pela Google LLC. A Gogh Lab **não se responsabiliza** por:
+O Gogh Lab utiliza os serviços de autenticação do Google, que são fornecidos e gerenciados exclusivamente pela Google LLC. O Gogh Lab **não se responsabiliza** por:
 
 - Falhas, interrupções ou indisponibilidades dos serviços de autenticação do Google
 - Problemas de segurança que ocorram na infraestrutura do Google
@@ -252,15 +257,15 @@ A Gogh Lab utiliza os serviços de autenticação do Google, que são fornecidos
 
 ### 5.2. Disponibilidade do Serviço
 
-Embora nos esforcemos para manter a plataforma sempre disponível, não garantimos que o serviço estará livre de interrupções, erros ou falhas técnicas. A Gogh Lab não se responsabiliza por perdas ou danos decorrentes de indisponibilidade temporária do serviço.
+Embora nos esforcemos para manter a plataforma sempre disponível, não garantimos que o serviço estará livre de interrupções, erros ou falhas técnicas. O Gogh Lab não se responsabiliza por perdas ou danos decorrentes de indisponibilidade temporária do serviço.
 
 ## 6. Modificações nos Termos
 
-A Gogh Lab reserva-se o direito de modificar estes termos a qualquer momento. As alterações entrarão em vigor imediatamente após sua publicação na plataforma. É sua responsabilidade revisar periodicamente estes termos. O uso continuado da plataforma após as modificações constitui aceitação dos novos termos.
+O Gogh Lab reserva-se o direito de modificar estes termos a qualquer momento. As alterações entrarão em vigor imediatamente após sua publicação na plataforma. É sua responsabilidade revisar periodicamente estes termos. O uso continuado da plataforma após as modificações constitui aceitação dos novos termos.
 
 ## 7. Rescisão
 
-A Gogh Lab reserva-se o direito de suspender ou encerrar sua conta, a qualquer momento e sem aviso prévio, em caso de:
+O Gogh Lab reserva-se o direito de suspender ou encerrar sua conta, a qualquer momento e sem aviso prévio, em caso de:
 
 - Violação destes termos ou de qualquer política da plataforma
 - Uso fraudulento ou inadequado da conta
@@ -294,7 +299,7 @@ Ao assinar qualquer plano de assinatura da plataforma Gogh Lab, você concorda e
 
 ### 2.1. Planos Disponíveis
 
-A Gogh Lab oferece os seguintes planos de assinatura:
+O Gogh Lab oferece os seguintes planos de assinatura:
 
 #### 2.1.1. Plano Gratuito
 - **Custo**: Gratuito
@@ -318,40 +323,40 @@ A Gogh Lab oferece os seguintes planos de assinatura:
 
 ### 2.2. Descrição Detalhada dos Recursos
 
-A descrição completa dos recursos, limites de uso mensais, e benefícios de cada plano está disponível na página de planos da plataforma. É sua responsabilidade revisar cuidadosamente as especificações de cada plano antes da contratação.
+A descrição completa dos recursos, limites de uso mensais e benefícios de cada plano está disponível na **página de planos e preços** da plataforma (/precos). É sua responsabilidade revisar cuidadosamente as especificações de cada plano antes da contratação.
 
 ### 2.3. Limites de Uso
 
 Cada plano possui limites específicos de uso mensal para determinados recursos, incluindo, mas não se limitando a:
 
-- **Mensagens de IA**: Número máximo de mensagens/interações com agentes de IA por mês
+- **Uso de agentes e modelos de IA**: Limites de mensagens, interações ou geração de conteúdo conforme o plano
 - **Acesso a Cursos**: Quantidade e tipo de cursos disponíveis
-- **Acesso a Ferramentas Pro**: Disponibilidade e limites de uso de ferramentas profissionais (Canva Pro, CapCut Pro, etc.)
+- **Acesso a Ferramentas**: Disponibilidade e limites de uso das ferramentas profissionais e de criação integradas ao plano
 - **Suporte**: Nível e prioridade de suporte disponível
 
 Os limites são resetados a cada início de período de cobrança (mensal ou anual, conforme o plano). O não uso dos limites em um período não gera créditos ou acúmulo para períodos futuros.
 
-### 2.4. Acesso às Ferramentas Pro (Canva Pro e CapCut Pro)
+### 2.4. Acesso às Ferramentas Profissionais
 
 #### 2.4.1. Período de Liberação
 
 Conforme o Código de Defesa do Consumidor (CDC), você tem 7 (sete) dias corridos a partir da data de contratação para exercer seu direito de arrependimento e solicitar reembolso total.
 
-Para garantir que o período de arrependimento seja respeitado e evitar que credenciais de acesso sejam fornecidas antes do término deste prazo, o **acesso às ferramentas profissionais Canva Pro e CapCut Pro será liberado apenas a partir do oitavo dia** após a data de início da sua assinatura.
+Para garantir que o período de arrependimento seja respeitado e evitar que credenciais de acesso sejam fornecidas antes do término deste prazo, o **acesso às ferramentas profissionais integradas ao plano será liberado apenas a partir do oitavo dia** após a data de início da sua assinatura.
 
 **IMPORTANTE:** Esta regra se aplica tanto para **compras iniciais** (primeira contratação de um plano) quanto para **renovações** (renovação automática ou manual da assinatura). Em ambos os casos, o período de espera de 8 dias é contado a partir da data de início do novo período de assinatura (current_period_start), garantindo que o direito de arrependimento seja respeitado em cada ciclo contratual.
 
-**ISENÇÃO DE RESPONSABILIDADE:** Ao contratar qualquer plano de assinatura, você reconhece e aceita expressamente que o acesso às ferramentas profissionais (Canva Pro e CapCut Pro) estará disponível apenas a partir do oitavo dia após o início da sua assinatura (ou renovação), e que este período de espera é uma condição essencial do contrato, estabelecida para garantir o cumprimento do período de arrependimento previsto no CDC. Você concorda que não terá direito a qualquer tipo de compensação, reembolso parcial, desconto ou indenização em decorrência deste período de espera, e que esta condição não constitui falha na prestação do serviço ou descumprimento contratual por parte da Gogh Lab.
+**ISENÇÃO DE RESPONSABILIDADE:** Ao contratar qualquer plano de assinatura, você reconhece e aceita expressamente que o acesso às ferramentas profissionais estará disponível apenas a partir do oitavo dia após o início da sua assinatura (ou renovação), e que este período de espera é uma condição essencial do contrato, estabelecida para garantir o cumprimento do período de arrependimento previsto no CDC. Você concorda que não terá direito a qualquer tipo de compensação, reembolso parcial, desconto ou indenização em decorrência deste período de espera, e que esta condição não constitui falha na prestação do serviço ou descumprimento contratual por parte do Gogh Lab.
 
 #### 2.4.2. Processo de Solicitação
 
 - Após o oitavo dia da assinatura (seja compra inicial ou renovação), você poderá solicitar acesso às ferramentas através da área de membros
 - A solicitação será processada e o acesso será liberado em até 24 horas após a aprovação
-- Você receberá as credenciais de acesso (link de ativação do Canva Pro e login/senha do CapCut Pro) através da plataforma
+- Você receberá as credenciais de acesso às ferramentas através da plataforma
 
 #### 2.4.3. Período de Uso
 
-Após a liberação do acesso, você terá **30 (trinta) dias de uso** das ferramentas Canva Pro e CapCut Pro, contados a partir da data de liberação das credenciais. Este período é independente do ciclo de cobrança da sua assinatura e visa garantir que você tenha tempo suficiente para aproveitar os recursos das ferramentas.
+Após a liberação do acesso, você terá **30 (trinta) dias de uso** das ferramentas disponibilizadas, contados a partir da data de liberação das credenciais. Este período é independente do ciclo de cobrança da sua assinatura e visa garantir que você tenha tempo suficiente para aproveitar os recursos.
 
 #### 2.4.4. Renovação do Acesso
 
@@ -387,9 +392,9 @@ Os planos pagos são renovados automaticamente no final de cada período (mensal
 
 Você pode cancelar sua assinatura a qualquer momento através da área de membros da plataforma ou através do portal de gerenciamento do Stripe. O cancelamento será efetivado ao final do período já pago, e você continuará tendo acesso aos recursos até o término do período.
 
-### 4.2. Cancelamento pela Gogh Lab
+### 4.2. Cancelamento pelo Gogh Lab
 
-A Gogh Lab reserva-se o direito de cancelar sua assinatura, sem reembolso, em caso de:
+O Gogh Lab reserva-se o direito de cancelar sua assinatura, sem reembolso, em caso de:
 
 - Violação dos termos de uso ou políticas da plataforma
 - Uso fraudulento ou inadequado dos serviços
@@ -404,7 +409,7 @@ A Gogh Lab reserva-se o direito de cancelar sua assinatura, sem reembolso, em ca
 - **Processamento**: O reembolso total será processado quando solicitado dentro do período de arrependimento, respeitando o direito garantido pelo CDC
 
 #### 4.3.2. Reembolso Proporcional
-- Após o período de arrependimento, **não há direito a reembolso**, exceto em casos específicos previstos em lei ou por decisão da Gogh Lab, a seu exclusivo critério
+- Após o período de arrependimento, **não há direito a reembolso**, exceto em casos específicos previstos em lei ou por decisão do Gogh Lab, a seu exclusivo critério
 
 #### 4.3.3. Processamento do Reembolso
 - O reembolso será processado no mesmo método de pagamento utilizado na contratação
@@ -416,9 +421,9 @@ A Gogh Lab reserva-se o direito de cancelar sua assinatura, sem reembolso, em ca
 
 Você pode fazer upgrade (mudança para plano superior) ou downgrade (mudança para plano inferior) a qualquer momento através da área de membros. As alterações terão efeito imediato, com ajuste proporcional na cobrança.
 
-### 5.2. Alterações pela Gogh Lab
+### 5.2. Alterações pelo Gogh Lab
 
-A Gogh Lab reserva-se o direito de:
+O Gogh Lab reserva-se o direito de:
 
 - Modificar recursos, limites de uso ou preços dos planos a qualquer momento
 - Adicionar ou remover recursos de qualquer plano
@@ -430,7 +435,7 @@ Alterações que reduzam significativamente os recursos do seu plano atual serã
 
 ### 6.1. Disponibilidade do Serviço
 
-A Gogh Lab se esforça para manter a plataforma disponível 24 horas por dia, 7 dias por semana. No entanto, não garantimos disponibilidade ininterrupta e não nos responsabilizamos por:
+O Gogh Lab se esforça para manter a plataforma disponível 24 horas por dia, 7 dias por semana. No entanto, não garantimos disponibilidade ininterrupta e não nos responsabilizamos por:
 
 - Manutenções programadas ou de emergência
 - Falhas técnicas ou de infraestrutura
@@ -441,7 +446,7 @@ A Gogh Lab se esforça para manter a plataforma disponível 24 horas por dia, 7 
 
 ### 7.1. Uso Razoável
 
-Os recursos da plataforma devem ser utilizados de forma razoável e dentro dos limites estabelecidos para cada plano. A Gogh Lab reserva-se o direito de:
+Os recursos da plataforma devem ser utilizados de forma razoável e dentro dos limites estabelecidos para cada plano. O Gogh Lab reserva-se o direito de:
 
 - Limitar ou suspender o acesso em caso de uso excessivo ou abusivo
 - Monitorar o uso dos recursos para garantir conformidade com os limites do plano
@@ -460,25 +465,25 @@ Os recursos da plataforma devem ser utilizados de forma razoável e dentro dos l
 
 ### 8.1. Conteúdo da Plataforma
 
-Todo o conteúdo da plataforma, incluindo textos, imagens, vídeos, cursos, agentes de IA, e demais materiais, é de propriedade exclusiva da Gogh Lab ou de seus licenciadores, protegido por leis de propriedade intelectual.
+Todo o conteúdo da plataforma, incluindo textos, imagens, vídeos, cursos, agentes e recursos de IA, e demais materiais, é de propriedade exclusiva do Gogh Lab ou de seus licenciadores, protegido por leis de propriedade intelectual.
 
 ### 8.2. Conteúdo Gerado pelo Usuário
 
-Conteúdo gerado através dos recursos da plataforma (textos, imagens, etc.) é de propriedade do usuário, desde que não viole direitos de terceiros. A Gogh Lab não reivindica propriedade sobre conteúdo gerado pelo usuário.
+Conteúdo gerado através dos recursos da plataforma (textos, imagens, etc.) é de propriedade do usuário, desde que não viole direitos de terceiros. O Gogh Lab não reivindica propriedade sobre conteúdo gerado pelo usuário.
 
 ### 8.3. Uso de Conteúdo
 
 O uso dos recursos da plataforma é pessoal e não transferível. É proibido:
 
 - Reproduzir, distribuir ou comercializar conteúdo da plataforma sem autorização
-- Utilizar conteúdo da plataforma para treinar modelos de IA concorrentes
+- Utilizar conteúdo da plataforma para treinar ou alimentar modelos de IA de terceiros ou concorrentes
 - Realizar engenharia reversa ou descompilação de qualquer parte da plataforma
 
 ## 9. Limitação de Responsabilidade
 
 ### 9.1. Isenção de Garantias
 
-A plataforma é fornecida "como está", sem garantias expressas ou implícitas de qualquer natureza. A Gogh Lab não garante que:
+A plataforma é fornecida "como está", sem garantias expressas ou implícitas de qualquer natureza. O Gogh Lab não garante que:
 
 - A plataforma atenderá todas as suas necessidades
 - Os resultados obtidos serão exatos ou adequados aos seus objetivos
@@ -486,7 +491,7 @@ A plataforma é fornecida "como está", sem garantias expressas ou implícitas d
 
 ### 9.2. Limitação de Danos
 
-A Gogh Lab não se responsabiliza por:
+O Gogh Lab não se responsabiliza por:
 
 - Perdas diretas, indiretas, incidentais ou consequenciais decorrentes do uso ou impossibilidade de uso da plataforma
 - Perda de dados, receitas, oportunidades de negócio ou lucros cessantes
@@ -494,7 +499,7 @@ A Gogh Lab não se responsabiliza por:
 
 ### 9.3. Limite Máximo de Responsabilidade
 
-Em nenhuma hipótese a responsabilidade total da Gogh Lab excederá o valor pago pelo usuário nos últimos 12 (doze) meses pela assinatura.
+Em nenhuma hipótese a responsabilidade total do Gogh Lab excederá o valor pago pelo usuário nos últimos 12 (doze) meses pela assinatura.
 
 ## 10. Proteção de Dados
 
@@ -504,11 +509,11 @@ O tratamento dos seus dados pessoais segue rigorosamente a Lei Geral de Proteç�
 
 ### 10.2. Dados de Pagamento
 
-Dados de pagamento são processados exclusivamente pela Stripe, em conformidade com os mais altos padrões de segurança (PCI DSS). A Gogh Lab não armazena informações completas de cartão de crédito.
+Dados de pagamento são processados exclusivamente pela Stripe, em conformidade com os mais altos padrões de segurança (PCI DSS). O Gogh Lab não armazena informações completas de cartão de crédito.
 
 ## 11. Modificações nos Termos
 
-A Gogh Lab reserva-se o direito de modificar estes termos a qualquer momento. Alterações significativas serão comunicadas com antecedência mínima de 30 dias. O uso continuado da plataforma após as modificações constitui aceitação dos novos termos.
+O Gogh Lab reserva-se o direito de modificar estes termos a qualquer momento. Alterações significativas serão comunicadas com antecedência mínima de 30 dias. O uso continuado da plataforma após as modificações constitui aceitação dos novos termos.
 
 ## 12. Resolução de Conflitos
 
@@ -528,11 +533,11 @@ Estes termos são regidos pela legislação brasileira. Qualquer controvérsia d
 
 ### 14.1. Integralidade
 
-Estes termos, juntamente com a Política de Privacidade e demais políticas da plataforma, constituem o acordo integral entre você e a Gogh Lab.
+Estes termos, juntamente com a Política de Privacidade e demais políticas da plataforma, constituem o acordo integral entre você e o Gogh Lab.
 
 ### 14.2. Tolerância
 
-A tolerância de qualquer violação destes termos não constitui renúncia de direitos pela Gogh Lab.
+A tolerância de qualquer violação destes termos não constitui renúncia de direitos pelo Gogh Lab.
 
 ### 14.3. Divisibilidade
 
@@ -580,11 +585,11 @@ As aprovações de materiais, campanhas e conteúdos serão feitas pelos canais 
 
 ## 7. Limitação de Responsabilidade
 
-A Gogh Lab não garante resultados específicos (como volume de vendas ou crescimento de audiência), pois dependem de múltiplos fatores externos.
+O Gogh Lab não garante resultados específicos (como volume de vendas ou crescimento de audiência), pois dependem de múltiplos fatores externos.
 
 ## 8. Alterações
 
-A Gogh Lab pode atualizar estes termos mediante aviso prévio. A continuidade do uso ou contratação implica concordância com as alterações.
+O Gogh Lab pode atualizar estes termos mediante aviso prévio. A continuidade do uso ou contratação implica concordância com as alterações.
 
 ## Quantidades e Escopo Mensal (Serviços com limite)
 
@@ -738,7 +743,7 @@ export default function DashboardTermsPage() {
       }
 
       if (!data || data.length === 0) {
-        const defaultTerms = TERMS_CONFIG.map(config => ({
+        const defaultTerms = TERMS_CONFIG.map((config) => ({
           key: config.key,
           title: config.title,
           content: config.defaultContent,
@@ -763,13 +768,12 @@ export default function DashboardTermsPage() {
           }
         }
       } else {
-        // Verificar se todos os termos padrão existem
+        // Verificar se todos os termos padrão (TERMS_CONFIG) existem e inserir os faltantes
         const existingKeys = data.map((t: any) => t.key)
-        const missingTerms = TERMS_CONFIG.filter(config => !existingKeys.includes(config.key))
-        
+        const missingTerms = TERMS_CONFIG.filter((config) => !existingKeys.includes(config.key))
+
         if (missingTerms.length > 0) {
-          // Inserir termos faltantes
-          const termsToInsert = missingTerms.map(config => ({
+          const termsToInsert = missingTerms.map((config) => ({
             key: config.key,
             title: config.title,
             content: config.defaultContent,
@@ -780,28 +784,32 @@ export default function DashboardTermsPage() {
             .from('site_terms')
             .insert(termsToInsert)
 
-          if (insertError && insertError.code !== '42P01') {
-            console.error('Erro ao criar termos faltantes:', insertError)
-          } else {
-            // Recarregar termos após inserir os faltantes
+          if (!insertError || insertError.code === '42P01') {
             const { data: updatedData } = await (supabase as any)
               .from('site_terms')
               .select('*')
               .order('key')
-            
-            setTerms(updatedData as Term[] || data)
-            if (updatedData && updatedData.length > 0 && !selectedTerm) {
-              setSelectedTerm(updatedData[0].key)
-            } else if (data.length > 0 && !selectedTerm) {
-              setSelectedTerm(data[0].key)
+            const finalData = (updatedData || data) as any[]
+            const allowedData = finalData.filter((t) => ALLOWED_TERM_KEYS.includes(t.key))
+            setTerms(allowedData as Term[])
+            if (allowedData.length > 0 && !selectedTerm) {
+              setSelectedTerm(allowedData[0].key)
             }
-            return // Sair aqui para evitar duplicar o código abaixo
+          } else {
+            console.error('Erro ao criar termos faltantes:', insertError)
+            const allowedData = (data as any[]).filter((t) => ALLOWED_TERM_KEYS.includes(t.key))
+            setTerms(allowedData as Term[])
+            if (allowedData.length > 0 && !selectedTerm) {
+              setSelectedTerm(allowedData[0].key)
+            }
           }
-        }
-        
-        setTerms(data as Term[])
-        if (data.length > 0 && !selectedTerm) {
-          setSelectedTerm(data[0].key)
+        } else {
+          // Mostrar apenas termos permitidos (alinhados à estratégia atual da plataforma)
+          const allowedData = (data as any[]).filter((t) => ALLOWED_TERM_KEYS.includes(t.key))
+          setTerms(allowedData as Term[])
+          if (allowedData.length > 0 && !selectedTerm) {
+            setSelectedTerm(allowedData[0].key)
+          }
         }
       }
     } catch (error: any) {

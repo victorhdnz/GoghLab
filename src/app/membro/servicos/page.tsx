@@ -196,7 +196,7 @@ export default function ServicosPage() {
             Você ainda não contratou serviços personalizados. Confira as opções disponíveis na seção de planos.
           </p>
           <a
-            href="/#pricing-section"
+            href="/precos"
             className="inline-flex items-center gap-2 px-6 py-3 bg-gogh-yellow text-gogh-black font-medium rounded-xl hover:bg-gogh-yellow/90 transition-colors"
           >
             Ver serviços disponíveis

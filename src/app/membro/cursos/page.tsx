@@ -175,7 +175,7 @@ export default function CoursesPage() {
           className="bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200 rounded-xl p-6"
         >
           <p className="text-amber-800">
-            Os cursos são exclusivos para o plano Pro. <Link href="/#pricing" className="font-medium underline">Faça upgrade agora</Link>
+            Os cursos são exclusivos para o plano Pro. <Link href="/precos" className="font-medium underline">Faça upgrade agora</Link>
           </p>
         </motion.div>
       )}
@@ -187,7 +187,7 @@ export default function CoursesPage() {
           className="bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200 rounded-xl p-6"
         >
           <p className="text-amber-800">
-            Você precisa de uma assinatura ativa para acessar os cursos. <Link href="/#pricing" className="font-medium underline">Ver planos</Link>
+            Você precisa de uma assinatura ativa para acessar os cursos. <Link href="/precos" className="font-medium underline">Ver planos</Link>
           </p>
         </motion.div>
       )}
@@ -211,7 +211,7 @@ export default function CoursesPage() {
                     Faça upgrade para o plano Pro e tenha acesso completo a todos os nossos cursos de Canva e CapCut.
                   </p>
                   <Link
-                    href="/#pricing"
+                    href="/precos"
                     className="inline-flex items-center gap-2 px-6 py-3 bg-gogh-yellow text-gogh-black font-medium rounded-xl hover:bg-gogh-yellow/90 transition-colors"
                   >
                     Fazer Upgrade
@@ -245,7 +245,7 @@ export default function CoursesPage() {
                     Faça upgrade para o plano Pro e tenha acesso completo a todos os nossos cursos de Canva e CapCut.
                   </p>
                   <Link
-                    href="/#pricing"
+                    href="/precos"
                     className="inline-flex items-center gap-2 px-6 py-3 bg-gogh-yellow text-gogh-black font-medium rounded-xl hover:bg-gogh-yellow/90 transition-colors"
                   >
                     Fazer Upgrade
@@ -401,7 +401,7 @@ function CourseCard({
               Você precisa de uma assinatura ativa para acessar este curso
             </p>
             <Link
-              href="/#pricing"
+              href="/precos"
               className="inline-flex items-center gap-2 px-6 py-3 bg-gogh-yellow text-gogh-black font-medium rounded-xl hover:bg-gogh-yellow/90 transition-colors"
             >
               Ver Planos

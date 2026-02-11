@@ -119,7 +119,7 @@ export async function POST(request: Request) {
     // O portal do Stripe funciona com qualquer subscription do customer, mesmo que seja de produto dinâmico
     const portalSession = await stripe.billingPortal.sessions.create({
       customer: subscriptionData.stripe_customer_id,
-      return_url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://goghlab.com.br'}/membro/conta`,
+      return_url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://goghlab.com.br'}/conta`,
       // Usar a configuração do portal se especificada
       ...(process.env.STRIPE_PORTAL_CONFIGURATION_ID && {
         configuration: process.env.STRIPE_PORTAL_CONFIGURATION_ID,

@@ -41,7 +41,7 @@ Ao assinar qualquer plano de assinatura da plataforma Gogh Lab, você concorda e
 
 ### 2.1. Planos Disponíveis
 
-A Gogh Lab oferece os seguintes planos de assinatura:
+O Gogh Lab oferece os seguintes planos de assinatura:
 
 #### 2.1.1. Plano Gratuito
 - **Custo**: Gratuito
@@ -88,7 +88,7 @@ Para garantir que o período de arrependimento seja respeitado e evitar que cred
 
 **IMPORTANTE:** Esta regra se aplica tanto para **compras iniciais** (primeira contratação de um plano) quanto para **renovações** (renovação automática ou manual da assinatura). Em ambos os casos, o período de espera de 8 dias é contado a partir da data de início do novo período de assinatura (current_period_start), garantindo que o direito de arrependimento seja respeitado em cada ciclo contratual.
 
-**ISENÇÃO DE RESPONSABILIDADE:** Ao contratar qualquer plano de assinatura, você reconhece e aceita expressamente que o acesso às ferramentas profissionais (Canva Pro e CapCut Pro) estará disponível apenas a partir do oitavo dia após o início da sua assinatura (ou renovação), e que este período de espera é uma condição essencial do contrato, estabelecida para garantir o cumprimento do período de arrependimento previsto no CDC. Você concorda que não terá direito a qualquer tipo de compensação, reembolso parcial, desconto ou indenização em decorrência deste período de espera, e que esta condição não constitui falha na prestação do serviço ou descumprimento contratual por parte da Gogh Lab.
+**ISENÇÃO DE RESPONSABILIDADE:** Ao contratar qualquer plano de assinatura, você reconhece e aceita expressamente que o acesso às ferramentas profissionais (Canva Pro e CapCut Pro) estará disponível apenas a partir do oitavo dia após o início da sua assinatura (ou renovação), e que este período de espera é uma condição essencial do contrato, estabelecida para garantir o cumprimento do período de arrependimento previsto no CDC. Você concorda que não terá direito a qualquer tipo de compensação, reembolso parcial, desconto ou indenização em decorrência deste período de espera, e que esta condição não constitui falha na prestação do serviço ou descumprimento contratual por parte do Gogh Lab.
 
 #### 2.4.2. Processo de Solicitação
 
@@ -134,9 +134,9 @@ Os planos pagos são renovados automaticamente no final de cada período (mensal
 
 Você pode cancelar sua assinatura a qualquer momento através da área de membros da plataforma ou através do portal de gerenciamento do Stripe. O cancelamento será efetivado ao final do período já pago, e você continuará tendo acesso aos recursos até o término do período.
 
-### 4.2. Cancelamento pela Gogh Lab
+### 4.2. Cancelamento pelo Gogh Lab
 
-A Gogh Lab reserva-se o direito de cancelar sua assinatura, sem reembolso, em caso de:
+O Gogh Lab reserva-se o direito de cancelar sua assinatura, sem reembolso, em caso de:
 
 - Violação dos termos de uso ou políticas da plataforma
 - Uso fraudulento ou inadequado dos serviços
@@ -151,7 +151,7 @@ A Gogh Lab reserva-se o direito de cancelar sua assinatura, sem reembolso, em ca
 - **Processamento**: O reembolso total será processado quando solicitado dentro do período de arrependimento, respeitando o direito garantido pelo CDC
 
 #### 4.3.2. Reembolso Proporcional
-- Após o período de arrependimento, **não há direito a reembolso**, exceto em casos específicos previstos em lei ou por decisão da Gogh Lab, a seu exclusivo critério
+- Após o período de arrependimento, **não há direito a reembolso**, exceto em casos específicos previstos em lei ou por decisão do Gogh Lab, a seu exclusivo critério
 
 #### 4.3.3. Processamento do Reembolso
 - O reembolso será processado no mesmo método de pagamento utilizado na contratação
@@ -163,9 +163,9 @@ A Gogh Lab reserva-se o direito de cancelar sua assinatura, sem reembolso, em ca
 
 Você pode fazer upgrade (mudança para plano superior) ou downgrade (mudança para plano inferior) a qualquer momento através da área de membros. As alterações terão efeito imediato, com ajuste proporcional na cobrança.
 
-### 5.2. Alterações pela Gogh Lab
+### 5.2. Alterações pelo Gogh Lab
 
-A Gogh Lab reserva-se o direito de:
+O Gogh Lab reserva-se o direito de:
 
 - Modificar recursos, limites de uso ou preços dos planos a qualquer momento
 - Adicionar ou remover recursos de qualquer plano
@@ -177,7 +177,7 @@ Alterações que reduzam significativamente os recursos do seu plano atual serã
 
 ### 6.1. Disponibilidade do Serviço
 
-A Gogh Lab se esforça para manter a plataforma disponível 24 horas por dia, 7 dias por semana. No entanto, não garantimos disponibilidade ininterrupta e não nos responsabilizamos por:
+O Gogh Lab se esforça para manter a plataforma disponível 24 horas por dia, 7 dias por semana. No entanto, não garantimos disponibilidade ininterrupta e não nos responsabilizamos por:
 
 - Manutenções programadas ou de emergência
 - Falhas técnicas ou de infraestrutura
@@ -188,7 +188,7 @@ A Gogh Lab se esforça para manter a plataforma disponível 24 horas por dia, 7 
 
 ### 7.1. Uso Razoável
 
-Os recursos da plataforma devem ser utilizados de forma razoável e dentro dos limites estabelecidos para cada plano. A Gogh Lab reserva-se o direito de:
+Os recursos da plataforma devem ser utilizados de forma razoável e dentro dos limites estabelecidos para cada plano. O Gogh Lab reserva-se o direito de:
 
 - Limitar ou suspender o acesso em caso de uso excessivo ou abusivo
 - Monitorar o uso dos recursos para garantir conformidade com os limites do plano
@@ -207,11 +207,11 @@ Os recursos da plataforma devem ser utilizados de forma razoável e dentro dos l
 
 ### 8.1. Conteúdo da Plataforma
 
-Todo o conteúdo da plataforma, incluindo textos, imagens, vídeos, cursos, agentes de IA, e demais materiais, é de propriedade exclusiva da Gogh Lab ou de seus licenciadores, protegido por leis de propriedade intelectual.
+Todo o conteúdo da plataforma, incluindo textos, imagens, vídeos, cursos, agentes de IA, e demais materiais, é de propriedade exclusiva do Gogh Lab ou de seus licenciadores, protegido por leis de propriedade intelectual.
 
 ### 8.2. Conteúdo Gerado pelo Usuário
 
-Conteúdo gerado através dos recursos da plataforma (textos, imagens, etc.) é de propriedade do usuário, desde que não viole direitos de terceiros. A Gogh Lab não reivindica propriedade sobre conteúdo gerado pelo usuário.
+Conteúdo gerado através dos recursos da plataforma (textos, imagens, etc.) é de propriedade do usuário, desde que não viole direitos de terceiros. O Gogh Lab não reivindica propriedade sobre conteúdo gerado pelo usuário.
 
 ### 8.3. Uso de Conteúdo
 
@@ -225,7 +225,7 @@ O uso dos recursos da plataforma é pessoal e não transferível. É proibido:
 
 ### 9.1. Isenção de Garantias
 
-A plataforma é fornecida "como está", sem garantias expressas ou implícitas de qualquer natureza. A Gogh Lab não garante que:
+A plataforma é fornecida "como está", sem garantias expressas ou implícitas de qualquer natureza. O Gogh Lab não garante que:
 
 - A plataforma atenderá todas as suas necessidades
 - Os resultados obtidos serão exatos ou adequados aos seus objetivos
@@ -233,7 +233,7 @@ A plataforma é fornecida "como está", sem garantias expressas ou implícitas d
 
 ### 9.2. Limitação de Danos
 
-A Gogh Lab não se responsabiliza por:
+O Gogh Lab não se responsabiliza por:
 
 - Perdas diretas, indiretas, incidentais ou consequenciais decorrentes do uso ou impossibilidade de uso da plataforma
 - Perda de dados, receitas, oportunidades de negócio ou lucros cessantes
@@ -241,7 +241,7 @@ A Gogh Lab não se responsabiliza por:
 
 ### 9.3. Limite Máximo de Responsabilidade
 
-Em nenhuma hipótese a responsabilidade total da Gogh Lab excederá o valor pago pelo usuário nos últimos 12 (doze) meses pela assinatura.
+Em nenhuma hipótese a responsabilidade total do Gogh Lab excederá o valor pago pelo usuário nos últimos 12 (doze) meses pela assinatura.
 
 ## 10. Proteção de Dados
 
@@ -251,11 +251,11 @@ O tratamento dos seus dados pessoais segue rigorosamente a Lei Geral de Proteç�
 
 ### 10.2. Dados de Pagamento
 
-Dados de pagamento são processados exclusivamente pela Stripe, em conformidade com os mais altos padrões de segurança (PCI DSS). A Gogh Lab não armazena informações completas de cartão de crédito.
+Dados de pagamento são processados exclusivamente pela Stripe, em conformidade com os mais altos padrões de segurança (PCI DSS). O Gogh Lab não armazena informações completas de cartão de crédito.
 
 ## 11. Modificações nos Termos
 
-A Gogh Lab reserva-se o direito de modificar estes termos a qualquer momento. Alterações significativas serão comunicadas com antecedência mínima de 30 dias. O uso continuado da plataforma após as modificações constitui aceitação dos novos termos.
+O Gogh Lab reserva-se o direito de modificar estes termos a qualquer momento. Alterações significativas serão comunicadas com antecedência mínima de 30 dias. O uso continuado da plataforma após as modificações constitui aceitação dos novos termos.
 
 ## 12. Resolução de Conflitos
 
@@ -275,11 +275,11 @@ Estes termos são regidos pela legislação brasileira. Qualquer controvérsia d
 
 ### 14.1. Integralidade
 
-Estes termos, juntamente com a Política de Privacidade e demais políticas da plataforma, constituem o acordo integral entre você e a Gogh Lab.
+Estes termos, juntamente com a Política de Privacidade e demais políticas da plataforma, constituem o acordo integral entre você e o Gogh Lab.
 
 ### 14.2. Tolerância
 
-A tolerância de qualquer violação destes termos não constitui renúncia de direitos pela Gogh Lab.
+A tolerância de qualquer violação destes termos não constitui renúncia de direitos pelo Gogh Lab.
 
 ### 14.3. Divisibilidade
 

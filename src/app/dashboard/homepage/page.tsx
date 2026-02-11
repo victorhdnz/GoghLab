@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/Input'
 import { ImageUploader } from '@/components/ui/ImageUploader'
 import { VideoUploader } from '@/components/ui/VideoUploader'
+import { CloudinaryVideoUploader } from '@/components/ui/CloudinaryVideoUploader'
 import { Switch } from '@/components/ui/Switch'
 import { createClient } from '@/lib/supabase/client'
 import { Save, Eye, Trash2 } from 'lucide-react'
@@ -18,6 +19,7 @@ import { ServiceCardsManager, ServiceCard } from '@/components/ui/ServiceCardsMa
 import { NotificationsManager } from '@/components/ui/NotificationsManager'
 import { TestimonialsManager } from '@/components/ui/TestimonialsManager'
 import { TeamMembersManager } from '@/components/ui/TeamMembersManager'
+import type { GalleryHoverCarouselItem } from '@/components/ui/gallery-hover-carousel'
 
 interface HomepageSettings {
   // Configurações globais do site (afetam todas as páginas)
@@ -153,6 +155,14 @@ interface HomepageSettings {
   award_level?: 'bronze' | 'silver' | 'gold' | 'platinum'
   award_standalone_title?: string
   award_standalone_description?: string
+
+  gallery_enabled?: boolean
+  gallery_carousel?: {
+    heading?: string
+    subtitle?: string
+    items?: GalleryHoverCarouselItem[]
+    auto_slide_interval?: number
+  }
 
   section_order?: string[]
   section_visibility?: Record<string, boolean>
@@ -367,13 +377,13 @@ const sectionIcons: Record<string, string> = {
   trusted_by: '🤝',
   animated_beam: '⚡',
   award: '🏆',
+  gallery: '🖼️',
   services: '📦',
   comparison: '⚖️',
   notifications: '🔔',
   testimonials: '⭐',
   team: '👥',
   spline: '🤖',
-  pricing: '💰',
   contact: '📞',
 }
 
@@ -400,13 +410,13 @@ const sectionLabels: Record<string, string> = {
   trusted_by: 'Plataformas (Logo Carousel)',
   animated_beam: 'Fluxo de Integrações (Animated Beam)',
   award: 'Medalha de Pioneiros',
+  gallery: 'Galeria (Carrossel Imagens/Vídeos IA)',
   services: 'Nossos Serviços',
   comparison: 'Comparação (CTA)',
   notifications: 'Notificações (Prova Social)',
   testimonials: 'Depoimentos (Marquee 3D)',
   team: 'Nossa Equipe',
   spline: 'Spline 3D (Futuro e Evolução)',
-  pricing: 'Planos de Assinatura',
   contact: 'Contato',
 }
 
@@ -424,13 +434,13 @@ export default function HomepageEditorPage() {
     'animated_beam',
     'features',
     'award',
+    'gallery',
     'services',
     'comparison',
     'notifications',
     'testimonials',
     'team',
     'spline',
-    'pricing',
     'contact',
   ])
   const [sectionVisibility, setSectionVisibility] = useState<Record<string, boolean>>({
@@ -442,9 +452,9 @@ export default function HomepageEditorPage() {
     testimonials: true,
     team: true,
     spline: false, // Desabilitado por padrão para melhor performance
-    pricing: false, // Desabilitado por padrão até ser configurado
     contact: true,
     animated_beam: false, // Desabilitado até configurar ícones
+    gallery: true,
   })
   const [formData, setFormData] = useState<HomepageSettings>({
     // Configurações globais
@@ -545,7 +555,7 @@ export default function HomepageEditorPage() {
     award_date: 'Brasil 2025',
     award_level: 'gold',
     award_standalone_title: 'Primeira plataforma do Brasil',
-    award_standalone_description: 'A Gogh Lab é pioneira em oferecer uma solução completa com agentes de IA, cursos profissionais e acesso às melhores ferramentas de criação — tudo em uma única assinatura.',
+    award_standalone_description: 'O Gogh Lab é pioneira em oferecer uma solução completa com agentes de IA, cursos profissionais e acesso às melhores ferramentas de criação — tudo em uma única assinatura.',
   })
 
   useEffect(() => {
@@ -714,15 +724,6 @@ export default function HomepageEditorPage() {
               order.push('spline')
             }
           }
-          if (!order.includes('pricing')) {
-            // Adicionar 'pricing' antes de 'contact' se 'contact' existir, senão no final
-            const contactIndex = order.indexOf('contact')
-            if (contactIndex >= 0) {
-              order.splice(contactIndex, 0, 'pricing')
-            } else {
-              order.push('pricing')
-            }
-          }
           // Adicionar novas seções se não existirem
           if (!order.includes('features')) {
             // Adicionar 'features' após 'video' ou 'trusted_by'
@@ -766,6 +767,19 @@ export default function HomepageEditorPage() {
               }
             }
           }
+          if (!order.includes('gallery')) {
+            const featuresIndex = order.indexOf('features')
+            if (featuresIndex >= 0) {
+              order.splice(featuresIndex + 1, 0, 'gallery')
+            } else {
+              const servicesIndex = order.indexOf('services')
+              if (servicesIndex >= 0) {
+                order.splice(servicesIndex, 0, 'gallery')
+              } else {
+                order.push('gallery')
+              }
+            }
+          }
           setSectionOrder(order)
         } else {
           // Se não houver ordem salva, usar a ordem padrão (inclui animated_beam e team)
@@ -776,13 +790,13 @@ export default function HomepageEditorPage() {
             'animated_beam',
             'features',
             'award',
+            'gallery',
             'services',
             'comparison',
             'notifications',
             'testimonials',
             'team',
             'spline',
-            'pricing',
             'contact',
           ])
         }
@@ -807,9 +821,6 @@ export default function HomepageEditorPage() {
           if (visibility.spline === undefined) {
             visibility.spline = false // Desabilitado por padrão para performance
           }
-          if (visibility.pricing === undefined) {
-            visibility.pricing = false // Desabilitado por padrão até ser configurado
-          }
           // Novas seções
           if (visibility.features === undefined) {
             visibility.features = true // Habilitado por padrão
@@ -819,6 +830,9 @@ export default function HomepageEditorPage() {
           }
           if (visibility.award === undefined) {
             visibility.award = true // Habilitado por padrão
+          }
+          if (visibility.gallery === undefined) {
+            visibility.gallery = true
           }
           setSectionVisibility(visibility)
         }
@@ -1097,7 +1111,7 @@ export default function HomepageEditorPage() {
                   label="Título Principal"
                   value={formData.video_title || ''}
                   onChange={(e) => setFormData({ ...formData, video_title: e.target.value })}
-                  placeholder="Ex: Conheça a Gogh Lab"
+                  placeholder="Ex: Conheça o Gogh Lab"
                 />
                 <div>
                   <label className="block text-sm font-medium mb-2">Subtítulo</label>
@@ -1167,7 +1181,7 @@ export default function HomepageEditorPage() {
                   label="Título do CTA"
                   value={formData.comparison_cta_title || ''}
                   onChange={(e) => setFormData({ ...formData, comparison_cta_title: e.target.value })}
-                  placeholder="Ex: Compare a Gogh Lab..."
+                  placeholder="Ex: Compare o Gogh Lab..."
                 />
                 <div>
                   <label className="block text-sm font-medium mb-2">Descrição</label>
@@ -1261,7 +1275,7 @@ export default function HomepageEditorPage() {
                   <textarea
                     value={formData.testimonials_description || ''}
                     onChange={(e) => setFormData({ ...formData, testimonials_description: e.target.value })}
-                    placeholder="Ex: Depoimentos reais de quem confia na Gogh Lab"
+                    placeholder="Ex: Depoimentos reais de quem confia no Gogh Lab"
                     rows={3}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
@@ -1497,6 +1511,164 @@ export default function HomepageEditorPage() {
             )}
           </div>
         )
+      case 'gallery': {
+        const galleryData = formData.gallery_carousel || { heading: '', subtitle: '', items: [], auto_slide_interval: 5000 }
+        const galleryItems = Array.isArray(galleryData.items) ? galleryData.items : []
+        const setGalleryData = (next: typeof galleryData) => setFormData({ ...formData, gallery_carousel: next })
+        return (
+          <div className="space-y-4">
+            <Switch
+              label="Habilitar Galeria (Carrossel de imagens/vídeos IA)"
+              checked={formData.gallery_enabled !== false}
+              onCheckedChange={(checked) => setFormData({ ...formData, gallery_enabled: checked })}
+            />
+            {formData.gallery_enabled !== false && (
+              <>
+                <Input
+                  label="Título da seção"
+                  value={galleryData.heading || ''}
+                  onChange={(e) => setGalleryData({ ...galleryData, heading: e.target.value })}
+                  placeholder="Ex: Projetos em destaque"
+                />
+                <div>
+                  <label className="block text-sm font-medium mb-2">Subtítulo / descrição</label>
+                  <textarea
+                    value={galleryData.subtitle || ''}
+                    onChange={(e) => setGalleryData({ ...galleryData, subtitle: e.target.value })}
+                    placeholder="Ex: Explore nossa coleção de imagens e vídeos criados com IA."
+                    rows={2}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <Input
+                  label="Intervalo do auto-slide (ms) — 0 para desligar"
+                  type="number"
+                  value={galleryData.auto_slide_interval ?? 5000}
+                  onChange={(e) => setGalleryData({ ...galleryData, auto_slide_interval: parseInt(e.target.value, 10) || 0 })}
+                  placeholder="5000"
+                />
+                <div className="border-t pt-4 mt-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <label className="block text-sm font-medium">Cards ({galleryItems.length})</label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const newItem: GalleryHoverCarouselItem = {
+                          id: `item-${Date.now()}`,
+                          type: 'image',
+                          title: 'Novo card',
+                          summary: '',
+                          image: '',
+                        }
+                        setGalleryData({ ...galleryData, items: [...galleryItems, newItem] })
+                      }}
+                      className="text-sm bg-gogh-yellow text-gogh-black px-3 py-1 rounded-lg hover:bg-gogh-yellow-dark transition-colors"
+                    >
+                      + Adicionar card
+                    </button>
+                  </div>
+                  <div className="space-y-3 max-h-[480px] overflow-y-auto">
+                    {galleryItems.map((item, index) => (
+                      <div key={item.id} className="bg-gray-50 p-3 rounded-lg border">
+                        <div className="flex items-start justify-between gap-2">
+                          <span className="text-lg font-bold text-gray-400">{index + 1}</span>
+                          <button
+                            type="button"
+                            onClick={() => setGalleryData({ ...galleryData, items: galleryItems.filter((_, i) => i !== index) })}
+                            className="text-red-500 hover:text-red-700 p-1"
+                            title="Remover card"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                        <div className="space-y-2 mt-2">
+                          <div>
+                            <label className="block text-xs font-medium mb-1">Tipo</label>
+                            <select
+                              value={item.type}
+                              onChange={(e) => {
+                                const updated = [...galleryItems]
+                                updated[index] = { ...updated[index], type: e.target.value as 'image' | 'video' }
+                                setGalleryData({ ...galleryData, items: updated })
+                              }}
+                              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg"
+                            >
+                              <option value="image">Imagem</option>
+                              <option value="video">Vídeo (YouTube)</option>
+                            </select>
+                          </div>
+                          <Input
+                            label="Título"
+                            value={item.title}
+                            onChange={(e) => {
+                              const updated = [...galleryItems]
+                              updated[index] = { ...updated[index], title: e.target.value }
+                              setGalleryData({ ...galleryData, items: updated })
+                            }}
+                            placeholder="Título do card"
+                          />
+                          <div>
+                            <label className="block text-xs font-medium mb-1">Resumo</label>
+                            <textarea
+                              value={item.summary}
+                              onChange={(e) => {
+                                const updated = [...galleryItems]
+                                updated[index] = { ...updated[index], summary: e.target.value }
+                                setGalleryData({ ...galleryData, items: updated })
+                              }}
+                              rows={2}
+                              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg"
+                              placeholder="Breve descrição"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium mb-2">Capa / imagem</label>
+                            <ImageUploader
+                              value={item.image}
+                              onChange={(url) => {
+                                const updated = [...galleryItems]
+                                updated[index] = { ...updated[index], image: url }
+                                setGalleryData({ ...galleryData, items: updated })
+                              }}
+                              placeholder="Upload da imagem (capa do card)"
+                              cropType="banner"
+                              aspectRatio={16 / 9}
+                            />
+                          </div>
+                          {item.type === 'image' && (
+                            <Input
+                              label="Link ao clicar (opcional)"
+                              value={item.url || ''}
+                              onChange={(e) => {
+                                const updated = [...galleryItems]
+                                updated[index] = { ...updated[index], url: e.target.value }
+                                setGalleryData({ ...galleryData, items: updated })
+                              }}
+                              placeholder="https://..."
+                            />
+                          )}
+                          {item.type === 'video' && (
+                            <CloudinaryVideoUploader
+                              value={item.videoUrl || ''}
+                              onChange={(url) => {
+                                const updated = [...galleryItems]
+                                updated[index] = { ...updated[index], videoUrl: url }
+                                setGalleryData({ ...galleryData, items: updated })
+                              }}
+                              placeholder="Envie um vídeo (MP4, WebM, etc.) — Cloudinary"
+                              folder="gallery-videos"
+                            />
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        )
+      }
       case 'trusted_by':
         const handlePlatformLogoUpload = async (index: number, file: File, setUploading: (uploading: boolean) => void) => {
           setUploading(true)
@@ -1834,26 +2006,6 @@ export default function HomepageEditorPage() {
                 </div>
               </>
             )}
-          </div>
-        )
-      case 'pricing':
-        return (
-          <div className="space-y-4">
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <p className="text-sm text-blue-800">
-                <strong>💡 Informação:</strong> Os planos de assinatura são gerenciados exclusivamente na página{' '}
-                <a href="/dashboard/pricing" className="text-blue-600 hover:underline font-semibold">
-                  Gerenciar Planos de Assinatura
-                </a>
-                . A seção aparecerá automaticamente na homepage e nas páginas de serviços quando estiver habilitada na página de pricing.
-              </p>
-            </div>
-            <p className="text-sm text-gray-600">
-              Para configurar os planos, preços, features e mensagens do WhatsApp, acesse{' '}
-              <a href="/dashboard/pricing" className="text-blue-600 hover:underline font-semibold">
-                /dashboard/pricing
-              </a>
-            </p>
           </div>
         )
       case 'contact':

@@ -182,7 +182,7 @@ function ComparisonTable({
               <h1 className="text-3xl md:text-5xl font-bold tracking-tight">
                 Compare e Escolha
               </h1>
-              <p className="text-gogh-yellow mt-2 text-lg">Veja por que a Gogh Lab é a melhor escolha</p>
+              <p className="text-gogh-yellow mt-2 text-lg">Veja por que o Gogh Lab é a melhor escolha</p>
             </div>
             <Link 
               href="/"
@@ -473,7 +473,7 @@ function ComparisonTable({
               Acesse todas as ferramentas, agentes de IA e cursos em um só lugar. Transforme sua presença digital com autonomia total.
             </p>
             <Link 
-              href="/#pricing"
+              href="/precos"
               className="inline-flex items-center gap-2 px-8 py-4 bg-gogh-yellow hover:bg-gogh-yellow-dark text-gogh-black rounded-full transition-all duration-300 font-bold text-lg shadow-lg hover:shadow-xl"
             >
               Ver Planos
