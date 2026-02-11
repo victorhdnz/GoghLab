@@ -24,12 +24,19 @@ export function ConditionalLayout({ children }: ConditionalLayoutProps) {
     return <>{children}</>
   }
 
-  // Dashboard admin: sem nav, só fundo e conteúdo
+  // Dashboard admin: sem nav, só fundo e conteúdo. No mobile: área arrastável para os lados (overflow-x) para poder ver e clicar em tudo.
   if (isDashboard) {
     return (
       <>
         <MainBackground />
-        <div className="min-h-screen">{children}</div>
+        <div
+          className="min-h-screen w-full overflow-x-auto overflow-y-visible md:overflow-visible md:overflow-x-visible"
+          style={{ WebkitOverflowScrolling: 'touch' } as React.CSSProperties}
+        >
+          <div className="min-w-max min-h-full md:min-w-0 md:w-full">
+            {children}
+          </div>
+        </div>
         <ConditionalWhatsAppFloat />
       </>
     )
