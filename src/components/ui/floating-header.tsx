@@ -9,15 +9,24 @@ import { Button, buttonVariants } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/contexts/AuthContext'
+import type { LucideIcon } from 'lucide-react'
 
-const linkConfig = [
+interface NavLinkItem {
+  label: string
+  href: string
+  icon: LucideIcon
+  isHash?: boolean
+  highlight?: boolean
+}
+
+const linkConfig: NavLinkItem[] = [
   { label: 'Início', href: '/', icon: Home },
   { label: 'Planos', href: '/precos', icon: CreditCard },
   { label: 'Contato', href: '/#contact-section', icon: MessageCircle, isHash: true },
   { label: 'Criar', href: '/criar', icon: Sparkles, highlight: true },
   { label: 'Ferramentas', href: '/ferramentas', icon: Wrench },
   { label: 'Cursos', href: '/cursos', icon: BookOpen },
-] as const
+]
 
 export function FloatingHeader() {
   const pathname = usePathname()
