@@ -4,7 +4,7 @@ import React from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
-import { Home, CreditCard, MessageCircle, Sparkles, Wrench, BookOpen, User, Menu } from 'lucide-react'
+import { Home, CreditCard, Sparkles, Wrench, BookOpen, User, Menu } from 'lucide-react'
 import { buttonVariants } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
@@ -18,15 +18,16 @@ interface NavLinkItem {
   icon: LucideIcon
   isHash?: boolean
   highlight?: boolean
-  /** No mobile: se true, fica na barra; se false, vai para o menu hamburger */
+  /** No mobile: se true, fica na barra (ordem: 1 Início, 2 Criar, 4 Planos); Conta = 3) */
   showOnMobileBar?: boolean
+  /** Ordem na barra do telefone: 1 Início, 2 Criar, 4 Planos. Conta é 3 (renderizado separado) */
+  mobileOrder?: number
 }
 
 const linkConfig: NavLinkItem[] = [
-  { label: 'Início', href: '/', icon: Home, showOnMobileBar: true },
-  { label: 'Planos', href: '/precos', icon: CreditCard, showOnMobileBar: false },
-  { label: 'Contato', href: '/#contact-section', icon: MessageCircle, isHash: true, showOnMobileBar: false },
-  { label: 'Criar', href: '/criar', icon: Sparkles, highlight: true, showOnMobileBar: true },
+  { label: 'Início', href: '/', icon: Home, showOnMobileBar: true, mobileOrder: 1 },
+  { label: 'Planos', href: '/precos', icon: CreditCard, showOnMobileBar: true, mobileOrder: 4 },
+  { label: 'Criar', href: '/criar', icon: Sparkles, highlight: true, showOnMobileBar: true, mobileOrder: 2 },
   { label: 'Ferramentas', href: '/ferramentas', icon: Wrench, showOnMobileBar: false },
   { label: 'Cursos', href: '/cursos', icon: BookOpen, showOnMobileBar: false },
 ]
@@ -159,88 +160,85 @@ export function FloatingHeader() {
             <User className="size-5" />
           </Link>
         </div>
-        {/* Mobile/tablet: itens centralizados (ícone + texto abaixo), incluindo Conta/Entrar */}
+        {/* Mobile: ordem Início, Criar, Planos, Menu; Conta por último à direita */}
         <div className="flex lg:hidden items-center justify-center gap-0.5 sm:gap-1 flex-1 min-w-0">
-          {linkConfig.filter((l) => l.showOnMobileBar).map((link) => {
-            const Icon = link.icon
-            const isActive = pathname === link.href || (link.href === '/' && pathname === '/')
-            return (
-              <Link
-                key={link.href}
-                href={link.href}
-                onClick={link.isHash ? (e) => handleHashLink(e, link.href) : undefined}
-                className={cn(
-                  'flex flex-col items-center justify-center rounded-lg p-1.5 sm:p-2 min-w-[44px] min-h-[44px]',
-                  link.highlight
-                    ? 'bg-primary text-primary-foreground hover:bg-primary/90'
-                    : isActive
-                      ? 'bg-accent text-accent-foreground'
-                      : 'hover:bg-accent text-muted-foreground hover:text-foreground'
-                )}
-                title={link.label}
-              >
-                <Icon className="size-5 sm:size-5" />
-                <span className="text-[10px] sm:text-xs truncate w-full text-center">{link.label}</span>
-              </Link>
+          {(() => {
+            const barLinks = linkConfig
+              .filter((l) => l.showOnMobileBar)
+              .sort((a, b) => (a.mobileOrder ?? 99) - (b.mobileOrder ?? 99))
+            const contaActive = pathname === '/conta' || pathname?.startsWith('/conta/')
+            const contaClass = cn(
+              'flex flex-col items-center justify-center rounded-lg p-1.5 sm:p-2 min-w-[40px] min-h-[44px]',
+              contaActive ? 'bg-accent text-accent-foreground' : isAuthenticated ? 'hover:bg-accent text-muted-foreground hover:text-foreground' : 'bg-primary text-primary-foreground hover:bg-primary/90'
             )
-          })}
-          <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
-            <SheetTrigger asChild>
-              <button
-                type="button"
-                className="flex flex-col items-center justify-center rounded-lg p-1.5 sm:p-2 min-w-[44px] min-h-[44px] hover:bg-accent text-muted-foreground hover:text-foreground"
-                title="Menu"
-                aria-label="Abrir menu"
-              >
-                <Menu className="size-5 sm:size-5" />
-                <span className="text-[10px] sm:text-xs">Menu</span>
-              </button>
-            </SheetTrigger>
-            <SheetContent side="right" className="w-64 pt-8">
-              <nav className="flex flex-col gap-1">
-                {linkConfig.filter((l) => !l.showOnMobileBar).map((link) => {
+            return (
+              <>
+                {barLinks.map((link) => {
                   const Icon = link.icon
+                  const isActive = pathname === link.href || (link.href === '/' && pathname === '/')
                   return (
                     <Link
                       key={link.href}
                       href={link.href}
-                      onClick={(e) => {
-                        setMenuOpen(false)
-                        if (link.isHash) {
-                          e.preventDefault()
-                          handleHashLink(e, link.href)
-                        }
-                      }}
+                      onClick={link.isHash ? (e) => handleHashLink(e, link.href) : undefined}
                       className={cn(
-                        'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
-                        link.highlight
-                          ? 'bg-primary text-primary-foreground hover:bg-primary/90'
-                          : 'hover:bg-accent text-foreground'
+                        'flex flex-col items-center justify-center rounded-lg p-1.5 sm:p-2 min-w-[40px] min-h-[44px]',
+                        link.highlight ? 'bg-primary text-primary-foreground hover:bg-primary/90' : isActive ? 'bg-accent text-accent-foreground' : 'hover:bg-accent text-muted-foreground hover:text-foreground'
                       )}
+                      title={link.label}
                     >
-                      <Icon className="size-5 shrink-0" />
-                      {link.label}
+                      <Icon className="size-5 sm:size-5" />
+                      <span className="text-[9px] sm:text-[10px] truncate w-full text-center">{link.label}</span>
                     </Link>
                   )
                 })}
-              </nav>
-            </SheetContent>
-          </Sheet>
-          <Link
-            href={isAuthenticated ? '/conta' : '/login'}
-            className={cn(
-              'flex flex-col items-center justify-center rounded-lg p-1.5 sm:p-2 min-w-[44px] min-h-[44px]',
-              pathname === '/conta' || pathname?.startsWith('/conta/')
-                ? 'bg-accent text-accent-foreground'
-                : isAuthenticated
-                  ? 'hover:bg-accent text-muted-foreground hover:text-foreground'
-                  : 'bg-primary text-primary-foreground hover:bg-primary/90'
-            )}
-            title={isAuthenticated ? 'Conta' : 'Entrar'}
-          >
-            <User className="size-5 sm:size-5" />
-            <span className="text-[10px] sm:text-xs truncate w-full text-center">{isAuthenticated ? 'Conta' : 'Entrar'}</span>
-          </Link>
+                <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
+                  <SheetTrigger asChild>
+                    <button
+                      type="button"
+                      className="flex flex-col items-center justify-center rounded-lg p-1.5 sm:p-2 min-w-[40px] min-h-[44px] hover:bg-accent text-muted-foreground hover:text-foreground"
+                      title="Menu"
+                      aria-label="Abrir menu"
+                    >
+                      <Menu className="size-5 sm:size-5" />
+                      <span className="text-[9px] sm:text-[10px]">Menu</span>
+                    </button>
+                  </SheetTrigger>
+                  <SheetContent side="right" className="w-64 pt-8">
+                    <nav className="flex flex-col gap-1">
+                      {linkConfig.filter((l) => !l.showOnMobileBar).map((link) => {
+                        const Icon = link.icon
+                        return (
+                          <Link
+                            key={link.href}
+                            href={link.href}
+                            onClick={(e) => {
+                              setMenuOpen(false)
+                              if (link.isHash) {
+                                e.preventDefault()
+                                handleHashLink(e, link.href)
+                              }
+                            }}
+                            className={cn(
+                              'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
+                              link.highlight ? 'bg-primary text-primary-foreground hover:bg-primary/90' : 'hover:bg-accent text-foreground'
+                            )}
+                          >
+                            <Icon className="size-5 shrink-0" />
+                            {link.label}
+                          </Link>
+                        )
+                      })}
+                    </nav>
+                  </SheetContent>
+                </Sheet>
+                <Link href={isAuthenticated ? '/conta' : '/login'} className={contaClass} title={isAuthenticated ? 'Conta' : 'Entrar'}>
+                  <User className="size-5 sm:size-5" />
+                  <span className="text-[9px] sm:text-[10px] truncate w-full text-center">{isAuthenticated ? 'Conta' : 'Entrar'}</span>
+                </Link>
+              </>
+            )
+          })()}
         </div>
       </nav>
     </header>

@@ -33,38 +33,8 @@ export function AwardSection({
     // Versão compacta para ficar ao lado do vídeo
     return (
       <FadeInElement delay={0.3}>
-        <div className={cn("flex items-center justify-center", className)}>
-          <Awards
-            variant="award"
-            title={title}
-            subtitle={subtitle}
-            recipient={recipient}
-            date={date}
-            level={level}
-            className="scale-75 md:scale-90"
-          />
-        </div>
-      </FadeInElement>
-    )
-  }
-
-  // Versão standalone (seção completa)
-  return (
-    <section className={cn("py-10 md:py-14 px-4 bg-gogh-beige", className)}>
-      <div className="container mx-auto max-w-5xl">
-        <div className="flex flex-col md:flex-row items-center justify-center gap-6">
-          <FadeInElement>
-            <div className="text-center md:text-left max-w-md">
-              <h2 className="text-2xl md:text-3xl font-bold text-gogh-black mb-3">
-                {standaloneTitle}
-              </h2>
-              <p className="text-gogh-grayDark text-base">
-                {standaloneDescription}
-              </p>
-            </div>
-          </FadeInElement>
-          
-          <FadeInElement delay={0.2}>
+        <div className={cn("flex items-center justify-center overflow-hidden", className)}>
+          <div className="scale-70 md:scale-85">
             <Awards
               variant="award"
               title={title}
@@ -73,6 +43,39 @@ export function AwardSection({
               date={date}
               level={level}
             />
+          </div>
+        </div>
+      </FadeInElement>
+    )
+  }
+
+  // Versão standalone (seção completa) — tamanho normalizado para não cortar
+  return (
+    <section className={cn("py-8 md:py-12 px-4 bg-gogh-beige", className)}>
+      <div className="container mx-auto max-w-4xl overflow-hidden">
+        <div className="flex flex-col md:flex-row items-center justify-center gap-4 md:gap-6">
+          <FadeInElement>
+            <div className="text-center md:text-left max-w-md w-full min-w-0">
+              <h2 className="text-lg md:text-2xl font-bold text-gogh-black mb-2 break-words">
+                {standaloneTitle}
+              </h2>
+              <p className="text-gogh-grayDark text-sm md:text-base break-words">
+                {standaloneDescription}
+              </p>
+            </div>
+          </FadeInElement>
+          
+          <FadeInElement delay={0.2} className="flex-shrink-0 max-w-full overflow-hidden">
+            <div className="scale-75 origin-center md:scale-90">
+              <Awards
+                variant="award"
+                title={title}
+                subtitle={subtitle}
+                recipient={recipient}
+                date={date}
+                level={level}
+              />
+            </div>
           </FadeInElement>
         </div>
       </div>

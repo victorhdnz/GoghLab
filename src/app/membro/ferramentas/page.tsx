@@ -835,23 +835,23 @@ export default function ToolsPage() {
       )
 
     return (
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 space-y-6 sm:space-y-8">
+      <div className="max-w-3xl mx-auto px-3 sm:px-4 space-y-4 sm:space-y-6 pb-8">
         <div>
-          <h1 className="text-2xl lg:text-3xl font-bold text-gogh-black mb-2">Ferramentas</h1>
-          <p className="text-gogh-grayDark">
+          <h1 className="text-lg sm:text-xl font-bold text-gogh-black mb-1">Ferramentas</h1>
+          <p className="text-sm text-gogh-grayDark">
             Ferramentas incluídas no seu plano. Solicite o acesso e use o vídeo tutorial quando disponível.
           </p>
         </div>
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-gradient-to-r from-gogh-yellow/20 to-amber-100 rounded-xl p-5 border border-gogh-yellow/30"
+          className="bg-gradient-to-r from-gogh-yellow/20 to-amber-100 rounded-lg p-3 sm:p-4 border border-gogh-yellow/30"
         >
-          <p className="text-sm text-gogh-grayDark">
+          <p className="text-xs sm:text-sm text-gogh-grayDark">
             Ao solicitar acesso, nossa equipe liberará em até <strong>24 horas úteis</strong>.
           </p>
         </motion.div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
           {toolsFromPlan.map((t, index) => {
             const hasAccess = hasAccessForTool(t)
             const accessData = toolAccess.find(
@@ -870,19 +870,19 @@ export default function ToolsPage() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.1 }}
-                className="bg-white rounded-xl border border-gogh-grayLight shadow-sm overflow-hidden"
+                className="bg-white rounded-lg border border-gogh-grayLight shadow-sm overflow-hidden"
               >
-                <div className="bg-gradient-to-r from-gogh-yellow to-amber-500 p-6 text-white">
-                  <div className="flex items-center gap-4">
-                    <div className="w-14 h-14 bg-white/20 rounded-xl flex items-center justify-center overflow-hidden flex-shrink-0">
+                <div className="bg-gradient-to-r from-gogh-yellow to-amber-500 p-4 text-white">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white/20 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
                       {t.icon_url ? (
-                        <img src={t.icon_url} alt="" className="w-full h-full object-contain p-1" />
+                        <img src={t.icon_url} alt="" className="w-full h-full object-contain p-0.5" />
                       ) : (
-                        <Wrench className="w-8 h-8" />
+                        <Wrench className="w-5 h-5 sm:w-6 sm:h-6" />
                       )}
                     </div>
-                    <div>
-                      <h3 className="text-xl font-bold">{t.name}</h3>
+                    <div className="min-w-0">
+                      <h3 className="text-base sm:text-lg font-bold truncate">{t.name}</h3>
                       {hasAccess && (
                         <span className="inline-flex items-center gap-1 text-xs bg-white/20 px-2 py-0.5 rounded-full mt-1">
                           <CheckCircle2 className="w-3 h-3" />
@@ -892,9 +892,9 @@ export default function ToolsPage() {
                     </div>
                   </div>
                 </div>
-                <div className="p-6">
+                <div className="p-4 pb-5">
                   {hasAccess && hasNewCredentials && (
-                    <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 p-3">
+                    <div className="mb-3 rounded-lg border border-emerald-200 bg-emerald-50 p-2.5">
                       <p className="text-sm text-emerald-800 font-medium flex items-center gap-2">
                         <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
                         Suas credenciais foram atualizadas pela equipe. Problema resolvido.
@@ -905,7 +905,7 @@ export default function ToolsPage() {
                     </div>
                   )}
                   {t.description && (
-                    <p className="text-gogh-grayDark text-sm mb-4">{t.description}</p>
+                    <p className="text-gogh-grayDark text-sm mb-3">{t.description}</p>
                   )}
                   {hasAccess && accessData?.access_link && (
                     isAccessLinkUrl(accessData.access_link) ? (
@@ -913,11 +913,11 @@ export default function ToolsPage() {
                         href={accessData.access_link}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gogh-yellow text-gogh-black font-medium rounded-lg hover:bg-gogh-yellow/90 mb-3"
+                        className="w-full flex items-center justify-center gap-1.5 px-3 py-2.5 text-sm bg-gogh-yellow text-gogh-black font-medium rounded-lg hover:bg-gogh-yellow/90 mb-2"
                       >
-                        <LinkIcon className="w-4 h-4" />
+                        <LinkIcon className="w-3.5 h-3.5" />
                         Acessar {t.name}
-                        <ExternalLink className="w-4 h-4" />
+                        <ExternalLink className="w-3.5 h-3.5" />
                       </a>
                     ) : (
                       <button
@@ -927,9 +927,9 @@ export default function ToolsPage() {
                           emailOrUser: accessData.access_link ?? '',
                           password: accessData.password,
                         })}
-                        className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gogh-yellow text-gogh-black font-medium rounded-lg hover:bg-gogh-yellow/90 mb-3"
+                        className="w-full flex items-center justify-center gap-1.5 px-3 py-2.5 text-sm bg-gogh-yellow text-gogh-black font-medium rounded-lg hover:bg-gogh-yellow/90 mb-2"
                       >
-                        <LinkIcon className="w-4 h-4" />
+                        <LinkIcon className="w-3.5 h-3.5" />
                         Ver credenciais - {t.name}
                       </button>
                     )
@@ -938,41 +938,41 @@ export default function ToolsPage() {
                     <button
                       type="button"
                       onClick={() => setTutorialModalTool({ name: t.name, videoUrl })}
-                      className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-blue-500 text-white font-medium rounded-lg hover:bg-blue-600 mb-3"
+                      className="w-full flex items-center justify-center gap-1.5 px-3 py-2.5 text-sm bg-blue-500 text-white font-medium rounded-lg hover:bg-blue-600 mb-2"
                     >
-                      <Play className="w-4 h-4" />
+                      <Play className="w-3.5 h-3.5" />
                       Ver tutorial
                     </button>
                   )}
                   {hasAccess && (accessData?.access_link || accessData?.password) && (
-                    <div className="mb-3">
+                    <div className="mb-2">
                       <button
                         type="button"
                         onClick={() => reportLinkError(t.slug, t.name)}
-                        className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg border border-red-200 transition-colors"
+                        className="w-full flex items-center justify-center gap-1.5 px-3 py-2 text-xs sm:text-sm text-red-600 hover:bg-red-50 rounded-lg border border-red-200 transition-colors"
                       >
-                        <AlertTriangle className="w-4 h-4" />
+                        <AlertTriangle className="w-3.5 h-3.5" />
                         {hasNewCredentials ? 'Reportar novamente' : 'Reportar Erro na Conta'}
                       </button>
                     </div>
                   )}
                   {!hasAccess && (
-                    <div className="mt-4">
+                    <div className="mt-3">
                       {hasOldPeriodAccess && (
-                        <div className="rounded-lg p-3 border border-emerald-200 bg-emerald-50 mb-3">
-                          <p className="text-sm text-emerald-800 flex items-center gap-2">
-                            <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+                        <div className="rounded-lg p-2.5 border border-emerald-200 bg-emerald-50 mb-2">
+                          <p className="text-xs sm:text-sm text-emerald-800 flex items-center gap-2">
+                            <CheckCircle2 className="w-3.5 h-3.5 flex-shrink-0" />
                             Renovação detectada – solicite o novo acesso para esta ferramenta.
                           </p>
                         </div>
                       )}
                       {pending ? (
-                        <div className="rounded-lg p-3 border border-amber-200 bg-amber-50">
-                          <p className="text-sm text-amber-800 flex items-center gap-2">
-                            <Clock className="w-4 h-4 flex-shrink-0" />
+                        <div className="rounded-lg p-2.5 border border-amber-200 bg-amber-50">
+                          <p className="text-xs sm:text-sm text-amber-800 flex items-center gap-2">
+                            <Clock className="w-3.5 h-3.5 flex-shrink-0" />
                             {isReportPending ? 'Problema reportado – em análise pela equipe' : 'Solicitação em análise'}
                           </p>
-                          <p className="text-xs text-amber-700 mt-1">
+                          <p className="text-[11px] sm:text-xs text-amber-700 mt-0.5">
                             {isReportPending ? 'Entraremos em contato em breve.' : 'Você receberá o acesso em até 24 horas úteis.'}
                           </p>
                         </div>
@@ -980,9 +980,9 @@ export default function ToolsPage() {
                         <button
                           type="button"
                           disabled
-                          className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gogh-grayLight text-gogh-grayDark font-medium rounded-lg cursor-not-allowed border border-gogh-grayLight"
+                          className="w-full flex items-center justify-center gap-1.5 px-3 py-2.5 text-sm bg-gogh-grayLight text-gogh-grayDark font-medium rounded-lg cursor-not-allowed border border-gogh-grayLight"
                         >
-                          <Clock className="w-4 h-4" />
+                          <Clock className="w-3.5 h-3.5" />
                           {countdownLabel() ? (
                             <>Aguardando: {countdownLabel()}</>
                           ) : (
@@ -993,9 +993,9 @@ export default function ToolsPage() {
                         <button
                           onClick={() => requestToolAccess(t)}
                           disabled={submitting}
-                          className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gogh-yellow text-gogh-black font-medium rounded-lg hover:bg-gogh-yellow/90 disabled:opacity-50"
+                          className="w-full flex items-center justify-center gap-1.5 px-3 py-2.5 text-sm bg-gogh-yellow text-gogh-black font-medium rounded-lg hover:bg-gogh-yellow/90 disabled:opacity-50"
                         >
-                          <Send className="w-4 h-4" />
+                          <Send className="w-3.5 h-3.5" />
                           {hasOldPeriodAccess ? 'Solicitar novo acesso' : 'Solicitar acesso'}
                         </button>
                       )}

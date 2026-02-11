@@ -147,8 +147,9 @@ export function PricingSection({
   }
 
   return (
-    <section id="pricing-section" className="py-16 md:py-24 px-4 bg-[#F5F1E8]">
+    <section id="pricing-section" className="py-10 md:py-14 px-3 sm:px-4 bg-[#F5F1E8] overflow-hidden">
       <FadeInElement>
+        <div className="max-w-5xl mx-auto overflow-x-auto overflow-y-visible">
         <PricingComponent
           plans={plans}
           billingCycle={billingCycle}
@@ -159,9 +160,10 @@ export function PricingSection({
           annualDiscountPercent={annualDiscount}
           featureCategories={featureCategories}
         />
+        </div>
         
         {/* Terms - Assinatura de Planos (resumido) */}
-        <div className="max-w-6xl mx-auto mt-12 p-6 bg-white/50 rounded-lg border border-[#F7C948]/20">
+        <div className="max-w-5xl mx-auto mt-6 p-4 sm:p-5 bg-white/50 rounded-lg border border-[#F7C948]/20">
           <p className="text-center text-sm text-gray-700">
             Ao assinar qualquer plano, você concorda expressamente com os{' '}
             <Link 

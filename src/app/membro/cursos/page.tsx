@@ -157,13 +157,13 @@ export default function CoursesPage() {
   const capcutCourses = courses.filter(c => c.course_type === 'capcut' || (!c.course_type && c.title?.toLowerCase().includes('capcut')))
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 space-y-6 sm:space-y-8">
+    <div className="max-w-3xl mx-auto px-3 sm:px-4 space-y-4 sm:space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gogh-black mb-1 sm:mb-2">
+        <h1 className="text-lg sm:text-xl font-bold text-gogh-black mb-1">
           Cursos
         </h1>
-        <p className="text-sm sm:text-base text-gogh-grayDark">
+        <p className="text-xs sm:text-sm text-gogh-grayDark">
           Aprenda novas habilidades com nossos cursos exclusivos de criação de conteúdo.
         </p>
       </div>
@@ -195,11 +195,11 @@ export default function CoursesPage() {
       {/* Canva Courses */}
       {canvaCourses.length > 0 && (
         <div>
-          <div className="flex items-center gap-2 mb-4">
-            <Palette className="w-5 h-5 text-purple-600" />
-            <h2 className="text-xl font-bold text-gogh-black">Cursos de Canva</h2>
+          <div className="flex items-center gap-1.5 mb-3">
+            <Palette className="w-4 h-4 text-purple-600" />
+            <h2 className="text-base font-bold text-gogh-black">Cursos de Canva</h2>
           </div>
-          <div className={`grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 ${!hasCourseAccess ? 'relative' : ''}`}>
+          <div className={`grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 ${!hasCourseAccess ? 'relative' : ''}`}>
             {!hasCourseAccess && (
               <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-10 rounded-xl flex items-center justify-center">
                 <div className="text-center p-4 sm:p-6 md:p-8">
@@ -229,11 +229,11 @@ export default function CoursesPage() {
       {/* CapCut Courses */}
       {capcutCourses.length > 0 && (
         <div>
-          <div className="flex items-center gap-2 mb-4">
-            <Scissors className="w-5 h-5 text-emerald-600" />
-            <h2 className="text-xl font-bold text-gogh-black">Cursos de CapCut</h2>
+          <div className="flex items-center gap-1.5 mb-3">
+            <Scissors className="w-4 h-4 text-emerald-600" />
+            <h2 className="text-base font-bold text-gogh-black">Cursos de CapCut</h2>
           </div>
-          <div className={`grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 ${!hasCourseAccess ? 'relative' : ''}`}>
+          <div className={`grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 ${!hasCourseAccess ? 'relative' : ''}`}>
             {!hasCourseAccess && (
               <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-10 rounded-xl flex items-center justify-center">
                 <div className="text-center p-4 sm:p-6 md:p-8">
@@ -295,18 +295,18 @@ function CourseCard({
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.1 }}
-      className="bg-white rounded-xl border border-gogh-grayLight shadow-sm overflow-hidden"
+      className="bg-white rounded-lg border border-gogh-grayLight shadow-sm overflow-hidden"
     >
       {/* Course Header - clicável para expandir/recolher aulas */}
       <button
         type="button"
         onClick={() => setExpanded(!expanded)}
-        className="w-full p-4 sm:p-5 md:p-6 border-b border-gogh-grayLight text-left hover:bg-amber-50/50 transition-colors rounded-t-xl"
+        className="w-full p-3 sm:p-4 border-b border-gogh-grayLight text-left hover:bg-amber-50/50 transition-colors rounded-t-lg"
       >
-        <div className="flex items-start justify-between gap-2 sm:gap-3">
+        <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">
-            <h3 className="text-base sm:text-lg md:text-xl font-bold text-gogh-black mb-1 sm:mb-2">{course.title}</h3>
-            <p className="text-xs sm:text-sm text-gogh-grayDark line-clamp-2">{course.description}</p>
+            <h3 className="text-sm sm:text-base font-bold text-gogh-black mb-0.5">{course.title}</h3>
+            <p className="text-xs text-gogh-grayDark line-clamp-2">{course.description}</p>
             <div className="flex items-center gap-4 mt-4 text-sm text-gogh-grayDark">
               <span className="flex items-center gap-1">
                 <Video className="w-4 h-4" />
@@ -322,7 +322,7 @@ function CourseCard({
 
       {/* Lessons List - visível apenas quando expandido */}
       {expanded && (
-      <div className="p-4 sm:p-5 md:p-6">
+      <div className="p-3 sm:p-4">
         {hasAccess ? (
           <div className="space-y-2">
             {course.lessons && course.lessons.length > 0 ? (

@@ -111,10 +111,10 @@ export default function GalleryHoverCarousel({
 
 
   return (
-    <section className="py-12 sm:py-16 md:py-20 bg-background">
-      <div className="container mx-auto px-4 sm:px-6">
-        <div className="mb-6 sm:mb-8 flex flex-col justify-between md:flex-row md:items-end">
-          <div className="max-w-2xl">
+    <section className="py-8 sm:py-10 md:py-12 bg-background">
+      <div className="container mx-auto px-3 sm:px-4 max-w-4xl">
+        <div className="mb-4 sm:mb-6 flex flex-col justify-between md:flex-row md:items-end">
+          <div className="max-w-xl">
             <SparklesText
               text={heading}
               className="text-gray-900 dark:text-white"
@@ -156,7 +156,7 @@ export default function GalleryHoverCarousel({
           >
             <CarouselContent className="hide-scrollbar w-full max-w-full md:ml-2 md:-mr-2">
               {items.map((item) => (
-                <CarouselItem key={item.id} className="ml-4 md:ml-6 md:max-w-[280px] lg:max-w-[300px]">
+                <CarouselItem key={item.id} className="ml-3 md:ml-4 md:max-w-[220px] lg:max-w-[240px]">
                   {item.type === "video" && (item.videoUrl || item.youtubeUrl) ? (
                     <VideoCard
                       item={item}
@@ -226,23 +226,23 @@ export default function GalleryHoverCarousel({
 function ImageCard({ item }: { item: GalleryHoverCarouselItem }) {
   const className = "block w-full";
   const content = (
-    <Card className="overflow-hidden rounded-xl h-full w-full rounded-2xl flex flex-col">
-      <div className="relative w-full aspect-video min-h-[120px] sm:min-h-[140px] bg-muted/50 flex-shrink-0">
+    <Card className="overflow-hidden rounded-lg h-full w-full flex flex-col">
+      <div className="relative w-full aspect-video min-h-[90px] sm:min-h-[100px] bg-muted/50 flex-shrink-0">
         <Image
-          width={400}
-          height={225}
+          width={320}
+          height={180}
           src={item.image}
           alt={item.title}
           className="h-full w-full object-cover object-center"
-          sizes="(max-width: 768px) 260px, 300px"
+          sizes="(max-width: 768px) 200px, 240px"
         />
       </div>
-      <div className="p-2.5 sm:p-3 flex flex-col flex-1 min-w-0 bg-background">
-        <h3 className="text-sm font-medium md:text-base line-clamp-1">{item.title}</h3>
-        <p className="text-muted-foreground text-xs line-clamp-2 mt-0.5">
+      <div className="p-2 sm:p-2.5 flex flex-col flex-1 min-w-0 bg-background">
+        <h3 className="text-xs font-medium sm:text-sm line-clamp-1">{item.title}</h3>
+        <p className="text-muted-foreground text-[11px] sm:text-xs line-clamp-2 mt-0.5">
           {item.summary}
         </p>
-        <div className="flex gap-1.5 mt-2 flex-wrap">
+        <div className="flex gap-1 mt-1.5 flex-wrap">
           {(item.prompt || item.promptId) && (
             <Link
               href={
@@ -251,7 +251,7 @@ function ImageCard({ item }: { item: GalleryHoverCarouselItem }) {
                   : `/criar/gerar?prompt=${encodeURIComponent(item.prompt ?? '')}`
               }
             >
-              <Button size="sm" className="gap-1.5 text-xs h-8">
+              <Button size="sm" className="gap-1 text-[11px] h-7">
                 <Sparkles className="size-3.5" />
                 Testar e criar
               </Button>
@@ -287,31 +287,31 @@ function VideoCard({
 }) {
   return (
     <div className="block w-full">
-      <Card className="overflow-hidden rounded-xl h-full w-full rounded-2xl flex flex-col">
+      <Card className="overflow-hidden rounded-lg h-full w-full flex flex-col">
         <div
-          className="relative w-full aspect-video min-h-[120px] sm:min-h-[140px] bg-muted/50 flex-shrink-0 cursor-pointer"
+          className="relative w-full aspect-video min-h-[90px] sm:min-h-[100px] bg-muted/50 flex-shrink-0 cursor-pointer"
           onClick={onPlay}
         >
           <Image
-            width={400}
-            height={225}
+            width={320}
+            height={180}
             src={item.image}
             alt={item.title}
             className="h-full w-full object-cover object-center"
-            sizes="(max-width: 768px) 260px, 300px"
+            sizes="(max-width: 768px) 200px, 240px"
           />
           <div className="absolute inset-0 flex items-center justify-center bg-black/20 hover:bg-black/30 transition-colors">
-            <span className="rounded-full bg-white/90 p-2.5 sm:p-3 text-black shadow-lg">
-              <Play className="h-6 w-6 sm:h-7 sm:w-7 fill-current" />
+            <span className="rounded-full bg-white/90 p-2 text-black shadow-lg">
+              <Play className="h-5 w-5 sm:h-6 sm:w-6 fill-current" />
             </span>
           </div>
         </div>
-        <div className="p-2.5 sm:p-3 flex flex-col flex-1 min-w-0 bg-background">
-          <h3 className="text-sm font-medium md:text-base line-clamp-1">{item.title}</h3>
-          <p className="text-muted-foreground text-xs line-clamp-2 mt-0.5">
+        <div className="p-2 sm:p-2.5 flex flex-col flex-1 min-w-0 bg-background">
+          <h3 className="text-xs font-medium sm:text-sm line-clamp-1">{item.title}</h3>
+          <p className="text-muted-foreground text-[11px] sm:text-xs line-clamp-2 mt-0.5">
             {item.summary}
           </p>
-          <div className="flex gap-1.5 mt-2 flex-wrap items-center">
+          <div className="flex gap-1 mt-1.5 flex-wrap items-center">
             {(item.prompt || item.promptId) && (
               <Link
                 href={
@@ -321,7 +321,7 @@ function VideoCard({
                 }
                 onClick={(e) => e.stopPropagation()}
               >
-                <Button size="sm" className="gap-1.5 text-xs h-8">
+                <Button size="sm" className="gap-1 text-[11px] h-7">
                   <Sparkles className="size-3.5" />
                   Testar e criar
                 </Button>
@@ -334,9 +334,9 @@ function VideoCard({
                 e.stopPropagation();
                 onPlay();
               }}
-              className="rounded-full h-8 w-8"
+              className="rounded-full h-7 w-7"
             >
-              <Play className="size-3.5" />
+              <Play className="size-3" />
             </Button>
           </div>
         </div>

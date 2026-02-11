@@ -29,6 +29,30 @@ const PLACEHOLDERS: Record<TabId, string> = {
   vangogh: 'Descreva o que deseja criar com o prompt...',
 }
 
+/** Modelos de IA disponíveis por tipo (foto vs vídeo). Será expandido quando as APIs forem integradas. */
+const MODELS_BY_TAB: Record<TabId, { id: string; label: string }[]> = {
+  foto: [
+    { id: 'default-image', label: 'Padrão (imagem)' },
+    { id: 'dall-e', label: 'DALL·E' },
+    { id: 'flux', label: 'Flux' },
+  ],
+  video: [
+    { id: 'default-video', label: 'Padrão (vídeo)' },
+    { id: 'runway', label: 'Runway' },
+    { id: 'pika', label: 'Pika' },
+  ],
+  roteiro: [
+    { id: 'default-video', label: 'Padrão (vídeo)' },
+    { id: 'runway', label: 'Runway' },
+    { id: 'pika', label: 'Pika' },
+  ],
+  vangogh: [
+    { id: 'default-prompt', label: 'Padrão' },
+    { id: 'dall-e', label: 'DALL·E' },
+    { id: 'flux', label: 'Flux' },
+  ],
+}
+
 export default function CriarGerarPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -49,6 +73,14 @@ export default function CriarGerarPage() {
   const [showCreditModal, setShowCreditModal] = useState(false)
 
   const activeTab: TabId = selectedPrompt?.tabId ?? (tabFromUrl && ['foto', 'video', 'roteiro', 'vangogh'].includes(tabFromUrl) ? tabFromUrl : 'foto')
+  const availableModels = MODELS_BY_TAB[activeTab] ?? MODELS_BY_TAB.foto
+  const [selectedModelId, setSelectedModelId] = useState<string>(availableModels[0]?.id ?? 'default-image')
+
+  useEffect(() => {
+    const models = MODELS_BY_TAB[activeTab] ?? MODELS_BY_TAB.foto
+    const firstId = models[0]?.id
+    setSelectedModelId((prev) => (firstId && models.some((m) => m.id === prev)) ? prev : (firstId ?? prev))
+  }, [activeTab])
 
   useEffect(() => {
     fetch('/api/creation-prompts')
@@ -224,18 +256,50 @@ export default function CriarGerarPage() {
               </div>
             )}
           </div>
-          <div className="p-4 border-t flex items-center justify-between gap-2 flex-wrap">
-            <span className="text-sm text-muted-foreground">Custo: {selectedPrompt.creditCost} créditos</span>
-            <Button onClick={() => handleGenerateWithPrompt(selectedPrompt)} className="gap-2">
-              <Zap className="h-4 w-4" />
-              Gerar · {selectedPrompt.creditCost} créditos
-            </Button>
+          <div className="p-4 border-t space-y-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <label htmlFor="prompt-model-select" className="text-sm font-medium text-muted-foreground">
+                Modelo de IA:
+              </label>
+              <select
+                id="prompt-model-select"
+                value={selectedModelId}
+                onChange={(e) => setSelectedModelId(e.target.value)}
+                className="rounded-lg border border-input bg-background px-3 py-2 text-sm"
+              >
+                {availableModels.map((m) => (
+                  <option key={m.id} value={m.id}>{m.label}</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <span className="text-sm text-muted-foreground">Custo: {selectedPrompt.creditCost} créditos</span>
+              <Button onClick={() => handleGenerateWithPrompt(selectedPrompt)} className="gap-2">
+                <Zap className="h-4 w-4" />
+                Gerar · {selectedPrompt.creditCost} créditos
+              </Button>
+            </div>
           </div>
         </div>
       )}
 
       {showChat && (
         <>
+          <div className="mb-4 flex flex-wrap items-center gap-2">
+            <label htmlFor="chat-model-select" className="text-sm font-medium text-muted-foreground">
+              Modelo de IA:
+            </label>
+            <select
+              id="chat-model-select"
+              value={selectedModelId}
+              onChange={(e) => setSelectedModelId(e.target.value)}
+              className="rounded-lg border border-input bg-background px-3 py-2 text-sm"
+            >
+              {availableModels.map((m) => (
+                <option key={m.id} value={m.id}>{m.label}</option>
+              ))}
+            </select>
+          </div>
           {messages.length > 0 && (
             <div className="mb-4 max-h-[320px] sm:max-h-[400px] overflow-y-auto rounded-xl border bg-muted/20">
               <ChatWithActions messages={messages} onAction={handleAction} />
