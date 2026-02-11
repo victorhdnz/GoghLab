@@ -1525,7 +1525,6 @@ export default function HomepageEditorPage() {
         )
       case 'gallery': {
         const galleryData = formData.gallery_carousel || { heading: '', subtitle: '', items: [], auto_slide_interval: 5000 }
-        const galleryItems = Array.isArray(galleryData.items) ? galleryData.items : []
         const setGalleryData = (next: typeof galleryData) => setFormData({ ...formData, gallery_carousel: next })
         return (
           <div className="space-y-4">
@@ -1559,137 +1558,6 @@ export default function HomepageEditorPage() {
                   onChange={(e) => setGalleryData({ ...galleryData, auto_slide_interval: parseInt(e.target.value, 10) || 0 })}
                   placeholder="5000"
                 />
-                <div className="border-t pt-4 mt-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <label className="block text-sm font-medium">Cards ({galleryItems.length})</label>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const newItem: GalleryHoverCarouselItem = {
-                          id: `item-${Date.now()}`,
-                          type: 'image',
-                          title: 'Novo card',
-                          summary: '',
-                          image: '',
-                        }
-                        setGalleryData({ ...galleryData, items: [...galleryItems, newItem] })
-                      }}
-                      className="text-sm bg-gogh-yellow text-gogh-black px-3 py-1 rounded-lg hover:bg-gogh-yellow-dark transition-colors"
-                    >
-                      + Adicionar card
-                    </button>
-                  </div>
-                  <div className="space-y-3 max-h-[480px] overflow-y-auto">
-                    {galleryItems.map((item, index) => (
-                      <div key={item.id} className="bg-gray-50 p-3 rounded-lg border">
-                        <div className="flex items-start justify-between gap-2">
-                          <span className="text-lg font-bold text-gray-400">{index + 1}</span>
-                          <button
-                            type="button"
-                            onClick={() => setGalleryData({ ...galleryData, items: galleryItems.filter((_, i) => i !== index) })}
-                            className="text-red-500 hover:text-red-700 p-1"
-                            title="Remover card"
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        </div>
-                        <div className="space-y-2 mt-2">
-                          <div>
-                            <label className="block text-xs font-medium mb-1">Tipo</label>
-                            <select
-                              value={item.type}
-                              onChange={(e) => {
-                                const updated = [...galleryItems]
-                                updated[index] = { ...updated[index], type: e.target.value as 'image' | 'video' }
-                                setGalleryData({ ...galleryData, items: updated })
-                              }}
-                              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg"
-                            >
-                              <option value="image">Imagem</option>
-                              <option value="video">Vídeo (YouTube)</option>
-                            </select>
-                          </div>
-                          <Input
-                            label="Título"
-                            value={item.title}
-                            onChange={(e) => {
-                              const updated = [...galleryItems]
-                              updated[index] = { ...updated[index], title: e.target.value }
-                              setGalleryData({ ...galleryData, items: updated })
-                            }}
-                            placeholder="Título do card"
-                          />
-                          <div>
-                            <label className="block text-xs font-medium mb-1">Resumo</label>
-                            <textarea
-                              value={item.summary}
-                              onChange={(e) => {
-                                const updated = [...galleryItems]
-                                updated[index] = { ...updated[index], summary: e.target.value }
-                                setGalleryData({ ...galleryData, items: updated })
-                              }}
-                              rows={2}
-                              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg"
-                              placeholder="Breve descrição"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium mb-2">Capa / imagem</label>
-                            <ImageUploader
-                              value={item.image}
-                              onChange={(url) => {
-                                const updated = [...galleryItems]
-                                updated[index] = { ...updated[index], image: url }
-                                setGalleryData({ ...galleryData, items: updated })
-                              }}
-                              placeholder="Upload da imagem (capa do card)"
-                              cropType="banner"
-                              aspectRatio={16 / 9}
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-xs font-medium mb-1">Prompt para &quot;Testar e criar&quot;</label>
-                            <textarea
-                              value={item.prompt ?? ''}
-                              onChange={(e) => {
-                                const updated = [...galleryItems]
-                                updated[index] = { ...updated[index], prompt: e.target.value || undefined }
-                                setGalleryData({ ...galleryData, items: updated })
-                              }}
-                              rows={2}
-                              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg"
-                              placeholder="Texto que será colado no Criar com IA ao clicar em Testar e criar"
-                            />
-                          </div>
-                          {item.type === 'image' && (
-                            <Input
-                              label="Link ao clicar (opcional)"
-                              value={item.url || ''}
-                              onChange={(e) => {
-                                const updated = [...galleryItems]
-                                updated[index] = { ...updated[index], url: e.target.value }
-                                setGalleryData({ ...galleryData, items: updated })
-                              }}
-                              placeholder="https://..."
-                            />
-                          )}
-                          {item.type === 'video' && (
-                            <CloudinaryVideoUploader
-                              value={item.videoUrl || ''}
-                              onChange={(url) => {
-                                const updated = [...galleryItems]
-                                updated[index] = { ...updated[index], videoUrl: url }
-                                setGalleryData({ ...galleryData, items: updated })
-                              }}
-                              placeholder="Envie um vídeo (MP4, WebM, etc.) — Cloudinary"
-                              folder="gallery-videos"
-                            />
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
               </>
             )}
           </div>
@@ -2181,10 +2049,10 @@ export default function HomepageEditorPage() {
           }
         />
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-8">
-          {/* Editor Principal */}
-          <div className="lg:col-span-2">
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6 max-w-6xl mx-auto">
+          {/* Editor Principal - largura limitada para melhor scroll e leitura */}
+          <div className="lg:col-span-2 min-w-0 max-w-xl lg:max-w-2xl">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-6 overflow-hidden">
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-xl font-bold">Seções da Homepage</h2>
               </div>
@@ -2198,7 +2066,8 @@ export default function HomepageEditorPage() {
                 </p>
               </div>
 
-              {/* Seções */}
+              {/* Seções - área rolável em telas menores */}
+              <div className="max-h-[70vh] overflow-y-auto pr-1">
               {sectionOrder.map((sectionId, index) => (
                 <SectionWrapper
                   key={sectionId}
@@ -2216,6 +2085,7 @@ export default function HomepageEditorPage() {
                   {renderSectionContent(sectionId)}
                 </SectionWrapper>
               ))}
+              </div>
             </div>
           </div>
 

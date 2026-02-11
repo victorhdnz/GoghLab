@@ -115,7 +115,7 @@ export default function GalleryHoverCarousel({
         <div className="mb-4 w-full flex flex-col sm:flex-row items-center justify-center gap-3">
           <SparklesText
             text={heading}
-            className="text-gray-900 dark:text-white text-lg sm:text-xl md:text-2xl text-center"
+            className="text-gray-900 dark:text-white text-xl sm:text-2xl md:text-3xl text-center"
             colors={{ first: "#EAB308", second: "#0a0a0a" }}
             sparklesCount={10}
           />
@@ -235,8 +235,8 @@ function ImageCard({ item }: { item: GalleryHoverCarouselItem }) {
         />
       </div>
       <div className="p-3 flex flex-col flex-1 min-w-0 items-center text-center">
-        <p className="font-medium text-xs sm:text-sm line-clamp-1 text-foreground w-full">{item.title}</p>
-        <p className="text-[11px] sm:text-xs text-muted-foreground line-clamp-2 mt-0.5 w-full">
+        <p className="font-medium text-sm sm:text-base line-clamp-1 text-foreground w-full">{item.title}</p>
+        <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2 mt-0.5 w-full">
           {item.summary}
         </p>
         <div className="flex gap-1.5 mt-2 flex-wrap justify-center">
@@ -248,16 +248,16 @@ function ImageCard({ item }: { item: GalleryHoverCarouselItem }) {
                   : `/criar/gerar?prompt=${encodeURIComponent(item.prompt ?? '')}`
               }
             >
-              <Button size="sm" className="gap-1 text-xs h-6">
-                <Sparkles className="size-3" />
+              <Button size="sm" className="gap-1 text-xs sm:text-sm h-7">
+                <Sparkles className="size-3.5" />
                 Testar e criar
               </Button>
             </Link>
           )}
           {item.url && (
             <Link href={item.url}>
-              <Button variant="outline" size="icon" className="rounded-full h-6 w-6">
-                <ArrowRight className="size-3" />
+              <Button variant="outline" size="icon" className="rounded-full h-7 w-7">
+                <ArrowRight className="size-3.5" />
               </Button>
             </Link>
           )}
@@ -304,8 +304,8 @@ function VideoCard({
           </div>
         </div>
         <div className="p-3 flex flex-col flex-1 min-w-0 items-center text-center">
-          <p className="font-medium text-xs sm:text-sm line-clamp-1 text-foreground w-full">{item.title}</p>
-          <p className="text-[11px] sm:text-xs text-muted-foreground line-clamp-2 mt-0.5 w-full">
+          <p className="font-medium text-sm sm:text-base line-clamp-1 text-foreground w-full">{item.title}</p>
+          <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2 mt-0.5 w-full">
             {item.summary}
           </p>
           <div className="flex gap-1.5 mt-2 flex-wrap items-center justify-center">
@@ -318,8 +318,8 @@ function VideoCard({
                 }
                 onClick={(e) => e.stopPropagation()}
               >
-                <Button size="sm" className="gap-1 text-xs h-6">
-                  <Sparkles className="size-3" />
+                <Button size="sm" className="gap-1 text-xs sm:text-sm h-7">
+                  <Sparkles className="size-3.5" />
                   Testar e criar
                 </Button>
               </Link>
@@ -331,9 +331,9 @@ function VideoCard({
                 e.stopPropagation();
                 onPlay();
               }}
-              className="rounded-full h-6 w-6"
+              className="rounded-full h-7 w-7"
             >
-              <Play className="size-3" />
+              <Play className="size-3.5" />
             </Button>
           </div>
         </div>

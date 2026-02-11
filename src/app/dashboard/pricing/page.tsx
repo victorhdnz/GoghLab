@@ -720,11 +720,11 @@ export default function PricingEditorPage() {
           }
         />
 
-        <div className="mt-8 space-y-6">
+        <div className="mt-6 space-y-4">
           {/* Configurações Gerais */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-            <h2 className="text-xl font-bold mb-4">Configurações Gerais</h2>
-            <div className="space-y-4">
+          <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-4 sm:p-5">
+            <h2 className="text-lg font-bold mb-3">Configurações Gerais</h2>
+            <div className="space-y-3">
               <Switch
                 label="Habilitar Seção de Pricing"
                 checked={formData.pricing_enabled ?? false}
@@ -732,52 +732,56 @@ export default function PricingEditorPage() {
               />
               {formData.pricing_enabled && (
                 <>
-                  <Input
-                    label="Título"
-                    value={formData.pricing_title || ''}
-                    onChange={(e) => setFormData({ ...formData, pricing_title: e.target.value })}
-                    placeholder="Ex: Escolha o plano ideal para sua empresa"
-                  />
+                  <div className="max-w-2xl">
+                    <Input
+                      label="Título"
+                      value={formData.pricing_title || ''}
+                      onChange={(e) => setFormData({ ...formData, pricing_title: e.target.value })}
+                      placeholder="Ex: Escolha o plano ideal para sua empresa"
+                    />
+                  </div>
                   <div>
-                    <label className="block text-sm font-medium mb-2">Descrição</label>
+                    <label className="block text-sm font-medium mb-1">Descrição</label>
                     <textarea
                       value={formData.pricing_description || ''}
                       onChange={(e) => setFormData({ ...formData, pricing_description: e.target.value })}
                       placeholder="Ex: Soluções completas de gestão digital para impulsionar seu negócio..."
-                      rows={3}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      rows={2}
+                      className="w-full max-w-2xl px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
-                  <Input
-                    label="Percentual de Desconto Anual (%)"
-                    value={formData.pricing_annual_discount?.toString() || '20'}
-                    onChange={(e) => {
-                      const newDiscount = parseInt(e.target.value) || 20
-                      setFormData((prev) => {
-                        // Recalcular preços anuais de todos os planos quando o desconto mudar
-                        const updatedPlans = prev.pricing_plans?.map((plan) => {
-                          const yearlyTotal = plan.priceMonthly * 12
-                          const discountAmount = yearlyTotal * (newDiscount / 100)
-                          const annualPrice = yearlyTotal - discountAmount
+                  <div className="max-w-24">
+                    <Input
+                      label="Percentual de Desconto Anual (%)"
+                      value={formData.pricing_annual_discount?.toString() || '20'}
+                      onChange={(e) => {
+                        const newDiscount = parseInt(e.target.value) || 20
+                        setFormData((prev) => {
+                          // Recalcular preços anuais de todos os planos quando o desconto mudar
+                          const updatedPlans = prev.pricing_plans?.map((plan) => {
+                            const yearlyTotal = plan.priceMonthly * 12
+                            const discountAmount = yearlyTotal * (newDiscount / 100)
+                            const annualPrice = yearlyTotal - discountAmount
+                            return {
+                              ...plan,
+                              priceAnnually: Math.round(annualPrice)
+                            }
+                          })
+                          
                           return {
-                            ...plan,
-                            priceAnnually: Math.round(annualPrice)
+                            ...prev,
+                            pricing_annual_discount: newDiscount,
+                            pricing_plans: updatedPlans
                           }
                         })
-                        
-                        return {
-                          ...prev,
-                          pricing_annual_discount: newDiscount,
-                          pricing_plans: updatedPlans
-                        }
-                      })
-                    }}
-                    type="number"
-                    min="0"
-                    max="100"
-                  />
-                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                    <p className="text-sm text-green-800">
+                      }}
+                      type="number"
+                      min="0"
+                      max="100"
+                    />
+                  </div>
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                    <p className="text-xs sm:text-sm text-green-800">
                       <strong>💳 Integração Stripe:</strong> Os Price IDs do Stripe serão configurados em cada plano abaixo. Após criar os produtos no Stripe, copie os Price IDs para os campos correspondentes.
                     </p>
                   </div>
@@ -788,13 +792,13 @@ export default function PricingEditorPage() {
 
           {/* Produtos globais e atribuição aos planos (Essencial / Pro) */}
           {formData.pricing_enabled && (
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-4 sm:p-5">
               <button
                 onClick={() => setProductsExpanded(!productsExpanded)}
-                className="w-full flex items-center justify-between mb-4"
+                className="w-full flex items-center justify-between mb-3"
               >
-                <div className="flex items-center gap-3">
-                  <h2 className="text-xl font-bold">Produtos e atribuição aos planos</h2>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-lg font-bold">Produtos e atribuição aos planos</h2>
                   <span className="text-sm text-gray-500">({products.length} produtos)</span>
                 </div>
                 {productsExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
@@ -1138,12 +1142,12 @@ export default function PricingEditorPage() {
 
           {/* Planos */}
           {formData.pricing_enabled && formData.pricing_plans && (
-            <div className="space-y-6">
+            <div className="space-y-4">
               {formData.pricing_plans.map((plan, planIndex) => (
-                <div key={plan.id} className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                  <h3 className="text-lg font-bold mb-4">Plano {planIndex + 1}: {plan.name}</h3>
+                <div key={plan.id} className="bg-white rounded-lg shadow-sm border border-gray-100 p-4 sm:p-5">
+                  <h3 className="text-base font-bold mb-3">Plano {planIndex + 1}: {plan.name}</h3>
                   
-                  <div className="space-y-4">
+                  <div className="space-y-3">
                     <Input
                       label="Nome do Plano"
                       value={plan.name}
