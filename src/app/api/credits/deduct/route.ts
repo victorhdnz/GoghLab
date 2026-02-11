@@ -30,7 +30,7 @@ export async function POST(request: Request) {
       .from('site_settings')
       .select('value')
       .eq('key', getCreditsConfigKey())
-      .maybeSingle()
+      .maybeSingle() as { data: { value: unknown } | null }
     const config = (configRow?.value as CreditsConfig) ?? null
     const cost = getCreditCost(actionId, config)
 
