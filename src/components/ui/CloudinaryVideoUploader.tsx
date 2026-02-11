@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useId } from 'react'
 import { Upload, X, Video as VideoIcon } from 'lucide-react'
 import toast from 'react-hot-toast'
 
@@ -11,6 +11,8 @@ interface CloudinaryVideoUploaderProps {
   className?: string
   /** Pasta no Cloudinary (ex: gallery-videos) */
   folder?: string
+  /** ID único do input (obrigatório quando há vários uploaders na mesma página para não abrir sempre o primeiro) */
+  inputId?: string
 }
 
 const VIDEO_TYPES = ['video/mp4', 'video/webm', 'video/ogg', 'video/quicktime', 'video/x-msvideo']
@@ -22,7 +24,10 @@ export function CloudinaryVideoUploader({
   placeholder = 'Envie um vídeo (MP4, WebM, etc.)',
   className = '',
   folder = 'gallery-videos',
+  inputId: inputIdProp,
 }: CloudinaryVideoUploaderProps) {
+  const fallbackId = useId()
+  const inputId = inputIdProp ?? `cloudinary-video-${fallbackId.replace(/:/g, '')}`
   const [uploading, setUploading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -85,7 +90,7 @@ export function CloudinaryVideoUploader({
         onChange={handleFile}
         disabled={uploading}
         className="hidden"
-        id="cloudinary-video-upload"
+        id={inputId}
       />
       {value ? (
         <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg border border-gray-200">
@@ -112,7 +117,7 @@ export function CloudinaryVideoUploader({
         </div>
       ) : (
         <label
-          htmlFor="cloudinary-video-upload"
+          htmlFor={inputId}
           className={`flex flex-col items-center justify-center gap-2 w-full min-h-[100px] border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors ${uploading ? 'opacity-60 pointer-events-none' : ''}`}
         >
           <Upload className="h-8 w-8 text-gray-400" />

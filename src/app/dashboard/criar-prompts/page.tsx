@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { DashboardNavigation } from '@/components/dashboard/DashboardNavigation'
 import { Button } from '@/components/ui/button'
@@ -46,6 +46,8 @@ export default function CriarPromptsPage() {
   const [galleryUseCreationPrompts, setGalleryUseCreationPrompts] = useState(false)
   const [internalTab, setInternalTab] = useState<InternalTab>('prompts')
   const [costByActionGeneral, setCostByActionGeneral] = useState<Record<CreditActionId, number>>({ ...DEFAULT_COST_BY_ACTION })
+  const promptsRef = useRef<CreationPromptItem[]>([])
+  promptsRef.current = prompts
 
   useEffect(() => {
     load()
@@ -118,9 +120,13 @@ export default function CriarPromptsPage() {
     try {
       const { data: current } = await getSiteSettings()
       const currentContent = current?.homepage_content ?? {}
+      const toSave = newPrompts.map((p) => ({
+        ...p,
+        coverVideo: p.coverVideo && String(p.coverVideo).trim() ? p.coverVideo : undefined,
+      }))
       const updatedContent = {
         ...currentContent,
-        creation_prompts: newPrompts,
+        creation_prompts: toSave,
         gallery_use_creation_prompts: galleryUseCreationPrompts,
       }
       const { success, error } = await saveSiteSettings({
@@ -129,6 +135,7 @@ export default function CriarPromptsPage() {
       })
       if (!success) throw new Error(error?.message)
       toast.success('Capa atualizada e salva.')
+      promptsRef.current = toSave
     } catch (e: any) {
       console.error(e)
       toast.error(e?.message ?? 'Erro ao salvar')
@@ -341,7 +348,8 @@ export default function CriarPromptsPage() {
                       <ImageUploader
                         value={item.coverImage}
                         onChange={(url) => {
-                          const next = prompts.map((p, i) => i === index ? { ...p, coverImage: url } : p)
+                          const current = promptsRef.current
+                          const next = current.map((p, i) => i === index ? { ...p, coverImage: url } : p)
                           setPrompts(next)
                           savePromptsToServer(next)
                         }}
@@ -353,9 +361,11 @@ export default function CriarPromptsPage() {
                     <div className="sm:col-span-2">
                       <label className="block text-xs font-medium mb-1">Vídeo de capa (opcional — se não tiver imagem, a capa será o vídeo)</label>
                       <CloudinaryVideoUploader
+                        inputId={`video-cap-${item.id}`}
                         value={item.coverVideo || ''}
                         onChange={(url) => {
-                          const next = prompts.map((p, i) =>
+                          const current = promptsRef.current
+                          const next = current.map((p, i) =>
                             i === index ? { ...p, coverVideo: url && url.trim() ? url : undefined } : p
                           )
                           setPrompts(next)
