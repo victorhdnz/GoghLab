@@ -180,8 +180,8 @@ export default function CriarGerarPage() {
   }
 
   return (
-    <div className="container mx-auto max-w-4xl px-4 py-4 sm:py-6">
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+    <div className="container mx-auto max-w-3xl px-3 sm:px-4 py-3 sm:py-4">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <Link
           href={backHref}
           className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground"
@@ -214,58 +214,58 @@ export default function CriarGerarPage() {
       )}
 
       {showPromptView && selectedPrompt && (
-        <div className="rounded-xl border bg-card overflow-hidden">
-          <div className="p-3 border-b flex items-center gap-2">
-            <span className="font-medium text-sm sm:text-base">{selectedPrompt.title}</span>
+        <div className="rounded-lg border bg-card overflow-hidden max-w-2xl">
+          <div className="px-3 py-2 border-b flex items-center gap-2">
+            <span className="font-medium text-xs sm:text-sm">{selectedPrompt.title}</span>
           </div>
-          <div className="p-4 space-y-4">
+          <div className="p-3 space-y-3">
             {selectedPrompt.coverImage && (
-              <div className="relative aspect-video max-h-[200px] sm:max-h-[260px] md:max-h-[320px] rounded-lg overflow-hidden bg-muted/50">
-                <Image src={selectedPrompt.coverImage} alt="" fill className="object-contain" sizes="(max-width: 768px) 100vw, 800px" />
+              <div className="relative aspect-video max-h-[120px] sm:max-h-[160px] md:max-h-[180px] rounded-md overflow-hidden bg-muted/50">
+                <Image src={selectedPrompt.coverImage} alt="" fill className="object-contain" sizes="(max-width: 768px) 100vw, 672px" />
               </div>
             )}
             {selectedPrompt.coverVideo && !selectedPrompt.coverImage && (
-              <div className="relative aspect-video max-h-[200px] sm:max-h-[260px] md:max-h-[320px] rounded-lg overflow-hidden bg-muted/50">
+              <div className="relative aspect-video max-h-[120px] sm:max-h-[160px] md:max-h-[180px] rounded-md overflow-hidden bg-muted/50">
                 <video src={selectedPrompt.coverVideo} className="w-full h-full object-contain" controls muted playsInline />
               </div>
             )}
             {(selectedPrompt.inputStructure === 'image_only' || selectedPrompt.inputStructure === 'image_and_video' || selectedPrompt.inputStructure === 'motion_video_and_character_photo') && (
               <div>
-                <label className="block text-sm font-medium mb-2">
+                <label className="block text-xs font-medium mb-1">
                   {selectedPrompt.inputStructure === 'motion_video_and_character_photo' ? 'Foto do personagem' : 'Envie uma imagem'}
                 </label>
                 <input
                   type="file"
                   accept="image/*"
                   onChange={(e) => setPromptViewFiles((f) => ({ ...f, characterImage: e.target.files?.[0] ?? f.characterImage, image: e.target.files?.[0] ?? f.image }))}
-                  className="block w-full text-sm text-muted-foreground file:mr-2 file:py-2 file:px-3 file:rounded-lg file:border file:border-input file:text-sm"
+                  className="block w-full text-xs text-muted-foreground file:mr-2 file:py-1.5 file:px-2 file:rounded file:border file:border-input file:text-xs"
                 />
               </div>
             )}
             {(selectedPrompt.inputStructure === 'video_only' || selectedPrompt.inputStructure === 'image_and_video' || selectedPrompt.inputStructure === 'motion_video_and_character_photo') && (
               <div>
-                <label className="block text-sm font-medium mb-2">
+                <label className="block text-xs font-medium mb-1">
                   {selectedPrompt.inputStructure === 'motion_video_and_character_photo' ? 'Vídeo de movimento (referência)' : 'Envie um vídeo'}
                 </label>
                 <input
                   type="file"
                   accept="video/*"
                   onChange={(e) => setPromptViewFiles((f) => ({ ...f, motionVideo: e.target.files?.[0] ?? f.motionVideo, video: e.target.files?.[0] ?? f.video }))}
-                  className="block w-full text-sm text-muted-foreground file:mr-2 file:py-2 file:px-3 file:rounded-lg file:border file:border-input file:text-sm"
+                  className="block w-full text-xs text-muted-foreground file:mr-2 file:py-1.5 file:px-2 file:rounded file:border file:border-input file:text-xs"
                 />
               </div>
             )}
           </div>
-          <div className="p-4 border-t space-y-3">
+          <div className="px-3 py-2.5 border-t space-y-2">
             <div className="flex flex-wrap items-center gap-2">
-              <label htmlFor="prompt-model-select" className="text-sm font-medium text-muted-foreground">
+              <label htmlFor="prompt-model-select" className="text-xs font-medium text-muted-foreground">
                 Modelo de IA:
               </label>
               <select
                 id="prompt-model-select"
                 value={selectedModelId}
                 onChange={(e) => setSelectedModelId(e.target.value)}
-                className="rounded-lg border border-input bg-background px-3 py-2 text-sm"
+                className="rounded border border-input bg-background px-2 py-1.5 text-xs"
               >
                 {availableModels.map((m) => (
                   <option key={m.id} value={m.id}>{m.label}</option>
@@ -273,9 +273,9 @@ export default function CriarGerarPage() {
               </select>
             </div>
             <div className="flex items-center justify-between gap-2 flex-wrap">
-              <span className="text-sm text-muted-foreground">Custo: {selectedPrompt.creditCost} créditos</span>
-              <Button onClick={() => handleGenerateWithPrompt(selectedPrompt)} className="gap-2">
-                <Zap className="h-4 w-4" />
+              <span className="text-xs text-muted-foreground">Custo: {selectedPrompt.creditCost} créditos</span>
+              <Button onClick={() => handleGenerateWithPrompt(selectedPrompt)} size="sm" className="gap-1.5 text-xs h-8">
+                <Zap className="h-3.5 w-3.5" />
                 Gerar · {selectedPrompt.creditCost} créditos
               </Button>
             </div>

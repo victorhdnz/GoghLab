@@ -61,7 +61,7 @@ export const SplineSection = memo(function SplineSection({
                 <h2 className="text-xl md:text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-b from-white to-gray-400 mb-3">
                   {title || 'O Futuro da Sua Empresa'}
                 </h2>
-                <p className="text-sm md:text-base text-gray-300 max-w-xl leading-relaxed line-clamp-3 sm:line-clamp-none">
+                <p className="text-sm md:text-base text-gray-300 max-w-xl leading-relaxed">
                   {description || 'Estamos aqui para ajudar sua empresa a evoluir e crescer no mundo digital. Com tecnologia de ponta e soluções inovadoras, transformamos sua presença online e impulsionamos seus resultados.'}
                 </p>
               </div>
