@@ -194,8 +194,8 @@ export function TrustedBySection({
   const finalLogos = logosToShow.length > 0 ? logosToShow : Object.values(defaultPlatformLogos)
 
   return (
-    <section className={`py-16 md:py-24 px-4 bg-gogh-beige ${className || ''}`}>
-      <div className="mx-auto flex w-full max-w-screen-lg flex-col items-center space-y-8">
+    <section className={`py-10 md:py-14 px-4 bg-gogh-beige ${className || ''}`}>
+      <div className="mx-auto flex w-full max-w-screen-lg flex-col items-center space-y-5">
         <div className="text-center">
           <FadeInElement>
             <GradientHeading variant="secondary" size="xs">

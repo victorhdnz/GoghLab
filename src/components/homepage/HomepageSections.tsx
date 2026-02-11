@@ -133,7 +133,7 @@ export function HomepageSections({
     if (homepageContent.hero_enabled === false || sectionVisibility.hero === false) return null
     
     return (
-      <section className="relative bg-[#F5F1E8] text-[#0A0A0A] py-16 md:py-24 px-4 overflow-hidden">
+      <section className="relative bg-[#F5F1E8] text-[#0A0A0A] py-10 md:py-14 px-4 overflow-hidden">
         {homepageContent.hero_background_image && (
           <div className="absolute inset-0 z-0 opacity-20">
             <Image
@@ -145,12 +145,12 @@ export function HomepageSections({
             />
           </div>
         )}
-        <div className="container mx-auto max-w-6xl text-center relative z-10 pt-24 md:pt-32">
+        <div className="container mx-auto max-w-5xl text-center relative z-10 pt-16 md:pt-20">
           {homepageContent.hero_subtitle && (() => {
             const { firstPart, secondPart } = splitTextForHighlights(homepageContent.hero_subtitle)
             return (
               <FadeInElement delay={0}>
-                <p className="text-xl sm:text-2xl md:text-3xl lg:text-4xl text-[#0A0A0A] max-w-4xl mx-auto font-bold mb-6 leading-tight px-4">
+                <p className="text-lg sm:text-xl md:text-2xl lg:text-3xl text-[#0A0A0A] max-w-3xl mx-auto font-bold mb-4 leading-tight px-4">
                   <span className="inline-block relative z-0 mb-2 md:mb-0">
                     <Highlighter action="underline" color="#F7C948" isView={true}>
                       {firstPart}
@@ -336,16 +336,16 @@ export function HomepageSections({
     if (homepageContent.contact_enabled === false || sectionVisibility.contact === false) return null
     
     return (
-      <section id="contact-section" className="py-16 md:py-24 px-4 bg-[#F5F1E8]">
-        <div className="container mx-auto max-w-4xl text-center">
+      <section id="contact-section" className="py-10 md:py-14 px-4 bg-[#F5F1E8]">
+        <div className="container mx-auto max-w-3xl text-center">
           <FadeInElement>
-            <h2 className="text-3xl md:text-5xl font-semibold text-[#0A0A0A] mb-4 tracking-tight">
+            <h2 className="text-2xl md:text-3xl font-semibold text-[#0A0A0A] mb-3 tracking-tight">
               {homepageContent.contact_title || 'Fale Conosco'}
             </h2>
           </FadeInElement>
           {homepageContent.contact_description && (
             <FadeInElement delay={0.1}>
-              <p className="text-gray-600 text-lg md:text-xl mb-12 font-light max-w-2xl mx-auto">
+              <p className="text-gray-600 text-sm md:text-base mb-8 font-light max-w-xl mx-auto">
                 {homepageContent.contact_description}
               </p>
             </FadeInElement>

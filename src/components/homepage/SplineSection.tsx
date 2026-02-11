@@ -44,12 +44,12 @@ export const SplineSection = memo(function SplineSection({
   return (
     <section 
       ref={ref}
-      className="relative bg-[#F5F1E8] text-[#0A0A0A] py-16 md:py-24 px-4"
-      style={{ minHeight: '600px' }}
+      className="relative bg-[#F5F1E8] text-[#0A0A0A] py-10 md:py-14 px-4"
+      style={{ minHeight: '400px' }}
     >
-      <div className="container mx-auto max-w-7xl">
+      <div className="container mx-auto max-w-6xl">
         <FadeInElement>
-          <div className="w-full h-[600px] md:h-[700px] bg-[#0A0A0A] relative overflow-hidden rounded-3xl border border-[#F7C948]/30 shadow-xl">
+          <div className="w-full h-[400px] md:h-[500px] bg-[#0A0A0A] relative overflow-hidden rounded-2xl border border-[#F7C948]/30 shadow-xl">
             <Spotlight
               className="-top-40 left-0 md:left-60 md:-top-20"
               fill="#F7C948"
@@ -57,11 +57,11 @@ export const SplineSection = memo(function SplineSection({
             
             <div className="flex h-full flex-col md:flex-row relative z-10">
               {/* Left content - Texto */}
-              <div className="flex-1 p-8 md:p-12 relative z-10 flex flex-col justify-center">
-                <h2 className="text-3xl md:text-5xl lg:text-6xl font-bold bg-clip-text text-transparent bg-gradient-to-b from-white to-gray-400 mb-6">
+              <div className="flex-1 p-5 md:p-8 relative z-10 flex flex-col justify-center">
+                <h2 className="text-2xl md:text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-b from-white to-gray-400 mb-4">
                   {title || 'O Futuro da Sua Empresa'}
                 </h2>
-                <p className="text-lg md:text-xl text-gray-300 max-w-2xl leading-relaxed">
+                <p className="text-sm md:text-base text-gray-300 max-w-xl leading-relaxed">
                   {description || 'Estamos aqui para ajudar sua empresa a evoluir e crescer no mundo digital. Com tecnologia de ponta e soluções inovadoras, transformamos sua presença online e impulsionamos seus resultados.'}
                 </p>
               </div>

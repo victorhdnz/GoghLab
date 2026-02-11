@@ -104,10 +104,10 @@ export function FloatingHeader() {
         'bg-background/95 supports-[backdrop-filter]:bg-background/80 backdrop-blur-lg'
       )}
     >
-      <nav className="mx-auto flex items-center justify-between gap-2 px-3 sm:px-4 py-2 min-h-12 max-w-7xl">
+      <nav className="relative mx-auto flex items-center justify-between gap-2 px-3 sm:px-4 py-2 min-h-12 max-w-7xl">
         <Link
           href="/"
-          className="hover:bg-accent flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 flex-shrink-0 min-w-0"
+          className="hover:bg-accent flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 flex-shrink-0 min-w-0 z-10"
         >
           {!logoLoaded ? (
             <span className="size-6 sm:size-7 rounded bg-muted/40 flex-shrink-0 inline-block" aria-hidden />
@@ -125,24 +125,41 @@ export function FloatingHeader() {
             <span className="font-mono text-sm sm:text-base font-bold truncate">{siteName}</span>
           )}
         </Link>
-        {/* Desktop: links com texto */}
-        <div className="hidden lg:flex items-center gap-1">
-          {linkConfig.map((link) => (
-            <Link
-              key={link.href}
-              className={
-                link.highlight
-                  ? buttonVariants({ variant: 'default', size: 'sm' })
-                  : buttonVariants({ variant: 'ghost', size: 'sm' })
-              }
-              href={link.href}
-              onClick={link.isHash ? (e) => handleHashLink(e, link.href) : undefined}
-            >
-              {link.label}
-            </Link>
-          ))}
+        {/* Desktop: links centralizados + ícone de usuário à direita */}
+        <div className="hidden lg:flex absolute left-0 right-0 justify-center items-center pointer-events-none">
+          <div className="flex items-center gap-1 pointer-events-auto">
+            {linkConfig.map((link) => (
+              <Link
+                key={link.href}
+                className={
+                  link.highlight
+                    ? buttonVariants({ variant: 'default', size: 'sm' })
+                    : buttonVariants({ variant: 'ghost', size: 'sm' })
+                }
+                href={link.href}
+                onClick={link.isHash ? (e) => handleHashLink(e, link.href) : undefined}
+              >
+                {link.label}
+              </Link>
+            ))}
+          </div>
         </div>
-        {/* Mobile/tablet: itens centralizados na barra (ícone + texto abaixo), resto no menu hamburger */}
+        <div className="hidden lg:flex flex-shrink-0 z-10">
+          <Link
+            href={isAuthenticated ? '/conta' : '/login'}
+            title={isAuthenticated ? 'Minha conta' : 'Entrar'}
+            aria-label={isAuthenticated ? 'Minha conta' : 'Entrar'}
+            className={cn(
+              'flex items-center justify-center rounded-full p-2 transition-colors',
+              pathname === '/conta' || pathname?.startsWith('/conta/')
+                ? 'bg-accent text-accent-foreground'
+                : 'text-muted-foreground hover:bg-accent hover:text-foreground'
+            )}
+          >
+            <User className="size-5" />
+          </Link>
+        </div>
+        {/* Mobile/tablet: itens centralizados (ícone + texto abaixo), incluindo Conta/Entrar */}
         <div className="flex lg:hidden items-center justify-center gap-0.5 sm:gap-1 flex-1 min-w-0">
           {linkConfig.filter((l) => l.showOnMobileBar).map((link) => {
             const Icon = link.icon

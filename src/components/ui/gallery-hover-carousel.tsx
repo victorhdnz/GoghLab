@@ -224,26 +224,25 @@ export default function GalleryHoverCarousel({
 }
 
 function ImageCard({ item }: { item: GalleryHoverCarouselItem }) {
-  const className = "group block relative w-full aspect-video min-h-[140px] sm:min-h-[160px] md:min-h-[180px]";
+  const className = "block w-full";
   const content = (
-    <Card className="overflow-hidden rounded-xl h-full w-full rounded-2xl">
-      <div className="relative h-full w-full bg-muted/50 transition-all duration-500 group-hover:h-1/2">
+    <Card className="overflow-hidden rounded-xl h-full w-full rounded-2xl flex flex-col">
+      <div className="relative w-full aspect-video min-h-[120px] sm:min-h-[140px] bg-muted/50 flex-shrink-0">
         <Image
           width={400}
           height={225}
           src={item.image}
           alt={item.title}
-          className="h-full w-full object-contain object-center aspect-video"
+          className="h-full w-full object-cover object-center"
           sizes="(max-width: 768px) 260px, 300px"
         />
-        <div className="absolute bottom-0 left-0 w-full h-20 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
       </div>
-      <div className="absolute bottom-0 left-0 w-full px-3 pb-2 transition-all duration-500 group-hover:h-1/2 group-hover:flex flex-col justify-center bg-background/95 backdrop-blur-sm opacity-0 group-hover:opacity-100">
-        <h3 className="text-base font-medium md:text-lg">{item.title}</h3>
-        <p className="text-muted-foreground text-xs md:text-sm line-clamp-2">
+      <div className="p-2.5 sm:p-3 flex flex-col flex-1 min-w-0 bg-background">
+        <h3 className="text-sm font-medium md:text-base line-clamp-1">{item.title}</h3>
+        <p className="text-muted-foreground text-xs line-clamp-2 mt-0.5">
           {item.summary}
         </p>
-        <div className="flex gap-1.5 mt-1.5 flex-wrap">
+        <div className="flex gap-1.5 mt-2 flex-wrap">
           {(item.prompt || item.promptId) && (
             <Link
               href={
@@ -252,16 +251,16 @@ function ImageCard({ item }: { item: GalleryHoverCarouselItem }) {
                   : `/criar/gerar?prompt=${encodeURIComponent(item.prompt ?? '')}`
               }
             >
-              <Button size="sm" className="gap-1.5">
-                <Sparkles className="size-4" />
+              <Button size="sm" className="gap-1.5 text-xs h-8">
+                <Sparkles className="size-3.5" />
                 Testar e criar
               </Button>
             </Link>
           )}
           {item.url && (
             <Link href={item.url}>
-              <Button variant="outline" size="icon" className="rounded-full">
-                <ArrowRight className="size-4" />
+              <Button variant="outline" size="icon" className="rounded-full h-8 w-8">
+                <ArrowRight className="size-3.5" />
               </Button>
             </Link>
           )}
@@ -287,10 +286,10 @@ function VideoCard({
   onPlay: () => void;
 }) {
   return (
-    <div className="group block relative w-full aspect-video min-h-[140px] sm:min-h-[160px] md:min-h-[180px]">
-      <Card className="overflow-hidden rounded-xl h-full w-full rounded-2xl">
+    <div className="block w-full">
+      <Card className="overflow-hidden rounded-xl h-full w-full rounded-2xl flex flex-col">
         <div
-          className="relative h-full w-full bg-muted/50 transition-all duration-500 group-hover:h-1/2 cursor-pointer"
+          className="relative w-full aspect-video min-h-[120px] sm:min-h-[140px] bg-muted/50 flex-shrink-0 cursor-pointer"
           onClick={onPlay}
         >
           <Image
@@ -298,22 +297,21 @@ function VideoCard({
             height={225}
             src={item.image}
             alt={item.title}
-            className="h-full w-full object-contain object-center aspect-video"
+            className="h-full w-full object-cover object-center"
             sizes="(max-width: 768px) 260px, 300px"
           />
-          <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/30 transition-colors">
-            <span className="rounded-full bg-white/90 p-4 text-black shadow-lg transition-transform group-hover:scale-110">
-              <Play className="h-8 w-8 fill-current" />
+          <div className="absolute inset-0 flex items-center justify-center bg-black/20 hover:bg-black/30 transition-colors">
+            <span className="rounded-full bg-white/90 p-2.5 sm:p-3 text-black shadow-lg">
+              <Play className="h-6 w-6 sm:h-7 sm:w-7 fill-current" />
             </span>
           </div>
-          <div className="absolute bottom-0 left-0 w-full h-20 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
         </div>
-        <div className="absolute bottom-0 left-0 w-full px-3 pb-2 transition-all duration-500 group-hover:h-1/2 group-hover:flex flex-col justify-center bg-background/95 backdrop-blur-sm opacity-0 group-hover:opacity-100">
-          <h3 className="text-base font-medium md:text-lg">{item.title}</h3>
-          <p className="text-muted-foreground text-xs md:text-sm line-clamp-2">
+        <div className="p-2.5 sm:p-3 flex flex-col flex-1 min-w-0 bg-background">
+          <h3 className="text-sm font-medium md:text-base line-clamp-1">{item.title}</h3>
+          <p className="text-muted-foreground text-xs line-clamp-2 mt-0.5">
             {item.summary}
           </p>
-          <div className="flex gap-1.5 mt-1.5 flex-wrap items-center">
+          <div className="flex gap-1.5 mt-2 flex-wrap items-center">
             {(item.prompt || item.promptId) && (
               <Link
                 href={
@@ -323,8 +321,8 @@ function VideoCard({
                 }
                 onClick={(e) => e.stopPropagation()}
               >
-                <Button size="sm" className="gap-1.5">
-                  <Sparkles className="size-4" />
+                <Button size="sm" className="gap-1.5 text-xs h-8">
+                  <Sparkles className="size-3.5" />
                   Testar e criar
                 </Button>
               </Link>
@@ -336,9 +334,9 @@ function VideoCard({
                 e.stopPropagation();
                 onPlay();
               }}
-              className="rounded-full"
+              className="rounded-full h-8 w-8"
             >
-              <Play className="size-4" />
+              <Play className="size-3.5" />
             </Button>
           </div>
         </div>

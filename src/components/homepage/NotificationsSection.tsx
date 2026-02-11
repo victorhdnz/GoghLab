@@ -50,29 +50,29 @@ const Notification = ({ name, description, icon, time }: NotificationItem) => {
   return (
     <figure
       className={cn(
-        'relative mx-auto min-h-fit w-full max-w-[400px] cursor-pointer overflow-hidden rounded-2xl p-4',
-        'transition-all duration-200 ease-in-out hover:scale-[103%]',
-        'bg-white border border-[#F7C948]/30 [box-shadow:0_0_0_1px_rgba(247,201,72,.1),0_2px_4px_rgba(0,0,0,.05),0_12px_24px_rgba(0,0,0,.08)]',
+        'relative mx-auto min-h-fit w-full max-w-[300px] sm:max-w-[320px] cursor-pointer overflow-hidden rounded-xl p-3',
+        'transition-all duration-200 ease-in-out hover:scale-[102%]',
+        'bg-white border border-[#F7C948]/30 [box-shadow:0_0_0_1px_rgba(247,201,72,.1),0_2px_4px_rgba(0,0,0,.05),0_8px_16px_rgba(0,0,0,.06)]',
         'transform-gpu backdrop-blur-md'
       )}
     >
-        <div className="flex flex-row items-center gap-3">
+        <div className="flex flex-row items-center gap-2.5">
         <div
-          className="flex size-10 items-center justify-center rounded-2xl"
+          className="flex size-8 items-center justify-center rounded-xl flex-shrink-0"
           style={{
             backgroundColor: color + '20',
             border: `1px solid ${color}40`,
           }}
         >
-          <IconComponent size={20} style={{ color }} />
+          <IconComponent size={16} style={{ color }} />
         </div>
-        <div className="flex flex-col overflow-hidden">
-          <figcaption className="flex flex-row items-center text-lg font-medium whitespace-pre text-[#0A0A0A]">
-            <span className="text-sm sm:text-lg">{name}</span>
+        <div className="flex flex-col overflow-hidden min-w-0">
+          <figcaption className="flex flex-row items-center font-medium whitespace-pre text-[#0A0A0A]">
+            <span className="text-xs sm:text-sm">{name}</span>
             <span className="mx-1">·</span>
-            <span className="text-xs text-gray-500">{time}</span>
+            <span className="text-[10px] text-gray-500">{time}</span>
           </figcaption>
-          <p className="text-sm font-normal text-gray-600">
+          <p className="text-xs font-normal text-gray-600 line-clamp-2">
             {description}
           </p>
         </div>
@@ -98,18 +98,18 @@ export function NotificationsSection({
   if (!validNotifications || validNotifications.length === 0) return null
 
   return (
-    <section className="py-16 md:py-24 px-4 bg-[#F5F1E8]">
-      <div className="container mx-auto max-w-4xl">
+    <section className="py-10 md:py-14 px-4 bg-[#F5F1E8]">
+      <div className="container mx-auto max-w-3xl">
         {title && (
-          <div className="text-center mb-12">
+          <div className="text-center mb-8">
             <FadeInElement>
-              <h2 className="text-3xl md:text-5xl font-bold text-[#0A0A0A] mb-4">
+              <h2 className="text-2xl md:text-3xl font-bold text-[#0A0A0A] mb-2">
                 {title}
               </h2>
             </FadeInElement>
             {description && (
               <FadeInElement delay={0.1}>
-                <p className="text-gray-600 text-lg max-w-2xl mx-auto">
+                <p className="text-gray-600 text-sm md:text-base max-w-xl mx-auto">
                   {description}
                 </p>
               </FadeInElement>

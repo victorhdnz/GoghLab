@@ -50,15 +50,15 @@ export function AwardSection({
 
   // Versão standalone (seção completa)
   return (
-    <section className={cn("py-16 md:py-24 px-4 bg-gogh-beige", className)}>
-      <div className="container mx-auto max-w-6xl">
-        <div className="flex flex-col md:flex-row items-center justify-center gap-8">
+    <section className={cn("py-10 md:py-14 px-4 bg-gogh-beige", className)}>
+      <div className="container mx-auto max-w-5xl">
+        <div className="flex flex-col md:flex-row items-center justify-center gap-6">
           <FadeInElement>
             <div className="text-center md:text-left max-w-md">
-              <h2 className="text-3xl md:text-4xl font-bold text-gogh-black mb-4">
+              <h2 className="text-2xl md:text-3xl font-bold text-gogh-black mb-3">
                 {standaloneTitle}
               </h2>
-              <p className="text-gogh-grayDark text-lg">
+              <p className="text-gogh-grayDark text-base">
                 {standaloneDescription}
               </p>
             </div>

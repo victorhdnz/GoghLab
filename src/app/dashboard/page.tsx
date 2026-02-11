@@ -201,12 +201,12 @@ function DashboardContent() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-6">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Dashboard Administrativo</h1>
-            <p className="text-gray-600">
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-1">Dashboard Administrativo</h1>
+            <p className="text-sm text-gray-600">
               Olá, <span className="font-medium">Gogh Lab</span>
             </p>
           </div>
@@ -220,7 +220,7 @@ function DashboardContent() {
         </div>
 
         {/* Main Sections */}
-        <div className="space-y-8">
+        <div className="space-y-6">
           {mainSections.map((section, sectionIndex) => (
             <motion.div
               key={section.title}
@@ -228,32 +228,32 @@ function DashboardContent() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: sectionIndex * 0.15 }}
             >
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-lg bg-gray-900 flex items-center justify-center text-white">
-                  <section.icon size={20} />
+              <div className="flex items-center gap-2.5 mb-3">
+                <div className="w-8 h-8 rounded-lg bg-gray-900 flex items-center justify-center text-white flex-shrink-0">
+                  <section.icon size={16} />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-gray-900">{section.title}</h2>
-                  <p className="text-sm text-gray-500">{section.description}</p>
+                  <h2 className="text-base sm:text-lg font-bold text-gray-900">{section.title}</h2>
+                  <p className="text-xs text-gray-500">{section.description}</p>
                 </div>
               </div>
               
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
                 {section.items.map((item) => (
                   <Link 
                     key={item.title} 
                     href={item.href}
                     target={(item as any).external ? '_blank' : undefined}
                   >
-                    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 hover:shadow-md hover:border-gray-200 transition-all cursor-pointer group h-full">
+                    <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-4 hover:shadow-md hover:border-gray-200 transition-all cursor-pointer group h-full">
                       <div className="flex items-start justify-between">
-                        <div className={`${item.color} w-12 h-12 rounded-lg flex items-center justify-center text-white mb-4 group-hover:scale-110 transition-transform`}>
-                          <item.icon size={24} />
+                        <div className={`${item.color} w-10 h-10 rounded-lg flex items-center justify-center text-white mb-3 group-hover:scale-105 transition-transform flex-shrink-0`}>
+                          <item.icon size={20} />
                         </div>
-                        <ArrowRight className="text-gray-300 group-hover:text-gray-500 group-hover:translate-x-1 transition-all" size={20} />
+                        <ArrowRight className="text-gray-300 group-hover:text-gray-500 group-hover:translate-x-1 transition-all flex-shrink-0" size={18} />
                       </div>
-                      <h3 className="text-lg font-semibold text-gray-900 mb-1">{item.title}</h3>
-                      <p className="text-sm text-gray-500">{item.description}</p>
+                      <h3 className="text-base font-semibold text-gray-900 mb-0.5">{item.title}</h3>
+                      <p className="text-xs text-gray-500 leading-snug">{item.description}</p>
                     </div>
                   </Link>
                 ))}
