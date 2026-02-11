@@ -214,19 +214,19 @@ export default function CriarGerarPage() {
       )}
 
       {showPromptView && selectedPrompt && (
-        <div className="rounded-lg border bg-card overflow-hidden max-w-2xl">
+        <div className="rounded-lg border bg-card overflow-hidden w-full max-w-[360px] sm:max-w-[400px]">
           <div className="px-3 py-2 border-b flex items-center gap-2">
-            <span className="font-medium text-xs sm:text-sm">{selectedPrompt.title}</span>
+            <span className="font-medium text-xs sm:text-sm truncate">{selectedPrompt.title}</span>
           </div>
           <div className="p-3 space-y-3">
             {selectedPrompt.coverImage && (
-              <div className="relative aspect-video max-h-[120px] sm:max-h-[160px] md:max-h-[180px] rounded-md overflow-hidden bg-muted/50">
-                <Image src={selectedPrompt.coverImage} alt="" fill className="object-contain" sizes="(max-width: 768px) 100vw, 672px" />
+              <div className="relative w-full h-[100px] sm:h-[120px] rounded-md overflow-hidden bg-muted/50">
+                <Image src={selectedPrompt.coverImage} alt="" fill className="object-cover" sizes="400px" />
               </div>
             )}
             {selectedPrompt.coverVideo && !selectedPrompt.coverImage && (
-              <div className="relative aspect-video max-h-[120px] sm:max-h-[160px] md:max-h-[180px] rounded-md overflow-hidden bg-muted/50">
-                <video src={selectedPrompt.coverVideo} className="w-full h-full object-contain" controls muted playsInline />
+              <div className="relative w-full h-[100px] sm:h-[120px] rounded-md overflow-hidden bg-muted/50">
+                <video src={selectedPrompt.coverVideo} className="w-full h-full object-cover" controls muted playsInline />
               </div>
             )}
             {(selectedPrompt.inputStructure === 'image_only' || selectedPrompt.inputStructure === 'image_and_video' || selectedPrompt.inputStructure === 'motion_video_and_character_photo') && (

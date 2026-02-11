@@ -155,7 +155,7 @@ export default function GalleryHoverCarousel({
           >
             <CarouselContent className="hide-scrollbar w-full max-w-full -ml-2 md:ml-0 gap-3">
               {items.map((item) => (
-                <CarouselItem key={item.id} className="pl-2 pr-0 w-[168px] sm:w-[188px] md:w-[200px] shrink-0 flex">
+                <CarouselItem key={item.id} className="pl-2 pr-0 w-[168px] min-w-[168px] max-w-[168px] sm:w-[188px] sm:min-w-[188px] sm:max-w-[188px] md:w-[200px] md:min-w-[200px] md:max-w-[200px] shrink-0 flex">
                   {item.type === "video" && (item.videoUrl || item.youtubeUrl) ? (
                     <VideoCard
                       item={item}
@@ -225,8 +225,8 @@ export default function GalleryHoverCarousel({
 function ImageCard({ item }: { item: GalleryHoverCarouselItem }) {
   const className = "block w-full";
   const content = (
-    <div className="rounded-xl border-2 border-border bg-card overflow-hidden h-full w-full flex flex-col transition-all hover:shadow-md hover:border-primary/50">
-      <div className="relative w-full aspect-video bg-muted/50 flex-shrink-0">
+    <div className="rounded-xl border-2 border-border bg-card overflow-hidden h-full w-full max-w-full flex flex-col transition-all hover:shadow-md hover:border-primary/50">
+      <div className="relative w-full aspect-video min-h-0 bg-muted/50 flex-shrink-0">
         <Image
           width={400}
           height={225}
@@ -286,9 +286,9 @@ function VideoCard({
 }) {
   return (
     <div className="block w-full">
-      <div className="rounded-xl border-2 border-border bg-card overflow-hidden h-full w-full flex flex-col transition-all hover:shadow-md hover:border-primary/50">
+      <div className="rounded-xl border-2 border-border bg-card overflow-hidden h-full w-full max-w-full flex flex-col transition-all hover:shadow-md hover:border-primary/50">
         <div
-          className="relative w-full aspect-video bg-muted/50 flex-shrink-0 cursor-pointer"
+          className="relative w-full aspect-video min-h-0 bg-muted/50 flex-shrink-0 cursor-pointer"
           onClick={onPlay}
         >
           <Image

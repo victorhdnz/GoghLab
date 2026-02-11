@@ -74,11 +74,11 @@ export function TeamSection({
           </FadeInElement>
         )}
 
-        <div className="mx-auto max-w-[280px] sm:max-w-xs px-2 py-4 font-sans antialiased md:max-w-2xl md:px-4 lg:px-6">
-          <div className="relative grid grid-cols-1 gap-y-6 md:grid-cols-2 md:gap-x-10">
+        <div className="mx-auto max-w-[260px] sm:max-w-[280px] px-2 py-4 font-sans antialiased md:max-w-xl md:px-4">
+          <div className="relative grid grid-cols-1 gap-y-4 md:grid-cols-2 md:gap-x-6">
             {/* Imagem */}
             <div className="flex items-center justify-center">
-              <div className="relative h-52 sm:h-60 w-full max-w-[220px] md:max-w-xs">
+              <div className="relative h-44 sm:h-48 w-full max-w-[200px] md:max-w-[220px]">
                 <AnimatePresence>
                   {members.map((member, index) => (
                     <motion.div
