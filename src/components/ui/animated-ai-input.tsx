@@ -299,14 +299,14 @@ export function AI_Prompt({
                   creditCost != null ? (
                     <GlassButton
                       size="sm"
-                      contentClassName="flex items-center gap-1.5"
+                      contentClassName="flex items-center gap-1.5 flex-nowrap"
                       aria-label={`Gerar (${creditCost} créditos)`}
                       disabled={!value.trim()}
                       onClick={handleSend}
                     >
-                      <span>Gerar</span>
-                      <Zap className="h-3.5 w-3.5" />
-                      <span className="opacity-90">{creditCost} créditos</span>
+                      <span className="whitespace-nowrap">Gerar</span>
+                      <Zap className="h-3.5 w-3.5 shrink-0" />
+                      <span className="opacity-90 whitespace-nowrap">{creditCost} créditos</span>
                     </GlassButton>
                   ) : (
                     <button
@@ -334,12 +334,12 @@ export function AI_Prompt({
         <div className="mt-3 flex justify-end">
           <GlassButton
             size="default"
-            contentClassName="flex items-center gap-2"
+            contentClassName="flex items-center gap-2 flex-nowrap"
             disabled={!value.trim()}
             onClick={handleSend}
           >
-            <span>{creditCost != null ? `Gerar · ${creditCost} créditos` : 'Gerar'}</span>
-            <Zap className="h-5 w-5" />
+            <span className="whitespace-nowrap">{creditCost != null ? `Gerar · ${creditCost} créditos` : 'Gerar'}</span>
+            <Zap className="h-5 w-5 shrink-0" />
           </GlassButton>
         </div>
       )}

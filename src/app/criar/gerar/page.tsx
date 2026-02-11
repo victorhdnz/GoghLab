@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useEffect, useMemo, type ReactNode } from 'react'
+import { useState, useCallback, useEffect, useMemo, useRef, type ReactNode } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -20,6 +20,7 @@ import { TextShimmer } from '@/components/ui/text-shimmer'
 import { ChatWithActions, type ChatMessage } from '@/components/ui/ai-actions'
 import { Button } from '@/components/ui/button'
 import { GlassButton } from '@/components/ui/glass-button'
+import AnimatedGenerateButton from '@/components/ui/animated-generate-button-shadcn-tailwind'
 import type { CreationPromptItem, CreationTabId } from '@/types/creation-prompts'
 import type { CreditActionId } from '@/lib/credits'
 
@@ -108,6 +109,8 @@ export default function CriarGerarPage() {
   const [showCreditModal, setShowCreditModal] = useState(false)
   const [publicCostByAction, setPublicCostByAction] = useState<Record<CreditActionId, number> | null>(null)
   const [creationModelsApi, setCreationModelsApi] = useState<CreationModelOption[]>([])
+  const imageInputRef = useRef<HTMLInputElement>(null)
+  const videoInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     fetch('/api/credits/costs')
@@ -324,10 +327,18 @@ export default function CriarGerarPage() {
                   {selectedPrompt.inputStructure === 'motion_video_and_character_photo' ? 'Foto do personagem' : 'Envie uma imagem'}
                 </label>
                 <input
+                  ref={imageInputRef}
                   type="file"
                   accept="image/*"
                   onChange={(e) => setPromptViewFiles((f) => ({ ...f, characterImage: e.target.files?.[0] ?? f.characterImage, image: e.target.files?.[0] ?? f.image }))}
-                  className="block w-full text-xs text-muted-foreground file:mr-2 file:py-1.5 file:px-2 file:rounded file:border file:border-input file:text-xs"
+                  className="sr-only"
+                  aria-hidden
+                />
+                <AnimatedGenerateButton
+                  labelIdle={selectedPrompt.inputStructure === 'motion_video_and_character_photo' ? 'Escolher foto' : 'Escolher imagem'}
+                  labelActive="Abrindo…"
+                  highlightHueDeg={48}
+                  onClick={() => imageInputRef.current?.click()}
                 />
               </div>
             )}
@@ -337,10 +348,18 @@ export default function CriarGerarPage() {
                   {selectedPrompt.inputStructure === 'motion_video_and_character_photo' ? 'Vídeo de movimento (referência)' : 'Envie um vídeo'}
                 </label>
                 <input
+                  ref={videoInputRef}
                   type="file"
                   accept="video/*"
                   onChange={(e) => setPromptViewFiles((f) => ({ ...f, motionVideo: e.target.files?.[0] ?? f.motionVideo, video: e.target.files?.[0] ?? f.video }))}
-                  className="block w-full text-xs text-muted-foreground file:mr-2 file:py-1.5 file:px-2 file:rounded file:border file:border-input file:text-xs"
+                  className="sr-only"
+                  aria-hidden
+                />
+                <AnimatedGenerateButton
+                  labelIdle={selectedPrompt.inputStructure === 'motion_video_and_character_photo' ? 'Escolher vídeo' : 'Escolher vídeo'}
+                  labelActive="Abrindo…"
+                  highlightHueDeg={48}
+                  onClick={() => videoInputRef.current?.click()}
                 />
               </div>
             )}
@@ -387,11 +406,11 @@ export default function CriarGerarPage() {
             <div className="flex items-center justify-end gap-2 flex-wrap">
               <GlassButton
                 size="sm"
-                contentClassName="flex items-center gap-1.5"
+                contentClassName="flex items-center gap-1.5 flex-nowrap"
                 onClick={() => handleGenerateWithPrompt(selectedPrompt)}
               >
-                <Zap className="h-3.5 w-3.5" />
-                <span>Gerar · {selectedPrompt.creditCost} créditos</span>
+                <Zap className="h-3.5 w-3.5 shrink-0" />
+                <span className="whitespace-nowrap">Gerar · {selectedPrompt.creditCost} créditos</span>
               </GlassButton>
             </div>
           </div>

@@ -34,7 +34,7 @@ export function Hero({
   return (
     <section
       id="hero"
-      className="relative mx-auto w-full pt-8 lg:pt-24 px-6 text-center md:px-8 min-h-[calc(100vh-40px)] overflow-x-hidden overflow-y-visible rounded-b-xl bg-[linear-gradient(to_bottom,#F5F1E8,#FBF8F3_50%,#e8e8e8_88%)] dark:bg-[linear-gradient(to_bottom,#0A0A0A,#0A0A0A_30%,#1A1A1A_78%,#2a2a2a_99%)]"
+      className="relative mx-auto w-full pt-8 lg:pt-24 px-6 text-center md:px-8 min-h-0 lg:min-h-[calc(100vh-40px)] overflow-x-hidden overflow-y-visible rounded-b-xl bg-[#F5F1E8] dark:bg-[linear-gradient(to_bottom,#0A0A0A,#0A0A0A_30%,#1A1A1A_78%,#2a2a2a_99%)]"
     >
       {/* Grid BG - cores Gogh */}
       <div
@@ -77,7 +77,7 @@ export function Hero({
       )}
 
       {/* World map - efeito abaixo do texto (só o mapa, sem texto do demo) */}
-      <div className="mt-8 md:mt-12 w-full max-w-4xl mx-auto px-0 opacity-0 [animation-fill-mode:forwards] animate-fade-in-up motion-reduce:opacity-100" style={{ animationDelay: '0.2s' }}>
+      <div className="mt-6 md:mt-12 w-full max-w-4xl mx-auto px-0 opacity-0 [animation-fill-mode:forwards] animate-fade-in-up motion-reduce:opacity-100" style={{ animationDelay: '0.2s' }}>
         <WorldMap
           theme="light"
           lineColor="#F7C948"
@@ -93,7 +93,7 @@ export function Hero({
 
       {/* Bottom Fade */}
       <div
-        className="animate-fade-up relative mt-16 opacity-0 [perspective:2000px] after:absolute after:inset-0 after:z-50 after:[background:linear-gradient(to_top,#F5F1E8_10%,transparent)] dark:after:[background:linear-gradient(to_top,hsl(var(--background))_10%,transparent)]"
+        className="animate-fade-up relative mt-6 lg:mt-16 opacity-0 [perspective:2000px] after:absolute after:inset-0 after:z-50 after:[background:linear-gradient(to_top,#F5F1E8_10%,transparent)] dark:after:[background:linear-gradient(to_top,hsl(var(--background))_10%,transparent)]"
       />
     </section>
   )
