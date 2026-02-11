@@ -132,9 +132,11 @@ export interface AI_PromptProps {
   initialValue?: string
   /** Custo em créditos para exibir no botão Gerar (ex.: 5) */
   creditCost?: number | null
+  /** Quando "gerar": só área de texto + botão "Gerar · X créditos" abaixo (sem barra com modelo/envio dentro do chat) */
+  variant?: 'default' | 'gerar'
 }
 
-export function AI_Prompt({ placeholder = 'O que posso criar para você?', onSend, className, initialValue, creditCost }: AI_PromptProps) {
+export function AI_Prompt({ placeholder = 'O que posso criar para você?', onSend, className, initialValue, creditCost, variant = 'default' }: AI_PromptProps) {
   const [value, setValue] = useState(initialValue ?? '')
   const { textareaRef, adjustHeight } = useAutoResizeTextarea({ minHeight: 72, maxHeight: 300 })
   const [selectedModel, setSelectedModel] = useState('GPT-4-1 Mini')
@@ -162,16 +164,19 @@ export function AI_Prompt({ placeholder = 'O que posso criar para você?', onSen
     adjustHeight(true)
   }
 
+  const isGerarVariant = variant === 'gerar'
+
   return (
     <div className={cn('w-full max-w-2xl py-4', className)}>
-      <div className="rounded-2xl bg-black/5 p-1.5 dark:bg-white/5">
+      <div className={cn('rounded-2xl bg-black/5 p-1.5 dark:bg-white/5', isGerarVariant && 'rounded-b-2xl')}>
         <div className="relative flex flex-col">
           <div className="overflow-y-auto" style={{ maxHeight: '400px' }}>
             <Textarea
               value={value}
               placeholder={placeholder}
               className={cn(
-                'min-h-[72px] w-full resize-none rounded-xl rounded-b-none border-none bg-black/5 px-4 py-3 placeholder:text-black/70 focus-visible:ring-0 focus-visible:ring-offset-0 dark:bg-white/5 dark:text-white dark:placeholder:text-white/70'
+                'min-h-[72px] w-full resize-none border-none bg-black/5 px-4 py-3 placeholder:text-black/70 focus-visible:ring-0 focus-visible:ring-offset-0 dark:bg-white/5 dark:text-white dark:placeholder:text-white/70',
+                isGerarVariant ? 'rounded-xl' : 'rounded-xl rounded-b-none'
               )}
               ref={textareaRef}
               onKeyDown={handleKeyDown}
@@ -181,92 +186,107 @@ export function AI_Prompt({ placeholder = 'O que posso criar para você?', onSen
               }}
             />
           </div>
-          <div className="flex h-14 items-center rounded-b-xl bg-black/5 dark:bg-white/5">
-            <div className="flex w-[calc(100%-24px)] items-center justify-between px-3 pb-3">
-              <div className="flex items-center gap-2">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      className="h-8 gap-1 rounded-md pl-1 pr-2 text-xs focus-visible:ring-1 focus-visible:ring-blue-500 focus-visible:ring-offset-0 hover:bg-black/10 dark:hover:bg-white/10 dark:text-white"
-                    >
-                      <AnimatePresence mode="wait">
-                        <motion.div
-                          key={selectedModel}
-                          initial={{ opacity: 0, y: -5 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: 5 }}
-                          transition={{ duration: 0.15 }}
-                          className="flex items-center gap-1"
-                        >
-                          {MODEL_ICONS[selectedModel]}
-                          {selectedModel}
-                          <ChevronDown className="h-3 w-3 opacity-50" />
-                        </motion.div>
-                      </AnimatePresence>
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent
-                    className={cn(
-                      'min-w-[10rem] border-black/10 dark:border-white/10',
-                      'bg-gradient-to-b from-white via-white to-neutral-100 dark:from-neutral-950 dark:via-neutral-900 dark:to-neutral-800'
-                    )}
-                  >
-                    {AI_MODELS.map((model) => (
-                      <DropdownMenuItem
-                        key={model}
-                        onSelect={() => setSelectedModel(model)}
-                        className="flex items-center justify-between gap-2"
+          {!isGerarVariant && (
+            <div className="flex h-14 items-center rounded-b-xl bg-black/5 dark:bg-white/5">
+              <div className="flex w-[calc(100%-24px)] items-center justify-between px-3 pb-3">
+                <div className="flex items-center gap-2">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        className="h-8 gap-1 rounded-md pl-1 pr-2 text-xs focus-visible:ring-1 focus-visible:ring-blue-500 focus-visible:ring-offset-0 hover:bg-black/10 dark:hover:bg-white/10 dark:text-white"
                       >
-                        <div className="flex items-center gap-2">
-                          {MODEL_ICONS[model] ?? <Bot className="h-4 w-4 opacity-50" />}
-                          <span>{model}</span>
-                        </div>
-                        {selectedModel === model && <Check className="h-4 w-4 text-blue-500" />}
-                      </DropdownMenuItem>
-                    ))}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-                <div className="mx-0.5 h-4 w-px bg-black/10 dark:bg-white/10" />
-                <label
+                        <AnimatePresence mode="wait">
+                          <motion.div
+                            key={selectedModel}
+                            initial={{ opacity: 0, y: -5 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: 5 }}
+                            transition={{ duration: 0.15 }}
+                            className="flex items-center gap-1"
+                          >
+                            {MODEL_ICONS[selectedModel]}
+                            {selectedModel}
+                            <ChevronDown className="h-3 w-3 opacity-50" />
+                          </motion.div>
+                        </AnimatePresence>
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent
+                      className={cn(
+                        'min-w-[10rem] border-black/10 dark:border-white/10',
+                        'bg-gradient-to-b from-white via-white to-neutral-100 dark:from-neutral-950 dark:via-neutral-900 dark:to-neutral-800'
+                      )}
+                    >
+                      {AI_MODELS.map((model) => (
+                        <DropdownMenuItem
+                          key={model}
+                          onSelect={() => setSelectedModel(model)}
+                          className="flex items-center justify-between gap-2"
+                        >
+                          <div className="flex items-center gap-2">
+                            {MODEL_ICONS[model] ?? <Bot className="h-4 w-4 opacity-50" />}
+                            <span>{model}</span>
+                          </div>
+                          {selectedModel === model && <Check className="h-4 w-4 text-blue-500" />}
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                  <div className="mx-0.5 h-4 w-px bg-black/10 dark:bg-white/10" />
+                  <label
+                    className={cn(
+                      'cursor-pointer rounded-lg bg-black/5 p-2 hover:bg-black/10 focus-visible:ring-1 focus-visible:ring-blue-500 focus-visible:ring-offset-0 dark:bg-white/5 dark:hover:bg-white/10',
+                      'text-black/40 hover:text-black dark:text-white/40 dark:hover:text-white'
+                    )}
+                    aria-label="Anexar arquivo"
+                  >
+                    <input type="file" className="hidden" />
+                    <Paperclip className="h-4 w-4 transition-colors" />
+                  </label>
+                </div>
+                <button
+                  type="button"
                   className={cn(
-                    'cursor-pointer rounded-lg bg-black/5 p-2 hover:bg-black/10 focus-visible:ring-1 focus-visible:ring-blue-500 focus-visible:ring-offset-0 dark:bg-white/5 dark:hover:bg-white/10',
-                    'text-black/40 hover:text-black dark:text-white/40 dark:hover:text-white'
+                    'rounded-lg px-3 py-2 text-sm font-medium transition-colors focus-visible:ring-1 focus-visible:ring-blue-500 focus-visible:ring-offset-0',
+                    value.trim()
+                      ? 'bg-primary text-primary-foreground hover:bg-primary/90 dark:bg-primary dark:text-primary-foreground'
+                      : 'bg-black/10 text-black/40 dark:bg-white/10 dark:text-white/40 cursor-not-allowed'
                   )}
-                  aria-label="Anexar arquivo"
+                  aria-label={creditCost != null ? `Gerar (${creditCost} créditos)` : 'Enviar'}
+                  disabled={!value.trim()}
+                  onClick={handleSend}
                 >
-                  <input type="file" className="hidden" />
-                  <Paperclip className="h-4 w-4 transition-colors" />
-                </label>
-              </div>
-              <button
-                type="button"
-                className={cn(
-                  'rounded-lg px-3 py-2 text-sm font-medium transition-colors focus-visible:ring-1 focus-visible:ring-blue-500 focus-visible:ring-offset-0',
-                  value.trim()
-                    ? 'bg-primary text-primary-foreground hover:bg-primary/90 dark:bg-primary dark:text-primary-foreground'
-                    : 'bg-black/10 text-black/40 dark:bg-white/10 dark:text-white/40 cursor-not-allowed'
-                )}
-                aria-label={creditCost != null ? `Gerar (${creditCost} créditos)` : 'Enviar'}
-                disabled={!value.trim()}
-                onClick={handleSend}
-              >
-                {creditCost != null ? (
-                  <span className="flex items-center gap-1.5">
-                    Gerar
-                    <span className="flex items-center gap-0.5 opacity-90">
-                      <Zap className="h-3.5 w-3.5" />
-                      {creditCost}
+                  {creditCost != null ? (
+                    <span className="flex items-center gap-1.5">
+                      Gerar
+                      <span className="flex items-center gap-0.5 opacity-90">
+                        <Zap className="h-3.5 w-3.5" />
+                        {creditCost}
+                      </span>
                     </span>
-                  </span>
-                ) : (
-                  <ArrowRight className="h-4 w-4" />
-                )}
-              </button>
+                  ) : (
+                    <ArrowRight className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
+      {isGerarVariant && (
+        <div className="mt-3 flex justify-end">
+          <Button
+            type="button"
+            disabled={!value.trim()}
+            onClick={handleSend}
+            className="gap-1.5"
+          >
+            <Zap className="h-4 w-4" />
+            {creditCost != null ? `Gerar · ${creditCost} créditos` : 'Gerar'}
+          </Button>
+        </div>
+      )}
     </div>
   )
 }

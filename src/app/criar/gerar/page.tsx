@@ -285,27 +285,13 @@ export default function CriarGerarPage() {
 
       {showChat && (
         <>
-          <div className="mb-4 flex flex-wrap items-center gap-2">
-            <label htmlFor="chat-model-select" className="text-sm font-medium text-muted-foreground">
-              Modelo de IA:
-            </label>
-            <select
-              id="chat-model-select"
-              value={selectedModelId}
-              onChange={(e) => setSelectedModelId(e.target.value)}
-              className="rounded-lg border border-input bg-background px-3 py-2 text-sm"
-            >
-              {availableModels.map((m) => (
-                <option key={m.id} value={m.id}>{m.label}</option>
-              ))}
-            </select>
-          </div>
           {messages.length > 0 && (
             <div className="mb-4 max-h-[320px] sm:max-h-[400px] overflow-y-auto rounded-xl border bg-muted/20">
               <ChatWithActions messages={messages} onAction={handleAction} />
             </div>
           )}
           <AI_Prompt
+            variant="gerar"
             placeholder={PLACEHOLDERS[activeTab]}
             onSend={handleSend}
             initialValue={selectedPrompt?.inputStructure === 'text_only' ? selectedPrompt.prompt : promptFromUrl}

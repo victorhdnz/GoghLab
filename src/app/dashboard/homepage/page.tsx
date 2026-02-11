@@ -1544,24 +1544,14 @@ export default function HomepageEditorPage() {
                 <p className="text-sm text-gray-500 -mt-2">
                   Quando ativo, o carrossel exibe automaticamente os cards dos prompts configurados na página{' '}
                   <Link href="/dashboard/criar-prompts" className="text-indigo-600 hover:underline font-medium">Prompts de Criação</Link>
-                  {' '}(título, subtítulo, foto/vídeo de referência e link para Criar com IA).
+                  {' '}(título, foto/vídeo de referência e link para Criar com IA).
                 </p>
                 <Input
                   label="Título da seção"
                   value={galleryData.heading || ''}
                   onChange={(e) => setGalleryData({ ...galleryData, heading: e.target.value })}
-                  placeholder="Ex: Projetos em destaque"
+                  placeholder="Ex: Projetos em destaque · Crie com IA · Inspirações"
                 />
-                <div>
-                  <label className="block text-sm font-medium mb-2">Subtítulo / descrição</label>
-                  <textarea
-                    value={galleryData.subtitle || ''}
-                    onChange={(e) => setGalleryData({ ...galleryData, subtitle: e.target.value })}
-                    placeholder="Ex: Explore nossa coleção de imagens e vídeos criados com IA."
-                    rows={2}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
                 <Input
                   label="Intervalo do auto-slide (ms) — 0 para desligar"
                   type="number"
