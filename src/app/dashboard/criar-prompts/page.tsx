@@ -18,7 +18,7 @@ const TAB_OPTIONS: { value: CreationTabId; label: string }[] = [
   { value: 'foto', label: 'Criação de Foto' },
   { value: 'video', label: 'Criação de Vídeo' },
   { value: 'roteiro', label: 'Vídeo com Roteiro' },
-  { value: 'vangogh', label: 'Van Gogh' },
+  { value: 'vangogh', label: 'Criação de prompts' },
 ]
 
 export default function CriarPromptsPage() {

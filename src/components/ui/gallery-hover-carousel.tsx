@@ -248,8 +248,8 @@ function ImageCard({ item }: { item: GalleryHoverCarouselItem }) {
             <Link
               href={
                 item.promptId && item.tabId
-                  ? `/criar?promptId=${encodeURIComponent(item.promptId)}&tab=${encodeURIComponent(item.tabId)}`
-                  : `/criar?prompt=${encodeURIComponent(item.prompt ?? '')}`
+                  ? `/criar/gerar?promptId=${encodeURIComponent(item.promptId)}&tab=${encodeURIComponent(item.tabId)}`
+                  : `/criar/gerar?prompt=${encodeURIComponent(item.prompt ?? '')}`
               }
             >
               <Button size="sm" className="gap-1.5">
@@ -318,8 +318,8 @@ function VideoCard({
               <Link
                 href={
                   item.promptId && item.tabId
-                    ? `/criar?promptId=${encodeURIComponent(item.promptId)}&tab=${encodeURIComponent(item.tabId)}`
-                    : `/criar?prompt=${encodeURIComponent(item.prompt ?? '')}`
+                    ? `/criar/gerar?promptId=${encodeURIComponent(item.promptId)}&tab=${encodeURIComponent(item.tabId)}`
+                    : `/criar/gerar?prompt=${encodeURIComponent(item.prompt ?? '')}`
                 }
                 onClick={(e) => e.stopPropagation()}
               >

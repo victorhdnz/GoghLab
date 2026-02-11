@@ -5,7 +5,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
 import { Home, CreditCard, MessageCircle, Sparkles, Wrench, BookOpen, User, Menu } from 'lucide-react'
-import { Button, buttonVariants } from '@/components/ui/button'
+import { buttonVariants } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/contexts/AuthContext'
@@ -142,8 +142,8 @@ export function FloatingHeader() {
             </Link>
           ))}
         </div>
-        {/* Mobile/tablet: poucos itens na barra + resto no menu hamburger */}
-        <div className="flex lg:hidden items-center gap-0.5 sm:gap-1 flex-1 justify-end min-w-0">
+        {/* Mobile/tablet: itens centralizados na barra (ícone + texto abaixo), resto no menu hamburger */}
+        <div className="flex lg:hidden items-center justify-center gap-0.5 sm:gap-1 flex-1 min-w-0">
           {linkConfig.filter((l) => l.showOnMobileBar).map((link) => {
             const Icon = link.icon
             const isActive = pathname === link.href || (link.href === '/' && pathname === '/')
@@ -209,13 +209,20 @@ export function FloatingHeader() {
               </nav>
             </SheetContent>
           </Sheet>
-        </div>
-        <div className="flex items-center flex-shrink-0 pl-1">
-          <Link href={isAuthenticated ? '/conta' : '/login'}>
-            <Button size="sm" variant={isAuthenticated ? 'outline' : 'default'} className="gap-1.5">
-              <User className="size-4 hidden xs:inline" />
-              {isAuthenticated ? 'Conta' : 'Entrar'}
-            </Button>
+          <Link
+            href={isAuthenticated ? '/conta' : '/login'}
+            className={cn(
+              'flex flex-col items-center justify-center rounded-lg p-1.5 sm:p-2 min-w-[44px] min-h-[44px]',
+              pathname === '/conta' || pathname?.startsWith('/conta/')
+                ? 'bg-accent text-accent-foreground'
+                : isAuthenticated
+                  ? 'hover:bg-accent text-muted-foreground hover:text-foreground'
+                  : 'bg-primary text-primary-foreground hover:bg-primary/90'
+            )}
+            title={isAuthenticated ? 'Conta' : 'Entrar'}
+          >
+            <User className="size-5 sm:size-5" />
+            <span className="text-[10px] sm:text-xs truncate w-full text-center">{isAuthenticated ? 'Conta' : 'Entrar'}</span>
           </Link>
         </div>
       </nav>
