@@ -60,10 +60,10 @@ export function CloudinaryVideoUploader({
       try {
         data = text ? JSON.parse(text) : {}
       } catch {
-        if (res.status === 413 || text.includes('Request Entity Too Large') || text.includes('too large')) {
+        if (res.status === 413) {
           throw new Error('Vídeo muito grande para upload direto. Tente um arquivo menor ou comprima o vídeo.')
         }
-        throw new Error('Resposta inválida do servidor. Tente novamente.')
+        throw new Error(`Erro no servidor (status ${res.status}). Tente novamente.`)
       }
       if (!res.ok) {
         throw new Error(data.error || 'Erro no upload')
