@@ -430,7 +430,7 @@ export function HomepageSections({
             type: isVideo ? 'video' : 'image',
             title: p.title,
             summary: p.subtitle ?? '',
-            image: isYouTube ? (getYouTubeThumbnail(p.coverVideo) || p.coverImage ?? '') : (p.coverImage ?? ''),
+            image: isYouTube ? ((getYouTubeThumbnail(p.coverVideo) || p.coverImage) ?? '') : (p.coverImage ?? ''),
             prompt: p.prompt,
             promptId: p.id,
             tabId: p.tabId,

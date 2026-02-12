@@ -4,7 +4,6 @@ const nextConfig = {
     serverActions: {
       bodySizeLimit: '500mb', // upload de vídeo (padrão 1MB; vídeos grandes)
     },
-    proxyClientMaxBodySize: 500 * 1024 * 1024, // 500MB
   },
   images: {
     domains: ['lh3.googleusercontent.com', 'images.unsplash.com', 'res.cloudinary.com'],
