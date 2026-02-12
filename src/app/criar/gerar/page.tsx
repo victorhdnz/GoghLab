@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect, useMemo, useRef, type ReactNode } fro
 import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { ImageIcon, Coins, Zap, ArrowLeft, Video, Sparkles, Bot, ChevronDown, Check } from 'lucide-react'
+import { ImageIcon, Coins, Zap, ArrowLeft, Video, Sparkles, Bot, ChevronDown, Check, Play, X } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import {
   DropdownMenu,
@@ -23,6 +23,8 @@ import { GlassButton } from '@/components/ui/glass-button'
 import AnimatedGenerateButton from '@/components/ui/animated-generate-button-shadcn-tailwind'
 import type { CreationPromptItem, CreationTabId } from '@/types/creation-prompts'
 import type { CreditActionId } from '@/lib/credits'
+import { getYouTubeId, getYouTubeThumbnail, getYouTubeEmbedUrl } from '@/lib/utils/youtube'
+import { isCloudinaryVideoUrl, getCloudinaryContainerClasses } from '@/lib/utils/cloudinary'
 
 const TABS = [
   { id: 'foto', label: 'Criação de Foto' },
@@ -107,6 +109,7 @@ export default function CriarGerarPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [generating, setGenerating] = useState(false)
   const [showCreditModal, setShowCreditModal] = useState(false)
+  const [modalVideo, setModalVideo] = useState<{ type: 'youtube' | 'cloudinary'; url: string } | null>(null)
   const [publicCostByAction, setPublicCostByAction] = useState<Record<CreditActionId, number> | null>(null)
   const [creationModelsApi, setCreationModelsApi] = useState<CreationModelOption[]>([])
   const imageInputRef = useRef<HTMLInputElement>(null)
@@ -311,16 +314,32 @@ export default function CriarGerarPage() {
             <span className="font-medium text-xs sm:text-sm truncate">{selectedPrompt.title}</span>
           </div>
           <div className="p-3 space-y-3">
-            {selectedPrompt.coverImage && (
-              <div className="relative w-full h-[100px] sm:h-[120px] rounded-md overflow-hidden bg-muted/50">
-                <Image src={selectedPrompt.coverImage} alt="" fill className="object-cover" sizes="400px" />
-              </div>
-            )}
-            {selectedPrompt.coverVideo && !selectedPrompt.coverImage && (
-              <div className="relative w-full h-[100px] sm:h-[120px] rounded-md overflow-hidden bg-muted/50">
-                <video src={selectedPrompt.coverVideo} className="w-full h-full object-cover" controls muted playsInline />
-              </div>
-            )}
+            {(() => {
+              const isYouTube = selectedPrompt.coverVideo && getYouTubeId(selectedPrompt.coverVideo)
+              const hasVideo = !!selectedPrompt.coverVideo
+              const thumbUrl = isYouTube ? (getYouTubeThumbnail(selectedPrompt.coverVideo!) || selectedPrompt.coverImage) : selectedPrompt.coverImage
+              if (!thumbUrl && !hasVideo) return null
+              return (
+                <div className="relative w-full h-[100px] sm:h-[120px] rounded-md overflow-hidden bg-muted/50">
+                  {thumbUrl && <Image src={thumbUrl} alt="" fill className="object-cover" sizes="400px" />}
+                  {hasVideo && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (isYouTube) setModalVideo({ type: 'youtube', url: selectedPrompt.coverVideo! })
+                        else if (isCloudinaryVideoUrl(selectedPrompt.coverVideo!)) setModalVideo({ type: 'cloudinary', url: selectedPrompt.coverVideo! })
+                      }}
+                      className="absolute inset-0 flex items-center justify-center bg-black/20 hover:bg-black/30 transition-colors"
+                      aria-label="Assistir vídeo"
+                    >
+                      <span className="rounded-full bg-white/90 p-2 text-black shadow-lg">
+                        <Play className="h-4 w-4 fill-current" />
+                      </span>
+                    </button>
+                  )}
+                </div>
+              )
+            })()}
             {(selectedPrompt.inputStructure === 'image_only' || selectedPrompt.inputStructure === 'image_and_video' || selectedPrompt.inputStructure === 'motion_video_and_character_photo') && (
               <div>
                 <label className="block text-xs font-medium mb-1">
@@ -455,6 +474,48 @@ export default function CriarGerarPage() {
             </div>
           )}
         </>
+      )}
+
+      {/* Modal de vídeo (YouTube ou Cloudinary) */}
+      {modalVideo && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
+          onClick={() => setModalVideo(null)}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Assistir vídeo"
+        >
+          <div
+            className={modalVideo.type === 'cloudinary' ? getCloudinaryContainerClasses(modalVideo.url).wrapper + ' ' + getCloudinaryContainerClasses(modalVideo.url).aspectRatio + ' relative w-full bg-black rounded-lg overflow-hidden shadow-2xl' : 'relative w-full max-w-4xl aspect-video bg-black rounded-lg overflow-hidden shadow-2xl'}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={() => setModalVideo(null)}
+              className="absolute top-2 right-2 z-10 rounded-full bg-black/60 p-2 text-white hover:bg-black/80 transition-colors"
+              aria-label="Fechar"
+            >
+              <X className="h-5 w-5" />
+            </button>
+            {modalVideo.type === 'cloudinary' ? (
+              <video
+                src={modalVideo.url}
+                controls
+                autoPlay
+                playsInline
+                className="absolute inset-0 w-full h-full object-contain"
+              />
+            ) : (
+              <iframe
+                src={getYouTubeEmbedUrl(modalVideo.url, true) ?? undefined}
+                title="Vídeo do YouTube"
+                className="absolute inset-0 w-full h-full"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
+            )}
+          </div>
+        </div>
       )}
     </div>
   )

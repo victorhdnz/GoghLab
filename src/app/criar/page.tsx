@@ -4,10 +4,12 @@ import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { ImageIcon, Video, FileText, Palette, MessageSquare } from 'lucide-react'
+import { ImageIcon, Video, FileText, Palette, MessageSquare, Play, X } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useCredits } from '@/hooks/useCredits'
 import { cn } from '@/lib/utils'
+import { getYouTubeId, getYouTubeThumbnail, getYouTubeEmbedUrl } from '@/lib/utils/youtube'
+import { isCloudinaryVideoUrl, getCloudinaryContainerClasses } from '@/lib/utils/cloudinary'
 import type { CreationPromptItem, CreationTabId } from '@/types/creation-prompts'
 
 const TABS = [
@@ -26,6 +28,7 @@ export default function CriarPage() {
   const { balance } = useCredits()
   const [activeTab, setActiveTab] = useState<TabId>('foto')
   const [creationPrompts, setCreationPrompts] = useState<CreationPromptItem[]>([])
+  const [modalVideo, setModalVideo] = useState<{ type: 'youtube' | 'cloudinary'; url: string } | null>(null)
 
   const promptIdFromUrl = searchParams.get('promptId')
   const tabFromUrl = searchParams.get('tab') as TabId | null
@@ -105,30 +108,92 @@ export default function CriarPage() {
             <p className="text-xs text-muted-foreground">Descreva livremente e crie</p>
           </div>
         </Link>
-        {promptsForTab.map((p) => (
-          <Link
-            key={p.id}
-            href={`/criar/gerar?promptId=${encodeURIComponent(p.id)}&tab=${encodeURIComponent(p.tabId)}`}
-            className="rounded-xl border-2 border-border bg-card text-left overflow-hidden transition-all hover:shadow-md hover:border-primary/50 focus:outline-none focus:ring-2 focus:ring-primary/20"
-          >
-            <div className="aspect-video bg-muted/50 relative">
-              {p.coverVideo ? (
-                <video src={p.coverVideo} className="w-full h-full object-cover" muted playsInline />
-              ) : p.coverImage ? (
-                <Image src={p.coverImage} alt="" fill className="object-cover" sizes="(max-width: 768px) 50vw, 220px" />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center">
-                  <ImageIcon className="h-10 w-10 text-muted-foreground" />
-                </div>
-              )}
-            </div>
-            <div className="p-3">
-              <p className="font-medium text-sm line-clamp-1">{p.title}</p>
-              <p className="text-xs text-muted-foreground line-clamp-2">{p.subtitle}</p>
-            </div>
-          </Link>
-        ))}
+        {promptsForTab.map((p) => {
+          const isYouTube = p.coverVideo && getYouTubeId(p.coverVideo)
+          const hasVideo = !!p.coverVideo
+          const thumbUrl = isYouTube ? (getYouTubeThumbnail(p.coverVideo!) || p.coverImage) : p.coverImage
+          return (
+            <Link
+              key={p.id}
+              href={`/criar/gerar?promptId=${encodeURIComponent(p.id)}&tab=${encodeURIComponent(p.tabId)}`}
+              className="rounded-xl border-2 border-border bg-card text-left overflow-hidden transition-all hover:shadow-md hover:border-primary/50 focus:outline-none focus:ring-2 focus:ring-primary/20"
+            >
+              <div className="aspect-video bg-muted/50 relative">
+                {thumbUrl ? (
+                  <Image src={thumbUrl} alt="" fill className="object-cover" sizes="(max-width: 768px) 50vw, 220px" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <ImageIcon className="h-10 w-10 text-muted-foreground" />
+                  </div>
+                )}
+                {hasVideo && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      if (isYouTube) setModalVideo({ type: 'youtube', url: p.coverVideo! })
+                      else if (isCloudinaryVideoUrl(p.coverVideo!)) setModalVideo({ type: 'cloudinary', url: p.coverVideo! })
+                    }}
+                    className="absolute inset-0 flex items-center justify-center bg-black/20 hover:bg-black/30 transition-colors"
+                    aria-label="Assistir vídeo"
+                  >
+                    <span className="rounded-full bg-white/90 p-2 text-black shadow-lg">
+                      <Play className="h-5 w-5 fill-current" />
+                    </span>
+                  </button>
+                )}
+              </div>
+              <div className="p-3">
+                <p className="font-medium text-sm line-clamp-1">{p.title}</p>
+                <p className="text-xs text-muted-foreground line-clamp-2">{p.subtitle}</p>
+              </div>
+            </Link>
+          )
+        })}
       </div>
+
+      {/* Modal de vídeo (YouTube ou Cloudinary) */}
+      {modalVideo && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
+          onClick={() => setModalVideo(null)}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Assistir vídeo"
+        >
+          <div
+            className={modalVideo.type === 'cloudinary' ? getCloudinaryContainerClasses(modalVideo.url).wrapper + ' ' + getCloudinaryContainerClasses(modalVideo.url).aspectRatio + ' relative w-full bg-black rounded-lg overflow-hidden shadow-2xl' : 'relative w-full max-w-4xl aspect-video bg-black rounded-lg overflow-hidden shadow-2xl'}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={() => setModalVideo(null)}
+              className="absolute top-2 right-2 z-10 rounded-full bg-black/60 p-2 text-white hover:bg-black/80 transition-colors"
+              aria-label="Fechar"
+            >
+              <X className="h-5 w-5" />
+            </button>
+            {modalVideo.type === 'cloudinary' ? (
+              <video
+                src={modalVideo.url}
+                controls
+                autoPlay
+                playsInline
+                className="absolute inset-0 w-full h-full object-contain"
+              />
+            ) : (
+              <iframe
+                src={getYouTubeEmbedUrl(modalVideo.url, true) ?? undefined}
+                title="Vídeo do YouTube"
+                className="absolute inset-0 w-full h-full"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

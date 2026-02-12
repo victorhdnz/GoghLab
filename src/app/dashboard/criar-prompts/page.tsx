@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/Input'
 import { Switch } from '@/components/ui/Switch'
 import { ImageUploader } from '@/components/ui/ImageUploader'
+import { VideoUploader } from '@/components/ui/VideoUploader'
 import { Plus, Trash2, Save, MessageSquare, LayoutGrid, Bot } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { getSiteSettings, saveSiteSettings } from '@/lib/supabase/site-settings-helper'
@@ -564,6 +565,21 @@ export default function CriarPromptsPage() {
                         placeholder="Imagem de destaque"
                         cropType="banner"
                         aspectRatio={16 / 9}
+                      />
+                    </div>
+                    <div className="sm:col-span-2">
+                      <label className="block text-xs font-medium mb-1">Vídeo de capa (YouTube — opcional)</label>
+                      <p className="text-xs text-gray-500 mb-1.5">Se preenchido, o card mostra a capa do YouTube e um botão de play que abre o vídeo em um modal. Caso não use vídeo, a capa do card será a imagem acima.</p>
+                      <VideoUploader
+                        value={item.coverVideo ?? ''}
+                        onChange={(url) => {
+                          setPrompts((prev) => {
+                            const next = prev.map((p, i) => i === index ? { ...p, coverVideo: url || undefined } : p)
+                            savePromptsToServer(next)
+                            return next
+                          })
+                        }}
+                        placeholder="Cole a URL do vídeo do YouTube"
                       />
                     </div>
                     <div className="sm:col-span-2">

@@ -22,6 +22,7 @@ import { AuroraText } from '@/components/ui/aurora-text'
 import { FeaturesSectionWithHoverEffects } from '@/components/ui/feature-section-with-hover-effects'
 import GalleryHoverCarousel from '@/components/ui/gallery-hover-carousel'
 import type { GalleryHoverCarouselItem } from '@/components/ui/gallery-hover-carousel'
+import { getYouTubeId, getYouTubeThumbnail } from '@/lib/utils/youtube'
 import { TypewriterEffectSmooth } from '@/components/ui/typewriter-effect'
 import { Hero } from '@/components/ui/hero-1'
 
@@ -421,17 +422,21 @@ export function HomepageSections({
     const data = homepageContent.gallery_carousel
     const useCreationPrompts = homepageContent.gallery_use_creation_prompts === true && Array.isArray(homepageContent.creation_prompts) && homepageContent.creation_prompts.length > 0
     const items: GalleryHoverCarouselItem[] = useCreationPrompts
-      ? (homepageContent.creation_prompts as any[]).map((p: any) => ({
-          id: p.id,
-          type: p.coverVideo ? 'video' : 'image',
-          title: p.title,
-          summary: p.subtitle ?? '',
-          image: p.coverImage ?? '',
-          prompt: p.prompt,
-          promptId: p.id,
-          tabId: p.tabId,
-          videoUrl: p.coverVideo,
-        }))
+      ? (homepageContent.creation_prompts as any[]).map((p: any) => {
+          const isYouTube = p.coverVideo && getYouTubeId(p.coverVideo)
+          const isVideo = !!p.coverVideo
+          return {
+            id: p.id,
+            type: isVideo ? 'video' : 'image',
+            title: p.title,
+            summary: p.subtitle ?? '',
+            image: isYouTube ? (getYouTubeThumbnail(p.coverVideo) || p.coverImage ?? '') : (p.coverImage ?? ''),
+            prompt: p.prompt,
+            promptId: p.id,
+            tabId: p.tabId,
+            ...(isYouTube ? { youtubeUrl: p.coverVideo } : isVideo ? { videoUrl: p.coverVideo } : {}),
+          }
+        })
       : (Array.isArray(data?.items) ? (data.items as GalleryHoverCarouselItem[]) : [])
     if (items.length === 0) return null
     return (

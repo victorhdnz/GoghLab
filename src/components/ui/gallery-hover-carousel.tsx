@@ -11,7 +11,7 @@ import {
 import type { CarouselApi } from "@/components/ui/carousel";
 import Image from "next/image";
 import Link from "next/link";
-import { getYouTubeEmbedUrl } from "@/lib/utils/youtube";
+import { getYouTubeEmbedUrl, getYouTubeId } from "@/lib/utils/youtube";
 import { isCloudinaryVideoUrl, getCloudinaryContainerClasses } from "@/lib/utils/cloudinary";
 import { SparklesText } from "@/components/ui/sparkles-text";
 
@@ -155,10 +155,12 @@ export default function GalleryHoverCarousel({
                     <VideoCard
                       item={item}
                       onPlay={() => {
-                        if (item.videoUrl && isCloudinaryVideoUrl(item.videoUrl)) {
-                          setModalVideo({ type: "cloudinary", url: item.videoUrl });
-                        } else if (item.youtubeUrl) {
+                        if (item.youtubeUrl) {
                           setModalVideo({ type: "youtube", url: item.youtubeUrl });
+                        } else if (item.videoUrl && isCloudinaryVideoUrl(item.videoUrl)) {
+                          setModalVideo({ type: "cloudinary", url: item.videoUrl });
+                        } else if (item.videoUrl && getYouTubeId(item.videoUrl)) {
+                          setModalVideo({ type: "youtube", url: item.videoUrl });
                         }
                       }}
                     />
