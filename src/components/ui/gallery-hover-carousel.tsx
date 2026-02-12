@@ -12,6 +12,7 @@ import type { CarouselApi } from "@/components/ui/carousel";
 import Image from "next/image";
 import Link from "next/link";
 import { getYouTubeEmbedUrl } from "@/lib/utils/youtube";
+import { isCloudinaryVideoUrl, getCloudinaryContainerClasses } from "@/lib/utils/cloudinary";
 import { SparklesText } from "@/components/ui/sparkles-text";
 
 export type GalleryHoverCarouselItem = {
@@ -33,10 +34,6 @@ export type GalleryHoverCarouselItem = {
   /** URL do YouTube para cards do tipo video (legado; cursos continuam com YouTube) */
   youtubeUrl?: string;
 };
-
-function isCloudinaryVideoUrl(url: string): boolean {
-  return /res\.cloudinary\.com.*\/video\/upload\//.test(url) || /cloudinary\.com.*video/.test(url);
-}
 
 const DEFAULT_ITEMS: GalleryHoverCarouselItem[] = [
   {
@@ -185,7 +182,7 @@ export default function GalleryHoverCarousel({
           aria-label="Assistir vídeo"
         >
           <div
-            className="relative w-full max-w-4xl aspect-video bg-black rounded-lg overflow-hidden shadow-2xl"
+            className={`relative w-full bg-black rounded-lg overflow-hidden shadow-2xl ${modalVideo.type === "cloudinary" ? getCloudinaryContainerClasses(modalVideo.url).wrapper + " " + getCloudinaryContainerClasses(modalVideo.url).aspectRatio : "max-w-4xl aspect-video"}`}
             onClick={(e) => e.stopPropagation()}
           >
             <button

@@ -303,7 +303,7 @@ export default function RootLayout({
           <NotFoundProvider>
             <ConditionalLayout>
               <PageTransition>
-                <main className="min-h-screen relative">
+                <main className="relative">
                   {children}
                 </main>
               </PageTransition>

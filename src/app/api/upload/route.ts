@@ -40,13 +40,6 @@ function isValidFileSize(size: number, isVideo: boolean = false): boolean {
   return size <= MAX_FILE_SIZE
 }
 
-// Detectar se é vídeo por MIME ou por extensão (iOS pode enviar file.type vazio)
-function isVideoFile(file: File): boolean {
-  if (file.type && file.type.startsWith('video/')) return true
-  const name = (file.name || '').toLowerCase()
-  return /\.(mp4|mov|m4v|webm|ogg|avi|mkv)$/.test(name)
-}
-
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData()
@@ -58,6 +51,11 @@ export async function POST(request: NextRequest) {
 
     if (!file) {
       return NextResponse.json({ error: 'Nenhum arquivo enviado' }, { status: 400 })
+    }
+
+    // Cloudinary usado apenas para fotos; vídeos via YouTube
+    if (file.type.startsWith('video/') || /\.(mp4|mov|m4v|webm|ogg|avi|mkv)$/i.test(file.name || '')) {
+      return NextResponse.json({ error: 'Cloudinary é usado apenas para fotos. Para vídeos use o YouTube.' }, { status: 400 })
     }
 
     // Verificar configuração do Cloudinary (tentar ambos nomes de variáveis)
@@ -82,50 +80,39 @@ export async function POST(request: NextRequest) {
       }, { status: 500 })
     }
 
-    // Detectar tipo de arquivo (por MIME ou extensão — iOS pode enviar type vazio)
-    const isVideo = isVideoFile(file)
-    const resourceType = isVideo ? 'video' : 'image'
-
-    // Validar tipo de arquivo
-    if (!isVideo && !isValidImageFile(file)) {
+    // Validar tipo de arquivo (apenas imagens)
+    if (!isValidImageFile(file)) {
       return NextResponse.json({ 
-        error: `Apenas arquivos de imagem são permitidos. Formatos aceitos: ${ALLOWED_IMAGE_FORMATS.join(', ').toUpperCase()}. Tipo de arquivo recebido: ${file.type || 'desconhecido'}, Nome: ${file.name}` 
+        error: `Apenas arquivos de imagem são permitidos. Formatos aceitos: ${ALLOWED_IMAGE_FORMATS.join(', ').toUpperCase()}. Tipo recebido: ${file.type || 'desconhecido'}, Nome: ${file.name}` 
       }, { status: 400 })
     }
 
-    // Validar tamanho (apenas para imagens, vídeos sem limite)
-    if (!isValidFileSize(file.size, isVideo)) {
-      // Apenas imagens têm limite (5MB)
-      return NextResponse.json({ 
-        error: `Arquivo muito grande. Tamanho máximo: 5MB para imagens` 
-      }, { status: 400 })
+    if (!isValidFileSize(file.size, false)) {
+      return NextResponse.json({ error: 'Arquivo muito grande. Tamanho máximo: 5MB para imagens' }, { status: 400 })
     }
 
     // Converter File para buffer
     const bytes = await file.arrayBuffer()
     const buffer = Buffer.from(bytes)
     
-    // Configurar opções de upload (seguindo lógica do exemplo fornecido)
     const uploadOptions: any = {
       folder: folder || 'mv-company',
-      resource_type: resourceType,
+      resource_type: 'image',
       use_filename: true,
       unique_filename: true,
     }
 
-    // Aplicar transformações para imagens
-    if (!isVideo) {
-      // Detectar se é PNG/WebP (formato com transparência)
-      const fileName = file.name.toLowerCase()
-      const isTransparentFormat = preserveTransparency || 
+    // Detectar se é PNG/WebP (formato com transparência)
+    const fileName = file.name.toLowerCase()
+    const isTransparentFormat = preserveTransparency || 
                                   fileName.endsWith('.png') || 
                                   fileName.endsWith('.webp') || 
                                   fileName.endsWith('.gif') ||
                                   file.type === 'image/png' ||
                                   file.type === 'image/webp' ||
                                   file.type === 'image/gif'
-      
-      // Para banners grandes (1920x650) ou imagens de alta qualidade, não aplicar nenhuma transformação para manter qualidade máxima
+
+    // Para banners grandes (1920x650) ou imagens de alta qualidade, não aplicar nenhuma transformação para manter qualidade máxima
       if (isBanner || isHighQuality) {
         // Para banners e imagens de alta qualidade, não aplicar transformações - manter tamanho e qualidade original
         // O Cloudinary manterá a imagem no tamanho original sem compressão
@@ -152,15 +139,6 @@ export async function POST(request: NextRequest) {
           uploadOptions.allowed_formats = ALLOWED_IMAGE_FORMATS
         }
       }
-    } else {
-      // Para vídeos, configurações básicas de upload
-      // Transformações podem ser aplicadas via URL quando necessário
-      uploadOptions.resource_type = 'video'
-      uploadOptions.fetch_format = 'auto' // Formato automático otimizado
-      uploadOptions.quality = 'auto' // Qualidade automática
-      // Removendo eager transformations para evitar erro de formato
-      // Se necessário, aplicar transformações via URL: /video/upload/w_1920,h_1080,c_limit,q_auto/
-    }
 
     // Upload para Cloudinary usando upload_stream
     const result = await new Promise((resolve, reject) => {

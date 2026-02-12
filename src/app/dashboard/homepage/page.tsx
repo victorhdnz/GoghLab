@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/Input'
 import { ImageUploader } from '@/components/ui/ImageUploader'
 import { VideoUploader } from '@/components/ui/VideoUploader'
-import { CloudinaryVideoUploader } from '@/components/ui/CloudinaryVideoUploader'
 import { Switch } from '@/components/ui/Switch'
 import { createClient } from '@/lib/supabase/client'
 import { Save, Eye, Trash2, Plus } from 'lucide-react'
@@ -1201,34 +1200,18 @@ export default function HomepageEditorPage() {
             {formData.video_enabled && (
               <>
                 <div>
-                  <label className="block text-sm font-medium mb-2">Vídeo de referência</label>
-                  <p className="text-xs text-gray-500 mb-2">YouTube ou envie um vídeo (funciona no celular).</p>
-                  <div className="space-y-3">
-                    <div>
-                      <span className="text-xs font-medium text-gray-600 block mb-1">URL do YouTube (opcional)</span>
-                      <VideoUploader
-                        value={getYouTubeId(formData.video_url || '') ? (formData.video_url || '') : ''}
-                        onChange={(url) => {
-                          if (url && !getYouTubeId(url)) {
-                            toast.error('Por favor, use uma URL do YouTube (youtube.com ou youtu.be)')
-                            return
-                          }
-                          setFormData({ ...formData, video_url: url })
-                        }}
-                        placeholder="Cole a URL do vídeo do YouTube"
-                      />
-                    </div>
-                    <div>
-                      <span className="text-xs font-medium text-gray-600 block mb-1">Ou envie um vídeo (arquivo)</span>
-                      <CloudinaryVideoUploader
-                        inputId="homepage-video-upload"
-                        value={formData.video_url && !getYouTubeId(formData.video_url) ? formData.video_url : ''}
-                        onChange={(url) => setFormData({ ...formData, video_url: url })}
-                        placeholder="Envie um vídeo do celular ou computador"
-                        folder="homepage-video"
-                      />
-                    </div>
-                  </div>
+                  <label className="block text-sm font-medium mb-2">URL do vídeo do YouTube</label>
+                  <VideoUploader
+                    value={getYouTubeId(formData.video_url || '') ? (formData.video_url || '') : ''}
+                    onChange={(url) => {
+                      if (url && !getYouTubeId(url)) {
+                        toast.error('Por favor, use uma URL do YouTube (youtube.com ou youtu.be)')
+                        return
+                      }
+                      setFormData({ ...formData, video_url: url })
+                    }}
+                    placeholder="Cole a URL do vídeo do YouTube"
+                  />
                   {formData.video_url && (
                     <p className="text-xs text-gray-500 mt-2">
                       URL atual: {formData.video_url.substring(0, 60)}...

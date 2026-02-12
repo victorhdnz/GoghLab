@@ -772,7 +772,7 @@ export default function DashboardTermsPage() {
         // Verificar se todos os termos padrão (TERMS_CONFIG) existem e inserir os faltantes
         const existingKeys = data.map((t: any) => t.key)
         const missingTerms = TERMS_CONFIG.filter((config) => !existingKeys.includes(config.key))
-
+        
         if (missingTerms.length > 0) {
           const termsToInsert = missingTerms.map((config) => ({
             key: config.key,

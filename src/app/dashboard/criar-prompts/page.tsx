@@ -7,7 +7,6 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/Input'
 import { Switch } from '@/components/ui/Switch'
 import { ImageUploader } from '@/components/ui/ImageUploader'
-import { CloudinaryVideoUploader } from '@/components/ui/CloudinaryVideoUploader'
 import { Plus, Trash2, Save, MessageSquare, LayoutGrid, Bot } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { getSiteSettings, saveSiteSettings } from '@/lib/supabase/site-settings-helper'
@@ -551,8 +550,8 @@ export default function CriarPromptsPage() {
                       />
                     </div>
                     <div className="sm:col-span-2">
-                      <label className="block text-xs font-medium mb-1">Capa do card (imagem ou vídeo — espelhado na galeria e na página Criar)</label>
-                      <p className="text-xs text-gray-500 mb-1.5">Pode enviar só a imagem, só o vídeo ou os dois. Se enviar só o vídeo, a capa será o próprio vídeo (primeiro frame). As alterações são salvas automaticamente.</p>
+                      <label className="block text-xs font-medium mb-1">Capa do card (imagem — espelhada na galeria e na página Criar)</label>
+                      <p className="text-xs text-gray-500 mb-1.5">Imagem de destaque do card. As alterações são salvas automaticamente.</p>
                       <ImageUploader
                         value={item.coverImage}
                         onChange={(url) => {
@@ -562,27 +561,9 @@ export default function CriarPromptsPage() {
                             return next
                           })
                         }}
-                        placeholder="Imagem de destaque (opcional se tiver vídeo)"
+                        placeholder="Imagem de destaque"
                         cropType="banner"
                         aspectRatio={16 / 9}
-                      />
-                    </div>
-                    <div className="sm:col-span-2">
-                      <label className="block text-xs font-medium mb-1">Vídeo de capa (opcional — se não tiver imagem, a capa será o vídeo)</label>
-                      <CloudinaryVideoUploader
-                        inputId={`video-cap-${item.id}`}
-                        value={item.coverVideo || ''}
-                        onChange={(url) => {
-                          setPrompts((prev) => {
-                            const next = prev.map((p, i) =>
-                              i === index ? { ...p, coverVideo: url && url.trim() ? url : undefined } : p
-                            )
-                            savePromptsToServer(next)
-                            return next
-                          })
-                        }}
-                        placeholder="Vídeo para card (opcional)"
-                        folder="gallery-videos"
                       />
                     </div>
                     <div className="sm:col-span-2">
