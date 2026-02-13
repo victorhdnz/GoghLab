@@ -711,7 +711,7 @@ export default function ChatPage() {
               </div>
               <div className="flex gap-3">
                 <Link
-                  href="/membro/perfil"
+                  href="/conta"
                   className="flex-1 px-4 py-2 bg-gogh-yellow text-gogh-black rounded-lg hover:bg-gogh-yellow/80 transition-colors text-center font-medium"
                   onClick={() => setShowNicheModal(false)}
                 >

@@ -91,21 +91,15 @@ export default function CoursesPage() {
 
         if (coursesError) {
           console.error('Erro ao buscar cursos:', coursesError)
-          console.error('Detalhes do erro:', JSON.stringify(coursesError, null, 2))
           throw coursesError
         }
-        
-        console.log('Cursos encontrados (sem lessons):', coursesData?.length || 0, coursesData)
-        
+
         if (!coursesData || coursesData.length === 0) {
           setCourses([])
           return
         }
 
-        // Buscar lessons separadamente para cada curso
         const courseIds = coursesData.map((c: Course) => c.id)
-        console.log('IDs dos cursos para buscar lessons:', courseIds)
-        
         const { data: lessonsData, error: lessonsError } = await (supabase as any)
           .from('course_lessons')
           .select('*')
@@ -113,27 +107,18 @@ export default function CoursesPage() {
 
         if (lessonsError) {
           console.error('Erro ao buscar lessons:', lessonsError)
-          console.error('Detalhes do erro de lessons:', JSON.stringify(lessonsError, null, 2))
-          // Continuar mesmo se houver erro nas lessons
         }
-        
-        console.log('Lessons encontradas:', lessonsData?.length || 0, lessonsData)
-        
-        // Combinar cursos com suas lessons
+
         const coursesWithOrderedLessons = coursesData.map((course: Course) => {
           const courseLessons = (lessonsData || []).filter((l: Lesson) => l.course_id === course.id)
-          console.log(`Curso ${course.title} (${course.id}): ${courseLessons.length} lessons`, courseLessons)
           return {
             ...course,
             lessons: courseLessons.sort((a: Lesson, b: Lesson) => (a.order_position || a.order || 0) - (b.order_position || b.order || 0))
           }
         })
-        
-        console.log('Cursos finais com lessons:', coursesWithOrderedLessons.length, coursesWithOrderedLessons)
         setCourses(coursesWithOrderedLessons)
       } catch (error: any) {
         console.error('Error fetching courses:', error)
-        console.error('Error details:', JSON.stringify(error, null, 2))
         setCourses([])
       } finally {
         setLoading(false)
@@ -169,94 +154,75 @@ export default function CoursesPage() {
         </p>
       </div>
 
-      {!hasCourseAccess && hasActiveSubscription && (
+      {/* Uma única mensagem geral de restrição (estilo ferramentas) */}
+      {(!hasCourseAccess || !hasActiveSubscription) && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200 rounded-xl p-6"
         >
           <p className="text-amber-800">
-            Os cursos são exclusivos para o plano Pro. <Link href="/precos" className="font-medium underline">Faça upgrade agora</Link>
-          </p>
-        </motion.div>
-      )}
-      
-      {!hasActiveSubscription && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200 rounded-xl p-6"
-        >
-          <p className="text-amber-800">
-            Você precisa de uma assinatura ativa para acessar os cursos. <Link href="/precos" className="font-medium underline">Ver planos</Link>
+            {!hasActiveSubscription
+              ? <>Você precisa de uma assinatura ativa para acessar os cursos. <Link href="/precos" className="font-medium underline">Ver planos</Link></>
+              : <>Os cursos são exclusivos para o plano Pro. <Link href="/precos" className="font-medium underline">Faça upgrade agora</Link></>
+            }
           </p>
         </motion.div>
       )}
 
-      {/* Canva Courses */}
-      {canvaCourses.length > 0 && (
-        <div>
-          <div className="flex items-center gap-1.5 mb-3">
-            <Palette className="w-4 h-4 text-purple-600" />
-            <h2 className="text-base font-bold text-gogh-black">Cursos de Canva</h2>
-          </div>
-          <div className={`grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 ${!hasCourseAccess ? 'relative' : ''}`}>
-            {!hasCourseAccess && (
-              <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-10 rounded-xl flex items-center justify-center">
-                <div className="text-center p-4 sm:p-6 md:p-8">
-                  <BookOpen className="w-12 h-12 sm:w-16 sm:h-16 text-gogh-grayDark mx-auto mb-3 sm:mb-4 opacity-50" />
-                  <h3 className="text-lg sm:text-xl font-bold text-gogh-black mb-2">
-                    Cursos Exclusivos do Plano Pro
-                  </h3>
-                  <p className="text-sm text-gogh-grayDark mb-4 sm:mb-6 max-w-md mx-auto px-2">
-                    Faça upgrade para o plano Pro e tenha acesso completo a todos os nossos cursos de Canva e CapCut.
-                  </p>
-                  <Link
-                    href="/precos"
-                    className="inline-flex items-center gap-2 px-6 py-3 bg-gogh-yellow text-gogh-black font-medium rounded-xl hover:bg-gogh-yellow/90 transition-colors"
-                  >
-                    Fazer Upgrade
-                  </Link>
-                </div>
+      {/* Área de cursos com um único overlay geral quando sem acesso */}
+      {(canvaCourses.length > 0 || capcutCourses.length > 0) && (
+        <div className={!hasCourseAccess ? 'relative' : ''}>
+          {!hasCourseAccess && (
+            <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-10 rounded-xl flex items-center justify-center min-h-[280px]">
+              <div className="text-center p-4 sm:p-6 md:p-8">
+                <BookOpen className="w-16 h-16 text-gogh-grayDark mx-auto mb-4 opacity-50" />
+                <h3 className="text-xl font-bold text-gogh-black mb-2">
+                  Cursos Exclusivos do Plano Pro
+                </h3>
+                <p className="text-gogh-grayDark mb-6 max-w-md mx-auto">
+                  Faça upgrade para o plano Pro e tenha acesso completo a todos os nossos cursos de Canva e CapCut.
+                </p>
+                <Link
+                  href="/precos"
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-gogh-yellow text-gogh-black font-medium rounded-xl hover:bg-gogh-yellow/90 transition-colors"
+                >
+                  Fazer Upgrade
+                </Link>
               </div>
-            )}
-            {canvaCourses.map((course, index) => (
-              <CourseCard key={course.id} course={course} index={index} hasAccess={hasCourseAccess} />
-            ))}
-          </div>
-        </div>
-      )}
+            </div>
+          )}
 
-      {/* CapCut Courses */}
-      {capcutCourses.length > 0 && (
-        <div>
-          <div className="flex items-center gap-1.5 mb-3">
-            <Scissors className="w-4 h-4 text-emerald-600" />
-            <h2 className="text-base font-bold text-gogh-black">Cursos de CapCut</h2>
-          </div>
-          <div className={`grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 ${!hasCourseAccess ? 'relative' : ''}`}>
-            {!hasCourseAccess && (
-              <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-10 rounded-xl flex items-center justify-center">
-                <div className="text-center p-4 sm:p-6 md:p-8">
-                  <BookOpen className="w-12 h-12 sm:w-16 sm:h-16 text-gogh-grayDark mx-auto mb-3 sm:mb-4 opacity-50" />
-                  <h3 className="text-lg sm:text-xl font-bold text-gogh-black mb-2">
-                    Cursos Exclusivos do Plano Pro
-                  </h3>
-                  <p className="text-sm text-gogh-grayDark mb-4 sm:mb-6 max-w-md mx-auto px-2">
-                    Faça upgrade para o plano Pro e tenha acesso completo a todos os nossos cursos de Canva e CapCut.
-                  </p>
-                  <Link
-                    href="/precos"
-                    className="inline-flex items-center gap-2 px-6 py-3 bg-gogh-yellow text-gogh-black font-medium rounded-xl hover:bg-gogh-yellow/90 transition-colors"
-                  >
-                    Fazer Upgrade
-                  </Link>
+          <div className={!hasCourseAccess ? 'pointer-events-none select-none blur-sm opacity-60' : ''}>
+            {/* Canva Courses */}
+            {canvaCourses.length > 0 && (
+              <div className="mb-6 sm:mb-8">
+                <div className="flex items-center gap-1.5 mb-3">
+                  <Palette className="w-4 h-4 text-purple-600" />
+                  <h2 className="text-base font-bold text-gogh-black">Cursos de Canva</h2>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+                  {canvaCourses.map((course, index) => (
+                    <CourseCard key={course.id} course={course} index={index} hasAccess={hasCourseAccess} />
+                  ))}
                 </div>
               </div>
             )}
-            {capcutCourses.map((course, index) => (
-              <CourseCard key={course.id} course={course} index={index} hasAccess={hasCourseAccess} />
-            ))}
+
+            {/* CapCut Courses */}
+            {capcutCourses.length > 0 && (
+              <div>
+                <div className="flex items-center gap-1.5 mb-3">
+                  <Scissors className="w-4 h-4 text-emerald-600" />
+                  <h2 className="text-base font-bold text-gogh-black">Cursos de CapCut</h2>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+                  {capcutCourses.map((course, index) => (
+                    <CourseCard key={course.id} course={course} index={index} hasAccess={hasCourseAccess} />
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

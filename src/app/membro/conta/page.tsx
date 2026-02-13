@@ -1,19 +1,17 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { usePathname, useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { createClient } from '@/lib/supabase/client'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
-import Image from 'next/image'
 import toast from 'react-hot-toast'
 import { LumaSpin } from '@/components/ui/luma-spin'
-import { 
-  User, 
-  Shield, 
-  CreditCard, 
+import {
+  User,
+  CreditCard,
   Crown,
-  Check,
   ExternalLink,
   MessageSquare,
   BookOpen,
@@ -36,8 +34,27 @@ interface PlanFeatureItem {
 }
 
 export default function AccountPage() {
+  const pathname = usePathname()
+  const router = useRouter()
   const { user, profile, subscription, hasActiveSubscription, isPro, refreshSubscription } = useAuth()
   const [activeTab, setActiveTab] = useState<TabType>('profile')
+
+  // Redirecionar /membro/conta → /conta (uma única interface de conta)
+  useEffect(() => {
+    if (pathname === '/membro/conta') {
+      router.replace('/conta')
+    }
+  }, [pathname, router])
+  if (pathname === '/membro/conta') {
+    return (
+      <div className="flex items-center justify-center min-h-[300px]">
+        <div className="text-center">
+          <LumaSpin size="default" className="mx-auto mb-4" />
+          <p className="text-gogh-grayDark">Redirecionando...</p>
+        </div>
+      </div>
+    )
+  }
   const [saving, setSaving] = useState(false)
   const [openingPortal, setOpeningPortal] = useState(false)
   const [hasServiceSubscriptions, setHasServiceSubscriptions] = useState(false)
@@ -214,7 +231,6 @@ export default function AccountPage() {
   // Listener para atualização de assinatura
   useEffect(() => {
     const handleSubscriptionUpdate = () => {
-      console.log('[AccountPage] Subscription update event received, refreshing...')
       refreshSubscription()
     }
     

@@ -61,10 +61,10 @@ const alwaysVisibleMenuItems = [
   },
 ]
 
-// Item de conta (sempre visível)
-const accountMenuItem = { 
-  href: '/membro/conta', 
-  label: 'Minha Conta', 
+// Item de conta (sempre visível) — URL canônica é /conta
+const accountMenuItem = {
+  href: '/conta',
+  label: 'Minha Conta',
   icon: Settings,
   description: 'Plano e informações pessoais'
 }
@@ -218,8 +218,7 @@ export default function MemberLayout({ children }: MemberLayoutProps) {
         
         // Para outras páginas, verificar se tem assinatura ou está em página pública
         if (!hasActiveSubscription && !isPublicPage) {
-          // Se não tem assinatura e não está em página pública, redirecionar para conta
-          router.push('/membro/conta')
+          router.push('/conta')
         }
       }, 300) // Pequeno delay para garantir sincronização
       

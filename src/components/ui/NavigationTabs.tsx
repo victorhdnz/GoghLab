@@ -43,10 +43,8 @@ export function NavigationTabs({ variant, pricingEnabled = true, className }: Na
         }
       }, 100)
     } else if (section === 'account') {
-      // Navegar para área de conta ou login
       if (isAuthenticated) {
-        // Usuário logado - sempre ir para área de conta (com ou sem plano)
-        router.push('/membro/conta')
+        router.push('/conta')
       } else {
         router.push('/login')
       }
