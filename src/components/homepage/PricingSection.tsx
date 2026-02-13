@@ -147,9 +147,9 @@ export function PricingSection({
   }
 
   return (
-    <section id="pricing-section" className="py-10 md:py-14 px-3 sm:px-4 bg-[#F5F1E8] overflow-hidden">
+    <section id="pricing-section" className="py-10 md:py-14 px-3 sm:px-4 bg-[#F5F1E8] overflow-visible">
       <FadeInElement>
-        <div className="max-w-5xl mx-auto overflow-x-auto overflow-y-visible">
+        <div className="max-w-5xl mx-auto overflow-visible">
         <PricingComponent
           plans={plans}
           billingCycle={billingCycle}

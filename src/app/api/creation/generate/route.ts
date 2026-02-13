@@ -56,7 +56,7 @@ export async function POST(request: Request) {
 
     const { data: modelRow, error: modelError } = await (supabase as any)
       .from('creation_ai_models')
-      .select('id, name, model_key, can_image, can_video, can_prompt')
+      .select('id, name, model_key, can_image, can_video, can_roteiro, can_prompt')
       .eq('id', modelId)
       .eq('is_active', true)
       .maybeSingle()

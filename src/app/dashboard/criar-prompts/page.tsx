@@ -45,6 +45,7 @@ export interface CreationAIModelRow {
   logo_url: string | null
   can_image: boolean
   can_video: boolean
+  can_roteiro: boolean
   can_prompt: boolean
   is_active: boolean
   order_position: number
@@ -72,7 +73,7 @@ export default function CriarPromptsPage() {
       const supabase = createClient() as any
       const { data, error } = await supabase
         .from('creation_ai_models')
-        .select('id, name, logo_url, can_image, can_video, can_prompt, is_active, order_position, model_key, credit_cost')
+        .select('id, name, logo_url, can_image, can_video, can_roteiro, can_prompt, is_active, order_position, model_key, credit_cost')
         .order('order_position', { ascending: true })
       if (error) throw error
       setCreationModels(data ?? [])
@@ -200,6 +201,7 @@ export default function CriarPromptsPage() {
           logo_url: row.logo_url || null,
           can_image: row.can_image,
           can_video: row.can_video,
+          can_roteiro: row.can_roteiro ?? false,
           can_prompt: row.can_prompt,
           order_position: row.order_position,
           credit_cost: row.credit_cost != null ? row.credit_cost : null,
@@ -239,11 +241,12 @@ export default function CriarPromptsPage() {
           name: 'Novo modelo',
           can_image: false,
           can_video: false,
+          can_roteiro: false,
           can_prompt: true,
           is_active: true,
           order_position: maxOrder + 1,
         })
-        .select('id, name, logo_url, can_image, can_video, can_prompt, is_active, order_position, credit_cost')
+        .select('id, name, logo_url, can_image, can_video, can_roteiro, can_prompt, is_active, order_position, credit_cost')
         .single()
       if (error) throw error
       toast.success('Modelo adicionado. Edite o nome, logo e funções.')
@@ -388,7 +391,7 @@ export default function CriarPromptsPage() {
                               onChange={(e) => updateCreationModel(row.id, { can_image: e.target.checked })}
                               className="rounded border-gray-300"
                             />
-                            <span className="text-sm">Aparece na aba Criação de Foto</span>
+                            <span className="text-sm">Aparece na aba Criação de Foto (gera imagem)</span>
                           </label>
                           <label className="flex items-center gap-2">
                             <input
@@ -397,7 +400,16 @@ export default function CriarPromptsPage() {
                               onChange={(e) => updateCreationModel(row.id, { can_video: e.target.checked })}
                               className="rounded border-gray-300"
                             />
-                            <span className="text-sm">Aparece em Vídeo / Roteiro de Vídeos</span>
+                            <span className="text-sm">Aparece na aba Vídeo (gera vídeo)</span>
+                          </label>
+                          <label className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              checked={row.can_roteiro ?? false}
+                              onChange={(e) => updateCreationModel(row.id, { can_roteiro: e.target.checked })}
+                              className="rounded border-gray-300"
+                            />
+                            <span className="text-sm">Aparece na aba Roteiro de Vídeos (gera texto/roteiro)</span>
                           </label>
                           <label className="flex items-center gap-2">
                             <input
@@ -406,7 +418,7 @@ export default function CriarPromptsPage() {
                               onChange={(e) => updateCreationModel(row.id, { can_prompt: e.target.checked })}
                               className="rounded border-gray-300"
                             />
-                            <span className="text-sm">Aparece em Criação de prompts</span>
+                            <span className="text-sm">Aparece na aba Criação de prompts (gera texto/prompts)</span>
                           </label>
                         </div>
                         {row.model_key && (
@@ -444,7 +456,8 @@ export default function CriarPromptsPage() {
                   {creationModels.map((row) => {
                     const functions: string[] = []
                     if (row.can_image) functions.push('Foto')
-                    if (row.can_video) functions.push('Vídeo / Roteiro')
+                    if (row.can_video) functions.push('Vídeo')
+                    if (row.can_roteiro) functions.push('Roteiro de Vídeos')
                     if (row.can_prompt) functions.push('Criação de Prompts')
                     const functionLabel = functions.length > 0 ? functions.join(', ') : 'Nenhuma função'
                     return (

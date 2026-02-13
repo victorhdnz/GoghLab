@@ -9,6 +9,7 @@ export interface CreationAIModel {
   logo_url: string | null
   can_image: boolean
   can_video: boolean
+  can_roteiro: boolean
   can_prompt: boolean
   is_active: boolean
   order_position: number
@@ -23,7 +24,7 @@ export async function GET() {
     const supabase = createRouteHandlerClient()
     const { data, error } = await (supabase as any)
       .from('creation_ai_models')
-      .select('id, name, logo_url, can_image, can_video, can_prompt, is_active, order_position, model_key, credit_cost')
+      .select('id, name, logo_url, can_image, can_video, can_roteiro, can_prompt, is_active, order_position, model_key, credit_cost')
       .eq('is_active', true)
       .order('order_position', { ascending: true })
 

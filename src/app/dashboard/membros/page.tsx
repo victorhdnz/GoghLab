@@ -77,146 +77,18 @@ export default function MembrosPage() {
   const loadMembers = async () => {
     setLoading(true)
     try {
-      // Buscar todos os profiles
-      const { data: profiles, error: profilesError } = await (supabase as any)
-        .from('profiles')
-        .select('*')
-        .order('created_at', { ascending: false })
-
-      if (profilesError) throw profilesError
-
-      // Buscar todas as assinaturas ativas
-      // Tentar primeiro com a estrutura nova (plan_id, billing_cycle)
-      // Se falhar, tentar com estrutura antiga (plan_type)
-      let subscriptions = []
-      try {
-        // Primeiro, tentar buscar com select específico para ver quais colunas existem
-        const { data: subsData, error: subsError } = await (supabase as any)
-          .from('subscriptions')
-          .select('*')
-          .in('status', ['active', 'trialing'])
-        
-        if (subsError) {
-          // Se der erro de coluna não encontrada, tentar buscar apenas colunas básicas
-          if (subsError.code === '42703' || subsError.message?.includes('does not exist')) {
-            console.warn('Estrutura antiga detectada, tentando buscar com campos alternativos')
-            // Tentar buscar com estrutura antiga (plan_type)
-            const { data: altData, error: altError } = await (supabase as any)
-              .from('subscriptions')
-              .select('id, user_id, plan_type, status, current_period_end, current_period_start')
-              .in('status', ['active', 'trialing'])
-            
-            if (!altError && altData) {
-              // Converter estrutura antiga para nova
-              subscriptions = altData.map((sub: any) => ({
-                ...sub,
-                plan_id: sub.plan_type === 'premium' ? 'gogh_pro' : 
-                        sub.plan_type === 'essential' ? 'gogh_essencial' : null,
-                billing_cycle: 'monthly' // Default para estrutura antiga
-              }))
-            }
-          } else if (subsError.code !== 'PGRST116') {
-            console.error('Error fetching subscriptions:', subsError)
-          }
-        } else {
-          subscriptions = subsData || []
-        }
-      } catch (error) {
-        console.error('Erro ao buscar assinaturas:', error)
+      const res = await fetch('/api/dashboard/members', { credentials: 'include' })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        toast.error(data.error || 'Erro ao carregar membros')
+        setMembers([])
+        return
       }
-
-      // Buscar assinaturas de serviços
-      let serviceSubscriptions: any[] = []
-      try {
-        const { data: serviceData, error: serviceError } = await (supabase as any)
-          .from('service_subscriptions')
-          .select('*')
-
-        if (serviceError && serviceError.code !== 'PGRST116') {
-          console.error('Erro ao buscar serviços:', serviceError)
-        } else {
-          serviceSubscriptions = serviceData || []
-        }
-      } catch (error) {
-        console.error('Erro ao buscar serviços:', error)
-      }
-
-      // Combinar dados
-      const membersWithSubs: Member[] = (profiles || []).map((profile: any) => {
-        const subscription = subscriptions.find(
-          (sub: any) => sub.user_id === profile.id
-        )
-        let memberServices = serviceSubscriptions.filter(
-          (sub: any) => sub.user_id === profile.id
-        )
-        
-        // Remover duplicatas: manter apenas a mais recente e consolidar serviços
-        if (memberServices.length > 1) {
-          // Agrupar por serviços selecionados e manter apenas a mais recente
-          const serviceMap = new Map<string, any>()
-          memberServices.forEach((service: any) => {
-            const serviceKey = JSON.stringify(
-              ((service.selected_services || []) as string[]).sort().join(',')
-            )
-            const existing = serviceMap.get(serviceKey)
-            if (!existing || new Date(service.created_at) > new Date(existing.created_at)) {
-              serviceMap.set(serviceKey, {
-                ...service,
-                selected_services: [...new Set(service.selected_services || [])] as string[]
-              })
-            }
-          })
-          
-          // Converter de volta para array
-          memberServices = Array.from(serviceMap.values())
-          
-          // Se ainda houver múltiplas assinaturas, manter apenas a mais recente
-          if (memberServices.length > 1) {
-            memberServices = [memberServices.sort((a: any, b: any) => 
-              new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-            )[0]]
-          }
-        } else if (memberServices.length === 1) {
-          // Remover duplicatas dentro do array de serviços selecionados
-          memberServices = [{
-            ...memberServices[0],
-            selected_services: [...new Set(memberServices[0].selected_services || [])] as string[]
-          }]
-        }
-        
-        return {
-          id: profile.id,
-          email: profile.email,
-          full_name: profile.full_name,
-          avatar_url: profile.avatar_url,
-          role: profile.role,
-          created_at: profile.created_at,
-          subscription: subscription ? {
-            id: subscription.id,
-            // Garantir que sempre temos plan_id, convertendo plan_type se necessário
-            plan_id: subscription.plan_id || 
-                    (subscription.plan_type === 'premium' ? 'gogh_pro' :
-                     subscription.plan_type === 'essential' ? 'gogh_essencial' : null),
-            status: subscription.status,
-            billing_cycle: subscription.billing_cycle || (subscription.current_period_end && subscription.current_period_start ? 
-              (new Date(subscription.current_period_end).getTime() - new Date(subscription.current_period_start).getTime() > 30 * 24 * 60 * 60 * 1000 ? 'annual' : 'monthly') 
-              : 'monthly'),
-            current_period_end: subscription.current_period_end,
-            stripe_subscription_id: subscription.stripe_subscription_id && subscription.stripe_subscription_id.trim() !== '' 
-              ? subscription.stripe_subscription_id 
-              : null,
-            is_manual: !subscription.stripe_subscription_id || subscription.stripe_subscription_id.trim() === '',
-            manually_edited: subscription.manually_edited || false,
-            manually_edited_at: subscription.manually_edited_at || null
-          } : null,
-          serviceSubscriptions: memberServices || []
-        }
-      })
-
-      setMembers(membersWithSubs)
+      setMembers(Array.isArray(data.members) ? data.members : [])
     } catch (error: any) {
       console.error('Error loading members:', error)
       toast.error('Erro ao carregar membros')
+      setMembers([])
     } finally {
       setLoading(false)
     }

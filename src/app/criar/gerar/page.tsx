@@ -93,6 +93,7 @@ interface CreationModelOption {
   logo_url: string | null
   can_image?: boolean
   can_video?: boolean
+  can_roteiro?: boolean
   can_prompt?: boolean
   /** Créditos por uso (dashboard); null = usar custo padrão da função */
   credit_cost?: number | null
@@ -218,12 +219,13 @@ export default function CriarGerarPage() {
       .then((data) => {
         if (Array.isArray(data.models)) {
           setCreationModelsApi(
-            data.models.map((m: CreationModelOption & { can_image?: boolean; can_video?: boolean; can_prompt?: boolean; credit_cost?: number | null }) => ({
+            data.models.map((m: CreationModelOption & { can_image?: boolean; can_video?: boolean; can_roteiro?: boolean; can_prompt?: boolean; credit_cost?: number | null }) => ({
               id: m.id,
               name: m.name,
               logo_url: m.logo_url ?? null,
               can_image: m.can_image,
               can_video: m.can_video,
+              can_roteiro: m.can_roteiro,
               can_prompt: m.can_prompt,
               credit_cost: m.credit_cost ?? null,
             }))
@@ -238,11 +240,11 @@ export default function CriarGerarPage() {
 
   /** Modelos filtrados pela função da aba. Enquanto a API não carregou, mostra "Carregando..." para evitar o flash de "Padrão (imagem)". */
   const availableModels = useMemo(() => {
-    type Cap = 'can_image' | 'can_video' | 'can_prompt'
+    type Cap = 'can_image' | 'can_video' | 'can_roteiro' | 'can_prompt'
     const cap: Record<TabId, Cap> = {
       foto: 'can_image',
       video: 'can_video',
-      roteiro: 'can_prompt',
+      roteiro: 'can_roteiro',
       prompts: 'can_prompt',
     }
     const key = cap[activeTab]
