@@ -254,14 +254,14 @@ export default function CriarGerarPage() {
     const key = cap[activeTab]
     if (!key || creationModelsApi.length === 0) {
       const fallback = MODELS_BY_TAB_FALLBACK[activeTab] ?? MODELS_BY_TAB_FALLBACK.foto
-      return fallback.map((m) => ({ id: m.id, name: m.label, logo_url: null as string | null }))
+      return fallback.map((m) => ({ id: m.id, name: m.label, logo_url: null as string | null, credit_cost: null as number | null }))
     }
     const filtered = creationModelsApi
       .filter((m) => m[key] === true)
       .map((m) => ({ id: m.id, name: m.name, logo_url: m.logo_url, credit_cost: m.credit_cost ?? null }))
     if (filtered.length === 0) {
       const fallback = MODELS_BY_TAB_FALLBACK[activeTab] ?? MODELS_BY_TAB_FALLBACK.foto
-      return fallback.map((m) => ({ id: m.id, name: m.label, logo_url: null as string | null }))
+      return fallback.map((m) => ({ id: m.id, name: m.label, logo_url: null as string | null, credit_cost: null as number | null }))
     }
     return filtered
   }, [activeTab, creationModelsApi])
