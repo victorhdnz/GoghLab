@@ -109,7 +109,7 @@ export default function CriarGerarPage() {
   }, [searchParams])
 
   const { isAuthenticated, hasActiveSubscription, loading } = useAuth()
-  const { balance, costByAction, deduct } = useCredits()
+  const { balance, costByAction, deduct, refetch: refetchCredits } = useCredits()
   const [creationPrompts, setCreationPrompts] = useState<CreationPromptItem[]>([])
   const [selectedPrompt, setSelectedPrompt] = useState<CreationPromptItem | null>(null)
   const [promptViewFiles, setPromptViewFiles] = useState<{ image?: File; video?: File; motionVideo?: File; characterImage?: File }>({})
@@ -411,6 +411,7 @@ export default function CriarGerarPage() {
             [key]: [...(prev[key] ?? []), { id: assistantId, from: 'assistant', content: data.message || 'Resultado recebido.', regeneratePrompt: message, modelLogoUrl }],
           }))
         }
+        refetchCredits()
       } catch (err) {
         const modelLogoUrlErr = availableModels.find((m) => m.id === effectiveSelectedId)?.logo_url ?? undefined
         setMessagesByKey((prev) => ({
@@ -421,7 +422,7 @@ export default function CriarGerarPage() {
         setGenerating(false)
       }
     },
-    [isAuthenticated, hasActiveSubscription, router, activeTab, deduct, effectiveSelectedId, availableModels, costForCurrentCreation, currentStorageKey]
+    [isAuthenticated, hasActiveSubscription, router, activeTab, deduct, refetchCredits, effectiveSelectedId, availableModels, costForCurrentCreation, currentStorageKey]
   )
 
   const handleGenerateWithPrompt = useCallback(

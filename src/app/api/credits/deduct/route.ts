@@ -140,7 +140,8 @@ export async function POST(request: Request) {
       }
     }
 
-    return NextResponse.json({ ok: true, balance: newMonthly + purchasedTotal - cost })
+    const newBalance = totalAvailable - cost
+    return NextResponse.json({ ok: true, balance: newBalance })
   } catch (e: any) {
     return NextResponse.json({ error: e?.message ?? 'Erro ao deduzir créditos' }, { status: 500 })
   }
