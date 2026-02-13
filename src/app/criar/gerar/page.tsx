@@ -35,6 +35,10 @@ const TABS = [
 
 type TabId = (typeof TABS)[number]['id']
 
+/** Mensagem exibida quando a falha for do serviço (instabilidade), sem expor detalhes internos. */
+const SERVICE_ERROR_MESSAGE =
+  'Ocorreu uma instabilidade ao processar sua solicitação. Tente novamente em alguns instantes. Se o problema persistir, entre em contato com o suporte.'
+
 const PLACEHOLDERS: Record<TabId, string> = {
   foto: 'Descreva a imagem ou foto que deseja criar...',
   video: 'Descreva o vídeo ou cena que deseja gerar...',
@@ -200,23 +204,112 @@ export default function CriarGerarPage() {
       }
       const result = await deduct(activeTab)
       if (!result.ok && result.code === 'insufficient_credits') {
-        toast('Créditos insuficientes. Redirecionando para comprar mais.')
-        router.push('/conta#usage')
+        setShowCreditModal(true)
+        toast.error('Créditos insuficientes. Compre mais na área de uso da sua conta.')
         return
       }
       if (!result.ok) return
       const userMsg: ChatMessage = { id: 'u-' + Date.now(), from: 'user', content: message }
       setMessages((prev) => [...prev, userMsg])
       setGenerating(true)
-      setTimeout(() => {
+      const assistantId = 'a-' + Date.now()
+      try {
+        const res = await fetch('/api/creation/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            tab: activeTab,
+            prompt: message,
+            modelId: selectedModelId || undefined,
+          }),
+        })
+        const data = await res.json().catch(() => ({}))
+        if (!res.ok) {
+          if (res.status === 402 || data?.code === 'insufficient_credits') {
+            setShowCreditModal(true)
+            toast.error('Créditos insuficientes. Compre mais na área de uso da sua conta.')
+          }
+          const isCreditError = res.status === 402 || data?.code === 'insufficient_credits'
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: assistantId,
+              from: 'assistant',
+              content: isCreditError
+                ? (data?.error ?? 'Créditos insuficientes.')
+                : SERVICE_ERROR_MESSAGE,
+            },
+          ])
+          return
+        }
+        if (data.type === 'image' && data.imageBase64) {
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: assistantId,
+              from: 'assistant',
+              content: '',
+              imageDataUrl: `data:${data.contentType || 'image/png'};base64,${data.imageBase64}`,
+            },
+          ])
+        } else if (data.type === 'video' && data.videoId) {
+          setMessages((prev) => [
+            ...prev,
+            { id: assistantId, from: 'assistant', content: 'Vídeo em geração… Aguarde (pode levar alguns minutos).' },
+          ])
+          const pollVideo = async () => {
+            const st = await fetch(`/api/creation/generate/video-status?videoId=${encodeURIComponent(data.videoId)}`)
+            const stData = await st.json().catch(() => ({}))
+            if (!st.ok) {
+              setMessages((prev) =>
+                prev.map((m) => (m.id === assistantId ? { ...m, content: SERVICE_ERROR_MESSAGE } : m))
+              )
+              return
+            }
+            if (stData.status === 'completed' && stData.videoBase64) {
+              setMessages((prev) =>
+                prev.map((m) =>
+                  m.id === assistantId
+                    ? {
+                        ...m,
+                        content: '',
+                        videoDataUrl: `data:${stData.contentType || 'video/mp4'};base64,${stData.videoBase64}`,
+                      }
+                    : m
+                )
+              )
+              return
+            }
+            if (stData.status === 'failed') {
+              setMessages((prev) =>
+                prev.map((m) => (m.id === assistantId ? { ...m, content: stData.message || SERVICE_ERROR_MESSAGE } : m))
+              )
+              return
+            }
+            setTimeout(pollVideo, 8000)
+          }
+          setTimeout(pollVideo, 12000)
+        } else if (data.type === 'text' && data.text) {
+          setMessages((prev) => [
+            ...prev,
+            { id: assistantId, from: 'assistant', content: data.text },
+          ])
+        } else {
+          setMessages((prev) => [
+            ...prev,
+            { id: assistantId, from: 'assistant', content: data.message || 'Resultado recebido.' },
+          ])
+        }
+      } catch (err) {
         setMessages((prev) => [
           ...prev,
-          { id: 'a-' + Date.now(), from: 'assistant', content: `Em breve o resultado para "${message.slice(0, 40)}..." aparecerá aqui. (Integre sua API de geração.)` },
+          { id: assistantId, from: 'assistant', content: SERVICE_ERROR_MESSAGE },
         ])
+      } finally {
         setGenerating(false)
-      }, 2000)
+      }
     },
-    [isAuthenticated, hasActiveSubscription, router, activeTab, deduct]
+    [isAuthenticated, hasActiveSubscription, router, activeTab, deduct, selectedModelId]
   )
 
   const handleGenerateWithPrompt = useCallback(
@@ -233,25 +326,111 @@ export default function CriarGerarPage() {
       }
       const result = await deduct(activeTab, promptItem.creditCost)
       if (!result.ok && result.code === 'insufficient_credits') {
-        toast('Créditos insuficientes. Redirecionando para comprar mais.')
-        router.push('/conta#usage')
+        setShowCreditModal(true)
+        toast.error('Créditos insuficientes. Compre mais na área de uso da sua conta.')
         return
       }
       if (!result.ok) return
-      const userMsg: ChatMessage = { id: 'u-' + Date.now(), from: 'user', content: '[Geração com prompt configurado]' }
+      const userMsg: ChatMessage = { id: 'u-' + Date.now(), from: 'user', content: `[${promptItem.title}]` }
       setMessages((prev) => [...prev, userMsg])
       setGenerating(true)
-      setTimeout(() => {
-        setMessages((prev) => [
-          ...prev,
-          { id: 'a-' + Date.now(), from: 'assistant', content: 'Em breve o resultado aparecerá aqui. (Integre a API de geração com o prompt e arquivos enviados.)' },
-        ])
-        setGenerating(false)
+      const assistantId = 'a-' + Date.now()
+      const promptText = promptItem.title + (promptItem.description ? '\n\n' + promptItem.description : '')
+      try {
+        const res = await fetch('/api/creation/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            tab: promptItem.tabId ?? activeTab,
+            prompt: promptText,
+            modelId: selectedModelId || undefined,
+          }),
+        })
+        const data = await res.json().catch(() => ({}))
+        if (!res.ok) {
+          if (res.status === 402 || data?.code === 'insufficient_credits') {
+            setShowCreditModal(true)
+            toast.error('Créditos insuficientes. Compre mais na área de uso da sua conta.')
+          }
+          const isCreditError = res.status === 402 || data?.code === 'insufficient_credits'
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: assistantId,
+              from: 'assistant',
+              content: isCreditError ? (data?.error ?? 'Créditos insuficientes.') : SERVICE_ERROR_MESSAGE,
+            },
+          ])
+          setSelectedPrompt(null)
+          setPromptViewFiles({})
+          return
+        }
+        if (data.type === 'image' && data.imageBase64) {
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: assistantId,
+              from: 'assistant',
+              content: '',
+              imageDataUrl: `data:${data.contentType || 'image/png'};base64,${data.imageBase64}`,
+            },
+          ])
+        } else if (data.type === 'video' && data.videoId) {
+          setMessages((prev) => [
+            ...prev,
+            { id: assistantId, from: 'assistant', content: 'Vídeo em geração… Aguarde (pode levar alguns minutos).' },
+          ])
+          const pollVideo = async () => {
+            const st = await fetch(`/api/creation/generate/video-status?videoId=${encodeURIComponent(data.videoId)}`)
+            const stData = await st.json().catch(() => ({}))
+            if (!st.ok) {
+              setMessages((prev) =>
+                prev.map((m) => (m.id === assistantId ? { ...m, content: SERVICE_ERROR_MESSAGE } : m))
+              )
+              return
+            }
+            if (stData.status === 'completed' && stData.videoBase64) {
+              setMessages((prev) =>
+                prev.map((m) =>
+                  m.id === assistantId
+                    ? {
+                        ...m,
+                        content: '',
+                        videoDataUrl: `data:${stData.contentType || 'video/mp4'};base64,${stData.videoBase64}`,
+                      }
+                    : m
+                )
+              )
+              return
+            }
+            if (stData.status === 'failed') {
+              setMessages((prev) =>
+                prev.map((m) => (m.id === assistantId ? { ...m, content: stData.message || SERVICE_ERROR_MESSAGE } : m))
+              )
+              return
+            }
+            setTimeout(pollVideo, 8000)
+          }
+          setTimeout(pollVideo, 12000)
+        } else if (data.type === 'text' && data.text) {
+          setMessages((prev) => [...prev, { id: assistantId, from: 'assistant', content: data.text }])
+        } else {
+          setMessages((prev) => [...prev, { id: assistantId, from: 'assistant', content: data.message || 'Pronto.' }])
+        }
         setSelectedPrompt(null)
         setPromptViewFiles({})
-      }, 2000)
+      } catch {
+        setMessages((prev) => [
+          ...prev,
+          { id: assistantId, from: 'assistant', content: SERVICE_ERROR_MESSAGE },
+        ])
+        setSelectedPrompt(null)
+        setPromptViewFiles({})
+      } finally {
+        setGenerating(false)
+      }
     },
-    [isAuthenticated, hasActiveSubscription, router, activeTab, deduct]
+    [isAuthenticated, hasActiveSubscription, router, activeTab, deduct, selectedModelId]
   )
 
   const handleAction = useCallback((messageId: string, action: string) => {

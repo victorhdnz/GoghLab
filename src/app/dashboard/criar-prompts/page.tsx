@@ -48,6 +48,7 @@ export interface CreationAIModelRow {
   can_prompt: boolean
   is_active: boolean
   order_position: number
+  model_key?: string | null
 }
 
 export default function CriarPromptsPage() {
@@ -87,7 +88,7 @@ export default function CriarPromptsPage() {
       const supabase = createClient() as any
       const { data, error } = await supabase
         .from('creation_ai_models')
-        .select('id, name, logo_url, can_image, can_video, can_prompt, is_active, order_position')
+        .select('id, name, logo_url, can_image, can_video, can_prompt, is_active, order_position, model_key')
         .order('order_position', { ascending: true })
       if (error) throw error
       setCreationModels(data ?? [])
@@ -444,6 +445,12 @@ export default function CriarPromptsPage() {
                             className="w-20 px-2 py-1.5 text-sm border border-gray-300 rounded-lg"
                           />
                         </div>
+                        {row.model_key && (
+                          <div className="sm:col-span-2">
+                            <span className="text-xs text-gray-500">Chave do modelo (API): </span>
+                            <code className="text-xs bg-gray-100 px-1 rounded">{row.model_key}</code>
+                          </div>
+                        )}
                       </div>
                       <div className="mt-3">
                         <Button type="button" size="sm" onClick={() => saveCreationModel(creationModels.find((m) => m.id === row.id) ?? row)} className="gap-1.5">

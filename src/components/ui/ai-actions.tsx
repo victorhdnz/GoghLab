@@ -21,6 +21,10 @@ export type ChatMessage = {
   content: string
   avatar?: string
   name?: string
+  /** Imagem gerada (data URL ou URL) para exibir na mensagem do assistente */
+  imageDataUrl?: string
+  /** Vídeo gerado (data URL ou URL) para exibir na mensagem do assistente */
+  videoDataUrl?: string
 }
 
 const DEFAULT_ACTIONS = [
@@ -73,7 +77,29 @@ export function ChatWithActions({
                   )}
                 </div>
               )}
-              <MessageContent>{message.content}</MessageContent>
+              <MessageContent>
+                {message.content ? <span>{message.content}</span> : null}
+                {message.from === 'assistant' && message.imageDataUrl && (
+                  <div className="mt-2 rounded-lg overflow-hidden max-w-full">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={message.imageDataUrl}
+                      alt="Imagem gerada"
+                      className="max-h-[400px] w-auto object-contain"
+                    />
+                  </div>
+                )}
+                {message.from === 'assistant' && message.videoDataUrl && (
+                  <div className="mt-2 rounded-lg overflow-hidden max-w-full">
+                    <video
+                      src={message.videoDataUrl}
+                      controls
+                      className="max-h-[400px] w-auto"
+                      playsInline
+                    />
+                  </div>
+                )}
+              </MessageContent>
               {message.from === 'assistant' && (
                 <Actions className="mt-2">
                   {DEFAULT_ACTIONS.map((action) => (
