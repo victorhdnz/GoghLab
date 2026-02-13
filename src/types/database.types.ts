@@ -26,6 +26,7 @@ export interface Database {
           email: string
           full_name: string | null
           phone: string | null
+          contact_phone: string | null
           avatar_url: string | null
           role: 'customer' | 'editor' | 'admin'
           created_at: string
@@ -36,6 +37,7 @@ export interface Database {
           email: string
           full_name?: string | null
           phone?: string | null
+          contact_phone?: string | null
           avatar_url?: string | null
           role?: 'customer' | 'editor' | 'admin'
           created_at?: string
@@ -46,6 +48,7 @@ export interface Database {
           email?: string
           full_name?: string | null
           phone?: string | null
+          contact_phone?: string | null
           avatar_url?: string | null
           role?: 'customer' | 'editor' | 'admin'
           created_at?: string
