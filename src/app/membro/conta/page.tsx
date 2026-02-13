@@ -351,7 +351,7 @@ export default function AccountPage() {
   ]
 
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="max-w-4xl mx-auto px-3 sm:px-4">
       {/* Header */}
       <div className="text-center mb-8">
         <h1 className="text-2xl lg:text-3xl font-bold text-gogh-black mb-2">
@@ -362,23 +362,23 @@ export default function AccountPage() {
         </p>
       </div>
 
-      {/* Tabs */}
-      <div className="flex bg-gogh-grayLight/50 rounded-xl p-1 mb-8">
+      {/* Tabs — espaço extra em mobile para não cortar "Plano & Uso" */}
+      <div className="flex bg-gogh-grayLight/50 rounded-xl p-1.5 sm:p-1 mb-8 gap-1 min-w-0">
         {tabs.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
             className={`
-              flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg
-              font-medium transition-all duration-200 relative
+              flex-1 flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-3 rounded-lg min-w-0
+              font-medium text-sm sm:text-base transition-all duration-200 relative
               ${activeTab === tab.id 
                 ? 'bg-white text-gogh-black shadow-sm' 
                 : 'text-gogh-grayDark hover:text-gogh-black'
               }
             `}
           >
-            <tab.icon className="w-4 h-4" />
-            {tab.label}
+            <tab.icon className="w-4 h-4 shrink-0" />
+            <span className="truncate">{tab.label}</span>
           </button>
         ))}
       </div>

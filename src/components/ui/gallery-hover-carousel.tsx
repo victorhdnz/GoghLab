@@ -305,7 +305,11 @@ function VideoCard({
               playsInline
               preload="metadata"
             />
-          ) : null}
+          ) : (
+            <div className="w-full h-full flex items-center justify-center bg-muted">
+              <span className="text-muted-foreground text-4xl">🎬</span>
+            </div>
+          )}
           <div className="absolute inset-0 flex items-center justify-center bg-black/20 hover:bg-black/30 transition-colors">
             <span className="rounded-full bg-white/90 p-2 text-black shadow-lg">
               <Play className="h-5 w-5 fill-current" />

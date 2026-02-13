@@ -22,7 +22,7 @@ import { AuroraText } from '@/components/ui/aurora-text'
 import { FeaturesSectionWithHoverEffects } from '@/components/ui/feature-section-with-hover-effects'
 import GalleryHoverCarousel from '@/components/ui/gallery-hover-carousel'
 import type { GalleryHoverCarouselItem } from '@/components/ui/gallery-hover-carousel'
-import { getYouTubeId, getYouTubeThumbnail } from '@/lib/utils/youtube'
+import { getYouTubeId } from '@/lib/utils/youtube'
 import { TypewriterEffectSmooth } from '@/components/ui/typewriter-effect'
 import { Hero } from '@/components/ui/hero-1'
 
@@ -430,7 +430,7 @@ export function HomepageSections({
             type: isVideo ? 'video' : 'image',
             title: p.title,
             summary: p.subtitle ?? '',
-            image: isYouTube ? ((getYouTubeThumbnail(p.coverVideo) || p.coverImage) ?? '') : (p.coverImage ?? ''),
+            image: p.coverImage ?? '',
             prompt: p.prompt,
             promptId: p.id,
             tabId: p.tabId,

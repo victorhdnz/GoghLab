@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
@@ -42,6 +42,7 @@ function SpotlightNavItem({
   position,
   href,
   label,
+  innerRef,
 }: {
   icon: React.ElementType
   isActive: boolean
@@ -50,13 +51,14 @@ function SpotlightNavItem({
   position: number
   href?: string
   label: string
+  innerRef?: (el: HTMLElement | null) => void
 }) {
   const distance = Math.abs(indicatorPosition - position)
   const spotlightOpacity = isActive ? 1 : Math.max(0, 1 - distance * 0.6)
   const content = (
     <>
       <div
-        className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-12 h-24 bg-gradient-to-b from-white/40 to-transparent blur-lg rounded-full transition-opacity duration-400"
+        className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-12 h-24 bg-gradient-to-b from-white/40 to-transparent blur-lg rounded-full transition-opacity duration-400 pointer-events-none"
         style={{
           opacity: spotlightOpacity,
           transitionDelay: isActive ? '0.1s' : '0s',
@@ -64,18 +66,20 @@ function SpotlightNavItem({
       />
       <Icon
         className={cn(
-          'w-6 h-6 transition-colors duration-200',
+          'w-6 h-6 transition-colors duration-200 shrink-0',
           isActive ? 'text-white' : 'text-gray-500 hover:text-gray-300'
         )}
         strokeWidth={isActive ? 2.5 : 2}
       />
     </>
   )
+  const className = 'relative flex items-center justify-center w-12 h-12 min-w-[3rem] mx-1 sm:mx-2 transition-all duration-400'
   if (href) {
     return (
       <Link
+        ref={innerRef as any}
         href={href}
-        className="relative flex items-center justify-center w-12 h-12 mx-2 transition-all duration-400"
+        className={className}
         title={label}
         aria-label={label}
       >
@@ -85,8 +89,9 @@ function SpotlightNavItem({
   }
   return (
     <button
+      ref={innerRef as any}
       type="button"
-      className="relative flex items-center justify-center w-12 h-12 mx-2 transition-all duration-400"
+      className={className}
       onClick={onClick}
       title={label}
       aria-label={label}
@@ -118,6 +123,9 @@ export function FloatingHeader() {
   const [siteName, setSiteName] = useState('Gogh Lab')
   const [siteLogo, setSiteLogo] = useState<string | null>(null)
   const [mobileActiveIndex, setMobileActiveIndex] = useState(0)
+  const navRef = useRef<HTMLElement>(null)
+  const itemRefs = useRef<(HTMLElement | null)[]>([])
+  const [indicatorStyle, setIndicatorStyle] = useState<{ left: number; width: number } | null>(null)
 
   // Sincronizar ícone ativo no mobile com a rota atual
   React.useEffect(() => {
@@ -126,6 +134,39 @@ export function FloatingHeader() {
     else if (pathname === '/precos') setMobileActiveIndex(3)
     else if (pathname === '/conta' || pathname?.startsWith('/conta/') || pathname === '/login') setMobileActiveIndex(4)
     else if (pathname === '/ferramentas' || pathname === '/cursos') setMobileActiveIndex(1)
+  }, [pathname])
+
+  // Posicionar indicador branco do nav mobile pelo elemento ativo (responsivo)
+  const updateIndicatorPosition = () => {
+    const nav = navRef.current
+    const el = itemRefs.current[mobileActiveIndex]
+    if (nav && el) {
+      const navRect = nav.getBoundingClientRect()
+      const elRect = el.getBoundingClientRect()
+      setIndicatorStyle({
+        left: elRect.left - navRect.left,
+        width: elRect.width,
+      })
+    } else {
+      setIndicatorStyle(null)
+    }
+  }
+  useEffect(() => {
+    const run = () => requestAnimationFrame(() => updateIndicatorPosition())
+    run()
+    const t = setTimeout(run, 150)
+    const ro = new ResizeObserver(run)
+    if (navRef.current) ro.observe(navRef.current)
+    window.addEventListener('resize', run)
+    return () => {
+      clearTimeout(t)
+      ro.disconnect()
+      window.removeEventListener('resize', run)
+    }
+  }, [mobileActiveIndex])
+  useEffect(() => {
+    const t = setTimeout(() => requestAnimationFrame(() => updateIndicatorPosition()), 100)
+    return () => clearTimeout(t)
   }, [pathname])
 
   React.useEffect(() => {
@@ -281,19 +322,22 @@ export function FloatingHeader() {
   ]
 
   const mobileBar = (
-    <div className="fixed bottom-4 left-0 right-0 z-50 flex justify-center px-4 lg:hidden pointer-events-none">
+    <div className="fixed bottom-4 left-0 right-0 z-50 flex justify-center px-3 sm:px-4 lg:hidden pointer-events-none safe-area-pb">
       <nav
-        className="pointer-events-auto relative flex items-center px-2 py-3 bg-black/90 backdrop-blur-sm rounded-2xl shadow-lg border border-white/10"
-        style={{ width: 'min(100% - 2rem, 22rem)' }}
+        ref={navRef}
+        className="pointer-events-auto relative flex items-center justify-between px-2 py-3 bg-black/90 backdrop-blur-sm rounded-2xl shadow-lg border border-white/10"
+        style={{ width: 'min(100% - 1.5rem, 22rem)', maxWidth: 'calc(100vw - 1.5rem)' }}
       >
-        <div
-          className="absolute top-0 h-[2px] bg-white transition-all duration-400 ease-in-out"
-          style={{
-            left: `${mobileActiveIndex * 56 + 16}px`,
-            width: '40px',
-            transform: 'translateY(-1px)',
-          }}
-        />
+        {indicatorStyle && (
+          <div
+            className="absolute top-0 h-[2px] bg-white transition-all duration-300 ease-out pointer-events-none"
+            style={{
+              left: `${indicatorStyle.left}px`,
+              width: `${indicatorStyle.width}px`,
+              transform: 'translateY(-1px)',
+            }}
+          />
+        )}
         {mobileNavItems.map((item) => {
           if (item.openDropdown && produtoItem?.items) {
             const isActive = mobileActiveIndex === item.index
@@ -303,13 +347,14 @@ export function FloatingHeader() {
               <DropdownMenu key={item.label}>
                 <DropdownMenuTrigger asChild>
                   <button
+                    ref={(el) => { itemRefs.current[item.index] = el }}
                     type="button"
-                    className="relative flex items-center justify-center w-12 h-12 mx-2 transition-all duration-400 outline-none"
+                    className="relative flex items-center justify-center w-12 h-12 min-w-[3rem] mx-1 sm:mx-2 transition-all duration-400 outline-none"
                     title={item.label}
                     aria-label={item.label}
                   >
                     <div
-                      className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-12 h-24 bg-gradient-to-b from-white/40 to-transparent blur-lg rounded-full transition-opacity duration-400"
+                      className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-12 h-24 bg-gradient-to-b from-white/40 to-transparent blur-lg rounded-full transition-opacity duration-400 pointer-events-none"
                       style={{
                         opacity: spotlightOpacity,
                         transitionDelay: isActive ? '0.1s' : '0s',
@@ -317,7 +362,7 @@ export function FloatingHeader() {
                     />
                     <Package
                       className={cn(
-                        'w-6 h-6 transition-colors duration-200',
+                        'w-6 h-6 transition-colors duration-200 shrink-0',
                         isActive ? 'text-white' : 'text-gray-500'
                       )}
                       strokeWidth={isActive ? 2.5 : 2}
@@ -357,6 +402,7 @@ export function FloatingHeader() {
               position={item.index}
               href={item.href}
               label={item.label}
+              innerRef={(el) => { itemRefs.current[item.index] = el }}
             />
           )
         })}
