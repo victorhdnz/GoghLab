@@ -37,8 +37,9 @@ export async function GET(request: Request) {
         return NextResponse.json({ error: SERVICE_ERROR_MESSAGE }, { status: 503 })
       }
       const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY })
+      // A API só precisa de operation.name para buscar o status; o tipo do SDK exige a classe completa
       const operation = await ai.operations.getVideosOperation({
-        operation: { name: videoId },
+        operation: { name: videoId } as any,
       })
       const done = (operation as any).done === true
       if (!done) {
