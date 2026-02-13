@@ -20,7 +20,7 @@ export async function GET() {
       .from('profiles')
       .select('role')
       .eq('id', user.id)
-      .single()
+      .single() as { data: { role: string | null } | null }
 
     if (!profile || (profile.role !== 'admin' && profile.role !== 'editor')) {
       return NextResponse.json({ error: 'Sem permissão' }, { status: 403 })
