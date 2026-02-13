@@ -54,7 +54,7 @@ const subscriberMenuItems = [
 // Itens do menu que são sempre visíveis (não requerem assinatura)
 const alwaysVisibleMenuItems = [
   { 
-    href: '/membro/servicos', 
+    href: '/servicos', 
     label: 'Meus Serviços', 
     icon: Briefcase,
     description: 'Serviços personalizados contratados'
@@ -192,7 +192,7 @@ export default function MemberLayout({ children }: MemberLayoutProps) {
   }
 
   // Páginas que podem ser acessadas sem assinatura ativa
-  const publicMemberPages = ['/membro/conta', '/membro/servicos']
+  const publicMemberPages = ['/membro/conta']
   const isPublicPage = publicMemberPages.some(page => pathname === page || pathname.startsWith(page + '/'))
   
   // Verificar se pode acessar a página atual
@@ -206,13 +206,6 @@ export default function MemberLayout({ children }: MemberLayoutProps) {
       const checkAuth = setTimeout(async () => {
         if (!isAuthenticated) {
           router.push('/login?redirect=' + encodeURIComponent(pathname))
-          return
-        }
-        
-        // Se está tentando acessar /membro/servicos, verificar se tem service subscriptions
-        if (pathname === '/membro/servicos' || pathname.startsWith('/membro/servicos/')) {
-          // Permitir acesso à página de serviços mesmo sem assinatura ativa
-          // A página em si vai mostrar uma mensagem se não houver serviços
           return
         }
         

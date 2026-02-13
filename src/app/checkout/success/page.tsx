@@ -91,7 +91,7 @@ export default function CheckoutSuccessPage() {
                 Você já pode acessar as abas da plataforma de acordo com seu plano. Aproveite os recursos disponíveis.
               </p>
               {sessionData?.isServiceSubscription && (
-                <Link href="/membro/servicos" onClick={dismissNotification}>
+                <Link href="/servicos" onClick={dismissNotification}>
                   <Button size="sm" className="bg-[#F7C948] hover:bg-[#E5A800] text-[#0A0A0A]">
                     Ir para Meus Serviços
                   </Button>
