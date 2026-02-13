@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { createClient } from '@/lib/supabase/client'
 import { motion } from 'framer-motion'
 import toast from 'react-hot-toast'
+import Link from 'next/link'
 import { 
   Wrench,
   ExternalLink,
@@ -12,7 +13,8 @@ import {
   CreditCard,
   CheckCircle2,
   MessageCircle,
-  Phone
+  Phone,
+  Briefcase
 } from 'lucide-react'
 import { LumaSpin } from '@/components/ui/luma-spin'
 import { Button } from '@/components/ui/button'
@@ -218,7 +220,7 @@ export default function ServicosPage() {
   const mustShowPhoneModal = showPhoneModal && serviceSubscriptions.length > 0 && !contactPhone
 
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 space-y-6 sm:space-y-8">
       {/* Modal obrigatório: cadastrar telefone na primeira entrada (quem tem serviços e ainda não tem número) */}
       {mustShowPhoneModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" role="dialog" aria-modal="true">
@@ -274,29 +276,65 @@ export default function ServicosPage() {
         </p>
       </div>
 
-      {/* Serviços Contratados */}
+      {/* Serviços Contratados — com estado borrado quando não tem nenhum (igual Ferramentas/Cursos) */}
       {serviceSubscriptions.length === 0 ? (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-white rounded-2xl border border-gogh-grayLight p-8 lg:p-12 text-center"
-        >
-          <div className="w-16 h-16 bg-gogh-grayLight rounded-full flex items-center justify-center mx-auto mb-4">
-            <Wrench className="w-8 h-8 text-gogh-grayDark" />
+        <div className="relative">
+          {/* Overlay de bloqueio (igual Ferramentas e Cursos) */}
+          <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-10 rounded-2xl flex items-center justify-center min-h-[320px]">
+            <div className="text-center p-4 sm:p-6 md:p-8">
+              <Briefcase className="w-16 h-16 text-gogh-grayDark mx-auto mb-4 opacity-50" />
+              <h3 className="text-xl font-bold text-gogh-black mb-2">
+                Serviços personalizados da Agency
+              </h3>
+              <p className="text-gogh-grayDark mb-6 max-w-md mx-auto">
+                Contrate serviços sob demanda (criação de sites, gestão de redes, conteúdo completo) e gerencie tudo aqui. Confira os planos na página de preços.
+              </p>
+              <Link
+                href="/precos"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-gogh-yellow text-gogh-black font-medium rounded-xl hover:bg-gogh-yellow/90 transition-colors"
+              >
+                Ver planos e contratar serviços
+              </Link>
+            </div>
           </div>
-          <h3 className="text-xl font-bold text-gogh-black mb-2">
-            Nenhum serviço contratado
-          </h3>
-          <p className="text-gogh-grayDark mb-6">
-            Você ainda não contratou serviços personalizados. Confira as opções disponíveis na seção de planos.
-          </p>
-          <a
-            href="/precos"
-            className="inline-flex items-center gap-2 px-6 py-3 bg-gogh-yellow text-gogh-black font-medium rounded-xl hover:bg-gogh-yellow/90 transition-colors"
-          >
-            Ver serviços disponíveis
-          </a>
-        </motion.div>
+
+          {/* Card placeholder borrado (visual igual ao que teria com serviço) */}
+          <div className="pointer-events-none select-none blur-sm opacity-60">
+            <div className="bg-white rounded-2xl border border-gogh-grayLight overflow-hidden shadow-sm">
+              <div className="bg-gradient-to-r from-gogh-yellow/20 to-gogh-yellow/10 p-6 border-b border-gogh-grayLight">
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 bg-gogh-yellow rounded-xl flex items-center justify-center flex-shrink-0">
+                    <Wrench className="w-6 h-6 text-gogh-black" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-gogh-black mb-1">Gogh Agency</h3>
+                    <div className="flex items-center gap-3 flex-wrap">
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700">
+                        <CheckCircle2 className="w-3.5 h-3.5" /> Ativo
+                      </span>
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-gogh-grayLight rounded-full text-xs font-medium text-gogh-grayDark">
+                        <CreditCard className="w-3.5 h-3.5" /> Mensal
+                      </span>
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-50 rounded-full text-xs font-medium text-blue-700">
+                        <Calendar className="w-3.5 h-3.5" /> Próxima cobrança: 01/03/2026
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="p-6">
+                <h4 className="text-sm font-semibold text-gogh-black mb-3 flex items-center gap-2">
+                  <span className="w-1 h-4 bg-gogh-yellow rounded-full" /> Serviços Contratados
+                </h4>
+                <div className="flex items-start gap-2 px-4 py-2.5 bg-gogh-grayLight/50 rounded-lg border border-gogh-grayLight mb-6">
+                  <CheckCircle2 className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                  <span className="text-sm font-medium text-gogh-black">Criação de sites completos</span>
+                </div>
+                <div className="w-full h-12 bg-green-500/80 rounded-xl" />
+              </div>
+            </div>
+          </div>
+        </div>
       ) : (
         <div className="space-y-6">
           {serviceSubscriptions.map((service, index) => {

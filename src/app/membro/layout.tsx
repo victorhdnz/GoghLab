@@ -394,8 +394,8 @@ export default function MemberLayout({ children }: MemberLayoutProps) {
               )
             }            )}
 
-            {/* Itens sempre visíveis (não requerem assinatura) - apenas se tiver serviços */}
-            {hasServiceSubscriptions && alwaysVisibleMenuItems.map((item) => {
+            {/* Meus Serviços: sempre visível (com ou sem serviços; sem serviços mostra estado borrado) */}
+            {alwaysVisibleMenuItems.map((item) => {
               const isActive = pathname === item.href || 
                 (item.href !== '/membro' && pathname.startsWith(item.href))
               
