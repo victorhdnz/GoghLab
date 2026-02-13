@@ -113,7 +113,8 @@ export default function CriarGerarPage() {
   const [creationPrompts, setCreationPrompts] = useState<CreationPromptItem[]>([])
   const [selectedPrompt, setSelectedPrompt] = useState<CreationPromptItem | null>(null)
   const [promptViewFiles, setPromptViewFiles] = useState<{ image?: File; video?: File; motionVideo?: File; characterImage?: File }>({})
-  const [messages, setMessages] = useState<ChatMessage[]>([])
+  /** Mensagens por chave de contexto (tab+promptId). Cada aba/card tem sua própria chave e histórico. */
+  const [messagesByKey, setMessagesByKey] = useState<Record<string, ChatMessage[]>>({})
   const [generating, setGenerating] = useState(false)
   const [showCreditModal, setShowCreditModal] = useState(false)
   const [modalVideo, setModalVideo] = useState<{ type: 'youtube' | 'cloudinary'; url: string } | null>(null)
@@ -142,42 +143,41 @@ export default function CriarGerarPage() {
   const getStorageKey = (tab: TabId, promptId: string | null) =>
     `${STORAGE_KEY_PREFIX}${tab}-${promptId ?? 'geral'}`
 
-  const contextRef = useRef<{ tab: TabId; promptId: string | null }>({ tab: 'foto', promptId: null })
-  /** Contexto ao qual as mensagens atuais em state pertencem; evita gravar no key errado ao trocar de aba antes do state atualizar */
-  const messagesContextRef = useRef<{ tab: TabId; promptId: string | null }>({ tab: 'foto', promptId: null })
-
-  /** Aba efetiva: quando a URL tem ?tab=, usamos sempre a URL para carregar/salvar (cada aba tem histórico isolado). */
+  /** Aba efetiva: quando a URL tem ?tab=, usamos sempre a URL (cada aba tem histórico isolado). */
   const effectiveTab: TabId =
     tabFromUrl && ['foto', 'video', 'roteiro', 'prompts'].includes(tabFromUrl)
       ? tabFromUrl
       : (selectedPrompt?.tabId ?? 'foto')
   const effectivePromptId = tabFromUrl && ['foto', 'video', 'roteiro', 'prompts'].includes(tabFromUrl) ? null : (selectedPrompt?.id ?? null)
 
-  const saveToStorageRef = useRef((key: string, msgs: ChatMessage[]) => {
-    try {
-      const toSave = msgs.map((m) => ({
-        ...m,
-        imageDataUrl: undefined,
-        videoDataUrl: undefined,
-      }))
-      localStorage.setItem(key, JSON.stringify(toSave))
-    } catch {
-      // quota ou outro erro
-    }
-  })
+  /** Chave de storage da aba/card atual. É a única fonte para saber de qual histórico estamos falando. */
+  const currentStorageKey = getStorageKey(effectiveTab, effectivePromptId)
 
-  const loadFromStorageRef = useRef((key: string): ChatMessage[] => {
+  const loadFromStorage = useCallback((key: string): ChatMessage[] => {
     try {
-      const raw = localStorage.getItem(key)
+      const raw = typeof window !== 'undefined' ? localStorage.getItem(key) : null
       if (!raw) return []
       const parsed = JSON.parse(raw)
       return Array.isArray(parsed) ? parsed : []
     } catch {
       return []
     }
-  })
+  }, [])
 
-  // Sincronizar URL: garantir que sempre exista ?tab= ao estar no chat geral (evita histórico compartilhado)
+  const saveToStorage = useCallback((key: string, msgs: ChatMessage[]) => {
+    try {
+      const toSave = msgs.map((m) => ({
+        ...m,
+        imageDataUrl: undefined,
+        videoDataUrl: undefined,
+      }))
+      if (typeof window !== 'undefined') localStorage.setItem(key, JSON.stringify(toSave))
+    } catch {
+      // quota
+    }
+  }, [])
+
+  // Sincronizar URL: garantir que sempre exista ?tab= ao estar no chat geral
   useEffect(() => {
     const tab = searchParams.get('tab')
     if (!tab || !['foto', 'video', 'roteiro', 'prompts'].includes(tab)) {
@@ -187,52 +187,21 @@ export default function CriarGerarPage() {
     }
   }, [router, searchParams])
 
-  // Ao trocar de contexto: salvar mensagens atuais no contexto antigo e carregar as do novo; ao montar com mensagens vazias, carregar do storage
+  // Ao trocar de aba: hidratar mensagens da chave atual a partir do localStorage (cada aba tem sua própria chave; se vazio, grava [] no estado)
   useEffect(() => {
-    const currentTab = effectiveTab
-    const currentPromptId = effectivePromptId
-    const prev = contextRef.current
-    const keyPrev = getStorageKey(prev.tab, prev.promptId)
-    const keyCurrent = getStorageKey(currentTab, currentPromptId)
+    setMessagesByKey((prev) => {
+      if (prev[currentStorageKey] !== undefined) return prev
+      const loaded = loadFromStorage(currentStorageKey)
+      return { ...prev, [currentStorageKey]: loaded }
+    })
+  }, [currentStorageKey, loadFromStorage])
 
-    if (prev.tab !== currentTab || prev.promptId !== currentPromptId) {
-      setSelectedPrompt((p) => (p && p.tabId !== currentTab ? null : p))
-      setMessages((current) => {
-        saveToStorageRef.current(keyPrev, current)
-        return loadFromStorageRef.current(keyCurrent)
-      })
-      setPromptViewFiles({})
-      contextRef.current = { tab: currentTab, promptId: currentPromptId }
-      messagesContextRef.current = { tab: currentTab, promptId: currentPromptId }
-    } else if (typeof window !== 'undefined') {
-      setMessages((current) => {
-        if (current.length > 0) return current
-        const loaded = loadFromStorageRef.current(keyCurrent)
-        return loaded.length > 0 ? loaded : current
-      })
-      messagesContextRef.current = { tab: currentTab, promptId: currentPromptId }
-    }
-  }, [effectiveTab, effectivePromptId])
-
-  // Persistir mensagens ao alterar — só grava no key do contexto ao qual as mensagens pertencem (evita gravar roteiro no key de foto ao trocar aba)
+  // Persistir no localStorage sempre que qualquer chave em messagesByKey mudar (cada aba/card tem sua própria chave)
   useEffect(() => {
-    if (messages.length === 0) return
-    const currentTab = effectiveTab
-    const currentPromptId = effectivePromptId
-    const ctx = messagesContextRef.current
-    if (ctx.tab !== currentTab || ctx.promptId !== currentPromptId) return
-    const key = getStorageKey(currentTab, currentPromptId)
-    try {
-      const toSave = messages.map((m) => ({
-        ...m,
-        imageDataUrl: undefined,
-        videoDataUrl: undefined,
-      }))
-      localStorage.setItem(key, JSON.stringify(toSave))
-    } catch {
-      // quota
-    }
-  }, [messages, effectiveTab, effectivePromptId])
+    Object.entries(messagesByKey).forEach(([key, msgs]) => {
+      if (msgs.length > 0) saveToStorage(key, msgs)
+    })
+  }, [messagesByKey, saveToStorage])
 
   useEffect(() => {
     fetch('/api/credits/costs')
@@ -358,8 +327,9 @@ export default function CriarGerarPage() {
         return
       }
       if (!result.ok) return
+      const key = currentStorageKey
       const userMsg: ChatMessage = { id: 'u-' + Date.now(), from: 'user', content: message }
-      setMessages((prev) => [...prev, userMsg])
+      setMessagesByKey((prev) => ({ ...prev, [key]: [...(prev[key] ?? []), userMsg] }))
       promptClearInputRef.current?.clear()
       setGenerating(true)
       const assistantId = 'a-' + Date.now()
@@ -381,97 +351,77 @@ export default function CriarGerarPage() {
           }
           const isCreditError = res.status === 402 || data?.code === 'insufficient_credits'
           const modelLogoUrl = availableModels.find((m) => m.id === effectiveSelectedId)?.logo_url ?? undefined
-          setMessages((prev) => [
+          setMessagesByKey((prev) => ({
             ...prev,
-            {
-              id: assistantId,
-              from: 'assistant',
-              content: isCreditError
-                ? (data?.error ?? 'Créditos insuficientes.')
-                : SERVICE_ERROR_MESSAGE,
-              modelLogoUrl,
-            },
-          ])
+            [key]: [
+              ...(prev[key] ?? []),
+              { id: assistantId, from: 'assistant', content: isCreditError ? (data?.error ?? 'Créditos insuficientes.') : SERVICE_ERROR_MESSAGE, modelLogoUrl },
+            ],
+          }))
           return
         }
         const modelLogoUrl = availableModels.find((m) => m.id === effectiveSelectedId)?.logo_url ?? undefined
         if (data.type === 'image' && data.imageBase64) {
-          setMessages((prev) => [
+          setMessagesByKey((prev) => ({
             ...prev,
-            {
-              id: assistantId,
-              from: 'assistant',
-              content: '',
-              imageDataUrl: `data:${data.contentType || 'image/png'};base64,${data.imageBase64}`,
-              regeneratePrompt: message,
-              modelLogoUrl,
-            },
-          ])
+            [key]: [
+              ...(prev[key] ?? []),
+              { id: assistantId, from: 'assistant', content: '', imageDataUrl: `data:${data.contentType || 'image/png'};base64,${data.imageBase64}`, regeneratePrompt: message, modelLogoUrl },
+            ],
+          }))
         } else if (data.type === 'video' && data.videoId) {
-          setMessages((prev) => [
+          setMessagesByKey((prev) => ({
             ...prev,
-            {
-              id: assistantId,
-              from: 'assistant',
-              content: 'Vídeo em geração… Aguarde (pode levar alguns minutos).',
-              regeneratePrompt: message,
-              modelLogoUrl,
-            },
-          ])
+            [key]: [
+              ...(prev[key] ?? []),
+              { id: assistantId, from: 'assistant', content: 'Vídeo em geração… Aguarde (pode levar alguns minutos).', regeneratePrompt: message, modelLogoUrl },
+            ],
+          }))
           const pollVideo = async () => {
             const st = await fetch(`/api/creation/generate/video-status?videoId=${encodeURIComponent(data.videoId)}`)
             const stData = await st.json().catch(() => ({}))
             if (!st.ok) {
-              setMessages((prev) =>
-                prev.map((m) => (m.id === assistantId ? { ...m, content: SERVICE_ERROR_MESSAGE } : m))
-              )
+              setMessagesByKey((prev) => ({ ...prev, [key]: (prev[key] ?? []).map((m) => (m.id === assistantId ? { ...m, content: SERVICE_ERROR_MESSAGE } : m)) }))
               return
             }
             if (stData.status === 'completed' && stData.videoBase64) {
-              setMessages((prev) =>
-                prev.map((m) =>
-                  m.id === assistantId
-                    ? {
-                        ...m,
-                        content: '',
-                        videoDataUrl: `data:${stData.contentType || 'video/mp4'};base64,${stData.videoBase64}`,
-                      }
-                    : m
-                )
-              )
+              setMessagesByKey((prev) => ({
+                ...prev,
+                [key]: (prev[key] ?? []).map((m) =>
+                  m.id === assistantId ? { ...m, content: '', videoDataUrl: `data:${stData.contentType || 'video/mp4'};base64,${stData.videoBase64}` } : m
+                ),
+              }))
               return
             }
             if (stData.status === 'failed') {
-              setMessages((prev) =>
-                prev.map((m) => (m.id === assistantId ? { ...m, content: stData.message || SERVICE_ERROR_MESSAGE } : m))
-              )
+              setMessagesByKey((prev) => ({ ...prev, [key]: (prev[key] ?? []).map((m) => (m.id === assistantId ? { ...m, content: stData.message || SERVICE_ERROR_MESSAGE } : m)) }))
               return
             }
             setTimeout(pollVideo, 8000)
           }
           setTimeout(pollVideo, 12000)
         } else if (data.type === 'text' && data.text) {
-          setMessages((prev) => [
+          setMessagesByKey((prev) => ({
             ...prev,
-            { id: assistantId, from: 'assistant', content: data.text, regeneratePrompt: message, modelLogoUrl },
-          ])
+            [key]: [...(prev[key] ?? []), { id: assistantId, from: 'assistant', content: data.text, regeneratePrompt: message, modelLogoUrl }],
+          }))
         } else {
-          setMessages((prev) => [
+          setMessagesByKey((prev) => ({
             ...prev,
-            { id: assistantId, from: 'assistant', content: data.message || 'Resultado recebido.', regeneratePrompt: message, modelLogoUrl },
-          ])
+            [key]: [...(prev[key] ?? []), { id: assistantId, from: 'assistant', content: data.message || 'Resultado recebido.', regeneratePrompt: message, modelLogoUrl }],
+          }))
         }
       } catch (err) {
         const modelLogoUrlErr = availableModels.find((m) => m.id === effectiveSelectedId)?.logo_url ?? undefined
-        setMessages((prev) => [
+        setMessagesByKey((prev) => ({
           ...prev,
-          { id: assistantId, from: 'assistant', content: SERVICE_ERROR_MESSAGE, modelLogoUrl: modelLogoUrlErr },
-        ])
+          [key]: [...(prev[key] ?? []), { id: assistantId, from: 'assistant', content: SERVICE_ERROR_MESSAGE, modelLogoUrl: modelLogoUrlErr }],
+        }))
       } finally {
         setGenerating(false)
       }
     },
-    [isAuthenticated, hasActiveSubscription, router, activeTab, deduct, effectiveSelectedId, availableModels, costForCurrentCreation]
+    [isAuthenticated, hasActiveSubscription, router, activeTab, deduct, effectiveSelectedId, availableModels, costForCurrentCreation, currentStorageKey]
   )
 
   const handleGenerateWithPrompt = useCallback(
@@ -493,8 +443,9 @@ export default function CriarGerarPage() {
         return
       }
       if (!result.ok) return
+      const key = getStorageKey(promptItem.tabId ?? activeTab, promptItem.id)
       const userMsg: ChatMessage = { id: 'u-' + Date.now(), from: 'user', content: `[${promptItem.title}]` }
-      setMessages((prev) => [...prev, userMsg])
+      setMessagesByKey((prev) => ({ ...prev, [key]: [...(prev[key] ?? []), userMsg] }))
       setGenerating(true)
       const assistantId = 'a-' + Date.now()
       const promptText = promptItem.title + (promptItem.subtitle ? '\n\n' + promptItem.subtitle : '') + (promptItem.prompt ? '\n\n' + promptItem.prompt : '')
@@ -516,96 +467,76 @@ export default function CriarGerarPage() {
           }
           const modelLogoUrlPrompt = availableModels.find((m) => m.id === effectiveSelectedId)?.logo_url ?? undefined
           const isCreditError = res.status === 402 || data?.code === 'insufficient_credits'
-          setMessages((prev) => [
+          setMessagesByKey((prev) => ({
             ...prev,
-            {
-              id: assistantId,
-              from: 'assistant',
-              content: isCreditError ? (data?.error ?? 'Créditos insuficientes.') : SERVICE_ERROR_MESSAGE,
-              modelLogoUrl: modelLogoUrlPrompt,
-            },
-          ])
+            [key]: [
+              ...(prev[key] ?? []),
+              { id: assistantId, from: 'assistant', content: isCreditError ? (data?.error ?? 'Créditos insuficientes.') : SERVICE_ERROR_MESSAGE, modelLogoUrl: modelLogoUrlPrompt },
+            ],
+          }))
           setSelectedPrompt(null)
           setPromptViewFiles({})
           return
         }
         const modelLogoUrlPrompt = availableModels.find((m) => m.id === effectiveSelectedId)?.logo_url ?? undefined
         if (data.type === 'image' && data.imageBase64) {
-          setMessages((prev) => [
+          setMessagesByKey((prev) => ({
             ...prev,
-            {
-              id: assistantId,
-              from: 'assistant',
-              content: '',
-              imageDataUrl: `data:${data.contentType || 'image/png'};base64,${data.imageBase64}`,
-              regeneratePrompt: promptText,
-              regenerateCreditCost: promptItem.creditCost,
-              modelLogoUrl: modelLogoUrlPrompt,
-            },
-          ])
+            [key]: [
+              ...(prev[key] ?? []),
+              { id: assistantId, from: 'assistant', content: '', imageDataUrl: `data:${data.contentType || 'image/png'};base64,${data.imageBase64}`, regeneratePrompt: promptText, regenerateCreditCost: promptItem.creditCost, modelLogoUrl: modelLogoUrlPrompt },
+            ],
+          }))
         } else if (data.type === 'video' && data.videoId) {
-          setMessages((prev) => [
+          setMessagesByKey((prev) => ({
             ...prev,
-            {
-              id: assistantId,
-              from: 'assistant',
-              content: 'Vídeo em geração… Aguarde (pode levar alguns minutos).',
-              regeneratePrompt: promptText,
-              regenerateCreditCost: promptItem.creditCost,
-              modelLogoUrl: modelLogoUrlPrompt,
-            },
-          ])
+            [key]: [
+              ...(prev[key] ?? []),
+              { id: assistantId, from: 'assistant', content: 'Vídeo em geração… Aguarde (pode levar alguns minutos).', regeneratePrompt: promptText, regenerateCreditCost: promptItem.creditCost, modelLogoUrl: modelLogoUrlPrompt },
+            ],
+          }))
           const pollVideo = async () => {
             const st = await fetch(`/api/creation/generate/video-status?videoId=${encodeURIComponent(data.videoId)}`)
             const stData = await st.json().catch(() => ({}))
             if (!st.ok) {
-              setMessages((prev) =>
-                prev.map((m) => (m.id === assistantId ? { ...m, content: SERVICE_ERROR_MESSAGE } : m))
-              )
+              setMessagesByKey((prev) => ({ ...prev, [key]: (prev[key] ?? []).map((m) => (m.id === assistantId ? { ...m, content: SERVICE_ERROR_MESSAGE } : m)) }))
               return
             }
             if (stData.status === 'completed' && stData.videoBase64) {
-              setMessages((prev) =>
-                prev.map((m) =>
-                  m.id === assistantId
-                    ? {
-                        ...m,
-                        content: '',
-                        videoDataUrl: `data:${stData.contentType || 'video/mp4'};base64,${stData.videoBase64}`,
-                      }
-                    : m
-                )
-              )
+              setMessagesByKey((prev) => ({
+                ...prev,
+                [key]: (prev[key] ?? []).map((m) =>
+                  m.id === assistantId ? { ...m, content: '', videoDataUrl: `data:${stData.contentType || 'video/mp4'};base64,${stData.videoBase64}` } : m
+                ),
+              }))
               return
             }
             if (stData.status === 'failed') {
-              setMessages((prev) =>
-                prev.map((m) => (m.id === assistantId ? { ...m, content: stData.message || SERVICE_ERROR_MESSAGE } : m))
-              )
+              setMessagesByKey((prev) => ({ ...prev, [key]: (prev[key] ?? []).map((m) => (m.id === assistantId ? { ...m, content: stData.message || SERVICE_ERROR_MESSAGE } : m)) }))
               return
             }
             setTimeout(pollVideo, 8000)
           }
           setTimeout(pollVideo, 12000)
         } else if (data.type === 'text' && data.text) {
-          setMessages((prev) => [
+          setMessagesByKey((prev) => ({
             ...prev,
-            { id: assistantId, from: 'assistant', content: data.text, regeneratePrompt: promptText, regenerateCreditCost: promptItem.creditCost, modelLogoUrl: modelLogoUrlPrompt },
-          ])
+            [key]: [...(prev[key] ?? []), { id: assistantId, from: 'assistant', content: data.text, regeneratePrompt: promptText, regenerateCreditCost: promptItem.creditCost, modelLogoUrl: modelLogoUrlPrompt }],
+          }))
         } else {
-          setMessages((prev) => [
+          setMessagesByKey((prev) => ({
             ...prev,
-            { id: assistantId, from: 'assistant', content: data.message || 'Pronto.', regeneratePrompt: promptText, regenerateCreditCost: promptItem.creditCost, modelLogoUrl: modelLogoUrlPrompt },
-          ])
+            [key]: [...(prev[key] ?? []), { id: assistantId, from: 'assistant', content: data.message || 'Pronto.', regeneratePrompt: promptText, regenerateCreditCost: promptItem.creditCost, modelLogoUrl: modelLogoUrlPrompt }],
+          }))
         }
         setSelectedPrompt(null)
         setPromptViewFiles({})
       } catch {
         const modelLogoUrlErr = availableModels.find((m) => m.id === effectiveSelectedId)?.logo_url ?? undefined
-        setMessages((prev) => [
+        setMessagesByKey((prev) => ({
           ...prev,
-          { id: assistantId, from: 'assistant', content: SERVICE_ERROR_MESSAGE, modelLogoUrl: modelLogoUrlErr },
-        ])
+          [key]: [...(prev[key] ?? []), { id: assistantId, from: 'assistant', content: SERVICE_ERROR_MESSAGE, modelLogoUrl: modelLogoUrlErr }],
+        }))
         setSelectedPrompt(null)
         setPromptViewFiles({})
       } finally {
@@ -617,7 +548,9 @@ export default function CriarGerarPage() {
 
   const handleRegenerate = useCallback(
     async (messageId: string) => {
-      const msg = messages.find((m) => m.id === messageId)
+      const key = currentStorageKey
+      const list = messagesByKey[key] ?? []
+      const msg = list.find((m) => m.id === messageId)
       if (!msg?.regeneratePrompt || msg.from !== 'assistant') return
       if (!isAuthenticated) {
         toast('Faça login para gerar.', { icon: '🔐' })
@@ -654,86 +587,65 @@ export default function CriarGerarPage() {
             setShowCreditModal(true)
             toast.error('Créditos insuficientes. Compre mais na área de uso da sua conta.')
           }
-          setMessages((prev) =>
-            prev.map((m) =>
-              m.id === messageId ? { ...m, content: data?.error ?? SERVICE_ERROR_MESSAGE } : m
-            )
-          )
+          setMessagesByKey((prev) => ({ ...prev, [key]: (prev[key] ?? []).map((m) => (m.id === messageId ? { ...m, content: data?.error ?? SERVICE_ERROR_MESSAGE } : m)) }))
           return
         }
         const regenModelLogo = availableModels.find((m) => m.id === effectiveSelectedId)?.logo_url ?? undefined
         if (data.type === 'image' && data.imageBase64) {
-          setMessages((prev) =>
-            prev.map((m) =>
+          setMessagesByKey((prev) => ({
+            ...prev,
+            [key]: (prev[key] ?? []).map((m) =>
               m.id === messageId
-                ? {
-                    ...m,
-                    content: '',
-                    imageDataUrl: `data:${data.contentType || 'image/png'};base64,${data.imageBase64}`,
-                    videoDataUrl: undefined,
-                    modelLogoUrl: regenModelLogo ?? m.modelLogoUrl,
-                  }
+                ? { ...m, content: '', imageDataUrl: `data:${data.contentType || 'image/png'};base64,${data.imageBase64}`, videoDataUrl: undefined, modelLogoUrl: regenModelLogo ?? m.modelLogoUrl }
                 : m
-            )
-          )
+            ),
+          }))
         } else if (data.type === 'video' && data.videoId) {
-          setMessages((prev) =>
-            prev.map((m) =>
-              m.id === messageId
-                ? { ...m, content: 'Vídeo em geração… Aguarde (pode levar alguns minutos).', imageDataUrl: undefined, videoDataUrl: undefined, modelLogoUrl: regenModelLogo ?? m.modelLogoUrl }
-                : m
-            )
-          )
+          setMessagesByKey((prev) => ({
+            ...prev,
+            [key]: (prev[key] ?? []).map((m) =>
+              m.id === messageId ? { ...m, content: 'Vídeo em geração… Aguarde (pode levar alguns minutos).', imageDataUrl: undefined, videoDataUrl: undefined, modelLogoUrl: regenModelLogo ?? m.modelLogoUrl } : m
+            ),
+          }))
           const pollVideo = async () => {
             const st = await fetch(`/api/creation/generate/video-status?videoId=${encodeURIComponent(data.videoId)}`)
             const stData = await st.json().catch(() => ({}))
             if (!st.ok) {
-              setMessages((prev) =>
-                prev.map((m) => (m.id === messageId ? { ...m, content: SERVICE_ERROR_MESSAGE } : m))
-              )
+              setMessagesByKey((prev) => ({ ...prev, [key]: (prev[key] ?? []).map((m) => (m.id === messageId ? { ...m, content: SERVICE_ERROR_MESSAGE } : m)) }))
               return
             }
             if (stData.status === 'completed' && stData.videoBase64) {
-              setMessages((prev) =>
-                prev.map((m) =>
-                  m.id === messageId
-                    ? { ...m, content: '', videoDataUrl: `data:${stData.contentType || 'video/mp4'};base64,${stData.videoBase64}` }
-                    : m
-                )
-              )
+              setMessagesByKey((prev) => ({
+                ...prev,
+                [key]: (prev[key] ?? []).map((m) => (m.id === messageId ? { ...m, content: '', videoDataUrl: `data:${stData.contentType || 'video/mp4'};base64,${stData.videoBase64}` } : m)),
+              }))
               return
             }
             if (stData.status === 'failed') {
-              setMessages((prev) =>
-                prev.map((m) => (m.id === messageId ? { ...m, content: stData.message || SERVICE_ERROR_MESSAGE } : m))
-              )
+              setMessagesByKey((prev) => ({ ...prev, [key]: (prev[key] ?? []).map((m) => (m.id === messageId ? { ...m, content: stData.message || SERVICE_ERROR_MESSAGE } : m)) }))
               return
             }
             setTimeout(pollVideo, 8000)
           }
           setTimeout(pollVideo, 12000)
         } else if (data.type === 'text' && data.text) {
-          setMessages((prev) =>
-            prev.map((m) =>
-              m.id === messageId ? { ...m, content: data.text, imageDataUrl: undefined, videoDataUrl: undefined, modelLogoUrl: regenModelLogo ?? m.modelLogoUrl } : m
-            )
-          )
+          setMessagesByKey((prev) => ({
+            ...prev,
+            [key]: (prev[key] ?? []).map((m) => (m.id === messageId ? { ...m, content: data.text, imageDataUrl: undefined, videoDataUrl: undefined, modelLogoUrl: regenModelLogo ?? m.modelLogoUrl } : m)),
+          }))
         } else {
-          setMessages((prev) =>
-            prev.map((m) => (m.id === messageId ? { ...m, content: data.message || 'Pronto.', modelLogoUrl: regenModelLogo ?? m.modelLogoUrl } : m))
-          )
+          setMessagesByKey((prev) => ({ ...prev, [key]: (prev[key] ?? []).map((m) => (m.id === messageId ? { ...m, content: data.message || 'Pronto.', modelLogoUrl: regenModelLogo ?? m.modelLogoUrl } : m)) }))
         }
       } catch {
         const regenModelLogoErr = availableModels.find((m) => m.id === effectiveSelectedId)?.logo_url ?? undefined
-        setMessages((prev) =>
-          prev.map((m) => (m.id === messageId ? { ...m, content: SERVICE_ERROR_MESSAGE, modelLogoUrl: regenModelLogoErr ?? m.modelLogoUrl } : m))
-        )
+        setMessagesByKey((prev) => ({ ...prev, [key]: (prev[key] ?? []).map((m) => (m.id === messageId ? { ...m, content: SERVICE_ERROR_MESSAGE, modelLogoUrl: regenModelLogoErr ?? m.modelLogoUrl } : m)) }))
       } finally {
         setGenerating(false)
       }
     },
     [
-      messages,
+      messagesByKey,
+      currentStorageKey,
       isAuthenticated,
       hasActiveSubscription,
       availableModels,
@@ -746,12 +658,16 @@ export default function CriarGerarPage() {
     ]
   )
 
-  const handleAction = useCallback((messageId: string, action: string) => {
-    if (action === 'Copiar') {
-      const msg = messages.find((m) => m.id === messageId)
-      if (msg?.content) navigator.clipboard.writeText(msg.content)
-    }
-  }, [messages])
+  const handleAction = useCallback(
+    (messageId: string, action: string) => {
+      if (action === 'Copiar') {
+        const list = messagesByKey[currentStorageKey] ?? []
+        const msg = list.find((m) => m.id === messageId)
+        if (msg?.content) navigator.clipboard.writeText(msg.content)
+      }
+    },
+    [messagesByKey, currentStorageKey]
+  )
 
   const showPromptView = selectedPrompt && selectedPrompt.inputStructure !== 'text_only'
   const showChat = !showPromptView
@@ -961,13 +877,11 @@ export default function CriarGerarPage() {
       )}
 
       {showChat && (() => {
-        const ctx = messagesContextRef.current
-        const messagesBelongToCurrentTab = ctx.tab === effectiveTab && ctx.promptId === effectivePromptId
-        const messagesToShow = messagesBelongToCurrentTab ? messages : []
+        const messagesToShow = messagesByKey[currentStorageKey] ?? []
         return (
         <>
           {(messagesToShow.length > 0 || generating) && (
-            <div className="mb-4 max-h-[320px] sm:max-h-[400px] overflow-y-auto rounded-xl border bg-muted/20" key={`chat-${effectiveTab}-${effectivePromptId ?? 'geral'}`}>
+            <div className="mb-4 max-h-[320px] sm:max-h-[400px] overflow-y-auto rounded-xl border bg-muted/20" key={currentStorageKey}>
               {messagesToShow.length > 0 && (
                 <ChatWithActions
                   messages={messagesToShow}

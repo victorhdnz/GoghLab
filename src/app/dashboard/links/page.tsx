@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { LinkAggregator } from '@/types/link-aggregator';
-import { Plus, ExternalLink, Edit, Trash2, Link as LinkIcon } from 'lucide-react';
+import { Plus, ExternalLink, Edit, Trash2, Link as LinkIcon, ArrowLeft } from 'lucide-react';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import toast from 'react-hot-toast';
 import Link from 'next/link';
@@ -30,10 +30,10 @@ export default function LinkAggregatorsDashboard() {
         return;
       }
 
+      // Listar todos os agregadores (dashboard é admin; assim /links/victor etc. aparecem mesmo se user_id tiver sido criado em outro contexto)
       const { data, error } = await (supabase as any)
         .from('link_aggregators')
         .select('*')
-        .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -97,6 +97,16 @@ export default function LinkAggregatorsDashboard() {
   return (
     <div className="min-h-screen bg-gray-50 p-8">
       <div className="max-w-7xl mx-auto">
+        {/* Voltar ao dashboard */}
+        <div className="mb-4">
+          <Link
+            href="/dashboard"
+            className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 text-sm"
+          >
+            <ArrowLeft size={18} />
+            Voltar ao dashboard
+          </Link>
+        </div>
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>

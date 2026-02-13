@@ -114,13 +114,22 @@ export default function NewLinkAggregatorPage() {
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <Link
-            href="/dashboard/links"
-            className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4"
-          >
-            <ArrowLeft size={20} />
-            Voltar para Agregadores
-          </Link>
+          <div className="flex flex-wrap items-center gap-3 mb-4">
+            <Link
+              href="/dashboard"
+              className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900"
+            >
+              <ArrowLeft size={20} />
+              Voltar ao dashboard
+            </Link>
+            <span className="text-gray-400">|</span>
+            <Link
+              href="/dashboard/links"
+              className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900"
+            >
+              Agregadores
+            </Link>
+          </div>
           <h1 className="text-3xl font-bold text-gray-900">Novo Agregador de Links</h1>
         </div>
 

@@ -345,15 +345,22 @@ export async function POST(request: Request) {
       }
 
       try {
-        const response = await openai!.images.generate({
-          model: openaiModelId as 'gpt-image-1' | 'gpt-image-1.5' | 'dall-e-2' | 'dall-e-3',
-          prompt,
-          n: 1,
-          response_format: 'b64_json',
-          size: '1024x1024',
-        })
+        const isGptImage = openaiModelId.startsWith('gpt-image')
+        const response = isGptImage
+          ? await openai!.images.generate({
+              model: openaiModelId as 'gpt-image-1' | 'gpt-image-1.5',
+              prompt,
+              n: 1,
+            })
+          : await openai!.images.generate({
+              model: openaiModelId as 'dall-e-2' | 'dall-e-3',
+              prompt,
+              n: 1,
+              response_format: 'b64_json',
+              size: '1024x1024',
+            })
 
-        const b64 = response.data?.[0]?.b64_json
+        const b64 = response.data?.[0]?.b64_json ?? (response.data?.[0] as any)?.b64
         if (!b64) {
           console.error('[creation/generate] OpenAI: nenhuma imagem retornada')
           return NextResponse.json({ error: SERVICE_ERROR_MESSAGE }, { status: 503 })

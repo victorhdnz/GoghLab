@@ -39,11 +39,12 @@ export function DashboardNotificationBell() {
         .select('value')
         .eq('key', SITE_SETTINGS_KEY_READ_AT)
         .maybeSingle()
-      const readAt: string | null = readAtData?.value ?? null
+      const raw = readAtData?.value
+      const readAt: string | null = typeof raw === 'string' ? raw : (raw != null ? String(raw) : null)
 
       const since = readAt || '1970-01-01T00:00:00.000Z'
 
-      const [ticketsRes, reportesRes, subsRes] = await Promise.all([
+      const [ticketsRes, reportesRes, profilesRes] = await Promise.all([
         (supabase as any)
           .from('support_tickets')
           .select('*', { count: 'exact', head: true })
@@ -56,14 +57,14 @@ export function DashboardNotificationBell() {
           .eq('error_reported', true)
           .gt('updated_at', since),
         (supabase as any)
-          .from('subscriptions')
-          .select('*', { count: 'exact', head: true })
+          .from('profiles')
+          .select('id', { count: 'exact', head: true })
           .gt('created_at', since),
       ])
 
       const solicitacoes = typeof (ticketsRes as any)?.count === 'number' ? (ticketsRes as any).count : 0
       const reportes = typeof (reportesRes as any)?.count === 'number' ? (reportesRes as any).count : 0
-      const novosMembros = typeof (subsRes as any)?.count === 'number' ? (subsRes as any).count : 0
+      const novosMembros = typeof (profilesRes as any)?.count === 'number' ? (profilesRes as any).count : 0
 
       setCounts({
         solicitacoes,
@@ -97,18 +98,32 @@ export function DashboardNotificationBell() {
 
   const markAllAsRead = async () => {
     setMarkingRead(true)
+    const now = new Date().toISOString()
+    const row = {
+      key: SITE_SETTINGS_KEY_READ_AT,
+      value: now,
+      description: 'Última vez que o admin marcou notificações como lidas',
+      updated_at: now,
+    }
     try {
-      await (supabase as any)
+      const { data: existing } = await (supabase as any)
         .from('site_settings')
-        .upsert(
-          {
-            key: SITE_SETTINGS_KEY_READ_AT,
-            value: new Date().toISOString(),
-            description: 'Última vez que o admin marcou notificações como lidas',
-            updated_at: new Date().toISOString(),
-          },
-          { onConflict: 'key' }
-        )
+        .select('key')
+        .eq('key', SITE_SETTINGS_KEY_READ_AT)
+        .maybeSingle()
+
+      if (existing) {
+        const { error: updateError } = await (supabase as any)
+          .from('site_settings')
+          .update({ value: row.value, description: row.description, updated_at: row.updated_at })
+          .eq('key', SITE_SETTINGS_KEY_READ_AT)
+        if (updateError) throw updateError
+      } else {
+        const { error: insertError } = await (supabase as any)
+          .from('site_settings')
+          .insert({ key: row.key, value: row.value, description: row.description, updated_at: row.updated_at })
+        if (insertError) throw insertError
+      }
       await fetchCounts()
       setOpen(false)
     } catch (e) {
