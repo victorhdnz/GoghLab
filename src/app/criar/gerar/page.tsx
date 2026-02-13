@@ -119,6 +119,7 @@ export default function CriarGerarPage() {
   const [modalVideo, setModalVideo] = useState<{ type: 'youtube' | 'cloudinary'; url: string } | null>(null)
   const [publicCostByAction, setPublicCostByAction] = useState<Record<CreditActionId, number> | null>(null)
   const [creationModelsApi, setCreationModelsApi] = useState<CreationModelOption[]>([])
+  const [creationModelsLoaded, setCreationModelsLoaded] = useState(false)
   const [siteLogo, setSiteLogo] = useState<string | null>(null)
   const imageInputRef = useRef<HTMLInputElement>(null)
   const videoInputRef = useRef<HTMLInputElement>(null)
@@ -238,11 +239,12 @@ export default function CriarGerarPage() {
         }
       })
       .catch(() => {})
+      .finally(() => setCreationModelsLoaded(true))
   }, [])
 
   const activeTab: TabId = selectedPrompt?.tabId ?? (tabFromUrl && ['foto', 'video', 'roteiro', 'vangogh'].includes(tabFromUrl) ? tabFromUrl : 'foto')
 
-  /** Modelos filtrados pela função da aba: Foto → can_image, Vídeo → can_video, Roteiro de Vídeos / Criação de Prompts → can_prompt. Tanto no chat geral quanto em um prompt específico, o usuário vê só os modelos daquela função. */
+  /** Modelos filtrados pela função da aba. Enquanto a API não carregou, mostra "Carregando..." para evitar o flash de "Padrão (imagem)". */
   const availableModels = useMemo(() => {
     type Cap = 'can_image' | 'can_video' | 'can_prompt'
     const cap: Record<TabId, Cap> = {
@@ -252,6 +254,9 @@ export default function CriarGerarPage() {
       vangogh: 'can_prompt',
     }
     const key = cap[activeTab]
+    if (!creationModelsLoaded && creationModelsApi.length === 0) {
+      return [{ id: 'loading', name: 'Carregando...', logo_url: null as string | null, credit_cost: null as number | null }]
+    }
     if (!key || creationModelsApi.length === 0) {
       const fallback = MODELS_BY_TAB_FALLBACK[activeTab] ?? MODELS_BY_TAB_FALLBACK.foto
       return fallback.map((m) => ({ id: m.id, name: m.label, logo_url: null as string | null, credit_cost: null as number | null }))
@@ -264,16 +269,22 @@ export default function CriarGerarPage() {
       return fallback.map((m) => ({ id: m.id, name: m.label, logo_url: null as string | null, credit_cost: null as number | null }))
     }
     return filtered
-  }, [activeTab, creationModelsApi])
+  }, [activeTab, creationModelsApi, creationModelsLoaded])
 
   const [selectedModelId, setSelectedModelId] = useState<string>(availableModels[0]?.id ?? 'default-image')
 
+  /** Id do modelo a exibir e usar: sempre um da lista atual (evita flash ao trocar de aba). */
+  const effectiveSelectedId = useMemo(() => {
+    if (availableModels.some((m) => m.id === selectedModelId)) return selectedModelId
+    return availableModels[0]?.id ?? 'loading'
+  }, [availableModels, selectedModelId])
+
   /** Custo em créditos para a criação atual: modelo selecionado (se definido no dashboard) ou custo padrão da função */
   const costForCurrentCreation = useMemo(() => {
-    const model = availableModels.find((m) => m.id === selectedModelId)
+    const model = availableModels.find((m) => m.id === effectiveSelectedId)
     const modelCost = model?.credit_cost != null && model.credit_cost > 0 ? model.credit_cost : null
     return modelCost ?? costByAction?.[activeTab] ?? publicCostByAction?.[activeTab] ?? null
-  }, [availableModels, selectedModelId, activeTab, costByAction, publicCostByAction])
+  }, [availableModels, effectiveSelectedId, activeTab, costByAction, publicCostByAction])
 
   useEffect(() => {
     const firstId = availableModels[0]?.id
@@ -326,7 +337,7 @@ export default function CriarGerarPage() {
           body: JSON.stringify({
             tab: activeTab,
             prompt: message,
-            modelId: selectedModelId || undefined,
+            modelId: effectiveSelectedId !== 'loading' ? effectiveSelectedId : undefined,
           }),
         })
         const data = await res.json().catch(() => ({}))
@@ -336,7 +347,7 @@ export default function CriarGerarPage() {
             toast.error('Créditos insuficientes. Compre mais na área de uso da sua conta.')
           }
           const isCreditError = res.status === 402 || data?.code === 'insufficient_credits'
-          const modelLogoUrl = availableModels.find((m) => m.id === selectedModelId)?.logo_url ?? undefined
+          const modelLogoUrl = availableModels.find((m) => m.id === effectiveSelectedId)?.logo_url ?? undefined
           setMessages((prev) => [
             ...prev,
             {
@@ -350,7 +361,7 @@ export default function CriarGerarPage() {
           ])
           return
         }
-        const modelLogoUrl = availableModels.find((m) => m.id === selectedModelId)?.logo_url ?? undefined
+        const modelLogoUrl = availableModels.find((m) => m.id === effectiveSelectedId)?.logo_url ?? undefined
         if (data.type === 'image' && data.imageBase64) {
           setMessages((prev) => [
             ...prev,
@@ -418,7 +429,7 @@ export default function CriarGerarPage() {
           ])
         }
       } catch (err) {
-        const modelLogoUrlErr = availableModels.find((m) => m.id === selectedModelId)?.logo_url ?? undefined
+        const modelLogoUrlErr = availableModels.find((m) => m.id === effectiveSelectedId)?.logo_url ?? undefined
         setMessages((prev) => [
           ...prev,
           { id: assistantId, from: 'assistant', content: SERVICE_ERROR_MESSAGE, modelLogoUrl: modelLogoUrlErr },
@@ -427,7 +438,7 @@ export default function CriarGerarPage() {
         setGenerating(false)
       }
     },
-    [isAuthenticated, hasActiveSubscription, router, activeTab, deduct, selectedModelId, availableModels, costForCurrentCreation]
+    [isAuthenticated, hasActiveSubscription, router, activeTab, deduct, effectiveSelectedId, availableModels, costForCurrentCreation]
   )
 
   const handleGenerateWithPrompt = useCallback(
@@ -461,7 +472,7 @@ export default function CriarGerarPage() {
           body: JSON.stringify({
             tab: promptItem.tabId ?? activeTab,
             prompt: promptText,
-            modelId: selectedModelId || undefined,
+            modelId: effectiveSelectedId !== 'loading' ? effectiveSelectedId : undefined,
           }),
         })
         const data = await res.json().catch(() => ({}))
@@ -470,7 +481,7 @@ export default function CriarGerarPage() {
             setShowCreditModal(true)
             toast.error('Créditos insuficientes. Compre mais na área de uso da sua conta.')
           }
-          const modelLogoUrlPrompt = availableModels.find((m) => m.id === selectedModelId)?.logo_url ?? undefined
+          const modelLogoUrlPrompt = availableModels.find((m) => m.id === effectiveSelectedId)?.logo_url ?? undefined
           const isCreditError = res.status === 402 || data?.code === 'insufficient_credits'
           setMessages((prev) => [
             ...prev,
@@ -485,7 +496,7 @@ export default function CriarGerarPage() {
           setPromptViewFiles({})
           return
         }
-        const modelLogoUrlPrompt = availableModels.find((m) => m.id === selectedModelId)?.logo_url ?? undefined
+        const modelLogoUrlPrompt = availableModels.find((m) => m.id === effectiveSelectedId)?.logo_url ?? undefined
         if (data.type === 'image' && data.imageBase64) {
           setMessages((prev) => [
             ...prev,
@@ -557,7 +568,7 @@ export default function CriarGerarPage() {
         setSelectedPrompt(null)
         setPromptViewFiles({})
       } catch {
-        const modelLogoUrlErr = availableModels.find((m) => m.id === selectedModelId)?.logo_url ?? undefined
+        const modelLogoUrlErr = availableModels.find((m) => m.id === effectiveSelectedId)?.logo_url ?? undefined
         setMessages((prev) => [
           ...prev,
           { id: assistantId, from: 'assistant', content: SERVICE_ERROR_MESSAGE, modelLogoUrl: modelLogoUrlErr },
@@ -568,7 +579,7 @@ export default function CriarGerarPage() {
         setGenerating(false)
       }
     },
-    [isAuthenticated, hasActiveSubscription, router, activeTab, deduct, selectedModelId, availableModels]
+    [isAuthenticated, hasActiveSubscription, router, activeTab, deduct, effectiveSelectedId, availableModels]
   )
 
   const handleRegenerate = useCallback(
@@ -601,7 +612,7 @@ export default function CriarGerarPage() {
           body: JSON.stringify({
             tab: activeTab,
             prompt: msg.regeneratePrompt,
-            modelId: selectedModelId || undefined,
+            modelId: effectiveSelectedId !== 'loading' ? effectiveSelectedId : undefined,
           }),
         })
         const data = await res.json().catch(() => ({}))
@@ -617,7 +628,7 @@ export default function CriarGerarPage() {
           )
           return
         }
-        const regenModelLogo = availableModels.find((m) => m.id === selectedModelId)?.logo_url ?? undefined
+        const regenModelLogo = availableModels.find((m) => m.id === effectiveSelectedId)?.logo_url ?? undefined
         if (data.type === 'image' && data.imageBase64) {
           setMessages((prev) =>
             prev.map((m) =>
@@ -680,7 +691,7 @@ export default function CriarGerarPage() {
           )
         }
       } catch {
-        const regenModelLogoErr = availableModels.find((m) => m.id === selectedModelId)?.logo_url ?? undefined
+        const regenModelLogoErr = availableModels.find((m) => m.id === effectiveSelectedId)?.logo_url ?? undefined
         setMessages((prev) =>
           prev.map((m) => (m.id === messageId ? { ...m, content: SERVICE_ERROR_MESSAGE, modelLogoUrl: regenModelLogoErr ?? m.modelLogoUrl } : m))
         )
@@ -693,7 +704,7 @@ export default function CriarGerarPage() {
       isAuthenticated,
       hasActiveSubscription,
       availableModels,
-      selectedModelId,
+      effectiveSelectedId,
       costForCurrentCreation,
       router,
       activeTab,
@@ -874,12 +885,12 @@ export default function CriarGerarPage() {
                     className="h-8 gap-1.5 rounded-md border-input pl-2 pr-2 text-xs font-normal"
                   >
                     {(() => {
-                  const sel = availableModels.find((m) => m.id === selectedModelId)
+                  const sel = availableModels.find((m) => m.id === effectiveSelectedId)
                   return sel?.logo_url ? (
                     <span className="relative h-4 w-4 shrink-0 overflow-hidden rounded"><Image src={sel.logo_url} alt="" width={16} height={16} className="object-contain" /></span>
-                  ) : (MODEL_ICONS[selectedModelId] ?? <Bot className="h-4 w-4" />)
+                  ) : (MODEL_ICONS[effectiveSelectedId] ?? <Bot className="h-4 w-4" />)
                 })()}
-                    <span>{availableModels.find((m) => m.id === selectedModelId)?.name ?? selectedModelId}</span>
+                    <span>{availableModels.find((m) => m.id === effectiveSelectedId)?.name ?? effectiveSelectedId}</span>
                     <ChevronDown className="h-3.5 w-3.5 opacity-50" />
                   </Button>
                 </DropdownMenuTrigger>
@@ -896,7 +907,7 @@ export default function CriarGerarPage() {
                         ) : (MODEL_ICONS[m.id] ?? <Bot className="h-4 w-4 opacity-70" />)}
                         <span>{m.name}</span>
                       </div>
-                      {selectedModelId === m.id && <Check className="h-4 w-4 text-primary" />}
+                      {effectiveSelectedId === m.id && <Check className="h-4 w-4 text-primary" />}
                     </DropdownMenuItem>
                   ))}
                 </DropdownMenuContent>
@@ -937,7 +948,7 @@ export default function CriarGerarPage() {
             initialValue={selectedPrompt?.inputStructure === 'text_only' ? selectedPrompt.prompt : promptFromUrl}
             creditCost={costForCurrentCreation ?? null}
             models={availableModels}
-            selectedModelId={selectedModelId}
+            selectedModelId={effectiveSelectedId}
             onModelChange={setSelectedModelId}
             clearInputRef={promptClearInputRef}
           />
