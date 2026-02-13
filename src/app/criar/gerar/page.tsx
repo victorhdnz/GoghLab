@@ -335,7 +335,7 @@ export default function CriarGerarPage() {
       setMessages((prev) => [...prev, userMsg])
       setGenerating(true)
       const assistantId = 'a-' + Date.now()
-      const promptText = promptItem.title + (promptItem.description ? '\n\n' + promptItem.description : '')
+      const promptText = promptItem.title + (promptItem.subtitle ? '\n\n' + promptItem.subtitle : '') + (promptItem.prompt ? '\n\n' + promptItem.prompt : '')
       try {
         const res = await fetch('/api/creation/generate', {
           method: 'POST',
