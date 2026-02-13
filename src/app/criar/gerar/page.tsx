@@ -231,7 +231,7 @@ export default function CriarGerarPage() {
         router.push('/precos')
         return
       }
-      const result = await deduct(activeTab)
+      const result = await deduct(activeTab, promptItem.creditCost)
       if (!result.ok && result.code === 'insufficient_credits') {
         toast('Créditos insuficientes. Redirecionando para comprar mais.')
         router.push('/conta#usage')

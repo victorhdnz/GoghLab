@@ -42,13 +42,13 @@ export function useCredits() {
     fetchBalance()
   }, [fetchBalance])
 
-  const deduct = useCallback(async (actionId: CreditActionId): Promise<{ ok: boolean; balance?: number; code?: string }> => {
+  const deduct = useCallback(async (actionId: CreditActionId, amount?: number): Promise<{ ok: boolean; balance?: number; code?: string }> => {
     try {
       const res = await fetch('/api/credits/deduct', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ actionId }),
+        body: JSON.stringify({ actionId, ...(typeof amount === 'number' && amount > 0 ? { amount } : {}) }),
       })
       const data = await res.json()
       if (res.status === 402) {

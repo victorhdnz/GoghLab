@@ -2,28 +2,35 @@ import { unstable_noStore } from 'next/cache'
 import { createServerClient } from '@/lib/supabase/server'
 import { resolvePricingFeaturesFromProducts } from '@/lib/pricing-resolve'
 import { PricingSection } from '@/components/homepage/PricingSection'
+import { getCreditsConfigKey } from '@/lib/credits'
 
 export const dynamic = 'force-dynamic'
+
+function planIdToCreditsKey(planId: string): string {
+  if (planId === 'gogh-essencial') return 'gogh_essencial'
+  if (planId === 'gogh-pro') return 'gogh_pro'
+  return planId
+}
 
 export default async function PrecosPage() {
   unstable_noStore()
 
   const supabase = createServerClient()
 
-  const { data: row, error } = await supabase
-    .from('site_settings')
-    .select('site_name, site_logo, contact_whatsapp, instagram_url, homepage_content')
-    .eq('key', 'general')
-    .maybeSingle() as {
-      data: {
-        site_name: string | null
-        site_logo: string | null
-        contact_whatsapp: string | null
-        instagram_url: string | null
-        homepage_content: unknown
-      } | null
-      error: unknown
-    }
+  const [generalResult, creditsResult] = await Promise.all([
+    supabase
+      .from('site_settings')
+      .select('site_name, site_logo, contact_whatsapp, instagram_url, homepage_content')
+      .eq('key', 'general')
+      .maybeSingle(),
+    supabase
+      .from('site_settings')
+      .select('value')
+      .eq('key', getCreditsConfigKey())
+      .maybeSingle(),
+  ])
+  const { data: row, error } = generalResult
+  const { data: creditsRow } = creditsResult
 
   if (error || !row) {
     return (
@@ -38,6 +45,19 @@ export default async function PrecosPage() {
     : {}
   const resolvedContent = await resolvePricingFeaturesFromProducts(supabase, homepageContent)
   const pricing = resolvedContent?.pricing || {}
+
+  const creditsConfig = creditsRow?.value && typeof creditsRow.value === 'object'
+    ? (creditsRow.value as { monthlyCreditsByPlan?: Record<string, number> })
+    : null
+  const monthlyCreditsByPlan = creditsConfig?.monthlyCreditsByPlan || {}
+
+  if (Array.isArray(pricing.pricing_plans)) {
+    pricing.pricing_plans = pricing.pricing_plans.map((plan: any) => {
+      const creditsKey = planIdToCreditsKey(plan.id)
+      const credits = monthlyCreditsByPlan[creditsKey]
+      return { ...plan, monthlyCredits: typeof credits === 'number' ? credits : undefined }
+    })
+  }
   const siteSettings = {
     contact_whatsapp: row.contact_whatsapp ?? null,
     site_name: row.site_name ?? null,

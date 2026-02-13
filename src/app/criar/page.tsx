@@ -90,7 +90,7 @@ export default function CriarPage() {
       {/* Créditos (discreto) */}
       {isAuthenticated && hasActiveSubscription && balance != null && (
         <p className="mb-3 text-xs text-muted-foreground">
-          Créditos deste mês: <strong>{balance}</strong>
+          Créditos disponíveis: <strong>{balance}</strong>
         </p>
       )}
 

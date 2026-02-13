@@ -57,6 +57,8 @@ export interface PriceTier {
   // Stripe Price IDs para checkout
   stripePriceIdMonthly?: string
   stripePriceIdAnnually?: string
+  /** Créditos IA incluídos por mês (ex.: 50 para Gogh Essencial, 200 para Gogh Pro) */
+  monthlyCredits?: number
 }
 
 export interface FeatureCategory {
@@ -324,19 +326,27 @@ export const PricingComponent: React.FC<PricingComponentProps> = ({
                       />
                       <span className="text-base font-normal text-gray-500">/mês</span>
                     </p>
+                    {plan.planType !== 'service' && plan.monthlyCredits != null && plan.monthlyCredits > 0 && (
+                      <p className="text-sm text-[#0A0A0A] mt-1.5 font-medium">{plan.monthlyCredits} créditos IA/mês</p>
+                    )}
                     <p className="text-xs text-gray-500 mt-2">
                       Economize {annualDiscountPercent}% com o plano anual
                     </p>
                   </>
                 ) : (
-                  <p className="text-4xl font-extrabold text-[#0A0A0A] flex flex-wrap items-baseline gap-1">
-                    <NumberFlow
-                      value={displayPriceAnnualMonthly}
-                      format={priceFormat}
-                      className="tabular-nums"
-                    />
-                    <span className="text-base font-normal text-gray-500">/mês</span>
-                  </p>
+                  <>
+                    <p className="text-4xl font-extrabold text-[#0A0A0A] flex flex-wrap items-baseline gap-1">
+                      <NumberFlow
+                        value={displayPriceAnnualMonthly}
+                        format={priceFormat}
+                        className="tabular-nums"
+                      />
+                      <span className="text-base font-normal text-gray-500">/mês</span>
+                    </p>
+                    {plan.planType !== 'service' && plan.monthlyCredits != null && plan.monthlyCredits > 0 && (
+                      <p className="text-sm text-[#0A0A0A] mt-1.5 font-medium">{plan.monthlyCredits} créditos IA/mês</p>
+                    )}
+                  </>
                 )}
               </div>
             </CardHeader>

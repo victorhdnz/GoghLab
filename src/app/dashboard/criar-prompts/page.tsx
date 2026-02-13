@@ -18,10 +18,10 @@ import type { CreationPromptItem, CreationTabId, InputStructureId } from '@/type
 import { INPUT_STRUCTURES } from '@/types/creation-prompts'
 
 const CREDIT_ACTION_LABELS: Record<CreditActionId, string> = {
-  foto: 'Criação de Foto',
-  video: 'Criação de Vídeo',
-  roteiro: 'Vídeo com Roteiro',
-  vangogh: 'Criação de prompts',
+  foto: 'Foto',
+  video: 'Vídeo',
+  roteiro: 'Roteiro',
+  vangogh: 'Criação de Prompts',
 }
 const DEFAULT_COST_BY_ACTION: Record<CreditActionId, number> = {
   foto: 5,
@@ -31,10 +31,10 @@ const DEFAULT_COST_BY_ACTION: Record<CreditActionId, number> = {
 }
 
 const TAB_OPTIONS: { value: CreationTabId; label: string }[] = [
-  { value: 'foto', label: 'Criação de Foto' },
-  { value: 'video', label: 'Criação de Vídeo' },
-  { value: 'roteiro', label: 'Vídeo com Roteiro' },
-  { value: 'vangogh', label: 'Criação de prompts' },
+  { value: 'foto', label: 'Foto' },
+  { value: 'video', label: 'Vídeo' },
+  { value: 'roteiro', label: 'Roteiro' },
+  { value: 'vangogh', label: 'Criação de Prompts' },
 ]
 
 type InternalTab = 'prompts' | 'chats_gerais' | 'modelos_ia'

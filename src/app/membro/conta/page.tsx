@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { createClient } from '@/lib/supabase/client'
 import { motion } from 'framer-motion'
@@ -116,31 +116,45 @@ export default function AccountPage() {
     }
   }, [])
 
-  // Créditos IA (mensais + comprados separados)
+  // Créditos IA (mensais + comprados separados); refetch ao ganhar foco (ex.: volta do checkout Stripe)
+  const fetchCredits = useCallback(async () => {
+    if (!user || !hasActiveSubscription) {
+      setCreditsBalanceMonthly(null)
+      setCreditsBalancePurchased(null)
+      return
+    }
+    try {
+      const res = await fetch('/api/credits/balance', { credentials: 'include' })
+      const data = await res.json()
+      if (res.ok) {
+        setCreditsBalanceMonthly(typeof data.balanceMonthly === 'number' ? data.balanceMonthly : data.balance ?? null)
+        setCreditsBalancePurchased(typeof data.balancePurchased === 'number' ? data.balancePurchased : 0)
+      } else {
+        setCreditsBalanceMonthly(null)
+        setCreditsBalancePurchased(null)
+      }
+    } catch {
+      setCreditsBalanceMonthly(null)
+      setCreditsBalancePurchased(null)
+    }
+  }, [user, hasActiveSubscription])
+
   useEffect(() => {
     if (!user || !hasActiveSubscription) {
       setCreditsBalanceMonthly(null)
       setCreditsBalancePurchased(null)
       return
     }
-    const fetchCredits = async () => {
-      try {
-        const res = await fetch('/api/credits/balance', { credentials: 'include' })
-        const data = await res.json()
-        if (res.ok) {
-          setCreditsBalanceMonthly(typeof data.balanceMonthly === 'number' ? data.balanceMonthly : data.balance ?? null)
-          setCreditsBalancePurchased(typeof data.balancePurchased === 'number' ? data.balancePurchased : 0)
-        } else {
-          setCreditsBalanceMonthly(null)
-          setCreditsBalancePurchased(null)
-        }
-      } catch {
-        setCreditsBalanceMonthly(null)
-        setCreditsBalancePurchased(null)
-      }
-    }
     fetchCredits()
-  }, [user, hasActiveSubscription])
+  }, [user, hasActiveSubscription, fetchCredits])
+
+  useEffect(() => {
+    const onFocus = () => {
+      if (user && hasActiveSubscription) fetchCredits()
+    }
+    window.addEventListener('focus', onFocus)
+    return () => window.removeEventListener('focus', onFocus)
+  }, [user, hasActiveSubscription, fetchCredits])
 
   // Recursos do plano (espelhar o que está cadastrado no dashboard: plan_products + products)
   useEffect(() => {

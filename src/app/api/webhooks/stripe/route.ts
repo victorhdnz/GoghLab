@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { createClient } from '@supabase/supabase-js'
+import { getCreditPlansKey, type CreditPlan } from '@/lib/credits'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '')
 
@@ -147,7 +148,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   }
 
   if (!session.subscription) {
-    console.warn('Checkout sem assinatura - ignorando.')
+    await handleOneTimePayment(session)
     return
   }
 
@@ -207,6 +208,63 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   }
 
   console.log(`Subscription created for user ${profile.id}: ${planInfo.plan_id}`)
+}
+
+/** Compra avulsa (ex.: pacote de créditos) — sem assinatura; credita em ai_credits_purchased */
+async function handleOneTimePayment(session: Stripe.Checkout.Session) {
+  if (session.mode !== 'payment') {
+    console.warn('Checkout sem assinatura e não é pagamento único - ignorando.')
+    return
+  }
+  const customerEmail = session.customer_details?.email
+  if (!customerEmail) {
+    console.error('Checkout pagamento único sem email.')
+    return
+  }
+  const lineItems = await stripe.checkout.sessions.listLineItems(session.id)
+  const priceToQty = new Map<string, number>()
+  for (const item of lineItems.data) {
+    const priceId = item.price?.id
+    if (priceId) priceToQty.set(priceId, (priceToQty.get(priceId) || 0) + (item.quantity || 1))
+  }
+  const { data: plansRow } = await supabaseAdmin
+    .from('site_settings')
+    .select('value')
+    .eq('key', getCreditPlansKey())
+    .maybeSingle()
+  const plans: CreditPlan[] = Array.isArray(plansRow?.value) ? plansRow.value : []
+  let totalCredits = 0
+  for (const [priceId, qty] of priceToQty) {
+    const plan = plans.find((p: CreditPlan) => p.stripe_price_id === priceId)
+    if (plan && plan.credits) totalCredits += plan.credits * qty
+  }
+  if (totalCredits <= 0) {
+    console.log('Nenhum plano de créditos avulso configurado para os Price IDs deste checkout.')
+    return
+  }
+  const { data: profile, error: profileError } = await supabaseAdmin
+    .from('profiles')
+    .select('id')
+    .eq('email', customerEmail)
+    .single()
+  if (profileError || !profile) {
+    console.error('Usuário não encontrado para créditos avulsos:', customerEmail)
+    return
+  }
+  const { error: insertErr } = await (supabaseAdmin as any)
+    .from('user_usage')
+    .insert({
+      user_id: profile.id,
+      feature_key: 'ai_credits_purchased',
+      period_start: `purchased_${session.id}`,
+      period_end: 'purchased',
+      usage_count: totalCredits,
+    })
+  if (insertErr) {
+    console.error('Erro ao creditar compra avulsa:', insertErr)
+    throw insertErr
+  }
+  console.log(`Créditos avulsos adicionados: ${totalCredits} para usuário ${profile.id} (session ${session.id})`)
 }
 
 async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {

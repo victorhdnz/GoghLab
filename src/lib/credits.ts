@@ -59,6 +59,8 @@ export interface CreditPlan {
   name: string
   credits: number
   stripe_checkout_url: string
+  /** Price ID do Stripe (ex.: price_xxx) para o webhook creditar na compra */
+  stripe_price_id?: string
   order?: number
 }
 

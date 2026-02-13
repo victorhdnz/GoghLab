@@ -324,10 +324,10 @@ export default function PricingEditorPage() {
   }
 
   const CREDIT_ACTION_LABELS: Record<CreditActionId, string> = {
-    foto: 'Criação de Foto',
-    video: 'Criação de Vídeo',
-    roteiro: 'Vídeo com Roteiro completo',
-    vangogh: 'Van Gogh',
+    foto: 'Foto',
+    video: 'Vídeo',
+    roteiro: 'Roteiro',
+    vangogh: 'Criação de Prompts',
   }
   const PLAN_IDS_CREDITS = ['gogh_essencial', 'gogh_pro'] as const
 
@@ -1054,8 +1054,8 @@ export default function PricingEditorPage() {
                     </div>
                     <div className="space-y-3">
                       <h5 className="text-sm font-medium text-gray-700">Planos de créditos avulsos</h5>
-                      <p className="text-xs text-gray-500">
-                        Aparecem na área de conta (Uso) para compra de créditos extras. Informe o link do checkout Stripe.
+                        <p className="text-xs text-gray-500">
+                        Aparecem na área de conta (Uso) para compra de créditos extras. Informe a URL do checkout Stripe e o <strong>Price ID</strong> (ex.: price_xxx) do produto no Stripe para que os créditos sejam creditados automaticamente após o pagamento.
                       </p>
                       <div className="space-y-3">
                         {creditPlans.map((plan, index) => (
@@ -1094,6 +1094,18 @@ export default function PricingEditorPage() {
                               }}
                               className="flex-1 min-w-[180px] rounded-lg border border-gray-300 px-3 py-1.5 text-sm"
                             />
+                            <input
+                              type="text"
+                              placeholder="Price ID (ex: price_xxx)"
+                              value={plan.stripe_price_id || ''}
+                              onChange={(e) => {
+                                const next = [...creditPlans]
+                                next[index] = { ...next[index], stripe_price_id: e.target.value.trim() || undefined }
+                                setCreditPlans(next)
+                              }}
+                              className="flex-1 min-w-[140px] rounded-lg border border-gray-300 px-3 py-1.5 text-sm"
+                              title="Obrigatório para o webhook creditar na conta após a compra. Copie o Price ID do produto no Stripe."
+                            />
                             <button
                               type="button"
                               onClick={() => setCreditPlans((prev) => prev.filter((_, i) => i !== index))}
@@ -1114,6 +1126,7 @@ export default function PricingEditorPage() {
                                 name: '',
                                 credits: 0,
                                 stripe_checkout_url: '',
+                                stripe_price_id: undefined,
                                 order: prev.length,
                               },
                             ])

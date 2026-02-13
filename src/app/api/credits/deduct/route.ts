@@ -21,6 +21,7 @@ export async function POST(request: Request) {
 
     const body = await request.json().catch(() => ({}))
     const actionId = body?.actionId as CreditActionId | undefined
+    const amountOverride = typeof body?.amount === 'number' && body.amount > 0 ? Math.floor(body.amount) : undefined
     const validActions: CreditActionId[] = ['foto', 'video', 'roteiro', 'vangogh']
     if (!actionId || !validActions.includes(actionId)) {
       return NextResponse.json({ error: 'actionId inválido' }, { status: 400 })
@@ -32,7 +33,7 @@ export async function POST(request: Request) {
       .eq('key', getCreditsConfigKey())
       .maybeSingle() as { data: { value: unknown } | null }
     const config = (configRow?.value as CreditsConfig) ?? null
-    const cost = getCreditCost(actionId, config)
+    const cost = amountOverride ?? getCreditCost(actionId, config)
 
     const { periodStart, periodEnd } = getMonthBounds()
 
@@ -73,25 +74,53 @@ export async function POST(request: Request) {
       usageRow = inserted
     }
 
-    const current = Number(usageRow.usage_count)
-    if (current < cost) {
+    const monthlyCount = Number(usageRow.usage_count)
+    const { data: purchasedRows } = await (supabase as any)
+      .from('user_usage')
+      .select('id, usage_count')
+      .eq('user_id', user.id)
+      .eq('feature_key', 'ai_credits_purchased')
+      .order('id', { ascending: true })
+    const purchasedList = Array.isArray(purchasedRows) ? purchasedRows : []
+    const purchasedTotal = purchasedList.reduce((s: number, r: { usage_count?: number }) => s + (Number(r?.usage_count) || 0), 0)
+    const totalAvailable = monthlyCount + purchasedTotal
+    if (totalAvailable < cost) {
       return NextResponse.json(
-        { error: 'Créditos insuficientes', code: 'insufficient_credits', balance: current, required: cost },
+        { error: 'Créditos insuficientes', code: 'insufficient_credits', balance: totalAvailable, required: cost },
         { status: 402 }
       )
     }
 
-    const newBalance = current - cost
-    const { error: updateErr } = await (supabase as any)
-      .from('user_usage')
-      .update({ usage_count: newBalance, updated_at: new Date().toISOString() })
-      .eq('id', usageRow.id)
+    let remaining = cost
+    const deductFromMonthly = Math.min(monthlyCount, remaining)
+    const newMonthly = monthlyCount - deductFromMonthly
+    remaining -= deductFromMonthly
 
-    if (updateErr) {
-      return NextResponse.json({ error: updateErr.message }, { status: 500 })
+    const { error: updateMonthlyErr } = await (supabase as any)
+      .from('user_usage')
+      .update({ usage_count: newMonthly, updated_at: new Date().toISOString() })
+      .eq('id', usageRow.id)
+    if (updateMonthlyErr) {
+      return NextResponse.json({ error: updateMonthlyErr.message }, { status: 500 })
     }
 
-    return NextResponse.json({ ok: true, balance: newBalance })
+    for (const row of purchasedList) {
+      if (remaining <= 0) break
+      const rowCount = Number(row.usage_count) || 0
+      const take = Math.min(rowCount, remaining)
+      if (take <= 0) continue
+      const newRowCount = rowCount - take
+      remaining -= take
+      const { error: updateRowErr } = await (supabase as any)
+        .from('user_usage')
+        .update({ usage_count: newRowCount, updated_at: new Date().toISOString() })
+        .eq('id', row.id)
+      if (updateRowErr) {
+        return NextResponse.json({ error: updateRowErr.message }, { status: 500 })
+      }
+    }
+
+    return NextResponse.json({ ok: true, balance: newMonthly + purchasedTotal - cost })
   } catch (e: any) {
     return NextResponse.json({ error: e?.message ?? 'Erro ao deduzir créditos' }, { status: 500 })
   }
