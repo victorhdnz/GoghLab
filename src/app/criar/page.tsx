@@ -16,7 +16,7 @@ const TABS = [
   { id: 'foto', label: 'Foto', icon: ImageIcon },
   { id: 'video', label: 'Vídeo', icon: Video },
   { id: 'roteiro', label: 'Roteiro de Vídeos', icon: FileText },
-  { id: 'vangogh', label: 'Criação de Prompts', icon: Palette },
+  { id: 'prompts', label: 'Prompts', icon: MessageSquare },
 ] as const
 
 type TabId = (typeof TABS)[number]['id']

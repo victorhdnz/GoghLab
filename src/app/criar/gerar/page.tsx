@@ -31,7 +31,7 @@ const TABS = [
   { id: 'foto', label: 'Foto' },
   { id: 'video', label: 'Vídeo' },
   { id: 'roteiro', label: 'Roteiro de Vídeos' },
-  { id: 'vangogh', label: 'Criação de Prompts' },
+  { id: 'prompts', label: 'Prompts' },
 ] as const
 
 type TabId = (typeof TABS)[number]['id']
@@ -44,7 +44,7 @@ const PLACEHOLDERS: Record<TabId, string> = {
   foto: 'Descreva a imagem ou foto que deseja criar...',
   video: 'Descreva o vídeo ou cena que deseja gerar...',
   roteiro: 'Conte a história: ideias de takes, falas e estrutura de roteiro completa para produção de vídeo...',
-  vangogh: 'Descreva o que deseja criar com o prompt...',
+  prompts: 'Descreva o que deseja criar com o prompt...',
 }
 
 /** Fallback quando a API de modelos não retorna dados. */
@@ -64,7 +64,7 @@ const MODELS_BY_TAB_FALLBACK: Record<TabId, { id: string; label: string }[]> = {
     { id: 'gpt-4o-mini', label: 'GPT-4o Mini' },
     { id: 'gpt-4o', label: 'GPT-4o' },
   ],
-  vangogh: [
+  prompts: [
     { id: 'default-prompt', label: 'Padrão' },
     { id: 'dall-e', label: 'DALL·E' },
     { id: 'flux', label: 'Flux' },
@@ -143,62 +143,67 @@ export default function CriarGerarPage() {
     `${STORAGE_KEY_PREFIX}${tab}-${promptId ?? 'geral'}`
 
   const contextRef = useRef<{ tab: TabId; promptId: string | null }>({ tab: 'foto', promptId: null })
+  /** Contexto ao qual as mensagens atuais em state pertencem; evita gravar no key errado ao trocar de aba antes do state atualizar */
+  const messagesContextRef = useRef<{ tab: TabId; promptId: string | null }>({ tab: 'foto', promptId: null })
+
+  const saveToStorageRef = useRef((key: string, msgs: ChatMessage[]) => {
+    try {
+      const toSave = msgs.map((m) => ({
+        ...m,
+        imageDataUrl: undefined,
+        videoDataUrl: undefined,
+      }))
+      localStorage.setItem(key, JSON.stringify(toSave))
+    } catch {
+      // quota ou outro erro
+    }
+  })
+
+  const loadFromStorageRef = useRef((key: string): ChatMessage[] => {
+    try {
+      const raw = localStorage.getItem(key)
+      if (!raw) return []
+      const parsed = JSON.parse(raw)
+      return Array.isArray(parsed) ? parsed : []
+    } catch {
+      return []
+    }
+  })
 
   // Ao trocar de contexto: salvar mensagens atuais no contexto antigo e carregar as do novo; ao montar com mensagens vazias, carregar do storage
   useEffect(() => {
-    const currentTab: TabId = selectedPrompt?.tabId ?? (tabFromUrl && ['foto', 'video', 'roteiro', 'vangogh'].includes(tabFromUrl) ? tabFromUrl : 'foto')
+    const currentTab: TabId = selectedPrompt?.tabId ?? (tabFromUrl && ['foto', 'video', 'roteiro', 'prompts'].includes(tabFromUrl) ? tabFromUrl : 'foto')
     const currentPromptId = selectedPrompt?.id ?? null
     const prev = contextRef.current
     const keyPrev = getStorageKey(prev.tab, prev.promptId)
     const keyCurrent = getStorageKey(currentTab, currentPromptId)
 
-    const saveToStorage = (key: string, msgs: ChatMessage[]) => {
-      try {
-        const toSave = msgs.map((m) => ({
-          ...m,
-          imageDataUrl: undefined,
-          videoDataUrl: undefined,
-        }))
-        localStorage.setItem(key, JSON.stringify(toSave))
-      } catch {
-        // quota ou outro erro
-      }
-    }
-
-    const loadFromStorage = (key: string): ChatMessage[] => {
-      try {
-        const raw = localStorage.getItem(key)
-        if (!raw) return []
-        const parsed = JSON.parse(raw)
-        return Array.isArray(parsed) ? parsed : []
-      } catch {
-        return []
-      }
-    }
-
     if (prev.tab !== currentTab || prev.promptId !== currentPromptId) {
       setMessages((current) => {
-        saveToStorage(keyPrev, current)
-        return loadFromStorage(keyCurrent)
+        saveToStorageRef.current(keyPrev, current)
+        return loadFromStorageRef.current(keyCurrent)
       })
       setPromptViewFiles({})
       contextRef.current = { tab: currentTab, promptId: currentPromptId }
+      messagesContextRef.current = { tab: currentTab, promptId: currentPromptId }
     } else if (typeof window !== 'undefined') {
       setMessages((current) => {
         if (current.length > 0) return current
-        const loaded = loadFromStorage(keyCurrent)
+        const loaded = loadFromStorageRef.current(keyCurrent)
         return loaded.length > 0 ? loaded : current
       })
+      messagesContextRef.current = { tab: currentTab, promptId: currentPromptId }
     }
   }, [selectedPrompt?.id, selectedPrompt?.tabId, tabFromUrl])
 
-  // Persistir mensagens ao alterar (para manter última criação ao sair e voltar)
+  // Persistir mensagens ao alterar — só grava no key do contexto ao qual as mensagens pertencem (evita gravar roteiro no key de foto ao trocar aba)
   useEffect(() => {
     if (messages.length === 0) return
-    const key = getStorageKey(
-      selectedPrompt?.tabId ?? (tabFromUrl && ['foto', 'video', 'roteiro', 'vangogh'].includes(tabFromUrl) ? tabFromUrl : 'foto'),
-      selectedPrompt?.id ?? null
-    )
+    const currentTab: TabId = selectedPrompt?.tabId ?? (tabFromUrl && ['foto', 'video', 'roteiro', 'prompts'].includes(tabFromUrl) ? tabFromUrl : 'foto')
+    const currentPromptId = selectedPrompt?.id ?? null
+    const ctx = messagesContextRef.current
+    if (ctx.tab !== currentTab || ctx.promptId !== currentPromptId) return
+    const key = getStorageKey(currentTab, currentPromptId)
     try {
       const toSave = messages.map((m) => ({
         ...m,
@@ -242,7 +247,7 @@ export default function CriarGerarPage() {
       .finally(() => setCreationModelsLoaded(true))
   }, [])
 
-  const activeTab: TabId = selectedPrompt?.tabId ?? (tabFromUrl && ['foto', 'video', 'roteiro', 'vangogh'].includes(tabFromUrl) ? tabFromUrl : 'foto')
+  const activeTab: TabId = selectedPrompt?.tabId ?? (tabFromUrl && ['foto', 'video', 'roteiro', 'prompts'].includes(tabFromUrl) ? tabFromUrl : 'foto')
 
   /** Modelos filtrados pela função da aba. Enquanto a API não carregou, mostra "Carregando..." para evitar o flash de "Padrão (imagem)". */
   const availableModels = useMemo(() => {
@@ -251,7 +256,7 @@ export default function CriarGerarPage() {
       foto: 'can_image',
       video: 'can_video',
       roteiro: 'can_prompt',
-      vangogh: 'can_prompt',
+      prompts: 'can_prompt',
     }
     const key = cap[activeTab]
     if (!creationModelsLoaded && creationModelsApi.length === 0) {
@@ -305,6 +310,16 @@ export default function CriarGerarPage() {
       })
       .catch(() => {})
   }, [promptIdFromUrl])
+
+  // Ao trocar de aba pela URL (?tab=), alinhar selectedPrompt para que o contexto (e o storage) seja da aba correta
+  useEffect(() => {
+    const tab = tabFromUrl && ['foto', 'video', 'roteiro', 'prompts'].includes(tabFromUrl) ? tabFromUrl : 'foto'
+    setSelectedPrompt((prev) => {
+      if (!prev) return null
+      if (prev.tabId !== tab) return null
+      return prev
+    })
+  }, [tabFromUrl])
 
   const handleSend = useCallback(
     async (message: string, _model?: string) => {

@@ -21,20 +21,20 @@ const CREDIT_ACTION_LABELS: Record<CreditActionId, string> = {
   foto: 'Foto',
   video: 'Vídeo',
   roteiro: 'Roteiro de Vídeos',
-  vangogh: 'Criação de Prompts',
+  prompts: 'Prompts',
 }
 const DEFAULT_COST_BY_ACTION: Record<CreditActionId, number> = {
   foto: 5,
   video: 10,
   roteiro: 15,
-  vangogh: 5,
+  prompts: 5,
 }
 
 const TAB_OPTIONS: { value: CreationTabId; label: string }[] = [
   { value: 'foto', label: 'Foto' },
   { value: 'video', label: 'Vídeo' },
   { value: 'roteiro', label: 'Roteiro de Vídeos' },
-  { value: 'vangogh', label: 'Criação de Prompts' },
+  { value: 'prompts', label: 'Prompts' },
 ]
 
 type InternalTab = 'prompts' | 'chats_gerais' | 'modelos_ia'

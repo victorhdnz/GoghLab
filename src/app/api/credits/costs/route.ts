@@ -20,7 +20,7 @@ export async function GET() {
       foto: getCreditCost('foto', config),
       video: getCreditCost('video', config),
       roteiro: getCreditCost('roteiro', config),
-      vangogh: getCreditCost('vangogh', config),
+      prompts: getCreditCost('prompts', config),
     }
 
     return NextResponse.json({ costByAction })

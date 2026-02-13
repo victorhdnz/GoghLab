@@ -27,7 +27,7 @@ export type GalleryHoverCarouselItem = {
   prompt?: string;
   /** Quando preenchido (espelho de creation_prompts), link abre o card desse prompt na página Criar */
   promptId?: string;
-  /** Aba da página Criar (foto | video | roteiro | vangogh) */
+  /** Aba da página Criar (foto | video | roteiro | prompts) */
   tabId?: string;
   /** URL do vídeo no Cloudinary (upload) — usado na galeria */
   videoUrl?: string;

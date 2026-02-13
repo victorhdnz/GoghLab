@@ -1,6 +1,6 @@
 /** Tipos para Prompts de Criação (Criar com IA) – dashboard e página /criar */
 
-export type CreationTabId = 'foto' | 'video' | 'roteiro' | 'vangogh'
+export type CreationTabId = 'foto' | 'video' | 'roteiro' | 'prompts'
 
 export const INPUT_STRUCTURES = [
   { value: 'text_only', label: 'Só texto (chat tradicional)' },

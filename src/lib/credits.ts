@@ -3,12 +3,12 @@
  * Config em site_settings key = 'ai_credits_config':
  * {
  *   monthlyCreditsByPlan: { gogh_essencial: number, gogh_pro: number },
- *   costByAction: { foto: number, video: number, roteiro: number, vangogh: number }
+ *   costByAction: { foto: number, video: number, roteiro: number, prompts: number }
  * }
  * Saldo do usuário em user_usage: feature_key = 'ai_credits', period_start/period_end = mês atual, usage_count = créditos restantes.
  */
 
-export type CreditActionId = 'foto' | 'video' | 'roteiro' | 'vangogh'
+export type CreditActionId = 'foto' | 'video' | 'roteiro' | 'prompts'
 
 export interface CreditsConfig {
   monthlyCreditsByPlan?: Record<string, number>
@@ -19,7 +19,7 @@ const DEFAULT_COST: Record<CreditActionId, number> = {
   foto: 5,
   video: 10,
   roteiro: 15,
-  vangogh: 5,
+  prompts: 5,
 }
 
 const DEFAULT_MONTHLY: Record<string, number> = {

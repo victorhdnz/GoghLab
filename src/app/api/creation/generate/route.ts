@@ -6,7 +6,7 @@ import { GoogleGenAI } from '@google/genai'
 export const dynamic = 'force-dynamic'
 export const maxDuration = 120
 
-const TAB_IDS = ['foto', 'video', 'roteiro', 'vangogh'] as const
+const TAB_IDS = ['foto', 'video', 'roteiro', 'prompts'] as const
 type TabId = (typeof TAB_IDS)[number]
 
 const XAI_BASE = 'https://api.x.ai/v1'
@@ -190,9 +190,9 @@ export async function POST(request: Request) {
       })
     }
 
-    // --- xAI: texto (roteiro / vangogh)
-    if (useXai && (tab === 'roteiro' || tab === 'vangogh')) {
-      const forPrompt = tab === 'vangogh'
+    // --- xAI: texto (roteiro / prompts)
+    if (useXai && (tab === 'roteiro' || tab === 'prompts')) {
+      const forPrompt = tab === 'prompts'
       if (!modelRow.can_prompt) {
         return NextResponse.json(
           { error: tab === 'roteiro' ? 'Modelo não disponível para roteiro.' : 'Modelo não disponível para criação de prompts.' },
@@ -300,9 +300,9 @@ export async function POST(request: Request) {
       }
     }
 
-    // --- Google: texto (roteiro / vangogh)
-    if (useGoogle && (tab === 'roteiro' || tab === 'vangogh')) {
-      const forPrompt = tab === 'vangogh'
+    // --- Google: texto (roteiro / prompts)
+    if (useGoogle && (tab === 'roteiro' || tab === 'prompts')) {
+      const forPrompt = tab === 'prompts'
       if (!modelRow.can_prompt) {
         return NextResponse.json(
           { error: tab === 'roteiro' ? 'Modelo não disponível para roteiro.' : 'Modelo não disponível para criação de prompts.' },
@@ -407,9 +407,9 @@ export async function POST(request: Request) {
       })
     }
 
-    // --- OpenAI: roteiro / vangogh
-    if (!useXai && !useGoogle && (tab === 'roteiro' || tab === 'vangogh')) {
-      const forPrompt = tab === 'vangogh'
+    // --- OpenAI: roteiro / prompts
+    if (!useXai && !useGoogle && (tab === 'roteiro' || tab === 'prompts')) {
+      const forPrompt = tab === 'prompts'
       if (!modelRow.can_prompt) {
         return NextResponse.json(
           { error: tab === 'roteiro' ? 'Modelo não disponível para roteiro (use modelo de texto)' : 'Modelo não disponível para criação de prompts' },

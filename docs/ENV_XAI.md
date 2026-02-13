@@ -39,7 +39,7 @@ XAI_API_KEY=xai-sua-chave-aqui
 
 ## O que essa variável faz
 
-- **Texto (roteiro / Van Gogh):** chama a API de Chat Completions da xAI (`grok-4-latest`) para gerar roteiros e prompts.
+- **Texto (Roteiro de vídeos e Criação de Prompts):** chama a API de Chat Completions da xAI (`grok-4-latest`) para gerar roteiros e prompts.
 - **Imagem:** chama a API de geração de imagens da xAI (`grok-imagine-image`).
 - **Vídeo:** inicia a geração na xAI (`grok-imagine-video`) e o endpoint de status faz o polling e o download quando o vídeo estiver pronto.
 
