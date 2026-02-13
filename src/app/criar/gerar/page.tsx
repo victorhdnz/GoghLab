@@ -146,6 +146,13 @@ export default function CriarGerarPage() {
   /** Contexto ao qual as mensagens atuais em state pertencem; evita gravar no key errado ao trocar de aba antes do state atualizar */
   const messagesContextRef = useRef<{ tab: TabId; promptId: string | null }>({ tab: 'foto', promptId: null })
 
+  /** Aba efetiva: quando a URL tem ?tab=, usamos sempre a URL para carregar/salvar (cada aba tem histórico isolado). */
+  const effectiveTab: TabId =
+    tabFromUrl && ['foto', 'video', 'roteiro', 'prompts'].includes(tabFromUrl)
+      ? tabFromUrl
+      : (selectedPrompt?.tabId ?? 'foto')
+  const effectivePromptId = tabFromUrl && ['foto', 'video', 'roteiro', 'prompts'].includes(tabFromUrl) ? null : (selectedPrompt?.id ?? null)
+
   const saveToStorageRef = useRef((key: string, msgs: ChatMessage[]) => {
     try {
       const toSave = msgs.map((m) => ({
@@ -172,8 +179,8 @@ export default function CriarGerarPage() {
 
   // Ao trocar de contexto: salvar mensagens atuais no contexto antigo e carregar as do novo; ao montar com mensagens vazias, carregar do storage
   useEffect(() => {
-    const currentTab: TabId = selectedPrompt?.tabId ?? (tabFromUrl && ['foto', 'video', 'roteiro', 'prompts'].includes(tabFromUrl) ? tabFromUrl : 'foto')
-    const currentPromptId = selectedPrompt?.id ?? null
+    const currentTab = effectiveTab
+    const currentPromptId = effectivePromptId
     const prev = contextRef.current
     const keyPrev = getStorageKey(prev.tab, prev.promptId)
     const keyCurrent = getStorageKey(currentTab, currentPromptId)
@@ -194,13 +201,13 @@ export default function CriarGerarPage() {
       })
       messagesContextRef.current = { tab: currentTab, promptId: currentPromptId }
     }
-  }, [selectedPrompt?.id, selectedPrompt?.tabId, tabFromUrl])
+  }, [effectiveTab, effectivePromptId])
 
   // Persistir mensagens ao alterar — só grava no key do contexto ao qual as mensagens pertencem (evita gravar roteiro no key de foto ao trocar aba)
   useEffect(() => {
     if (messages.length === 0) return
-    const currentTab: TabId = selectedPrompt?.tabId ?? (tabFromUrl && ['foto', 'video', 'roteiro', 'prompts'].includes(tabFromUrl) ? tabFromUrl : 'foto')
-    const currentPromptId = selectedPrompt?.id ?? null
+    const currentTab = effectiveTab
+    const currentPromptId = effectivePromptId
     const ctx = messagesContextRef.current
     if (ctx.tab !== currentTab || ctx.promptId !== currentPromptId) return
     const key = getStorageKey(currentTab, currentPromptId)
@@ -214,7 +221,7 @@ export default function CriarGerarPage() {
     } catch {
       // quota
     }
-  }, [messages, selectedPrompt?.id, selectedPrompt?.tabId, tabFromUrl])
+  }, [messages, effectiveTab, effectivePromptId])
 
   useEffect(() => {
     fetch('/api/credits/costs')
@@ -247,7 +254,7 @@ export default function CriarGerarPage() {
       .finally(() => setCreationModelsLoaded(true))
   }, [])
 
-  const activeTab: TabId = selectedPrompt?.tabId ?? (tabFromUrl && ['foto', 'video', 'roteiro', 'prompts'].includes(tabFromUrl) ? tabFromUrl : 'foto')
+  const activeTab = effectiveTab
 
   /** Modelos filtrados pela função da aba. Enquanto a API não carregou, mostra "Carregando..." para evitar o flash de "Padrão (imagem)". */
   const availableModels = useMemo(() => {

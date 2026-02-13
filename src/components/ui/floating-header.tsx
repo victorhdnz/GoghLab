@@ -123,6 +123,7 @@ export function FloatingHeader() {
   const [siteName, setSiteName] = useState('Gogh Lab')
   const [siteLogo, setSiteLogo] = useState<string | null>(null)
   const [mobileActiveIndex, setMobileActiveIndex] = useState(0)
+  const [produtoDropdownOpen, setProdutoDropdownOpen] = useState(false)
   const navRef = useRef<HTMLElement>(null)
   const itemRefs = useRef<(HTMLElement | null)[]>([])
   const [indicatorStyle, setIndicatorStyle] = useState<{ left: number; width: number } | null>(null)
@@ -237,7 +238,7 @@ export function FloatingHeader() {
                 if (item.items?.length) {
                   return (
                     <div key={item.title} className="flex items-center">
-                      <DropdownMenu>
+                      <DropdownMenu open={produtoDropdownOpen} onOpenChange={setProdutoDropdownOpen}>
                         <DropdownMenuTrigger
                           className={cn(
                             'group inline-flex h-9 w-max items-center justify-center rounded-md px-4 py-2 text-sm font-medium transition-colors',
@@ -256,6 +257,7 @@ export function FloatingHeader() {
                                   <Link
                                     href={sub.url}
                                     className="flex select-none gap-4 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-muted hover:text-accent-foreground text-foreground"
+                                    onClick={() => setProdutoDropdownOpen(false)}
                                   >
                                     {SubIcon && <SubIcon className="size-5 shrink-0 text-muted-foreground" />}
                                     <div>
