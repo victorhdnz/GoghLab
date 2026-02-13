@@ -40,9 +40,11 @@ export default async function PrecosPage() {
     )
   }
 
-  const homepageContent: any = row.homepage_content && typeof row.homepage_content === 'object'
-    ? row.homepage_content
-    : {}
+  const rowWithContent = row as { homepage_content?: unknown }
+  const homepageContent: any =
+    rowWithContent.homepage_content && typeof rowWithContent.homepage_content === 'object'
+      ? rowWithContent.homepage_content
+      : {}
   const resolvedContent = await resolvePricingFeaturesFromProducts(supabase, homepageContent)
   const pricing = resolvedContent?.pricing || {}
 

@@ -250,12 +250,18 @@ export default function CriarGerarPage() {
               from: 'assistant',
               content: '',
               imageDataUrl: `data:${data.contentType || 'image/png'};base64,${data.imageBase64}`,
+              regeneratePrompt: message,
             },
           ])
         } else if (data.type === 'video' && data.videoId) {
           setMessages((prev) => [
             ...prev,
-            { id: assistantId, from: 'assistant', content: 'Vídeo em geração… Aguarde (pode levar alguns minutos).' },
+            {
+              id: assistantId,
+              from: 'assistant',
+              content: 'Vídeo em geração… Aguarde (pode levar alguns minutos).',
+              regeneratePrompt: message,
+            },
           ])
           const pollVideo = async () => {
             const st = await fetch(`/api/creation/generate/video-status?videoId=${encodeURIComponent(data.videoId)}`)
@@ -292,12 +298,12 @@ export default function CriarGerarPage() {
         } else if (data.type === 'text' && data.text) {
           setMessages((prev) => [
             ...prev,
-            { id: assistantId, from: 'assistant', content: data.text },
+            { id: assistantId, from: 'assistant', content: data.text, regeneratePrompt: message },
           ])
         } else {
           setMessages((prev) => [
             ...prev,
-            { id: assistantId, from: 'assistant', content: data.message || 'Resultado recebido.' },
+            { id: assistantId, from: 'assistant', content: data.message || 'Resultado recebido.', regeneratePrompt: message },
           ])
         }
       } catch (err) {
@@ -373,12 +379,20 @@ export default function CriarGerarPage() {
               from: 'assistant',
               content: '',
               imageDataUrl: `data:${data.contentType || 'image/png'};base64,${data.imageBase64}`,
+              regeneratePrompt: promptText,
+              regenerateCreditCost: promptItem.creditCost,
             },
           ])
         } else if (data.type === 'video' && data.videoId) {
           setMessages((prev) => [
             ...prev,
-            { id: assistantId, from: 'assistant', content: 'Vídeo em geração… Aguarde (pode levar alguns minutos).' },
+            {
+              id: assistantId,
+              from: 'assistant',
+              content: 'Vídeo em geração… Aguarde (pode levar alguns minutos).',
+              regeneratePrompt: promptText,
+              regenerateCreditCost: promptItem.creditCost,
+            },
           ])
           const pollVideo = async () => {
             const st = await fetch(`/api/creation/generate/video-status?videoId=${encodeURIComponent(data.videoId)}`)
@@ -413,9 +427,15 @@ export default function CriarGerarPage() {
           }
           setTimeout(pollVideo, 12000)
         } else if (data.type === 'text' && data.text) {
-          setMessages((prev) => [...prev, { id: assistantId, from: 'assistant', content: data.text }])
+          setMessages((prev) => [
+            ...prev,
+            { id: assistantId, from: 'assistant', content: data.text, regeneratePrompt: promptText, regenerateCreditCost: promptItem.creditCost },
+          ])
         } else {
-          setMessages((prev) => [...prev, { id: assistantId, from: 'assistant', content: data.message || 'Pronto.' }])
+          setMessages((prev) => [
+            ...prev,
+            { id: assistantId, from: 'assistant', content: data.message || 'Pronto.', regeneratePrompt: promptText, regenerateCreditCost: promptItem.creditCost },
+          ])
         }
         setSelectedPrompt(null)
         setPromptViewFiles({})
@@ -431,6 +451,132 @@ export default function CriarGerarPage() {
       }
     },
     [isAuthenticated, hasActiveSubscription, router, activeTab, deduct, selectedModelId]
+  )
+
+  const handleRegenerate = useCallback(
+    async (messageId: string) => {
+      const msg = messages.find((m) => m.id === messageId)
+      if (!msg?.regeneratePrompt || msg.from !== 'assistant') return
+      if (!isAuthenticated) {
+        toast('Faça login para gerar.', { icon: '🔐' })
+        router.push('/login?redirect=' + encodeURIComponent('/criar/gerar'))
+        return
+      }
+      if (!hasActiveSubscription) {
+        toast('Assine um plano para usar a criação com IA.', { icon: '📋' })
+        router.push('/precos')
+        return
+      }
+      const cost = msg.regenerateCreditCost ?? costByAction?.[activeTab] ?? 1
+      const result = await deduct(activeTab, cost)
+      if (!result.ok && result.code === 'insufficient_credits') {
+        setShowCreditModal(true)
+        toast.error('Créditos insuficientes. Compre mais na área de uso da sua conta.')
+        return
+      }
+      if (!result.ok) return
+      setGenerating(true)
+      try {
+        const res = await fetch('/api/creation/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            tab: activeTab,
+            prompt: msg.regeneratePrompt,
+            modelId: selectedModelId || undefined,
+          }),
+        })
+        const data = await res.json().catch(() => ({}))
+        if (!res.ok) {
+          if (res.status === 402 || data?.code === 'insufficient_credits') {
+            setShowCreditModal(true)
+            toast.error('Créditos insuficientes. Compre mais na área de uso da sua conta.')
+          }
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === messageId ? { ...m, content: data?.error ?? SERVICE_ERROR_MESSAGE } : m
+            )
+          )
+          return
+        }
+        if (data.type === 'image' && data.imageBase64) {
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === messageId
+                ? {
+                    ...m,
+                    content: '',
+                    imageDataUrl: `data:${data.contentType || 'image/png'};base64,${data.imageBase64}`,
+                    videoDataUrl: undefined,
+                  }
+                : m
+            )
+          )
+        } else if (data.type === 'video' && data.videoId) {
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === messageId
+                ? { ...m, content: 'Vídeo em geração… Aguarde (pode levar alguns minutos).', imageDataUrl: undefined, videoDataUrl: undefined }
+                : m
+            )
+          )
+          const pollVideo = async () => {
+            const st = await fetch(`/api/creation/generate/video-status?videoId=${encodeURIComponent(data.videoId)}`)
+            const stData = await st.json().catch(() => ({}))
+            if (!st.ok) {
+              setMessages((prev) =>
+                prev.map((m) => (m.id === messageId ? { ...m, content: SERVICE_ERROR_MESSAGE } : m))
+              )
+              return
+            }
+            if (stData.status === 'completed' && stData.videoBase64) {
+              setMessages((prev) =>
+                prev.map((m) =>
+                  m.id === messageId
+                    ? { ...m, content: '', videoDataUrl: `data:${stData.contentType || 'video/mp4'};base64,${stData.videoBase64}` }
+                    : m
+                )
+              )
+              return
+            }
+            if (stData.status === 'failed') {
+              setMessages((prev) =>
+                prev.map((m) => (m.id === messageId ? { ...m, content: stData.message || SERVICE_ERROR_MESSAGE } : m))
+              )
+              return
+            }
+            setTimeout(pollVideo, 8000)
+          }
+          setTimeout(pollVideo, 12000)
+        } else if (data.type === 'text' && data.text) {
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === messageId ? { ...m, content: data.text, imageDataUrl: undefined, videoDataUrl: undefined } : m
+            )
+          )
+        } else {
+          setMessages((prev) =>
+            prev.map((m) => (m.id === messageId ? { ...m, content: data.message || 'Pronto.' } : m))
+          )
+        }
+      } catch {
+        setMessages((prev) =>
+          prev.map((m) => (m.id === messageId ? { ...m, content: SERVICE_ERROR_MESSAGE } : m))
+        )
+      } finally {
+        setGenerating(false)
+      }
+    },
+    [
+      messages,
+      isAuthenticated,
+      hasActiveSubscription,
+      router,
+      activeTab,
+      costByAction,
+      deduct,
+      selectedModelId,
+    ]
   )
 
   const handleAction = useCallback((messageId: string, action: string) => {
@@ -629,7 +775,13 @@ export default function CriarGerarPage() {
         <>
           {messages.length > 0 && (
             <div className="mb-4 max-h-[320px] sm:max-h-[400px] overflow-y-auto rounded-xl border bg-muted/20">
-              <ChatWithActions messages={messages} onAction={handleAction} />
+              <ChatWithActions
+                messages={messages}
+                onAction={handleAction}
+                defaultRegenerateCost={costByAction?.[activeTab]}
+                onRegenerate={handleRegenerate}
+                regenerating={generating}
+              />
             </div>
           )}
           <AI_Prompt

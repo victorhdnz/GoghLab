@@ -25,6 +25,10 @@ export type ChatMessage = {
   imageDataUrl?: string
   /** Vídeo gerado (data URL ou URL) para exibir na mensagem do assistente */
   videoDataUrl?: string
+  /** Prompt usado na geração; quando preenchido, exibe "Gerar novamente" com custo */
+  regeneratePrompt?: string
+  /** Custo em créditos para "Gerar novamente" (ex.: custo do prompt de card); se não definido, usa o custo da aba */
+  regenerateCreditCost?: number
 }
 
 const DEFAULT_ACTIONS = [
@@ -38,12 +42,21 @@ const DEFAULT_ACTIONS = [
 export type ChatWithActionsProps = {
   messages: ChatMessage[]
   onAction?: (messageId: string, action: string) => void
+  /** Custo padrão em créditos para "Gerar novamente" (custo da aba atual) */
+  defaultRegenerateCost?: number
+  /** Chamado ao clicar em "Gerar novamente"; descontar créditos e substituir o resultado */
+  onRegenerate?: (messageId: string) => void
+  /** true enquanto uma regeneração está em andamento (ex.: desabilitar botão) */
+  regenerating?: boolean
   className?: string
 }
 
 export function ChatWithActions({
   messages,
   onAction,
+  defaultRegenerateCost,
+  onRegenerate,
+  regenerating,
   className,
 }: ChatWithActionsProps) {
   return (
@@ -101,7 +114,16 @@ export function ChatWithActions({
                 )}
               </MessageContent>
               {message.from === 'assistant' && (
-                <Actions className="mt-2">
+                <Actions className="mt-2 flex flex-wrap gap-2">
+                  {message.regeneratePrompt != null && onRegenerate && (
+                    <Action
+                      label={`Gerar novamente · ${message.regenerateCreditCost ?? defaultRegenerateCost ?? 0} créditos`}
+                      onClick={() => onRegenerate(message.id)}
+                      disabled={regenerating}
+                    >
+                      <RefreshCcwIcon className="size-4" />
+                    </Action>
+                  )}
                   {DEFAULT_ACTIONS.map((action) => (
                     <Action
                       key={action.label}
