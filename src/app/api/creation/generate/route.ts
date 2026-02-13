@@ -344,25 +344,32 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'Modelo não é de imagem. Use um modelo de foto.' }, { status: 400 })
       }
 
-      const response = await openai!.images.generate({
-        model: openaiModelId as 'gpt-image-1' | 'gpt-image-1.5' | 'dall-e-2' | 'dall-e-3',
-        prompt,
-        n: 1,
-        response_format: 'b64_json',
-        size: '1024x1024',
-      })
+      try {
+        const response = await openai!.images.generate({
+          model: openaiModelId as 'gpt-image-1' | 'gpt-image-1.5' | 'dall-e-2' | 'dall-e-3',
+          prompt,
+          n: 1,
+          response_format: 'b64_json',
+          size: '1024x1024',
+        })
 
-      const b64 = response.data?.[0]?.b64_json
-      if (!b64) {
-        console.error('[creation/generate] Nenhuma imagem retornada pela API')
+        const b64 = response.data?.[0]?.b64_json
+        if (!b64) {
+          console.error('[creation/generate] OpenAI: nenhuma imagem retornada')
+          return NextResponse.json({ error: SERVICE_ERROR_MESSAGE }, { status: 503 })
+        }
+        return NextResponse.json({
+          ok: true,
+          type: 'image',
+          imageBase64: b64,
+          contentType: 'image/png',
+        })
+      } catch (e: any) {
+        const msg = e?.message ?? String(e)
+        const code = e?.code ?? e?.status
+        console.error('[creation/generate] OpenAI image error:', code, msg, e?.response?.data ?? '')
         return NextResponse.json({ error: SERVICE_ERROR_MESSAGE }, { status: 503 })
       }
-      return NextResponse.json({
-        ok: true,
-        type: 'image',
-        imageBase64: b64,
-        contentType: 'image/png',
-      })
     }
 
     // --- OpenAI: vídeo

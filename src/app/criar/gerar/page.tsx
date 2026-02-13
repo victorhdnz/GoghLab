@@ -177,6 +177,16 @@ export default function CriarGerarPage() {
     }
   })
 
+  // Sincronizar URL: garantir que sempre exista ?tab= ao estar no chat geral (evita histórico compartilhado)
+  useEffect(() => {
+    const tab = searchParams.get('tab')
+    if (!tab || !['foto', 'video', 'roteiro', 'prompts'].includes(tab)) {
+      const params = new URLSearchParams(searchParams.toString())
+      params.set('tab', 'foto')
+      router.replace(`/criar/gerar?${params.toString()}`, { scroll: false })
+    }
+  }, [router, searchParams])
+
   // Ao trocar de contexto: salvar mensagens atuais no contexto antigo e carregar as do novo; ao montar com mensagens vazias, carregar do storage
   useEffect(() => {
     const currentTab = effectiveTab
@@ -186,6 +196,7 @@ export default function CriarGerarPage() {
     const keyCurrent = getStorageKey(currentTab, currentPromptId)
 
     if (prev.tab !== currentTab || prev.promptId !== currentPromptId) {
+      setSelectedPrompt((p) => (p && p.tabId !== currentTab ? null : p))
       setMessages((current) => {
         saveToStorageRef.current(keyPrev, current)
         return loadFromStorageRef.current(keyCurrent)
@@ -949,18 +960,29 @@ export default function CriarGerarPage() {
         </div>
       )}
 
-      {showChat && (
+      {showChat && (() => {
+        const ctx = messagesContextRef.current
+        const messagesBelongToCurrentTab = ctx.tab === effectiveTab && ctx.promptId === effectivePromptId
+        const messagesToShow = messagesBelongToCurrentTab ? messages : []
+        return (
         <>
-          {messages.length > 0 && (
-            <div className="mb-4 max-h-[320px] sm:max-h-[400px] overflow-y-auto rounded-xl border bg-muted/20">
-              <ChatWithActions
-                messages={messages}
-                onAction={handleAction}
-                userAvatarUrl={siteLogo ?? undefined}
-                defaultRegenerateCost={costForCurrentCreation ?? undefined}
-                onRegenerate={handleRegenerate}
-                regenerating={generating}
-              />
+          {(messagesToShow.length > 0 || generating) && (
+            <div className="mb-4 max-h-[320px] sm:max-h-[400px] overflow-y-auto rounded-xl border bg-muted/20" key={`chat-${effectiveTab}-${effectivePromptId ?? 'geral'}`}>
+              {messagesToShow.length > 0 && (
+                <ChatWithActions
+                  messages={messagesToShow}
+                  onAction={handleAction}
+                  userAvatarUrl={siteLogo ?? undefined}
+                  defaultRegenerateCost={costForCurrentCreation ?? undefined}
+                  onRegenerate={handleRegenerate}
+                  regenerating={generating}
+                />
+              )}
+              {generating && (
+                <div className="flex items-center gap-2 rounded-lg border bg-muted/50 px-4 py-3 mx-3 mb-3 mt-1">
+                  <TextShimmer duration={1} className="font-mono text-sm">Gerando...</TextShimmer>
+                </div>
+              )}
             </div>
           )}
           <AI_Prompt
@@ -974,18 +996,14 @@ export default function CriarGerarPage() {
             onModelChange={setSelectedModelId}
             clearInputRef={promptClearInputRef}
           />
-          {generating && (
-            <div className="mt-4 flex items-center gap-2 rounded-lg border bg-muted/50 px-4 py-3">
-              <TextShimmer duration={1} className="font-mono text-sm">Gerando...</TextShimmer>
-            </div>
-          )}
-          {messages.length === 0 && !generating && (
+          {messagesToShow.length === 0 && !generating && (
             <div className="mt-6 rounded-xl border border-dashed bg-muted/30 p-6 sm:p-8 text-center text-muted-foreground text-sm">
               O resultado aparecerá aqui após a geração.
             </div>
           )}
         </>
-      )}
+        )
+      })()}
 
       {/* Modal de vídeo (YouTube ou Cloudinary) */}
       {modalVideo && (
