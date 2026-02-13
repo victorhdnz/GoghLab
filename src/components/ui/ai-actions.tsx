@@ -1,14 +1,32 @@
 'use client'
 
 import Image from 'next/image'
-import {
-  CopyIcon,
-  RefreshCcwIcon,
-  ShareIcon,
-  ThumbsDownIcon,
-  ThumbsUpIcon,
-} from 'lucide-react'
+import { CopyIcon, RefreshCcwIcon } from 'lucide-react'
 import { Action, Actions } from '@/components/ui/actions'
+
+/** Exibe texto da IA com parágrafos e quebras de linha; emojis carregam normalmente (fonte com suporte). */
+function FormattedMessageContent({ content }: { content: string }) {
+  const paragraphs = content.split(/\n\n+/).filter(Boolean)
+  if (paragraphs.length <= 1 && !content.includes('\n')) {
+    return (
+      <span className="break-words" style={{ fontFamily: 'inherit, "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji"' }}>
+        {content}
+      </span>
+    )
+  }
+  return (
+    <div
+      className="space-y-3 text-[15px] leading-relaxed break-words"
+      style={{ fontFamily: 'inherit, "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji"' }}
+    >
+      {paragraphs.map((para, i) => (
+        <p key={i} className="whitespace-pre-line first:mt-0 last:mb-0">
+          {para.trim()}
+        </p>
+      ))}
+    </div>
+  )
+}
 import {
   Conversation,
   ConversationContent,
@@ -21,6 +39,8 @@ export type ChatMessage = {
   content: string
   avatar?: string
   name?: string
+  /** Logo do modelo usado na resposta (dashboard); exibido ao lado da mensagem do assistente */
+  modelLogoUrl?: string
   /** Imagem gerada (data URL ou URL) para exibir na mensagem do assistente */
   imageDataUrl?: string
   /** Vídeo gerado (data URL ou URL) para exibir na mensagem do assistente */
@@ -31,17 +51,13 @@ export type ChatMessage = {
   regenerateCreditCost?: number
 }
 
-const DEFAULT_ACTIONS = [
-  { icon: RefreshCcwIcon, label: 'Repetir' },
-  { icon: ThumbsUpIcon, label: 'Curtir' },
-  { icon: ThumbsDownIcon, label: 'Não curtir' },
-  { icon: CopyIcon, label: 'Copiar' },
-  { icon: ShareIcon, label: 'Compartilhar' },
-]
+const DEFAULT_ACTIONS = [{ icon: CopyIcon, label: 'Copiar' }]
 
 export type ChatWithActionsProps = {
   messages: ChatMessage[]
   onAction?: (messageId: string, action: string) => void
+  /** Logo da empresa (ex.: site_logo); exibida ao lado das mensagens do usuário para todos */
+  userAvatarUrl?: string
   /** Custo padrão em créditos para "Gerar novamente" (custo da aba atual) */
   defaultRegenerateCost?: number
   /** Chamado ao clicar em "Gerar novamente"; descontar créditos e substituir o resultado */
@@ -54,6 +70,7 @@ export type ChatWithActionsProps = {
 export function ChatWithActions({
   messages,
   onAction,
+  userAvatarUrl,
   defaultRegenerateCost,
   onRegenerate,
   regenerating,
@@ -63,20 +80,34 @@ export function ChatWithActions({
     <div className={className}>
       <Conversation className="relative w-full">
         <ConversationContent>
-          {messages.map((message) => (
+          {messages.map((message) => {
+            const userLogo = message.from === 'user' ? (message.avatar ?? userAvatarUrl) : undefined
+            const assistantLogo = message.from === 'assistant' ? (message.modelLogoUrl ?? message.avatar) : undefined
+            const showUserLogo = userLogo && message.from === 'user'
+            const showAssistantLogo = assistantLogo && message.from === 'assistant'
+            return (
             <Message
               className={`flex flex-col gap-2 ${message.from === 'assistant' ? 'items-start' : 'items-end'}`}
               from={message.from}
               key={message.id}
             >
-              {message.avatar ? (
+              {showUserLogo ? (
                 <Image
-                  src={message.avatar}
-                  alt={message.name ?? ''}
+                  src={userLogo}
+                  alt=""
                   width={32}
                   height={32}
-                  className="h-8 w-8 rounded-full object-cover"
-                  unoptimized={message.avatar.startsWith('http')}
+                  className="h-8 w-8 shrink-0 rounded-full object-contain bg-muted"
+                  unoptimized={userLogo.startsWith('http')}
+                />
+              ) : showAssistantLogo ? (
+                <Image
+                  src={assistantLogo}
+                  alt=""
+                  width={32}
+                  height={32}
+                  className="h-8 w-8 shrink-0 rounded-full object-contain bg-muted"
+                  unoptimized={assistantLogo.startsWith('http')}
                 />
               ) : (
                 <div
@@ -91,7 +122,9 @@ export function ChatWithActions({
                 </div>
               )}
               <MessageContent>
-                {message.content ? <span>{message.content}</span> : null}
+                {message.content ? (
+                  <FormattedMessageContent content={message.content} />
+                ) : null}
                 {message.from === 'assistant' && message.imageDataUrl && (
                   <div className="mt-2 rounded-lg overflow-hidden max-w-full">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -136,7 +169,7 @@ export function ChatWithActions({
                 </Actions>
               )}
             </Message>
-          ))}
+          )})}
         </ConversationContent>
       </Conversation>
     </div>

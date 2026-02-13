@@ -25,6 +25,7 @@ import type { CreationPromptItem, CreationTabId } from '@/types/creation-prompts
 import type { CreditActionId } from '@/lib/credits'
 import { getYouTubeId, getYouTubeThumbnail, getYouTubeEmbedUrl } from '@/lib/utils/youtube'
 import { isCloudinaryVideoUrl, getCloudinaryContainerClasses } from '@/lib/utils/cloudinary'
+import { createClient } from '@/lib/supabase/client'
 
 const TABS = [
   { id: 'foto', label: 'Foto' },
@@ -116,22 +117,96 @@ export default function CriarGerarPage() {
   const [modalVideo, setModalVideo] = useState<{ type: 'youtube' | 'cloudinary'; url: string } | null>(null)
   const [publicCostByAction, setPublicCostByAction] = useState<Record<CreditActionId, number> | null>(null)
   const [creationModelsApi, setCreationModelsApi] = useState<CreationModelOption[]>([])
+  const [siteLogo, setSiteLogo] = useState<string | null>(null)
   const imageInputRef = useRef<HTMLInputElement>(null)
   const videoInputRef = useRef<HTMLInputElement>(null)
   const promptClearInputRef = useRef<{ clear: () => void } | null>(null)
 
-  // Quando trocar de contexto (outro prompt, outra aba ou chat geral), limpar mensagens e arquivos para começar nova geração
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const supabase = createClient() as any
+        const { data } = await supabase.from('site_settings').select('site_logo').eq('key', 'general').maybeSingle()
+        if (data?.site_logo) setSiteLogo(data.site_logo)
+      } catch {
+        // ignora
+      }
+    }
+    load()
+  }, [])
+
+  const STORAGE_KEY_PREFIX = 'criar-gerar-msg-'
+  const getStorageKey = (tab: TabId, promptId: string | null) =>
+    `${STORAGE_KEY_PREFIX}${tab}-${promptId ?? 'geral'}`
+
   const contextRef = useRef<{ tab: TabId; promptId: string | null }>({ tab: 'foto', promptId: null })
+
+  // Ao trocar de contexto: salvar mensagens atuais no contexto antigo e carregar as do novo; ao montar com mensagens vazias, carregar do storage
   useEffect(() => {
     const currentTab: TabId = selectedPrompt?.tabId ?? (tabFromUrl && ['foto', 'video', 'roteiro', 'vangogh'].includes(tabFromUrl) ? tabFromUrl : 'foto')
     const currentPromptId = selectedPrompt?.id ?? null
     const prev = contextRef.current
+    const keyPrev = getStorageKey(prev.tab, prev.promptId)
+    const keyCurrent = getStorageKey(currentTab, currentPromptId)
+
+    const saveToStorage = (key: string, msgs: ChatMessage[]) => {
+      try {
+        const toSave = msgs.map((m) => ({
+          ...m,
+          imageDataUrl: undefined,
+          videoDataUrl: undefined,
+        }))
+        localStorage.setItem(key, JSON.stringify(toSave))
+      } catch {
+        // quota ou outro erro
+      }
+    }
+
+    const loadFromStorage = (key: string): ChatMessage[] => {
+      try {
+        const raw = localStorage.getItem(key)
+        if (!raw) return []
+        const parsed = JSON.parse(raw)
+        return Array.isArray(parsed) ? parsed : []
+      } catch {
+        return []
+      }
+    }
+
     if (prev.tab !== currentTab || prev.promptId !== currentPromptId) {
-      setMessages([])
+      setMessages((current) => {
+        saveToStorage(keyPrev, current)
+        return loadFromStorage(keyCurrent)
+      })
       setPromptViewFiles({})
       contextRef.current = { tab: currentTab, promptId: currentPromptId }
+    } else if (typeof window !== 'undefined') {
+      setMessages((current) => {
+        if (current.length > 0) return current
+        const loaded = loadFromStorage(keyCurrent)
+        return loaded.length > 0 ? loaded : current
+      })
     }
   }, [selectedPrompt?.id, selectedPrompt?.tabId, tabFromUrl])
+
+  // Persistir mensagens ao alterar (para manter última criação ao sair e voltar)
+  useEffect(() => {
+    if (messages.length === 0) return
+    const key = getStorageKey(
+      selectedPrompt?.tabId ?? (tabFromUrl && ['foto', 'video', 'roteiro', 'vangogh'].includes(tabFromUrl) ? tabFromUrl : 'foto'),
+      selectedPrompt?.id ?? null
+    )
+    try {
+      const toSave = messages.map((m) => ({
+        ...m,
+        imageDataUrl: undefined,
+        videoDataUrl: undefined,
+      }))
+      localStorage.setItem(key, JSON.stringify(toSave))
+    } catch {
+      // quota
+    }
+  }, [messages, selectedPrompt?.id, selectedPrompt?.tabId, tabFromUrl])
 
   useEffect(() => {
     fetch('/api/credits/costs')
@@ -251,6 +326,7 @@ export default function CriarGerarPage() {
             toast.error('Créditos insuficientes. Compre mais na área de uso da sua conta.')
           }
           const isCreditError = res.status === 402 || data?.code === 'insufficient_credits'
+          const modelLogoUrl = availableModels.find((m) => m.id === selectedModelId)?.logo_url ?? undefined
           setMessages((prev) => [
             ...prev,
             {
@@ -259,10 +335,12 @@ export default function CriarGerarPage() {
               content: isCreditError
                 ? (data?.error ?? 'Créditos insuficientes.')
                 : SERVICE_ERROR_MESSAGE,
+              modelLogoUrl,
             },
           ])
           return
         }
+        const modelLogoUrl = availableModels.find((m) => m.id === selectedModelId)?.logo_url ?? undefined
         if (data.type === 'image' && data.imageBase64) {
           setMessages((prev) => [
             ...prev,
@@ -272,6 +350,7 @@ export default function CriarGerarPage() {
               content: '',
               imageDataUrl: `data:${data.contentType || 'image/png'};base64,${data.imageBase64}`,
               regeneratePrompt: message,
+              modelLogoUrl,
             },
           ])
         } else if (data.type === 'video' && data.videoId) {
@@ -282,6 +361,7 @@ export default function CriarGerarPage() {
               from: 'assistant',
               content: 'Vídeo em geração… Aguarde (pode levar alguns minutos).',
               regeneratePrompt: message,
+              modelLogoUrl,
             },
           ])
           const pollVideo = async () => {
@@ -319,24 +399,25 @@ export default function CriarGerarPage() {
         } else if (data.type === 'text' && data.text) {
           setMessages((prev) => [
             ...prev,
-            { id: assistantId, from: 'assistant', content: data.text, regeneratePrompt: message },
+            { id: assistantId, from: 'assistant', content: data.text, regeneratePrompt: message, modelLogoUrl },
           ])
         } else {
           setMessages((prev) => [
             ...prev,
-            { id: assistantId, from: 'assistant', content: data.message || 'Resultado recebido.', regeneratePrompt: message },
+            { id: assistantId, from: 'assistant', content: data.message || 'Resultado recebido.', regeneratePrompt: message, modelLogoUrl },
           ])
         }
       } catch (err) {
+        const modelLogoUrlErr = availableModels.find((m) => m.id === selectedModelId)?.logo_url ?? undefined
         setMessages((prev) => [
           ...prev,
-          { id: assistantId, from: 'assistant', content: SERVICE_ERROR_MESSAGE },
+          { id: assistantId, from: 'assistant', content: SERVICE_ERROR_MESSAGE, modelLogoUrl: modelLogoUrlErr },
         ])
       } finally {
         setGenerating(false)
       }
     },
-    [isAuthenticated, hasActiveSubscription, router, activeTab, deduct, selectedModelId]
+    [isAuthenticated, hasActiveSubscription, router, activeTab, deduct, selectedModelId, availableModels]
   )
 
   const handleGenerateWithPrompt = useCallback(
@@ -379,6 +460,7 @@ export default function CriarGerarPage() {
             setShowCreditModal(true)
             toast.error('Créditos insuficientes. Compre mais na área de uso da sua conta.')
           }
+          const modelLogoUrlPrompt = availableModels.find((m) => m.id === selectedModelId)?.logo_url ?? undefined
           const isCreditError = res.status === 402 || data?.code === 'insufficient_credits'
           setMessages((prev) => [
             ...prev,
@@ -386,12 +468,14 @@ export default function CriarGerarPage() {
               id: assistantId,
               from: 'assistant',
               content: isCreditError ? (data?.error ?? 'Créditos insuficientes.') : SERVICE_ERROR_MESSAGE,
+              modelLogoUrl: modelLogoUrlPrompt,
             },
           ])
           setSelectedPrompt(null)
           setPromptViewFiles({})
           return
         }
+        const modelLogoUrlPrompt = availableModels.find((m) => m.id === selectedModelId)?.logo_url ?? undefined
         if (data.type === 'image' && data.imageBase64) {
           setMessages((prev) => [
             ...prev,
@@ -402,6 +486,7 @@ export default function CriarGerarPage() {
               imageDataUrl: `data:${data.contentType || 'image/png'};base64,${data.imageBase64}`,
               regeneratePrompt: promptText,
               regenerateCreditCost: promptItem.creditCost,
+              modelLogoUrl: modelLogoUrlPrompt,
             },
           ])
         } else if (data.type === 'video' && data.videoId) {
@@ -413,6 +498,7 @@ export default function CriarGerarPage() {
               content: 'Vídeo em geração… Aguarde (pode levar alguns minutos).',
               regeneratePrompt: promptText,
               regenerateCreditCost: promptItem.creditCost,
+              modelLogoUrl: modelLogoUrlPrompt,
             },
           ])
           const pollVideo = async () => {
@@ -450,20 +536,21 @@ export default function CriarGerarPage() {
         } else if (data.type === 'text' && data.text) {
           setMessages((prev) => [
             ...prev,
-            { id: assistantId, from: 'assistant', content: data.text, regeneratePrompt: promptText, regenerateCreditCost: promptItem.creditCost },
+            { id: assistantId, from: 'assistant', content: data.text, regeneratePrompt: promptText, regenerateCreditCost: promptItem.creditCost, modelLogoUrl: modelLogoUrlPrompt },
           ])
         } else {
           setMessages((prev) => [
             ...prev,
-            { id: assistantId, from: 'assistant', content: data.message || 'Pronto.', regeneratePrompt: promptText, regenerateCreditCost: promptItem.creditCost },
+            { id: assistantId, from: 'assistant', content: data.message || 'Pronto.', regeneratePrompt: promptText, regenerateCreditCost: promptItem.creditCost, modelLogoUrl: modelLogoUrlPrompt },
           ])
         }
         setSelectedPrompt(null)
         setPromptViewFiles({})
       } catch {
+        const modelLogoUrlErr = availableModels.find((m) => m.id === selectedModelId)?.logo_url ?? undefined
         setMessages((prev) => [
           ...prev,
-          { id: assistantId, from: 'assistant', content: SERVICE_ERROR_MESSAGE },
+          { id: assistantId, from: 'assistant', content: SERVICE_ERROR_MESSAGE, modelLogoUrl: modelLogoUrlErr },
         ])
         setSelectedPrompt(null)
         setPromptViewFiles({})
@@ -471,7 +558,7 @@ export default function CriarGerarPage() {
         setGenerating(false)
       }
     },
-    [isAuthenticated, hasActiveSubscription, router, activeTab, deduct, selectedModelId]
+    [isAuthenticated, hasActiveSubscription, router, activeTab, deduct, selectedModelId, availableModels]
   )
 
   const handleRegenerate = useCallback(
@@ -520,6 +607,7 @@ export default function CriarGerarPage() {
           )
           return
         }
+        const regenModelLogo = availableModels.find((m) => m.id === selectedModelId)?.logo_url ?? undefined
         if (data.type === 'image' && data.imageBase64) {
           setMessages((prev) =>
             prev.map((m) =>
@@ -529,6 +617,7 @@ export default function CriarGerarPage() {
                     content: '',
                     imageDataUrl: `data:${data.contentType || 'image/png'};base64,${data.imageBase64}`,
                     videoDataUrl: undefined,
+                    modelLogoUrl: regenModelLogo ?? m.modelLogoUrl,
                   }
                 : m
             )
@@ -537,7 +626,7 @@ export default function CriarGerarPage() {
           setMessages((prev) =>
             prev.map((m) =>
               m.id === messageId
-                ? { ...m, content: 'Vídeo em geração… Aguarde (pode levar alguns minutos).', imageDataUrl: undefined, videoDataUrl: undefined }
+                ? { ...m, content: 'Vídeo em geração… Aguarde (pode levar alguns minutos).', imageDataUrl: undefined, videoDataUrl: undefined, modelLogoUrl: regenModelLogo ?? m.modelLogoUrl }
                 : m
             )
           )
@@ -572,17 +661,18 @@ export default function CriarGerarPage() {
         } else if (data.type === 'text' && data.text) {
           setMessages((prev) =>
             prev.map((m) =>
-              m.id === messageId ? { ...m, content: data.text, imageDataUrl: undefined, videoDataUrl: undefined } : m
+              m.id === messageId ? { ...m, content: data.text, imageDataUrl: undefined, videoDataUrl: undefined, modelLogoUrl: regenModelLogo ?? m.modelLogoUrl } : m
             )
           )
         } else {
           setMessages((prev) =>
-            prev.map((m) => (m.id === messageId ? { ...m, content: data.message || 'Pronto.' } : m))
+            prev.map((m) => (m.id === messageId ? { ...m, content: data.message || 'Pronto.', modelLogoUrl: regenModelLogo ?? m.modelLogoUrl } : m))
           )
         }
       } catch {
+        const regenModelLogoErr = availableModels.find((m) => m.id === selectedModelId)?.logo_url ?? undefined
         setMessages((prev) =>
-          prev.map((m) => (m.id === messageId ? { ...m, content: SERVICE_ERROR_MESSAGE } : m))
+          prev.map((m) => (m.id === messageId ? { ...m, content: SERVICE_ERROR_MESSAGE, modelLogoUrl: regenModelLogoErr ?? m.modelLogoUrl } : m))
         )
       } finally {
         setGenerating(false)
@@ -592,11 +682,12 @@ export default function CriarGerarPage() {
       messages,
       isAuthenticated,
       hasActiveSubscription,
+      availableModels,
+      selectedModelId,
       router,
       activeTab,
       costByAction,
       deduct,
-      selectedModelId,
     ]
   )
 
@@ -821,6 +912,7 @@ export default function CriarGerarPage() {
               <ChatWithActions
                 messages={messages}
                 onAction={handleAction}
+                userAvatarUrl={siteLogo ?? undefined}
                 defaultRegenerateCost={costByAction?.[activeTab]}
                 onRegenerate={handleRegenerate}
                 regenerating={generating}
