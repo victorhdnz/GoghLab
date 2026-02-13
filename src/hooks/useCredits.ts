@@ -42,6 +42,15 @@ export function useCredits() {
     fetchBalance()
   }, [fetchBalance])
 
+  // Atualizar saldo ao voltar para a aba (ex.: após mudança de créditos no dashboard ou compra)
+  useEffect(() => {
+    const onFocus = () => { fetchBalance() }
+    if (typeof window !== 'undefined') {
+      window.addEventListener('focus', onFocus)
+      return () => window.removeEventListener('focus', onFocus)
+    }
+  }, [fetchBalance])
+
   const deduct = useCallback(async (actionId: CreditActionId, amount?: number): Promise<{ ok: boolean; balance?: number; code?: string }> => {
     try {
       const res = await fetch('/api/credits/deduct', {

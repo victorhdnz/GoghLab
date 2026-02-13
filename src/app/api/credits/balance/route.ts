@@ -73,8 +73,9 @@ export async function GET() {
       return getMonthlyCreditsForPlan(planId, config)
     }
 
+    const monthly = await fetchPlanCredits()
+
     if (balance === null) {
-      const monthly = await fetchPlanCredits()
       const { error: insertErr } = await supabase
         .from('user_usage')
         .insert({
@@ -88,10 +89,10 @@ export async function GET() {
         return NextResponse.json({ error: insertErr.message }, { status: 500 })
       }
       balance = monthly
-    } else if (Number(balance) === 0) {
-      // Reconciliação: assinatura manual pode ter criado a linha com 0; corrigir se o plano tem créditos
-      const monthly = await fetchPlanCredits()
-      if (monthly > 0 && usageRow?.id) {
+    } else {
+      const currentBalance = Number(balance)
+      // Reconciliação: se o plano tem mais créditos que o saldo armazenado (ex.: admin aumentou o plano ou assinatura manual com 0), atualiza
+      if (monthly > currentBalance && usageRow?.id) {
         await supabase
           .from('user_usage')
           .update({ usage_count: monthly, updated_at: new Date().toISOString() })
