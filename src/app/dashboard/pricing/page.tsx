@@ -14,7 +14,7 @@ import { getSiteSettings, saveSiteSettings } from '@/lib/supabase/site-settings-
 import { PriceTier, Feature, ServiceOption } from '@/components/ui/pricing-card'
 import { Plus, Trash2, ChevronDown, ChevronUp, ArrowUp, ArrowDown, Pencil, X, Check, Zap } from 'lucide-react'
 import { LumaSpin } from '@/components/ui/luma-spin'
-import { getCreditsConfigKey, getCreditPlansKey, type CreditsConfig, type CreditActionId, type CreditPlan } from '@/lib/credits'
+import { getCreditsConfigKey, getCreditPlansKey, type CreditsConfig, type CreditPlan } from '@/lib/credits'
 
 interface PricingSettings {
   pricing_enabled?: boolean
@@ -63,12 +63,6 @@ export default function PricingEditorPage() {
   const [deletingProductId, setDeletingProductId] = useState<string | null>(null)
   const [savingCredits, setSavingCredits] = useState(false)
   const [monthlyCredits, setMonthlyCredits] = useState<Record<string, number>>({ gogh_essencial: 50, gogh_pro: 200 })
-  const [costByAction, setCostByAction] = useState<Record<CreditActionId, number>>({
-    foto: 5,
-    video: 10,
-    roteiro: 15,
-    vangogh: 5,
-  })
   const [creditPlans, setCreditPlans] = useState<CreditPlan[]>([])
   const defaultAgencyPlan: PriceTier = {
     id: 'gogh-agencia',
@@ -257,9 +251,6 @@ export default function PricingEditorPage() {
         if (config?.monthlyCreditsByPlan) {
           setMonthlyCredits((prev) => ({ ...prev, ...config.monthlyCreditsByPlan }))
         }
-        if (config?.costByAction) {
-          setCostByAction((prev) => ({ ...prev, ...config.costByAction }))
-        }
         const { data: plansData } = await (supabase as any)
           .from('site_settings')
           .select('value')
@@ -323,12 +314,6 @@ export default function PricingEditorPage() {
     }
   }
 
-  const CREDIT_ACTION_LABELS: Record<CreditActionId, string> = {
-    foto: 'Foto',
-    video: 'Vídeo',
-    roteiro: 'Roteiro de Vídeos',
-    vangogh: 'Criação de Prompts',
-  }
   const PLAN_IDS_CREDITS = ['gogh_essencial', 'gogh_pro'] as const
 
   const handleSaveCredits = async () => {
@@ -336,7 +321,6 @@ export default function PricingEditorPage() {
     try {
       const value: CreditsConfig = {
         monthlyCreditsByPlan: { ...monthlyCredits },
-        costByAction: { ...costByAction },
       }
       const { error } = await (supabase as any)
         .from('site_settings')
@@ -344,7 +328,7 @@ export default function PricingEditorPage() {
           {
             key: getCreditsConfigKey(),
             value,
-            description: 'Créditos IA: créditos mensais por plano e custo por tipo de criação',
+            description: 'Créditos IA: créditos mensais por plano e planos avulsos',
             updated_at: new Date().toISOString(),
           },
           { onConflict: 'key' }
@@ -804,7 +788,7 @@ export default function PricingEditorPage() {
                 <div className="space-y-4">
                   <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
                     <p className="text-sm text-amber-800">
-                      <strong>Produtos</strong> definem o que cada plano inclui (ferramentas, cursos, créditos). Crie produtos aqui e marque em cada plano (Gogh Essencial / Gogh Pro) quais produtos estão incluídos. Abaixo você também configura os <strong>créditos IA</strong> (mensais por plano, custo por criação e planos avulsos). O checkout continua usando os <strong>Price IDs fixos do Stripe</strong> configurados em cada plano.
+                      <strong>Produtos</strong> definem o que cada plano inclui (ferramentas, cursos, créditos). Crie produtos aqui e marque em cada plano (Gogh Essencial / Gogh Pro) quais produtos estão incluídos. Abaixo você configura os <strong>créditos IA</strong> (mensais por plano e planos avulsos). O custo por uso de cada modelo de IA é definido na aba &quot;Criação (Prompts e IAs)&quot;. O checkout usa os <strong>Price IDs do Stripe</strong> configurados em cada plano.
                     </p>
                   </div>
                   <div className="flex flex-wrap gap-2 items-center">
@@ -1002,55 +986,30 @@ export default function PricingEditorPage() {
                       Configuração de Créditos IA
                     </h4>
                     <p className="text-sm text-gray-600">
-                      Créditos mensais por plano, custo por tipo de criação e planos avulsos (compra na área de conta).
+                      Créditos mensais por plano e planos avulsos (compra na área de conta). O custo por uso é definido por modelo na aba &quot;Criação (Prompts e IAs)&quot;.
                     </p>
-                    <div className="grid gap-6 sm:grid-cols-1 lg:grid-cols-2">
-                      <div className="space-y-3">
-                        <h5 className="text-sm font-medium text-gray-700">Créditos mensais por plano</h5>
-                        {PLAN_IDS_CREDITS.map((planId) => (
-                          <div key={planId} className="flex items-center gap-4">
-                            <label className="w-36 text-sm text-gray-700 capitalize">
-                              {planId.replace('_', ' ')}
-                            </label>
-                            <input
-                              type="number"
-                              min={0}
-                              value={monthlyCredits[planId] ?? 0}
-                              onChange={(e) =>
-                                setMonthlyCredits((prev) => ({
-                                  ...prev,
-                                  [planId]: parseInt(e.target.value, 10) || 0,
-                                }))
-                              }
-                              className="w-24 rounded-lg border border-gray-300 px-3 py-2 text-sm"
-                            />
-                            <span className="text-sm text-gray-500">créditos/mês</span>
-                          </div>
-                        ))}
-                      </div>
-                      <div className="space-y-3">
-                        <h5 className="text-sm font-medium text-gray-700">Custo em créditos por função</h5>
-                        {(Object.keys(CREDIT_ACTION_LABELS) as CreditActionId[]).map((actionId) => (
-                          <div key={actionId} className="flex items-center gap-4">
-                            <label className="flex-1 text-sm text-gray-700">
-                              {CREDIT_ACTION_LABELS[actionId]}
-                            </label>
-                            <input
-                              type="number"
-                              min={0}
-                              value={costByAction[actionId] ?? 0}
-                              onChange={(e) =>
-                                setCostByAction((prev) => ({
-                                  ...prev,
-                                  [actionId]: parseInt(e.target.value, 10) || 0,
-                                }))
-                              }
-                              className="w-20 rounded-lg border border-gray-300 px-3 py-2 text-sm"
-                            />
-                            <span className="text-sm text-gray-500">créditos</span>
-                          </div>
-                        ))}
-                      </div>
+                    <div className="space-y-3">
+                      <h5 className="text-sm font-medium text-gray-700">Créditos mensais por plano</h5>
+                      {PLAN_IDS_CREDITS.map((planId) => (
+                        <div key={planId} className="flex items-center gap-4">
+                          <label className="w-36 text-sm text-gray-700 capitalize">
+                            {planId.replace('_', ' ')}
+                          </label>
+                          <input
+                            type="number"
+                            min={0}
+                            value={monthlyCredits[planId] ?? 0}
+                            onChange={(e) =>
+                              setMonthlyCredits((prev) => ({
+                                ...prev,
+                                [planId]: parseInt(e.target.value, 10) || 0,
+                              }))
+                            }
+                            className="w-24 rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                          />
+                          <span className="text-sm text-gray-500">créditos/mês</span>
+                        </div>
+                      ))}
                     </div>
                     <div className="space-y-3">
                       <h5 className="text-sm font-medium text-gray-700">Planos de créditos avulsos</h5>
