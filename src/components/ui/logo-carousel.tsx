@@ -30,7 +30,9 @@ const shuffleArray = <T,>(array: T[]): T[] => {
   return shuffled
 }
 
+/** Distribui logos em colunas disjuntas: cada logo fica em só uma coluna, assim a linha visível (uma logo por coluna) nunca repete a mesma logo. */
 const distributeLogos = (allLogos: Logo[], columnCount: number): Logo[][] => {
+  if (allLogos.length === 0) return Array.from({ length: columnCount }, () => [])
   const shuffled = shuffleArray(allLogos)
   const columns: Logo[][] = Array.from({ length: columnCount }, () => [])
 
@@ -41,7 +43,12 @@ const distributeLogos = (allLogos: Logo[], columnCount: number): Logo[][] => {
   const maxLength = Math.max(...columns.map((col) => col.length))
   columns.forEach((col) => {
     while (col.length < maxLength) {
-      col.push(shuffled[Math.floor(Math.random() * shuffled.length)])
+      const lastId = col[col.length - 1]?.id
+      const inThisColumn = col.filter((l) => l.id !== lastId)
+      const pick = inThisColumn.length > 0
+        ? inThisColumn[Math.floor(Math.random() * inThisColumn.length)]
+        : col[0]
+      col.push(pick)
     }
   })
 

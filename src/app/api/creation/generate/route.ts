@@ -8,9 +8,19 @@ export const maxDuration = 120
 const TAB_IDS = ['foto', 'video', 'roteiro', 'vangogh'] as const
 type TabId = (typeof TAB_IDS)[number]
 
+const XAI_BASE = 'https://api.x.ai/v1'
+
 /** Mensagem genérica para o usuário quando a falha for do serviço (API não configurada, sem saldo no provedor, etc.). Não expõe detalhes internos. */
 const SERVICE_ERROR_MESSAGE =
   'Ocorreu uma instabilidade ao processar sua solicitação. Tente novamente em alguns instantes. Se o problema persistir, entre em contato com o suporte.'
+
+function isXaiModel(modelKey: string | null): boolean {
+  return !!modelKey && modelKey.startsWith('xai/')
+}
+
+function getXaiModelId(modelKey: string): string {
+  return modelKey.replace(/^xai\//, '')
+}
 
 export async function POST(request: Request) {
   try {
@@ -35,16 +45,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Prompt é obrigatório' }, { status: 400 })
     }
 
-    if (!process.env.OPENAI_API_KEY) {
-      console.error('[creation/generate] OPENAI_API_KEY não configurada')
-      return NextResponse.json({
-        error: SERVICE_ERROR_MESSAGE,
-        code: 'OPENAI_NOT_CONFIGURED',
-      }, { status: 503 })
-    }
-
-    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
-
     const { data: modelRow, error: modelError } = await (supabase as any)
       .from('creation_ai_models')
       .select('id, name, model_key, can_image, can_video, can_prompt')
@@ -57,16 +57,164 @@ export async function POST(request: Request) {
     }
 
     const modelKey: string | null = modelRow.model_key ?? null
-    if (!modelKey || !modelKey.startsWith('openai/')) {
+    if (!modelKey) {
       return NextResponse.json({
-        error: 'Este modelo não suporta geração pela API. Escolha um modelo OpenAI na lista.',
+        error: 'Este modelo não suporta geração pela API.',
         code: 'MODEL_NOT_SUPPORTED',
       }, { status: 400 })
     }
 
-    const openaiModelId = modelKey.replace(/^openai\//, '')
+    const useXai = isXaiModel(modelKey)
+    if (useXai) {
+      if (!process.env.XAI_API_KEY) {
+        console.error('[creation/generate] XAI_API_KEY não configurada')
+        return NextResponse.json({
+          error: SERVICE_ERROR_MESSAGE,
+          code: 'XAI_NOT_CONFIGURED',
+        }, { status: 503 })
+      }
+    } else if (!modelKey.startsWith('openai/')) {
+      return NextResponse.json({
+        error: 'Este modelo não suporta geração pela API. Escolha um modelo da lista.',
+        code: 'MODEL_NOT_SUPPORTED',
+      }, { status: 400 })
+    } else if (!process.env.OPENAI_API_KEY) {
+      console.error('[creation/generate] OPENAI_API_KEY não configurada')
+      return NextResponse.json({
+        error: SERVICE_ERROR_MESSAGE,
+        code: 'OPENAI_NOT_CONFIGURED',
+      }, { status: 503 })
+    }
 
-    if (tab === 'foto') {
+    const openai = useXai ? null : new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+    const openaiModelId = !useXai ? modelKey.replace(/^openai\//, '') : ''
+    const xaiModelId = useXai ? getXaiModelId(modelKey) : ''
+
+    // --- xAI: foto (imagem)
+    if (useXai && tab === 'foto') {
+      if (!modelRow.can_image) {
+        return NextResponse.json({ error: 'Modelo não disponível para criação de foto' }, { status: 400 })
+      }
+      if (xaiModelId !== 'grok-imagine-image') {
+        return NextResponse.json({ error: 'Use o modelo Grok Imagine (imagem) para foto.' }, { status: 400 })
+      }
+      const res = await fetch(`${XAI_BASE}/images/generations`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${process.env.XAI_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: 'grok-imagine-image',
+          prompt,
+          response_format: 'b64_json',
+        }),
+      })
+      if (!res.ok) {
+        const errText = await res.text()
+        console.error('[creation/generate] xAI image error:', res.status, errText)
+        return NextResponse.json({ error: SERVICE_ERROR_MESSAGE }, { status: 503 })
+      }
+      const data = await res.json()
+      const b64 = data?.data?.[0]?.b64_json ?? data?.data?.[0]?.image
+      if (!b64) {
+        console.error('[creation/generate] xAI: nenhuma imagem retornada')
+        return NextResponse.json({ error: SERVICE_ERROR_MESSAGE }, { status: 503 })
+      }
+      return NextResponse.json({
+        ok: true,
+        type: 'image',
+        imageBase64: b64,
+        contentType: 'image/png',
+      })
+    }
+
+    // --- xAI: vídeo
+    if (useXai && tab === 'video') {
+      if (!modelRow.can_video) {
+        return NextResponse.json({ error: 'Modelo não disponível para vídeo' }, { status: 400 })
+      }
+      if (xaiModelId !== 'grok-imagine-video') {
+        return NextResponse.json({ error: 'Use o modelo Grok Imagine (vídeo) para vídeo.' }, { status: 400 })
+      }
+      const res = await fetch(`${XAI_BASE}/videos/generations`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${process.env.XAI_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: 'grok-imagine-video',
+          prompt,
+          duration: 8,
+          aspect_ratio: '16:9',
+          resolution: '720p',
+        }),
+      })
+      if (!res.ok) {
+        const errText = await res.text()
+        console.error('[creation/generate] xAI video error:', res.status, errText)
+        return NextResponse.json({ error: SERVICE_ERROR_MESSAGE }, { status: 503 })
+      }
+      const videoJob = await res.json()
+      const requestId = videoJob?.request_id
+      if (!requestId) {
+        console.error('[creation/generate] xAI: resposta sem request_id')
+        return NextResponse.json({ error: SERVICE_ERROR_MESSAGE }, { status: 503 })
+      }
+      return NextResponse.json({
+        ok: true,
+        type: 'video',
+        videoId: `xai:${requestId}`,
+        status: 'pending',
+        message: 'Vídeo em geração. Use o endpoint de status para verificar e baixar quando pronto.',
+      })
+    }
+
+    // --- xAI: texto (roteiro / vangogh)
+    if (useXai && (tab === 'roteiro' || tab === 'vangogh')) {
+      const forPrompt = tab === 'vangogh'
+      if (!modelRow.can_prompt) {
+        return NextResponse.json(
+          { error: tab === 'roteiro' ? 'Modelo não disponível para roteiro.' : 'Modelo não disponível para criação de prompts.' },
+          { status: 400 }
+        )
+      }
+      const systemContent = forPrompt
+        ? 'Gere um prompt criativo e detalhado para criação de conteúdo (imagem ou vídeo) com base no pedido do usuário. Responda apenas com o texto do prompt, sem explicações extras.'
+        : 'Você é um roteirista. Elabore um roteiro de vídeo (cenas, falas, indicações) com base no pedido do usuário. Seja objetivo e criativo.'
+      const res = await fetch(`${XAI_BASE}/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${process.env.XAI_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: xaiModelId || 'grok-4-latest',
+          messages: [
+            { role: 'system', content: systemContent },
+            { role: 'user', content: prompt },
+          ],
+          temperature: 0.7,
+          stream: false,
+        }),
+      })
+      if (!res.ok) {
+        const errText = await res.text()
+        console.error('[creation/generate] xAI chat error:', res.status, errText)
+        return NextResponse.json({ error: SERVICE_ERROR_MESSAGE }, { status: 503 })
+      }
+      const data = await res.json()
+      const text = data?.choices?.[0]?.message?.content?.trim() || '(Nenhum texto retornado.)'
+      return NextResponse.json({
+        ok: true,
+        type: 'text',
+        text,
+      })
+    }
+
+    // --- OpenAI: foto
+    if (!useXai && tab === 'foto') {
       if (!modelRow.can_image) {
         return NextResponse.json({ error: 'Modelo não disponível para criação de foto' }, { status: 400 })
       }
@@ -77,7 +225,7 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'Modelo não é de imagem. Use um modelo de foto.' }, { status: 400 })
       }
 
-      const response = await openai.images.generate({
+      const response = await openai!.images.generate({
         model: openaiModelId as 'gpt-image-1' | 'gpt-image-1.5' | 'dall-e-2' | 'dall-e-3',
         prompt,
         n: 1,
@@ -98,7 +246,8 @@ export async function POST(request: Request) {
       })
     }
 
-    if (tab === 'video') {
+    // --- OpenAI: vídeo
+    if (!useXai && tab === 'video') {
       if (!modelRow.can_video) {
         return NextResponse.json({ error: 'Modelo não disponível para vídeo' }, { status: 400 })
       }
@@ -139,7 +288,8 @@ export async function POST(request: Request) {
       })
     }
 
-    if (tab === 'roteiro' || tab === 'vangogh') {
+    // --- OpenAI: roteiro / vangogh
+    if (!useXai && (tab === 'roteiro' || tab === 'vangogh')) {
       const forPrompt = tab === 'vangogh'
       if (!modelRow.can_prompt) {
         return NextResponse.json(
@@ -160,7 +310,7 @@ export async function POST(request: Request) {
         ? 'Gere um prompt criativo e detalhado para criação de conteúdo (imagem ou vídeo) com base no pedido do usuário. Responda apenas com o texto do prompt, sem explicações extras.'
         : 'Você é um roteirista. Elabore um roteiro de vídeo (cenas, falas, indicações) com base no pedido do usuário. Seja objetivo e criativo.'
 
-      const response = await openai.responses.create({
+      const response = await openai!.responses.create({
         model: openaiModelId as string,
         instructions,
         input: prompt,
