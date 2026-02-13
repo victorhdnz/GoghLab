@@ -94,6 +94,8 @@ interface CreationModelOption {
   can_image?: boolean
   can_video?: boolean
   can_prompt?: boolean
+  /** Créditos por uso (dashboard); null = usar custo padrão da função */
+  credit_cost?: number | null
 }
 
 export default function CriarGerarPage() {
@@ -223,13 +225,14 @@ export default function CriarGerarPage() {
       .then((data) => {
         if (Array.isArray(data.models)) {
           setCreationModelsApi(
-            data.models.map((m: CreationModelOption & { can_image?: boolean; can_video?: boolean; can_prompt?: boolean }) => ({
+            data.models.map((m: CreationModelOption & { can_image?: boolean; can_video?: boolean; can_prompt?: boolean; credit_cost?: number | null }) => ({
               id: m.id,
               name: m.name,
               logo_url: m.logo_url ?? null,
               can_image: m.can_image,
               can_video: m.can_video,
               can_prompt: m.can_prompt,
+              credit_cost: m.credit_cost ?? null,
             }))
           )
         }
@@ -255,7 +258,7 @@ export default function CriarGerarPage() {
     }
     const filtered = creationModelsApi
       .filter((m) => m[key] === true)
-      .map((m) => ({ id: m.id, name: m.name, logo_url: m.logo_url }))
+      .map((m) => ({ id: m.id, name: m.name, logo_url: m.logo_url, credit_cost: m.credit_cost ?? null }))
     if (filtered.length === 0) {
       const fallback = MODELS_BY_TAB_FALLBACK[activeTab] ?? MODELS_BY_TAB_FALLBACK.foto
       return fallback.map((m) => ({ id: m.id, name: m.label, logo_url: null as string | null }))
@@ -264,6 +267,13 @@ export default function CriarGerarPage() {
   }, [activeTab, creationModelsApi])
 
   const [selectedModelId, setSelectedModelId] = useState<string>(availableModels[0]?.id ?? 'default-image')
+
+  /** Custo em créditos para a criação atual: modelo selecionado (se definido no dashboard) ou custo padrão da função */
+  const costForCurrentCreation = useMemo(() => {
+    const model = availableModels.find((m) => m.id === selectedModelId)
+    const modelCost = model?.credit_cost != null && model.credit_cost > 0 ? model.credit_cost : null
+    return modelCost ?? costByAction?.[activeTab] ?? publicCostByAction?.[activeTab] ?? null
+  }, [availableModels, selectedModelId, activeTab, costByAction, publicCostByAction])
 
   useEffect(() => {
     const firstId = availableModels[0]?.id
@@ -297,7 +307,7 @@ export default function CriarGerarPage() {
         router.push('/precos')
         return
       }
-      const result = await deduct(activeTab)
+      const result = await deduct(activeTab, costForCurrentCreation ?? undefined)
       if (!result.ok && result.code === 'insufficient_credits') {
         setShowCreditModal(true)
         toast.error('Créditos insuficientes. Compre mais na área de uso da sua conta.')
@@ -417,7 +427,7 @@ export default function CriarGerarPage() {
         setGenerating(false)
       }
     },
-    [isAuthenticated, hasActiveSubscription, router, activeTab, deduct, selectedModelId, availableModels]
+    [isAuthenticated, hasActiveSubscription, router, activeTab, deduct, selectedModelId, availableModels, costForCurrentCreation]
   )
 
   const handleGenerateWithPrompt = useCallback(
@@ -575,7 +585,7 @@ export default function CriarGerarPage() {
         router.push('/precos')
         return
       }
-      const cost = msg.regenerateCreditCost ?? costByAction?.[activeTab] ?? 1
+      const cost = msg.regenerateCreditCost ?? costForCurrentCreation ?? costByAction?.[activeTab] ?? 1
       const result = await deduct(activeTab, cost)
       if (!result.ok && result.code === 'insufficient_credits') {
         setShowCreditModal(true)
@@ -684,6 +694,7 @@ export default function CriarGerarPage() {
       hasActiveSubscription,
       availableModels,
       selectedModelId,
+      costForCurrentCreation,
       router,
       activeTab,
       costByAction,
@@ -726,7 +737,7 @@ export default function CriarGerarPage() {
         {isAuthenticated && hasActiveSubscription && balance !== null && (
           <span className="text-xs sm:text-sm text-muted-foreground">
             Créditos: <strong>{balance}</strong>
-            {costByAction?.[activeTab] != null && <> · Esta criação: <strong>{costByAction[activeTab]} créditos</strong></>}
+            {costForCurrentCreation != null && <> · Esta criação: <strong>{costForCurrentCreation} créditos</strong></>}
           </span>
         )}
       </div>
@@ -913,7 +924,7 @@ export default function CriarGerarPage() {
                 messages={messages}
                 onAction={handleAction}
                 userAvatarUrl={siteLogo ?? undefined}
-                defaultRegenerateCost={costByAction?.[activeTab]}
+                defaultRegenerateCost={costForCurrentCreation ?? undefined}
                 onRegenerate={handleRegenerate}
                 regenerating={generating}
               />
@@ -924,7 +935,7 @@ export default function CriarGerarPage() {
             placeholder={PLACEHOLDERS[activeTab]}
             onSend={handleSend}
             initialValue={selectedPrompt?.inputStructure === 'text_only' ? selectedPrompt.prompt : promptFromUrl}
-            creditCost={costByAction?.[activeTab] ?? publicCostByAction?.[activeTab] ?? null}
+            creditCost={costForCurrentCreation ?? null}
             models={availableModels}
             selectedModelId={selectedModelId}
             onModelChange={setSelectedModelId}

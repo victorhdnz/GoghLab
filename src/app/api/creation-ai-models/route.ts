@@ -13,6 +13,8 @@ export interface CreationAIModel {
   is_active: boolean
   order_position: number
   model_key?: string | null
+  /** Créditos por uso; null = usar custo padrão da função */
+  credit_cost?: number | null
 }
 
 /** GET: lista modelos de IA para a página Criar (público). */
@@ -21,7 +23,7 @@ export async function GET() {
     const supabase = createRouteHandlerClient()
     const { data, error } = await (supabase as any)
       .from('creation_ai_models')
-      .select('id, name, logo_url, can_image, can_video, can_prompt, is_active, order_position, model_key')
+      .select('id, name, logo_url, can_image, can_video, can_prompt, is_active, order_position, model_key, credit_cost')
       .eq('is_active', true)
       .order('order_position', { ascending: true })
 

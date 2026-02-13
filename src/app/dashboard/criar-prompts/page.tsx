@@ -49,6 +49,8 @@ export interface CreationAIModelRow {
   is_active: boolean
   order_position: number
   model_key?: string | null
+  /** Créditos por uso; null = usar custo padrão da função */
+  credit_cost?: number | null
 }
 
 export default function CriarPromptsPage() {
@@ -57,7 +59,6 @@ export default function CriarPromptsPage() {
   const [prompts, setPrompts] = useState<CreationPromptItem[]>([])
   const [galleryUseCreationPrompts, setGalleryUseCreationPrompts] = useState(false)
   const [internalTab, setInternalTab] = useState<InternalTab>('prompts')
-  const [costByActionGeneral, setCostByActionGeneral] = useState<Record<CreditActionId, number>>({ ...DEFAULT_COST_BY_ACTION })
   const [creationModels, setCreationModels] = useState<CreationAIModelRow[]>([])
   const [creationModelsLoading, setCreationModelsLoading] = useState(false)
 
@@ -65,30 +66,13 @@ export default function CriarPromptsPage() {
     load()
   }, [])
 
-  useEffect(() => {
-    if (internalTab !== 'chats_gerais') return
-    const supabase = createClient() as any
-    supabase
-      .from('site_settings')
-      .select('value')
-      .eq('key', getCreditsConfigKey())
-      .maybeSingle()
-      .then(({ data }: { data: { value: CreditsConfig } | null }) => {
-        const config = data?.value
-        if (config?.costByAction) {
-          setCostByActionGeneral((prev) => ({ ...prev, ...config.costByAction }))
-        }
-      })
-      .catch(() => {})
-  }, [internalTab])
-
   const loadCreationModels = async () => {
     setCreationModelsLoading(true)
     try {
       const supabase = createClient() as any
       const { data, error } = await supabase
         .from('creation_ai_models')
-        .select('id, name, logo_url, can_image, can_video, can_prompt, is_active, order_position, model_key')
+        .select('id, name, logo_url, can_image, can_video, can_prompt, is_active, order_position, model_key, credit_cost')
         .order('order_position', { ascending: true })
       if (error) throw error
       setCreationModels(data ?? [])
@@ -101,7 +85,7 @@ export default function CriarPromptsPage() {
   }
 
   useEffect(() => {
-    if (internalTab === 'modelos_ia') loadCreationModels()
+    if (internalTab === 'modelos_ia' || internalTab === 'chats_gerais') loadCreationModels()
   }, [internalTab])
 
   const load = async () => {
@@ -218,6 +202,7 @@ export default function CriarPromptsPage() {
           can_video: row.can_video,
           can_prompt: row.can_prompt,
           order_position: row.order_position,
+          credit_cost: row.credit_cost != null ? row.credit_cost : null,
           updated_at: new Date().toISOString(),
         })
         .eq('id', row.id)
@@ -226,6 +211,21 @@ export default function CriarPromptsPage() {
       setCreationModels((prev) => prev.map((m) => (m.id === row.id ? { ...row } : m)))
     } catch (e: any) {
       toast.error(e?.message ?? 'Erro ao salvar')
+    }
+  }
+
+  const saveModelCreditCost = async (id: string, creditCost: number | null) => {
+    try {
+      const supabase = createClient() as any
+      const { error } = await supabase
+        .from('creation_ai_models')
+        .update({ credit_cost: creditCost, updated_at: new Date().toISOString() })
+        .eq('id', id)
+      if (error) throw error
+      toast.success('Custo salvo.')
+      setCreationModels((prev) => prev.map((m) => (m.id === id ? { ...m, credit_cost: creditCost } : m)))
+    } catch (e: any) {
+      toast.error(e?.message ?? 'Erro ao salvar custo')
     }
   }
 
@@ -243,7 +243,7 @@ export default function CriarPromptsPage() {
           is_active: true,
           order_position: maxOrder + 1,
         })
-        .select('id, name, logo_url, can_image, can_video, can_prompt, is_active, order_position')
+        .select('id, name, logo_url, can_image, can_video, can_prompt, is_active, order_position, credit_cost')
         .single()
       if (error) throw error
       toast.success('Modelo adicionado. Edite o nome, logo e funções.')
@@ -271,29 +271,6 @@ export default function CriarPromptsPage() {
     )
   }
 
-  const saveCreditsConfig = async () => {
-    setSaving(true)
-    try {
-      const supabase = createClient() as any
-      const { data: current } = await supabase.from('site_settings').select('value').eq('key', getCreditsConfigKey()).maybeSingle()
-      const existing: CreditsConfig = (current?.value as CreditsConfig) ?? {}
-      const value: CreditsConfig = {
-        ...existing,
-        costByAction: { ...costByActionGeneral },
-      }
-      const { error } = await supabase.from('site_settings').upsert(
-        { key: getCreditsConfigKey(), value, description: 'Créditos IA: custo por tipo de criação (chats gerais)', updated_at: new Date().toISOString() },
-        { onConflict: 'key' }
-      )
-      if (error) throw error
-      toast.success('Custos dos chats gerais salvos.')
-    } catch (e: any) {
-      toast.error(e?.message ?? 'Erro ao salvar')
-    } finally {
-      setSaving(false)
-    }
-  }
-
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -307,7 +284,7 @@ export default function CriarPromptsPage() {
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         <DashboardNavigation
           title="Criação (Prompts e IAs)"
-          subtitle="Prompts por efeito, custos dos chats gerais e modelos de IA"
+          subtitle="Prompts por efeito, custos por modelo de IA e modelos de IA"
           backUrl="/dashboard"
           backLabel="Voltar ao Dashboard"
         />
@@ -329,7 +306,7 @@ export default function CriarPromptsPage() {
                 className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${internalTab === 'chats_gerais' ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
               >
                 <MessageSquare className="h-4 w-4" />
-                Chats gerais
+                Custos por modelo de IA
               </button>
               <button
                 type="button"
@@ -351,10 +328,7 @@ export default function CriarPromptsPage() {
                 </Button>
               )}
               {internalTab === 'chats_gerais' && (
-                <Button onClick={saveCreditsConfig} disabled={saving} className="gap-2">
-                  <Save size={18} />
-                  {saving ? 'Salvando...' : 'Salvar'}
-                </Button>
+                <span className="text-sm text-gray-500">Edite o custo e clique em Salvar ao lado de cada modelo.</span>
               )}
               {internalTab === 'modelos_ia' && (
                 <Button onClick={addCreationModel} disabled={creationModelsLoading} variant="outline" className="gap-2">
@@ -435,16 +409,6 @@ export default function CriarPromptsPage() {
                             <span className="text-sm">Aparece em Criação de prompts</span>
                           </label>
                         </div>
-                        <div>
-                          <label className="block text-xs font-medium mb-1">Ordem</label>
-                          <input
-                            type="number"
-                            min={0}
-                            value={row.order_position}
-                            onChange={(e) => updateCreationModel(row.id, { order_position: parseInt(e.target.value, 10) || 0 })}
-                            className="w-20 px-2 py-1.5 text-sm border border-gray-300 rounded-lg"
-                          />
-                        </div>
                         {row.model_key && (
                           <div className="sm:col-span-2">
                             <span className="text-xs text-gray-500">Chave do modelo (API): </span>
@@ -471,23 +435,65 @@ export default function CriarPromptsPage() {
           {internalTab === 'chats_gerais' && (
             <div className="border-t pt-6 space-y-4">
               <p className="text-sm text-gray-600">
-                Custo em créditos para cada tipo de <strong>chat geral</strong> na página Criar (quando o usuário não escolhe um prompt específico e digita livremente). Esses valores aparecem no botão &quot;Gerar&quot; e são descontados ao gerar. Os mesmos custos são usados em Planos de Assinatura para créditos mensais.
+                Custo em créditos por uso de cada <strong>modelo de IA</strong>. O valor aparece no botão &quot;Gerar&quot; e é descontado ao criar. Se deixar vazio, usa o custo padrão da função (Foto, Vídeo, Roteiro, Criação de Prompts). Defina aqui o custo de cada modelo para refletir o uso na página Criar.
               </p>
-              <div className="grid gap-4 sm:grid-cols-2 max-w-xl">
-                {(['foto', 'video', 'roteiro', 'vangogh'] as CreditActionId[]).map((actionId) => (
-                  <div key={actionId} className="flex items-center gap-3">
-                    <label className="flex-1 text-sm font-medium text-gray-700">{CREDIT_ACTION_LABELS[actionId]}</label>
-                    <Input
-                      type="number"
-                      min={1}
-                      value={String(costByActionGeneral[actionId] ?? DEFAULT_COST_BY_ACTION[actionId])}
-                      onChange={(e) => setCostByActionGeneral((prev) => ({ ...prev, [actionId]: parseInt(e.target.value, 10) || 1 }))}
-                      className="w-20"
-                    />
-                    <span className="text-xs text-gray-500">créditos</span>
-                  </div>
-                ))}
-              </div>
+              {creationModelsLoading ? (
+                <p className="text-sm text-gray-500">Carregando modelos...</p>
+              ) : (
+                <div className="space-y-3 max-h-[60vh] overflow-y-auto">
+                  {creationModels.map((row) => {
+                    const functions: string[] = []
+                    if (row.can_image) functions.push('Foto')
+                    if (row.can_video) functions.push('Vídeo / Roteiro')
+                    if (row.can_prompt) functions.push('Criação de Prompts')
+                    const functionLabel = functions.length > 0 ? functions.join(', ') : 'Nenhuma função'
+                    return (
+                      <div key={row.id} className="flex flex-wrap items-center gap-4 p-3 bg-gray-50 rounded-lg border">
+                        <div className="flex items-center gap-2 min-w-0">
+                          {row.logo_url ? (
+                            <img src={row.logo_url} alt="" className="h-8 w-8 rounded object-contain bg-white" />
+                          ) : (
+                            <div className="h-8 w-8 rounded bg-gray-200 flex items-center justify-center">
+                              <Bot className="h-4 w-4 text-gray-500" />
+                            </div>
+                          )}
+                          <div>
+                            <span className="font-medium text-gray-900">{row.name}</span>
+                            <span className="text-xs text-gray-500 ml-2">({functionLabel})</span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Input
+                            type="number"
+                            min={1}
+                            placeholder="Padrão"
+                            value={row.credit_cost != null && row.credit_cost > 0 ? String(row.credit_cost) : ''}
+                            onChange={(e) => {
+                              const v = e.target.value.trim()
+                              updateCreationModel(row.id, { credit_cost: v === '' ? null : parseInt(v, 10) || null })
+                            }}
+                            className="w-24"
+                          />
+                          <span className="text-xs text-gray-500">créditos</span>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            onClick={() => saveModelCreditCost(row.id, creationModels.find((m) => m.id === row.id)?.credit_cost ?? null)}
+                            className="gap-1"
+                          >
+                            <Save size={14} />
+                            Salvar
+                          </Button>
+                        </div>
+                      </div>
+                    )
+                  })}
+                  {creationModels.length === 0 && !creationModelsLoading && (
+                    <p className="text-sm text-gray-500">Nenhum modelo. Adicione em &quot;Modelos de IA&quot; e defina o custo aqui.</p>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
