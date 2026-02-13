@@ -134,6 +134,7 @@ export interface CreationAIModelOption {
 
 export interface AI_PromptProps {
   placeholder?: string
+  /** Chamado ao enviar; o pai deve validar (auth, créditos) e só então chamar clearInputRef?.current?.clear() para apagar o campo */
   onSend?: (message: string, model: string) => void
   className?: string
   /** Valor inicial (ex.: prompt vindo da homepage "Testar e criar") */
@@ -148,6 +149,8 @@ export interface AI_PromptProps {
   selectedModelId?: string
   /** Callback quando o usuário troca o modelo (quando models é passado) */
   onModelChange?: (modelId: string) => void
+  /** Ref para o pai limpar o input após enviar com sucesso (evita apagar texto quando der erro de crédito/API) */
+  clearInputRef?: React.MutableRefObject<{ clear: () => void } | null>
 }
 
 export function AI_Prompt({
@@ -160,6 +163,7 @@ export function AI_Prompt({
   models: propsModels,
   selectedModelId: propsSelectedModelId,
   onModelChange,
+  clearInputRef,
 }: AI_PromptProps) {
   const [value, setValue] = useState(initialValue ?? '')
   const { textareaRef, adjustHeight } = useAutoResizeTextarea({ minHeight: 72, maxHeight: 300 })
@@ -177,20 +181,38 @@ export function AI_Prompt({
     }
   }, [initialValue])
 
+  const clearInput = useCallback(() => {
+    setValue('')
+    adjustHeight(true)
+  }, [adjustHeight])
+
+  useEffect(() => {
+    if (clearInputRef) {
+      clearInputRef.current = { clear: clearInput }
+      return () => {
+        clearInputRef.current = null
+      }
+    }
+  }, [clearInputRef, clearInput])
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey && value.trim()) {
       e.preventDefault()
       onSend?.(value.trim(), selectedId)
-      setValue('')
-      adjustHeight(true)
+      if (!clearInputRef) {
+        setValue('')
+        adjustHeight(true)
+      }
     }
   }
 
   const handleSend = () => {
     if (!value.trim()) return
     onSend?.(value.trim(), selectedId)
-    setValue('')
-    adjustHeight(true)
+    if (!clearInputRef) {
+      setValue('')
+      adjustHeight(true)
+    }
   }
 
   const isGerarVariant = variant === 'gerar'

@@ -118,6 +118,20 @@ export default function CriarGerarPage() {
   const [creationModelsApi, setCreationModelsApi] = useState<CreationModelOption[]>([])
   const imageInputRef = useRef<HTMLInputElement>(null)
   const videoInputRef = useRef<HTMLInputElement>(null)
+  const promptClearInputRef = useRef<{ clear: () => void } | null>(null)
+
+  // Quando trocar de contexto (outro prompt, outra aba ou chat geral), limpar mensagens e arquivos para começar nova geração
+  const contextRef = useRef<{ tab: TabId; promptId: string | null }>({ tab: 'foto', promptId: null })
+  useEffect(() => {
+    const currentTab: TabId = selectedPrompt?.tabId ?? (tabFromUrl && ['foto', 'video', 'roteiro', 'vangogh'].includes(tabFromUrl) ? tabFromUrl : 'foto')
+    const currentPromptId = selectedPrompt?.id ?? null
+    const prev = contextRef.current
+    if (prev.tab !== currentTab || prev.promptId !== currentPromptId) {
+      setMessages([])
+      setPromptViewFiles({})
+      contextRef.current = { tab: currentTab, promptId: currentPromptId }
+    }
+  }, [selectedPrompt?.id, selectedPrompt?.tabId, tabFromUrl])
 
   useEffect(() => {
     fetch('/api/credits/costs')
@@ -211,6 +225,7 @@ export default function CriarGerarPage() {
       if (!result.ok) return
       const userMsg: ChatMessage = { id: 'u-' + Date.now(), from: 'user', content: message }
       setMessages((prev) => [...prev, userMsg])
+      promptClearInputRef.current?.clear()
       setGenerating(true)
       const assistantId = 'a-' + Date.now()
       try {
@@ -793,6 +808,7 @@ export default function CriarGerarPage() {
             models={availableModels}
             selectedModelId={selectedModelId}
             onModelChange={setSelectedModelId}
+            clearInputRef={promptClearInputRef}
           />
           {generating && (
             <div className="mt-4 flex items-center gap-2 rounded-lg border bg-muted/50 px-4 py-3">

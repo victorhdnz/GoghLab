@@ -49,14 +49,18 @@ export async function POST(request: Request) {
     if (!usageRow) {
       const { data: sub } = await (supabase as any)
         .from('subscriptions')
-        .select('plan_id')
+        .select('plan_id, plan_type')
         .eq('user_id', user.id)
         .eq('status', 'active')
         .gte('current_period_end', new Date().toISOString())
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle()
-      const monthly = getMonthlyCreditsForPlan(sub?.plan_id, config)
+      let planId = sub?.plan_id
+      if (!planId && sub?.plan_type) {
+        planId = sub.plan_type === 'premium' ? 'gogh_pro' : sub.plan_type === 'essential' ? 'gogh_essencial' : undefined
+      }
+      const monthly = getMonthlyCreditsForPlan(planId, config)
       const { data: inserted, error: insertErr } = await (supabase as any)
         .from('user_usage')
         .insert({

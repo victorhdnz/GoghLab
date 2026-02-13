@@ -30,7 +30,7 @@ export async function GET() {
 
     const { data: usageRow } = await (supabase as any)
       .from('user_usage')
-      .select('usage_count')
+      .select('id, usage_count')
       .eq('user_id', user.id)
       .eq('feature_key', 'ai_credits')
       .eq('period_start', periodStart)
@@ -39,18 +39,25 @@ export async function GET() {
 
     let balance = usageRow?.usage_count ?? null
 
-    if (balance === null) {
+    const fetchPlanCredits = async () => {
       const { data: sub } = await (supabase as any)
         .from('subscriptions')
-        .select('plan_id')
+        .select('plan_id, plan_type')
         .eq('user_id', user.id)
         .eq('status', 'active')
         .gte('current_period_end', new Date().toISOString())
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle()
-      const planId = sub?.plan_id
-      const monthly = getMonthlyCreditsForPlan(planId, config)
+      let planId = sub?.plan_id
+      if (!planId && sub?.plan_type) {
+        planId = sub.plan_type === 'premium' ? 'gogh_pro' : sub.plan_type === 'essential' ? 'gogh_essencial' : undefined
+      }
+      return getMonthlyCreditsForPlan(planId, config)
+    }
+
+    if (balance === null) {
+      const monthly = await fetchPlanCredits()
       const { error: insertErr } = await (supabase as any)
         .from('user_usage')
         .insert({
@@ -64,6 +71,16 @@ export async function GET() {
         return NextResponse.json({ error: insertErr.message }, { status: 500 })
       }
       balance = monthly
+    } else if (Number(balance) === 0) {
+      // Reconciliação: assinatura manual pode ter criado a linha com 0; corrigir se o plano tem créditos
+      const monthly = await fetchPlanCredits()
+      if (monthly > 0 && usageRow?.id) {
+        await (supabase as any)
+          .from('user_usage')
+          .update({ usage_count: monthly, updated_at: new Date().toISOString() })
+          .eq('id', usageRow.id)
+        balance = monthly
+      }
     }
 
     // Créditos comprados à parte (não renovam por mês)
