@@ -40,10 +40,17 @@ export default async function PrecosPage() {
     )
   }
 
-  const rowWithContent = row as { homepage_content?: unknown }
+  type GeneralRow = {
+    contact_whatsapp?: string | null
+    site_name?: string | null
+    site_logo?: string | null
+    instagram_url?: string | null
+    homepage_content?: unknown
+  }
+  const generalRow = row as GeneralRow
   const homepageContent: any =
-    rowWithContent.homepage_content && typeof rowWithContent.homepage_content === 'object'
-      ? rowWithContent.homepage_content
+    generalRow.homepage_content && typeof generalRow.homepage_content === 'object'
+      ? generalRow.homepage_content
       : {}
   const resolvedContent = await resolvePricingFeaturesFromProducts(supabase, homepageContent)
   const pricing = resolvedContent?.pricing || {}
@@ -62,10 +69,10 @@ export default async function PrecosPage() {
     })
   }
   const siteSettings = {
-    contact_whatsapp: row.contact_whatsapp ?? null,
-    site_name: row.site_name ?? null,
-    site_logo: row.site_logo ?? null,
-    instagram_url: row.instagram_url ?? null,
+    contact_whatsapp: generalRow.contact_whatsapp ?? null,
+    site_name: generalRow.site_name ?? null,
+    site_logo: generalRow.site_logo ?? null,
+    instagram_url: generalRow.instagram_url ?? null,
   }
 
   const hasPlans = Array.isArray(pricing.pricing_plans) && pricing.pricing_plans.length > 0
