@@ -141,11 +141,11 @@ export async function POST(request: Request) {
 
     if (tab === 'roteiro' || tab === 'vangogh') {
       const forPrompt = tab === 'vangogh'
-      if (forPrompt && !modelRow.can_prompt) {
-        return NextResponse.json({ error: 'Modelo não disponível para criação de prompts' }, { status: 400 })
-      }
-      if (tab === 'roteiro' && !modelRow.can_video) {
-        return NextResponse.json({ error: 'Modelo não disponível para roteiro' }, { status: 400 })
+      if (!modelRow.can_prompt) {
+        return NextResponse.json(
+          { error: tab === 'roteiro' ? 'Modelo não disponível para roteiro (use modelo de texto)' : 'Modelo não disponível para criação de prompts' },
+          { status: 400 }
+        )
       }
 
       const textModel = openaiModelId.startsWith('gpt-') && !openaiModelId.startsWith('gpt-image')

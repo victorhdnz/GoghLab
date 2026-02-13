@@ -20,7 +20,7 @@ import { INPUT_STRUCTURES } from '@/types/creation-prompts'
 const CREDIT_ACTION_LABELS: Record<CreditActionId, string> = {
   foto: 'Foto',
   video: 'Vídeo',
-  roteiro: 'Roteiro',
+  roteiro: 'Roteiro de Vídeos',
   vangogh: 'Criação de Prompts',
 }
 const DEFAULT_COST_BY_ACTION: Record<CreditActionId, number> = {
@@ -33,7 +33,7 @@ const DEFAULT_COST_BY_ACTION: Record<CreditActionId, number> = {
 const TAB_OPTIONS: { value: CreationTabId; label: string }[] = [
   { value: 'foto', label: 'Foto' },
   { value: 'video', label: 'Vídeo' },
-  { value: 'roteiro', label: 'Roteiro' },
+  { value: 'roteiro', label: 'Roteiro de Vídeos' },
   { value: 'vangogh', label: 'Criação de Prompts' },
 ]
 
@@ -423,7 +423,7 @@ export default function CriarPromptsPage() {
                               onChange={(e) => updateCreationModel(row.id, { can_video: e.target.checked })}
                               className="rounded border-gray-300"
                             />
-                            <span className="text-sm">Aparece em Vídeo / Vídeo com Roteiro</span>
+                            <span className="text-sm">Aparece em Vídeo / Roteiro de Vídeos</span>
                           </label>
                           <label className="flex items-center gap-2">
                             <input

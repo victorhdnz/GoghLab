@@ -27,10 +27,10 @@ import { getYouTubeId, getYouTubeThumbnail, getYouTubeEmbedUrl } from '@/lib/uti
 import { isCloudinaryVideoUrl, getCloudinaryContainerClasses } from '@/lib/utils/cloudinary'
 
 const TABS = [
-  { id: 'foto', label: 'Criação de Foto' },
-  { id: 'video', label: 'Criação de Vídeo' },
-  { id: 'roteiro', label: 'Vídeo com Roteiro' },
-  { id: 'vangogh', label: 'Criação de prompts' },
+  { id: 'foto', label: 'Foto' },
+  { id: 'video', label: 'Vídeo' },
+  { id: 'roteiro', label: 'Roteiro de Vídeos' },
+  { id: 'vangogh', label: 'Criação de Prompts' },
 ] as const
 
 type TabId = (typeof TABS)[number]['id']
@@ -59,9 +59,9 @@ const MODELS_BY_TAB_FALLBACK: Record<TabId, { id: string; label: string }[]> = {
     { id: 'pika', label: 'Pika' },
   ],
   roteiro: [
-    { id: 'default-video', label: 'Padrão (vídeo)' },
-    { id: 'runway', label: 'Runway' },
-    { id: 'pika', label: 'Pika' },
+    { id: 'default-prompt', label: 'Padrão (roteiro)' },
+    { id: 'gpt-4o-mini', label: 'GPT-4o Mini' },
+    { id: 'gpt-4o', label: 'GPT-4o' },
   ],
   vangogh: [
     { id: 'default-prompt', label: 'Padrão' },
@@ -164,12 +164,13 @@ export default function CriarGerarPage() {
 
   const activeTab: TabId = selectedPrompt?.tabId ?? (tabFromUrl && ['foto', 'video', 'roteiro', 'vangogh'].includes(tabFromUrl) ? tabFromUrl : 'foto')
 
+  /** Modelos filtrados pela função da aba: Foto → can_image, Vídeo → can_video, Roteiro de Vídeos / Criação de Prompts → can_prompt. Tanto no chat geral quanto em um prompt específico, o usuário vê só os modelos daquela função. */
   const availableModels = useMemo(() => {
     type Cap = 'can_image' | 'can_video' | 'can_prompt'
     const cap: Record<TabId, Cap> = {
       foto: 'can_image',
       video: 'can_video',
-      roteiro: 'can_video',
+      roteiro: 'can_prompt',
       vangogh: 'can_prompt',
     }
     const key = cap[activeTab]
@@ -177,9 +178,14 @@ export default function CriarGerarPage() {
       const fallback = MODELS_BY_TAB_FALLBACK[activeTab] ?? MODELS_BY_TAB_FALLBACK.foto
       return fallback.map((m) => ({ id: m.id, name: m.label, logo_url: null as string | null }))
     }
-    return creationModelsApi
+    const filtered = creationModelsApi
       .filter((m) => m[key] === true)
       .map((m) => ({ id: m.id, name: m.name, logo_url: m.logo_url }))
+    if (filtered.length === 0) {
+      const fallback = MODELS_BY_TAB_FALLBACK[activeTab] ?? MODELS_BY_TAB_FALLBACK.foto
+      return fallback.map((m) => ({ id: m.id, name: m.label, logo_url: null as string | null }))
+    }
+    return filtered
   }, [activeTab, creationModelsApi])
 
   const [selectedModelId, setSelectedModelId] = useState<string>(availableModels[0]?.id ?? 'default-image')
@@ -614,6 +620,8 @@ export default function CriarGerarPage() {
     )
   }
 
+  const isChatGeral = selectedPrompt === null
+
   return (
     <div className="container mx-auto max-w-3xl px-3 sm:px-4 py-3 sm:py-4">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
@@ -631,6 +639,26 @@ export default function CriarGerarPage() {
           </span>
         )}
       </div>
+
+      {/* No chat geral: seletor de função para ver só os modelos daquela função (Foto / Vídeo / Roteiro / Prompts) */}
+      {isChatGeral && (
+        <div className="mb-4 flex flex-wrap gap-1 rounded-xl border bg-muted/30 p-1.5">
+          {TABS.map((t) => (
+            <Link
+              key={t.id}
+              href={`/criar/gerar?tab=${t.id}`}
+              className={cn(
+                'rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                activeTab === t.id
+                  ? 'bg-background text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-background/50'
+              )}
+            >
+              {t.label}
+            </Link>
+          ))}
+        </div>
+      )}
 
       {showCreditModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" role="dialog" aria-modal="true">

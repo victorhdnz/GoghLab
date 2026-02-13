@@ -326,7 +326,7 @@ export default function PricingEditorPage() {
   const CREDIT_ACTION_LABELS: Record<CreditActionId, string> = {
     foto: 'Foto',
     video: 'Vídeo',
-    roteiro: 'Roteiro',
+    roteiro: 'Roteiro de Vídeos',
     vangogh: 'Criação de Prompts',
   }
   const PLAN_IDS_CREDITS = ['gogh_essencial', 'gogh_pro'] as const

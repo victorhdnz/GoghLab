@@ -15,8 +15,8 @@ import type { CreationPromptItem, CreationTabId } from '@/types/creation-prompts
 const TABS = [
   { id: 'foto', label: 'Foto', icon: ImageIcon },
   { id: 'video', label: 'Vídeo', icon: Video },
-  { id: 'roteiro', label: 'Roteiro', icon: FileText },
-  { id: 'vangogh', label: 'Criação de prompts', icon: Palette },
+  { id: 'roteiro', label: 'Roteiro de Vídeos', icon: FileText },
+  { id: 'vangogh', label: 'Criação de Prompts', icon: Palette },
 ] as const
 
 type TabId = (typeof TABS)[number]['id']
@@ -97,7 +97,7 @@ export default function CriarPage() {
       {/* Grid só de cards: capa, título, subtítulo. Clique abre nova página para criar */}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4">
         <Link
-          href="/criar/gerar"
+          href={`/criar/gerar?tab=${activeTab}`}
           className="rounded-xl border-2 border-border bg-card text-left overflow-hidden transition-all hover:shadow-md hover:border-primary/50 focus:outline-none focus:ring-2 focus:ring-primary/20"
         >
           <div className="aspect-video bg-muted/50 flex items-center justify-center">
