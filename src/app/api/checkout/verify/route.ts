@@ -21,6 +21,8 @@ export async function GET(request: Request) {
     // Recuperar a sessão do Stripe
     const session = await stripe.checkout.sessions.retrieve(sessionId)
 
+    const isServiceSubscription = session.metadata?.planType === 'service'
+
     return NextResponse.json({
       status: session.status,
       paymentStatus: session.payment_status,
@@ -29,6 +31,7 @@ export async function GET(request: Request) {
       billingCycle: session.metadata?.billingCycle,
       customerEmail: session.customer_email,
       amountTotal: session.amount_total, // Valor total em centavos
+      isServiceSubscription: !!isServiceSubscription,
     })
   } catch (error: any) {
     console.error('Erro ao verificar sessão:', error)

@@ -110,7 +110,7 @@ export async function GET() {
         avatar_url: profile.avatar_url,
         role: profile.role,
         created_at: profile.created_at,
-        contact_phone: profile.contact_phone ?? null,
+        contact_phone: profile.contact_phone ?? profile.phone ?? null,
         subscription: subscription
           ? {
               id: subscription.id,

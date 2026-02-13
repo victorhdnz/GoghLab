@@ -26,6 +26,7 @@ interface Member {
   avatar_url: string | null
   role: string
   created_at: string
+  contact_phone?: string | null
   subscription?: {
     id: string
     plan_id: string
@@ -634,6 +635,9 @@ export default function MembrosPage() {
                     Usuário
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Número
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Assinatura
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -673,6 +677,15 @@ export default function MembrosPage() {
                             </p>
                           </div>
                         </div>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-700">
+                        {member.contact_phone ? (
+                          <a href={`tel:${member.contact_phone}`} className="text-[#F7C948] hover:underline">
+                            {member.contact_phone}
+                          </a>
+                        ) : (
+                          <span className="text-gray-400">—</span>
+                        )}
                       </td>
                       <td className="px-6 py-4">
                         {editingMember === member.id ? (
@@ -934,7 +947,7 @@ export default function MembrosPage() {
 
                   {filteredMembers.length === 0 && (
                     <tr>
-                      <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
+                      <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
                         Nenhum membro encontrado
                       </td>
                     </tr>

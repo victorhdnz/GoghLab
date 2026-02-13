@@ -11,9 +11,11 @@ import {
   Calendar,
   CreditCard,
   CheckCircle2,
-  MessageCircle
+  MessageCircle,
+  Phone
 } from 'lucide-react'
 import { LumaSpin } from '@/components/ui/luma-spin'
+import { Button } from '@/components/ui/button'
 
 /** Limites de quantidade dos serviços personalizados (mensal e anual). Definidos nos termos. */
 const SERVICE_QUANTITY_LIMITS: Record<string, { quantity: number; label: string }> = {
@@ -37,7 +39,11 @@ export default function ServicosPage() {
   const [serviceSubscriptions, setServiceSubscriptions] = useState<ServiceSubscription[]>([])
   const [loading, setLoading] = useState(true)
   const [whatsappNumber, setWhatsappNumber] = useState<string>('5534999999999')
-  
+  const [contactPhone, setContactPhone] = useState<string | null>(null)
+  const [showPhoneModal, setShowPhoneModal] = useState(false)
+  const [phoneInput, setPhoneInput] = useState('')
+  const [savingPhone, setSavingPhone] = useState(false)
+
   const supabase = createClient()
 
   useEffect(() => {
@@ -99,8 +105,25 @@ export default function ServicosPage() {
           }]
         }
         
-        console.log('📦 Serviços carregados:', services.length, services)
         setServiceSubscriptions(services)
+
+        // Carregar telefone do perfil (para exibir e para exigir cadastro na primeira entrada)
+        const loadProfilePhone = async () => {
+          if (!user) return
+          try {
+            const { data } = await (supabase as any)
+              .from('profiles')
+              .select('contact_phone, phone')
+              .eq('id', user.id)
+              .single()
+            const phone = data?.contact_phone ?? data?.phone ?? null
+            setContactPhone(phone)
+            if (services.length > 0 && !phone) setShowPhoneModal(true)
+          } catch {
+            if (services.length > 0) setShowPhoneModal(true)
+          }
+        }
+        loadProfilePhone()
       } catch (error) {
         console.error('Erro ao carregar serviços:', error)
         toast.error('Erro ao carregar serviços contratados')
@@ -168,8 +191,79 @@ export default function ServicosPage() {
     )
   }
 
+  const handleSavePhone = async () => {
+    const raw = phoneInput.replace(/\D/g, '')
+    if (raw.length < 10) {
+      toast.error('Informe um número válido com DDD')
+      return
+    }
+    setSavingPhone(true)
+    try {
+      const { error } = await (supabase as any)
+        .from('profiles')
+        .update({ contact_phone: raw, updated_at: new Date().toISOString() })
+        .eq('id', user!.id)
+      if (error) throw error
+      setContactPhone(raw)
+      setShowPhoneModal(false)
+      setPhoneInput('')
+      toast.success('Número cadastrado. Nossa equipe pode entrar em contato por ele.')
+    } catch (e: any) {
+      toast.error(e?.message || 'Erro ao salvar número')
+    } finally {
+      setSavingPhone(false)
+    }
+  }
+
+  const mustShowPhoneModal = showPhoneModal && serviceSubscriptions.length > 0 && !contactPhone
+
   return (
     <div className="max-w-4xl mx-auto">
+      {/* Modal obrigatório: cadastrar telefone na primeira entrada (quem tem serviços e ainda não tem número) */}
+      {mustShowPhoneModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" role="dialog" aria-modal="true">
+          <div className="bg-white rounded-2xl shadow-xl border border-gogh-grayLight p-6 max-w-md w-full">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 rounded-full bg-gogh-yellow/20 flex items-center justify-center">
+                <Phone className="h-6 w-6 text-gogh-black" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gogh-black">Cadastre seu número para contato</h3>
+                <p className="text-sm text-gogh-grayDark mt-0.5">
+                  Para acessar esta área e para que nossa equipe possa entrar em contato sobre seus serviços, informe seu WhatsApp ou telefone.
+                </p>
+              </div>
+            </div>
+            <input
+              type="tel"
+              placeholder="(00) 00000-0000"
+              value={phoneInput}
+              onChange={(e) => setPhoneInput(e.target.value)}
+              className="w-full px-4 py-3 border border-gogh-grayLight rounded-xl text-gogh-black placeholder:text-gray-400 focus:ring-2 focus:ring-gogh-yellow focus:border-gogh-yellow"
+              aria-label="Telefone para contato"
+            />
+            <div className="flex gap-3 mt-4">
+              <Button
+                type="button"
+                variant="outline"
+                className="flex-1"
+                onClick={() => setShowPhoneModal(false)}
+              >
+                Depois
+              </Button>
+              <Button
+                type="button"
+                className="flex-1 bg-gogh-yellow hover:bg-gogh-yellow/90 text-gogh-black"
+                onClick={handleSavePhone}
+                disabled={savingPhone}
+              >
+                {savingPhone ? 'Salvando...' : 'Salvar e continuar'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="text-center mb-8">
         <h1 className="text-2xl lg:text-3xl font-bold text-gogh-black mb-2">

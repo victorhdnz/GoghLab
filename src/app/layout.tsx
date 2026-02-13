@@ -4,6 +4,7 @@ import './globals.css'
 import { PageTransition } from '@/components/layout/PageTransition'
 import { ConditionalLayout } from '@/components/layout/ConditionalLayout'
 import { ScrollEnabler } from '@/components/layout/ScrollEnabler'
+import { PurchaseNotificationGlobal } from '@/components/layout/PurchaseNotificationGlobal'
 import { Toaster } from 'react-hot-toast'
 import { getSiteUrl } from '@/lib/utils/siteUrl'
 import { createServerClient } from '@/lib/supabase/server'
@@ -302,6 +303,7 @@ export default function RootLayout({
         <Providers>
           <NotFoundProvider>
             <ConditionalLayout>
+              <PurchaseNotificationGlobal />
               <PageTransition>
                 <main className="relative">
                   {children}
