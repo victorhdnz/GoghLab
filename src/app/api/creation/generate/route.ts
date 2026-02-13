@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createRouteHandlerClient } from '@/lib/supabase/server'
 import OpenAI from 'openai'
+import { GoogleGenAI } from '@google/genai'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 120
@@ -20,6 +21,14 @@ function isXaiModel(modelKey: string | null): boolean {
 
 function getXaiModelId(modelKey: string): string {
   return modelKey.replace(/^xai\//, '')
+}
+
+function isGoogleModel(modelKey: string | null): boolean {
+  return !!modelKey && modelKey.startsWith('google/')
+}
+
+function getGoogleModelId(modelKey: string): string {
+  return modelKey.replace(/^google\//, '')
 }
 
 export async function POST(request: Request) {
@@ -65,12 +74,21 @@ export async function POST(request: Request) {
     }
 
     const useXai = isXaiModel(modelKey)
+    const useGoogle = isGoogleModel(modelKey)
     if (useXai) {
       if (!process.env.XAI_API_KEY) {
         console.error('[creation/generate] XAI_API_KEY não configurada')
         return NextResponse.json({
           error: SERVICE_ERROR_MESSAGE,
           code: 'XAI_NOT_CONFIGURED',
+        }, { status: 503 })
+      }
+    } else if (useGoogle) {
+      if (!process.env.GEMINI_API_KEY) {
+        console.error('[creation/generate] GEMINI_API_KEY não configurada')
+        return NextResponse.json({
+          error: SERVICE_ERROR_MESSAGE,
+          code: 'GEMINI_NOT_CONFIGURED',
         }, { status: 503 })
       }
     } else if (!modelKey.startsWith('openai/')) {
@@ -86,9 +104,10 @@ export async function POST(request: Request) {
       }, { status: 503 })
     }
 
-    const openai = useXai ? null : new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
-    const openaiModelId = !useXai ? modelKey.replace(/^openai\//, '') : ''
+    const openai = !useXai && !useGoogle ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) : null
+    const openaiModelId = !useXai && !useGoogle ? modelKey.replace(/^openai\//, '') : ''
     const xaiModelId = useXai ? getXaiModelId(modelKey) : ''
+    const googleModelId = useGoogle ? getGoogleModelId(modelKey) : ''
 
     // --- xAI: foto (imagem)
     if (useXai && tab === 'foto') {
@@ -213,8 +232,108 @@ export async function POST(request: Request) {
       })
     }
 
+    // --- Google (Gemini/Veo): foto (Nano Banana)
+    if (useGoogle && tab === 'foto') {
+      if (!modelRow.can_image) {
+        return NextResponse.json({ error: 'Modelo não disponível para criação de foto' }, { status: 400 })
+      }
+      const imageModel = googleModelId === 'gemini-3-pro-image-preview' ? 'gemini-3-pro-image-preview' : 'gemini-2.5-flash-image'
+      try {
+        const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY })
+        const response = await ai.models.generateContent({
+          model: imageModel,
+          contents: prompt,
+        })
+        const parts = response.candidates?.[0]?.content?.parts ?? []
+        let b64: string | null = null
+        for (const part of parts) {
+          if ((part as any).inlineData?.data) {
+            b64 = (part as any).inlineData.data
+            break
+          }
+        }
+        if (!b64) {
+          console.error('[creation/generate] Google: nenhuma imagem retornada')
+          return NextResponse.json({ error: SERVICE_ERROR_MESSAGE }, { status: 503 })
+        }
+        return NextResponse.json({
+          ok: true,
+          type: 'image',
+          imageBase64: b64,
+          contentType: 'image/png',
+        })
+      } catch (e: any) {
+        console.error('[creation/generate] Google image error:', e)
+        return NextResponse.json({ error: SERVICE_ERROR_MESSAGE }, { status: 503 })
+      }
+    }
+
+    // --- Google: vídeo (Veo 3.1)
+    if (useGoogle && tab === 'video') {
+      if (!modelRow.can_video) {
+        return NextResponse.json({ error: 'Modelo não disponível para vídeo' }, { status: 400 })
+      }
+      if (googleModelId !== 'veo-3.1-generate-preview') {
+        return NextResponse.json({ error: 'Use o modelo Veo 3.1 para vídeo.' }, { status: 400 })
+      }
+      try {
+        const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY })
+        const operation = await ai.models.generateVideos({
+          model: 'veo-3.1-generate-preview',
+          prompt,
+        })
+        const opName = (operation as any).name
+        if (!opName) {
+          console.error('[creation/generate] Google Veo: operação sem name')
+          return NextResponse.json({ error: SERVICE_ERROR_MESSAGE }, { status: 503 })
+        }
+        return NextResponse.json({
+          ok: true,
+          type: 'video',
+          videoId: `google:${opName}`,
+          status: 'pending',
+          message: 'Vídeo em geração. Use o endpoint de status para verificar e baixar quando pronto.',
+        })
+      } catch (e: any) {
+        console.error('[creation/generate] Google video error:', e)
+        return NextResponse.json({ error: SERVICE_ERROR_MESSAGE }, { status: 503 })
+      }
+    }
+
+    // --- Google: texto (roteiro / vangogh)
+    if (useGoogle && (tab === 'roteiro' || tab === 'vangogh')) {
+      const forPrompt = tab === 'vangogh'
+      if (!modelRow.can_prompt) {
+        return NextResponse.json(
+          { error: tab === 'roteiro' ? 'Modelo não disponível para roteiro.' : 'Modelo não disponível para criação de prompts.' },
+          { status: 400 }
+        )
+      }
+      const textModel = googleModelId === 'gemini-3-flash-preview' ? 'gemini-3-flash-preview' : 'gemini-2.5-flash'
+      const systemInstruction = forPrompt
+        ? 'Gere um prompt criativo e detalhado para criação de conteúdo (imagem ou vídeo) com base no pedido do usuário. Responda apenas com o texto do prompt, sem explicações extras.'
+        : 'Você é um roteirista. Elabore um roteiro de vídeo (cenas, falas, indicações) com base no pedido do usuário. Seja objetivo e criativo.'
+      try {
+        const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY })
+        const response = await ai.models.generateContent({
+          model: textModel,
+          contents: prompt,
+          config: { systemInstruction },
+        })
+        const text = (response.text ?? '').trim() || '(Nenhum texto retornado.)'
+        return NextResponse.json({
+          ok: true,
+          type: 'text',
+          text,
+        })
+      } catch (e: any) {
+        console.error('[creation/generate] Google text error:', e)
+        return NextResponse.json({ error: SERVICE_ERROR_MESSAGE }, { status: 503 })
+      }
+    }
+
     // --- OpenAI: foto
-    if (!useXai && tab === 'foto') {
+    if (!useXai && !useGoogle && tab === 'foto') {
       if (!modelRow.can_image) {
         return NextResponse.json({ error: 'Modelo não disponível para criação de foto' }, { status: 400 })
       }
@@ -247,7 +366,7 @@ export async function POST(request: Request) {
     }
 
     // --- OpenAI: vídeo
-    if (!useXai && tab === 'video') {
+    if (!useXai && !useGoogle && tab === 'video') {
       if (!modelRow.can_video) {
         return NextResponse.json({ error: 'Modelo não disponível para vídeo' }, { status: 400 })
       }
@@ -289,7 +408,7 @@ export async function POST(request: Request) {
     }
 
     // --- OpenAI: roteiro / vangogh
-    if (!useXai && (tab === 'roteiro' || tab === 'vangogh')) {
+    if (!useXai && !useGoogle && (tab === 'roteiro' || tab === 'vangogh')) {
       const forPrompt = tab === 'vangogh'
       if (!modelRow.can_prompt) {
         return NextResponse.json(
