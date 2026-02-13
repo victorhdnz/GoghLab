@@ -136,7 +136,7 @@ export function FloatingHeader() {
     else if (pathname === '/criar' || pathname?.startsWith('/criar/')) setMobileActiveIndex(2)
     else if (pathname === '/precos') setMobileActiveIndex(3)
     else if (pathname === '/conta' || pathname?.startsWith('/conta/') || pathname === '/login') setMobileActiveIndex(4)
-    else if (pathname === '/ferramentas' || pathname === '/cursos' || pathname === '/membro/servicos' || pathname?.startsWith('/membro/servicos/')) setMobileActiveIndex(1)
+    else if (pathname === '/ferramentas' || pathname === '/cursos' || pathname === '/servicos' || pathname === '/membro/servicos' || pathname?.startsWith('/membro/servicos/')) setMobileActiveIndex(1)
   }, [pathname])
 
   // Posicionar indicador branco do nav mobile pelo elemento ativo (responsivo)

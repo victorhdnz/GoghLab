@@ -244,18 +244,10 @@ export default function ServicosPage() {
               className="w-full px-4 py-3 border border-gogh-grayLight rounded-xl text-gogh-black placeholder:text-gray-400 focus:ring-2 focus:ring-gogh-yellow focus:border-gogh-yellow"
               aria-label="Telefone para contato"
             />
-            <div className="flex gap-3 mt-4">
+            <div className="mt-4">
               <Button
                 type="button"
-                variant="outline"
-                className="flex-1"
-                onClick={() => setShowPhoneModal(false)}
-              >
-                Depois
-              </Button>
-              <Button
-                type="button"
-                className="flex-1 bg-gogh-yellow hover:bg-gogh-yellow/90 text-gogh-black"
+                className="w-full bg-gogh-yellow hover:bg-gogh-yellow/90 text-gogh-black"
                 onClick={handleSavePhone}
                 disabled={savingPhone}
               >
