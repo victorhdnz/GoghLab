@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createRouteHandlerClient } from '@/lib/supabase/server'
+import { createSupabaseAdmin } from '@/lib/supabase/admin'
 import {
   getMonthBounds,
   getCreditsConfigKey,
@@ -13,11 +14,13 @@ export const dynamic = 'force-dynamic'
 
 export async function POST(request: Request) {
   try {
-    const supabase = createRouteHandlerClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const routeClient = createRouteHandlerClient()
+    const { data: { user } } = await routeClient.auth.getUser()
     if (!user) {
       return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
     }
+
+    const supabase = createSupabaseAdmin() as any
 
     const body = await request.json().catch(() => ({}))
     const actionId = body?.actionId as CreditActionId | undefined
@@ -37,7 +40,7 @@ export async function POST(request: Request) {
 
     const { periodStart, periodEnd } = getMonthBounds()
 
-    let { data: usageRow } = await (supabase as any)
+    let { data: usageRow } = await supabase
       .from('user_usage')
       .select('id, usage_count')
       .eq('user_id', user.id)
@@ -47,7 +50,7 @@ export async function POST(request: Request) {
       .maybeSingle()
 
     if (!usageRow) {
-      const { data: sub } = await (supabase as any)
+      const { data: sub } = await supabase
         .from('subscriptions')
         .select('plan_id, plan_type')
         .eq('user_id', user.id)
@@ -60,8 +63,21 @@ export async function POST(request: Request) {
       if (!planId && sub?.plan_type) {
         planId = sub.plan_type === 'premium' ? 'gogh_pro' : sub.plan_type === 'essential' ? 'gogh_essencial' : undefined
       }
+      if (!planId) {
+        const { data: serviceSub } = await supabase
+          .from('service_subscriptions')
+          .select('plan_id')
+          .eq('user_id', user.id)
+          .in('status', ['active', 'trialing'])
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle()
+        if (serviceSub?.plan_id && ['gogh_essencial', 'gogh_pro'].includes(serviceSub.plan_id)) {
+          planId = serviceSub.plan_id
+        }
+      }
       const monthly = getMonthlyCreditsForPlan(planId, config)
-      const { data: inserted, error: insertErr } = await (supabase as any)
+      const { data: inserted, error: insertErr } = await supabase
         .from('user_usage')
         .insert({
           user_id: user.id,
@@ -79,7 +95,7 @@ export async function POST(request: Request) {
     }
 
     const monthlyCount = Number(usageRow.usage_count)
-    const { data: purchasedRows } = await (supabase as any)
+    const { data: purchasedRows } = await supabase
       .from('user_usage')
       .select('id, usage_count')
       .eq('user_id', user.id)
@@ -100,7 +116,7 @@ export async function POST(request: Request) {
     const newMonthly = monthlyCount - deductFromMonthly
     remaining -= deductFromMonthly
 
-    const { error: updateMonthlyErr } = await (supabase as any)
+    const { error: updateMonthlyErr } = await supabase
       .from('user_usage')
       .update({ usage_count: newMonthly, updated_at: new Date().toISOString() })
       .eq('id', usageRow.id)
@@ -115,7 +131,7 @@ export async function POST(request: Request) {
       if (take <= 0) continue
       const newRowCount = rowCount - take
       remaining -= take
-      const { error: updateRowErr } = await (supabase as any)
+      const { error: updateRowErr } = await supabase
         .from('user_usage')
         .update({ usage_count: newRowCount, updated_at: new Date().toISOString() })
         .eq('id', row.id)

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createRouteHandlerClient } from '@/lib/supabase/server'
+import { createSupabaseAdmin } from '@/lib/supabase/admin'
 import {
   getMonthBounds,
   getCreditsConfigKey,
@@ -13,11 +14,13 @@ export const dynamic = 'force-dynamic'
 
 export async function GET() {
   try {
-    const supabase = createRouteHandlerClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const routeClient = createRouteHandlerClient()
+    const { data: { user } } = await routeClient.auth.getUser()
     if (!user) {
       return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
     }
+
+    const supabase = createSupabaseAdmin() as any
 
     const { data: configRow } = await supabase
       .from('site_settings')
@@ -28,7 +31,7 @@ export async function GET() {
 
     const { periodStart, periodEnd } = getMonthBounds()
 
-    const { data: usageRow } = await (supabase as any)
+    const { data: usageRow } = await supabase
       .from('user_usage')
       .select('id, usage_count')
       .eq('user_id', user.id)
@@ -40,7 +43,8 @@ export async function GET() {
     let balance = usageRow?.usage_count ?? null
 
     const fetchPlanCredits = async () => {
-      const { data: sub } = await (supabase as any)
+      let planId: string | undefined
+      const { data: sub } = await supabase
         .from('subscriptions')
         .select('plan_id, plan_type')
         .eq('user_id', user.id)
@@ -49,16 +53,29 @@ export async function GET() {
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle()
-      let planId = sub?.plan_id
+      planId = sub?.plan_id ?? undefined
       if (!planId && sub?.plan_type) {
         planId = sub.plan_type === 'premium' ? 'gogh_pro' : sub.plan_type === 'essential' ? 'gogh_essencial' : undefined
+      }
+      if (!planId) {
+        const { data: serviceSub } = await supabase
+          .from('service_subscriptions')
+          .select('plan_id')
+          .eq('user_id', user.id)
+          .in('status', ['active', 'trialing'])
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle()
+        if (serviceSub?.plan_id && ['gogh_essencial', 'gogh_pro'].includes(serviceSub.plan_id)) {
+          planId = serviceSub.plan_id
+        }
       }
       return getMonthlyCreditsForPlan(planId, config)
     }
 
     if (balance === null) {
       const monthly = await fetchPlanCredits()
-      const { error: insertErr } = await (supabase as any)
+      const { error: insertErr } = await supabase
         .from('user_usage')
         .insert({
           user_id: user.id,
@@ -75,7 +92,7 @@ export async function GET() {
       // Reconciliação: assinatura manual pode ter criado a linha com 0; corrigir se o plano tem créditos
       const monthly = await fetchPlanCredits()
       if (monthly > 0 && usageRow?.id) {
-        await (supabase as any)
+        await supabase
           .from('user_usage')
           .update({ usage_count: monthly, updated_at: new Date().toISOString() })
           .eq('id', usageRow.id)
@@ -84,7 +101,7 @@ export async function GET() {
     }
 
     // Créditos comprados à parte (não renovam por mês)
-    const { data: purchasedRows } = await (supabase as any)
+    const { data: purchasedRows } = await supabase
       .from('user_usage')
       .select('usage_count')
       .eq('user_id', user.id)
