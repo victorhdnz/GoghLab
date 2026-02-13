@@ -48,8 +48,9 @@ export default async function PrecosPage() {
   const resolvedContent = await resolvePricingFeaturesFromProducts(supabase, homepageContent)
   const pricing = resolvedContent?.pricing || {}
 
-  const creditsConfig = creditsRow?.value && typeof creditsRow.value === 'object'
-    ? (creditsRow.value as { monthlyCreditsByPlan?: Record<string, number> })
+  const creditsData = creditsRow as { value?: unknown } | null
+  const creditsConfig = creditsData?.value && typeof creditsData.value === 'object'
+    ? (creditsData.value as { monthlyCreditsByPlan?: Record<string, number> })
     : null
   const monthlyCreditsByPlan = creditsConfig?.monthlyCreditsByPlan || {}
 
