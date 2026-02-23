@@ -328,7 +328,10 @@ export default function CriarGerarPage() {
         toast.error('Créditos insuficientes. Compre mais na área de uso da sua conta.')
         return
       }
-      if (!result.ok) return
+      if (!result.ok) {
+        toast.error('Não foi possível descontar os créditos. Tente novamente em instantes.')
+        return
+      }
       const key = currentStorageKey
       const userMsg: ChatMessage = { id: 'u-' + Date.now(), from: 'user', content: message }
       setMessagesByKey((prev) => ({ ...prev, [key]: [...(prev[key] ?? []), userMsg] }))

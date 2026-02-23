@@ -318,7 +318,8 @@ export default function SolicitacoesPage() {
     }
 
     let linkValue = accessLink.trim()
-    if (linkValue && !/^https?:\/\//i.test(linkValue) && /\./.test(linkValue)) {
+    // Se parecer um link (tem ponto) e não for email, garantir https:// no início
+    if (linkValue && !/^https?:\/\//i.test(linkValue) && /\./.test(linkValue) && !/@/.test(linkValue)) {
       linkValue = 'https://' + linkValue
     }
 
@@ -357,13 +358,40 @@ export default function SolicitacoesPage() {
       }
 
       const nowIso = new Date().toISOString()
-      // Preservar access_granted_at ao atualizar credenciais (após reporte), para o cliente ver "resolvido" na área de membros
+      // Preservar access_granted_at apenas se ainda estiver no mesmo período da assinatura
       const { data: existingRow } = await (supabase as any)
         .from('tool_access_credentials')
         .select('access_granted_at')
         .eq('user_id', selectedTicket.user_id)
         .eq('tool_type', tool.slug)
         .maybeSingle()
+
+      let accessGrantedAt = nowIso
+      if (existingRow?.access_granted_at) {
+        // Se tivermos dados de assinatura, preservar apenas se o acesso anterior já era deste período
+        const { data: subscriptionDataForPeriod } = await (supabase as any)
+          .from('subscriptions')
+          .select('current_period_start, created_at')
+          .eq('user_id', selectedTicket.user_id)
+          .eq('status', 'active')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle()
+
+        if (subscriptionDataForPeriod) {
+          const startDate = subscriptionDataForPeriod.current_period_start
+            ? new Date(subscriptionDataForPeriod.current_period_start)
+            : subscriptionDataForPeriod.created_at
+              ? new Date(subscriptionDataForPeriod.created_at)
+              : null
+          const previousAccessDate = new Date(existingRow.access_granted_at)
+          if (!startDate || previousAccessDate >= startDate) {
+            accessGrantedAt = existingRow.access_granted_at
+          }
+        } else {
+          accessGrantedAt = existingRow.access_granted_at
+        }
+      }
 
       const payload: any = {
         user_id: selectedTicket.user_id,
@@ -372,7 +400,7 @@ export default function SolicitacoesPage() {
         email: selectedTicket.user?.email || 'noreply@example.com',
         access_link: linkValue,
         tutorial_video_url: tool.tutorial_video_url || null,
-        access_granted_at: existingRow?.access_granted_at ?? nowIso,
+        access_granted_at: accessGrantedAt,
         is_active: true,
         error_reported: false,
         error_message: null,
