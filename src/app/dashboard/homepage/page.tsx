@@ -67,6 +67,15 @@ interface HomepageSettings {
   contact_instagram_enabled?: boolean
   contact_instagram_text?: string
   contact_instagram_url?: string
+
+  // Seção de instalação do app web no celular
+  install_app_enabled?: boolean
+  install_app_title?: string
+  install_app_description?: string
+  install_app_ios_icon?: string
+  install_app_android_icon?: string
+  install_app_ios_tutorial_url?: string
+  install_app_android_tutorial_url?: string
   
   // Botão flutuante do WhatsApp
   whatsapp_float_enabled?: boolean
@@ -391,6 +400,7 @@ const sectionIcons: Record<string, string> = {
   gallery: '🖼️',
   services: '📦',
   comparison: '⚖️',
+  install_app: '📱',
   notifications: '🔔',
   testimonials: '⭐',
   team: '👥',
@@ -425,6 +435,7 @@ const sectionLabels: Record<string, string> = {
   gallery: 'Galeria (Carrossel Imagens/Vídeos IA)',
   services: 'Nossos Serviços',
   comparison: 'Comparação (CTA)',
+  install_app: 'Instalar App no Celular (iOS/Android)',
   notifications: 'Notificações (Prova Social)',
   testimonials: 'Depoimentos (Marquee 3D)',
   team: 'Nossa Equipe',
@@ -450,6 +461,7 @@ export default function HomepageEditorPage() {
     'gallery',
     'services',
     'comparison',
+    'install_app',
     'notifications',
     'testimonials',
     'team',
@@ -462,6 +474,7 @@ export default function HomepageEditorPage() {
     video: false,
     services: true,
     comparison: true,
+    install_app: true,
     notifications: true,
     testimonials: true,
     team: true,
@@ -512,6 +525,14 @@ export default function HomepageEditorPage() {
     contact_email_text: 'E-mail',
     contact_instagram_enabled: true,
     contact_instagram_text: 'Instagram',
+
+    install_app_enabled: true,
+    install_app_title: 'Instale o Gogh Lab no seu celular',
+    install_app_description: 'Clique no seu sistema e assista ao tutorial para adicionar o ícone do app web na tela inicial.',
+    install_app_ios_icon: '',
+    install_app_android_icon: '',
+    install_app_ios_tutorial_url: '',
+    install_app_android_tutorial_url: '',
 
     notifications_enabled: true,
     notifications_title: 'Nossos resultados em tempo real',
@@ -818,6 +839,19 @@ export default function HomepageEditorPage() {
               }
             }
           }
+          if (!order.includes('install_app')) {
+            const comparisonIndex = order.indexOf('comparison')
+            if (comparisonIndex >= 0) {
+              order.splice(comparisonIndex + 1, 0, 'install_app')
+            } else {
+              const contactIndex = order.indexOf('contact')
+              if (contactIndex >= 0) {
+                order.splice(contactIndex, 0, 'install_app')
+              } else {
+                order.push('install_app')
+              }
+            }
+          }
           setSectionOrder(order.filter((id) => id !== 'creation_prompts' && id !== 'pricing'))
         } else {
           // Se não houver ordem salva, usar a ordem padrão (inclui animated_beam e team)
@@ -832,6 +866,7 @@ export default function HomepageEditorPage() {
             'gallery',
             'services',
             'comparison',
+            'install_app',
             'notifications',
             'testimonials',
             'team',
@@ -853,6 +888,9 @@ export default function HomepageEditorPage() {
           }
           if (visibility.team === undefined) {
             visibility.team = true
+          }
+          if (visibility.install_app === undefined) {
+            visibility.install_app = true
           }
           if (visibility.animated_beam === undefined) {
             visibility.animated_beam = false
@@ -1996,6 +2034,111 @@ export default function HomepageEditorPage() {
                       ? 'A medalha aparecerá ao lado direito da seção de vídeo (Sobre Nós).' 
                       : 'A medalha aparecerá como uma seção standalone com título e descrição.'}
                   </p>
+                </div>
+              </>
+            )}
+          </div>
+        )
+      case 'install_app':
+        const handleInstallIconUpload = async (target: 'ios' | 'android', file: File) => {
+          try {
+            const fd = new FormData()
+            fd.append('file', file)
+            fd.append('folder', 'logos')
+            fd.append('preserveTransparency', 'true')
+            const res = await fetch('/api/upload', { method: 'POST', body: fd })
+            const data = await res.json()
+            if (!res.ok || !data.success) throw new Error(data.error || 'Erro no upload')
+            if (target === 'ios') {
+              setFormData({ ...formData, install_app_ios_icon: data.url })
+            } else {
+              setFormData({ ...formData, install_app_android_icon: data.url })
+            }
+            toast.success(`Ícone ${target === 'ios' ? 'iOS' : 'Android'} enviado com sucesso.`)
+          } catch (err: any) {
+            toast.error(err.message || 'Erro no upload do ícone')
+          }
+        }
+        return (
+          <div className="space-y-4">
+            <Switch
+              label="Habilitar Seção de Instalação do App Web"
+              checked={formData.install_app_enabled ?? true}
+              onCheckedChange={(checked) => setFormData({ ...formData, install_app_enabled: checked })}
+            />
+            {formData.install_app_enabled !== false && (
+              <>
+                <Input
+                  label="Título da seção"
+                  value={formData.install_app_title || ''}
+                  onChange={(e) => setFormData({ ...formData, install_app_title: e.target.value })}
+                  placeholder="Ex: Instale o Gogh Lab no seu celular"
+                />
+                <div>
+                  <label className="block text-sm font-medium mb-2">Descrição</label>
+                  <textarea
+                    value={formData.install_app_description || ''}
+                    onChange={(e) => setFormData({ ...formData, install_app_description: e.target.value })}
+                    placeholder="Ex: Clique no seu sistema e assista ao tutorial..."
+                    rows={3}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t pt-4 mt-4">
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium">Ícone iOS</label>
+                    <ImageUploader
+                      value={formData.install_app_ios_icon || ''}
+                      onChange={(url) => setFormData({ ...formData, install_app_ios_icon: url })}
+                      placeholder="Upload do ícone iOS"
+                      cropType="square"
+                      aspectRatio={1}
+                    />
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0]
+                        if (file) await handleInstallIconUpload('ios', file)
+                        e.target.value = ''
+                      }}
+                      className="text-xs"
+                    />
+                    <Input
+                      label="URL do vídeo tutorial iOS"
+                      value={formData.install_app_ios_tutorial_url || ''}
+                      onChange={(e) => setFormData({ ...formData, install_app_ios_tutorial_url: e.target.value })}
+                      placeholder="https://youtube.com/... ou URL mp4"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium">Ícone Android</label>
+                    <ImageUploader
+                      value={formData.install_app_android_icon || ''}
+                      onChange={(url) => setFormData({ ...formData, install_app_android_icon: url })}
+                      placeholder="Upload do ícone Android"
+                      cropType="square"
+                      aspectRatio={1}
+                    />
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0]
+                        if (file) await handleInstallIconUpload('android', file)
+                        e.target.value = ''
+                      }}
+                      className="text-xs"
+                    />
+                    <Input
+                      label="URL do vídeo tutorial Android"
+                      value={formData.install_app_android_tutorial_url || ''}
+                      onChange={(e) => setFormData({ ...formData, install_app_android_tutorial_url: e.target.value })}
+                      placeholder="https://youtube.com/... ou URL mp4"
+                    />
+                  </div>
                 </div>
               </>
             )}

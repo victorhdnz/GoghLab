@@ -131,8 +131,8 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: 'Nenhum campo para atualizar' }, { status: 400 })
     }
 
-    const { data, error } = await supabase
-      .from('content_calendar_items')
+    const { data, error } = await (supabase
+      .from('content_calendar_items') as any)
       .update(updates)
       .eq('id', id)
       .eq('user_id', user.id)

@@ -1,12 +1,13 @@
 'use client'
 
+import { useState } from 'react'
 import { ServiceCard } from '@/components/portfolio/ServiceCard'
 import { CustomServiceCard } from '@/components/portfolio/CustomServiceCard'
 import { ServiceCard as CustomServiceCardType } from '@/components/ui/ServiceCardsManager'
 import { Service } from '@/types'
 import Link from 'next/link'
 import Image from 'next/image'
-import { GitCompare } from 'lucide-react'
+import { GitCompare, Smartphone, X } from 'lucide-react'
 import { SocialButton } from '@/components/ui/SocialButton'
 import { FadeInElement } from '@/components/ui/FadeInElement'
 import { NotificationsSection } from './NotificationsSection'
@@ -41,6 +42,7 @@ export function HomepageSections({
   sectionVisibility,
   sectionOrder,
 }: HomepageSectionsProps) {
+  const [installTutorialModal, setInstallTutorialModal] = useState<null | { platform: 'ios' | 'android'; url: string }>(null)
   // Função para dividir texto para aplicar diferentes efeitos
   const splitTextForHighlights = (text: string) => {
     // Tenta dividir por vírgula primeiro
@@ -300,6 +302,79 @@ export function HomepageSections({
     )
   }
 
+  // Função para renderizar seção de instalação do app web (iOS/Android)
+  const renderInstallAppSection = () => {
+    if (homepageContent.install_app_enabled === false || sectionVisibility.install_app === false) return null
+
+    const iosIcon = homepageContent.install_app_ios_icon || null
+    const androidIcon = homepageContent.install_app_android_icon || null
+    const iosTutorial = homepageContent.install_app_ios_tutorial_url || ''
+    const androidTutorial = homepageContent.install_app_android_tutorial_url || ''
+
+    return (
+      <section id="install-app-section" className="py-12 md:py-16 px-4 bg-[#F5F1E8]">
+        <div className="container mx-auto max-w-4xl text-center">
+          <FadeInElement>
+            <h2 className="text-2xl md:text-3xl font-semibold text-[#0A0A0A] mb-3 tracking-tight">
+              {homepageContent.install_app_title || 'Instale o Gogh Lab no seu celular'}
+            </h2>
+          </FadeInElement>
+          <FadeInElement delay={0.1}>
+            <p className="text-gray-600 text-sm md:text-base mb-8 max-w-2xl mx-auto">
+              {homepageContent.install_app_description || 'Escolha seu sistema e veja o tutorial para adicionar o ícone do app web na tela inicial do seu telefone.'}
+            </p>
+          </FadeInElement>
+
+          <FadeInElement delay={0.2}>
+            <div className="flex flex-wrap items-center justify-center gap-6">
+              <button
+                type="button"
+                onClick={() => iosTutorial && setInstallTutorialModal({ platform: 'ios', url: iosTutorial })}
+                disabled={!iosTutorial}
+                className="group relative h-24 w-24 md:h-28 md:w-28 rounded-3xl border border-[#F7C948]/40 bg-white shadow-sm hover:shadow-md transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                aria-label="Abrir tutorial iOS"
+                title={iosTutorial ? 'Tutorial iOS' : 'Configure a URL do tutorial iOS no dashboard'}
+              >
+                {iosIcon ? (
+                  <Image src={iosIcon} alt="Tutorial iOS" fill className="object-contain p-3" />
+                ) : (
+                  <div className="h-full w-full flex items-center justify-center">
+                    <Smartphone className="w-10 h-10 text-[#0A0A0A]" />
+                  </div>
+                )}
+                <span className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-xs font-medium text-[#0A0A0A] whitespace-nowrap">
+                  iOS
+                </span>
+                <span className="absolute inset-0 rounded-3xl ring-2 ring-transparent group-hover:ring-[#F7C948]/60 transition-all" />
+              </button>
+
+              <button
+                type="button"
+                onClick={() => androidTutorial && setInstallTutorialModal({ platform: 'android', url: androidTutorial })}
+                disabled={!androidTutorial}
+                className="group relative h-24 w-24 md:h-28 md:w-28 rounded-3xl border border-[#F7C948]/40 bg-white shadow-sm hover:shadow-md transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                aria-label="Abrir tutorial Android"
+                title={androidTutorial ? 'Tutorial Android' : 'Configure a URL do tutorial Android no dashboard'}
+              >
+                {androidIcon ? (
+                  <Image src={androidIcon} alt="Tutorial Android" fill className="object-contain p-3" />
+                ) : (
+                  <div className="h-full w-full flex items-center justify-center">
+                    <Smartphone className="w-10 h-10 text-[#0A0A0A]" />
+                  </div>
+                )}
+                <span className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-xs font-medium text-[#0A0A0A] whitespace-nowrap">
+                  Android
+                </span>
+                <span className="absolute inset-0 rounded-3xl ring-2 ring-transparent group-hover:ring-[#F7C948]/60 transition-all" />
+              </button>
+            </div>
+          </FadeInElement>
+        </div>
+      </section>
+    )
+  }
+
   // Função para renderizar seção de Depoimentos
   const renderTestimonialsSection = () => {
     // Se estiver explicitamente desabilitado ou oculto, não renderizar
@@ -478,6 +553,7 @@ export function HomepageSections({
     services: renderServicesSection,
     features: renderFeaturesSection,
     comparison: renderComparisonSection,
+    install_app: renderInstallAppSection,
     notifications: renderNotificationsSection,
     testimonials: renderTestimonialsSection,
     team: renderTeamSection,
@@ -488,7 +564,7 @@ export function HomepageSections({
   // Garantir que sectionOrder seja um array válido
   const validSectionOrder = Array.isArray(sectionOrder) && sectionOrder.length > 0 
     ? sectionOrder 
-    : ['hero', 'video', 'trusted_by', 'features', 'gallery', 'services', 'comparison', 'notifications', 'testimonials', 'team', 'spline', 'contact']
+    : ['hero', 'video', 'trusted_by', 'features', 'gallery', 'services', 'comparison', 'install_app', 'notifications', 'testimonials', 'team', 'spline', 'contact']
   
   return (
     <>
@@ -512,6 +588,41 @@ export function HomepageSections({
           return null
         }
       })}
+
+      {installTutorialModal && (
+        <div
+          className="fixed inset-0 z-[80] bg-black/70 p-4 flex items-center justify-center"
+          onClick={() => setInstallTutorialModal(null)}
+          role="dialog"
+          aria-modal="true"
+          aria-label={`Tutorial ${installTutorialModal.platform}`}
+        >
+          <div
+            className="relative w-full max-w-3xl aspect-video bg-black rounded-xl overflow-hidden shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={() => setInstallTutorialModal(null)}
+              className="absolute top-2 right-2 z-10 bg-black/60 hover:bg-black/80 text-white rounded-full p-2"
+              aria-label="Fechar tutorial"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            {getYouTubeId(installTutorialModal.url) ? (
+              <iframe
+                src={installTutorialModal.url.includes('embed') ? installTutorialModal.url : `https://www.youtube.com/embed/${getYouTubeId(installTutorialModal.url)}?autoplay=1`}
+                className="absolute inset-0 w-full h-full"
+                title={`Tutorial ${installTutorialModal.platform}`}
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
+            ) : (
+              <video src={installTutorialModal.url} controls autoPlay playsInline className="absolute inset-0 w-full h-full object-contain" />
+            )}
+          </div>
+        </div>
+      )}
     </>
   )
 }

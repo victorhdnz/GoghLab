@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createRouteHandlerClient } from '@/lib/supabase/server'
+import { createSupabaseAdmin } from '@/lib/supabase/admin'
+import { getCreditCost, getCreditsConfigKey, getMonthBounds, getMonthlyCreditsForPlan, type CreditsConfig } from '@/lib/credits'
 import OpenAI from 'openai'
 
 export const dynamic = 'force-dynamic'
@@ -8,6 +10,24 @@ type GenerateBody = {
   calendarItemId: string
   /** Se o usuário quiser forçar um tema específico nesse slot */
   overrideTopic?: string | null
+}
+
+type ContentProfileRow = {
+  business_name: string | null
+  niche: string | null
+  audience: string | null
+  tone_of_voice: string | null
+  goals: string | null
+  platforms: string[] | null
+  frequency_per_week: number | null
+}
+
+type CalendarItemRow = {
+  topic: string | null
+  platform: string | null
+  date: string | null
+  time: string | null
+  meta: Record<string, unknown> | null
 }
 
 const SERVICE_ERROR_MESSAGE =
@@ -49,7 +69,7 @@ export async function POST(request: Request) {
       .from('content_profiles')
       .select('*')
       .eq('user_id', user.id)
-      .maybeSingle()
+      .maybeSingle() as { data: ContentProfileRow | null; error: { message: string } | null }
 
     if (profileError) {
       return NextResponse.json({ error: profileError.message }, { status: 500 })
@@ -68,13 +88,144 @@ export async function POST(request: Request) {
       .select('*')
       .eq('id', calendarItemId)
       .eq('user_id', user.id)
-      .maybeSingle()
+      .maybeSingle() as { data: CalendarItemRow | null; error: { message: string } | null }
 
     if (itemError) {
       return NextResponse.json({ error: itemError.message }, { status: 500 })
     }
     if (!item) {
       return NextResponse.json({ error: 'Item de calendário não encontrado' }, { status: 404 })
+    }
+
+    // Deduz créditos antes da geração para manter a regra global (manual e Stripe)
+    const supabaseAdmin = createSupabaseAdmin() as any
+    const { data: configRow } = await supabaseAdmin
+      .from('site_settings')
+      .select('value')
+      .eq('key', getCreditsConfigKey())
+      .maybeSingle() as { data: { value: unknown } | null }
+    const config = (configRow?.value as CreditsConfig) ?? null
+    const cost = getCreditCost('roteiro', config)
+    const { periodStart, periodEnd } = getMonthBounds()
+
+    let { data: usageRow } = await supabaseAdmin
+      .from('user_usage')
+      .select('id, usage_count')
+      .eq('user_id', user.id)
+      .eq('feature_key', 'ai_credits')
+      .eq('period_start', periodStart)
+      .eq('period_end', periodEnd)
+      .maybeSingle()
+
+    if (!usageRow) {
+      const { data: subscription } = await supabaseAdmin
+        .from('subscriptions')
+        .select('plan_id, plan_type')
+        .eq('user_id', user.id)
+        .eq('status', 'active')
+        .gte('current_period_end', new Date().toISOString())
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      let planId = subscription?.plan_id
+      if (!planId && subscription?.plan_type) {
+        planId = subscription.plan_type === 'premium'
+          ? 'gogh_pro'
+          : subscription.plan_type === 'essential'
+            ? 'gogh_essencial'
+            : undefined
+      }
+
+      if (!planId) {
+        const { data: serviceSub } = await supabaseAdmin
+          .from('service_subscriptions')
+          .select('plan_id')
+          .eq('user_id', user.id)
+          .in('status', ['active', 'trialing'])
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle()
+
+        if (serviceSub?.plan_id && ['gogh_essencial', 'gogh_pro'].includes(serviceSub.plan_id)) {
+          planId = serviceSub.plan_id
+        }
+      }
+
+      const monthly = getMonthlyCreditsForPlan(planId, config)
+      const { data: inserted, error: insertError } = await supabaseAdmin
+        .from('user_usage')
+        .insert({
+          user_id: user.id,
+          feature_key: 'ai_credits',
+          usage_count: monthly,
+          period_start: periodStart,
+          period_end: periodEnd,
+        })
+        .select('id, usage_count')
+        .single()
+
+      if (insertError || !inserted) {
+        return NextResponse.json({ error: insertError?.message ?? 'Erro ao criar período de créditos' }, { status: 500 })
+      }
+
+      usageRow = inserted
+    }
+
+    const monthlyCount = Number(usageRow.usage_count) || 0
+    const { data: purchasedRows } = await supabaseAdmin
+      .from('user_usage')
+      .select('id, usage_count')
+      .eq('user_id', user.id)
+      .eq('feature_key', 'ai_credits_purchased')
+      .order('id', { ascending: true })
+
+    const purchasedList = Array.isArray(purchasedRows) ? purchasedRows : []
+    const purchasedTotal = purchasedList.reduce((sum: number, row: { usage_count?: number }) => {
+      return sum + (Number(row?.usage_count) || 0)
+    }, 0)
+
+    const totalAvailable = monthlyCount + purchasedTotal
+    if (totalAvailable < cost) {
+      return NextResponse.json(
+        {
+          error: 'Créditos insuficientes para gerar o roteiro. Recarregue em Plano & Uso.',
+          code: 'insufficient_credits',
+          balance: totalAvailable,
+          required: cost,
+          redirectTo: '/conta?tab=planos-e-uso',
+        },
+        { status: 402 }
+      )
+    }
+
+    let remaining = cost
+    const deductFromMonthly = Math.min(monthlyCount, remaining)
+    const newMonthly = monthlyCount - deductFromMonthly
+    remaining -= deductFromMonthly
+
+    const { error: updateMonthlyError } = await supabaseAdmin
+      .from('user_usage')
+      .update({ usage_count: newMonthly, updated_at: new Date().toISOString() })
+      .eq('id', usageRow.id)
+    if (updateMonthlyError) {
+      return NextResponse.json({ error: updateMonthlyError.message }, { status: 500 })
+    }
+
+    for (const row of purchasedList) {
+      if (remaining <= 0) break
+      const current = Number(row.usage_count) || 0
+      const take = Math.min(current, remaining)
+      if (take <= 0) continue
+      remaining -= take
+
+      const { error: updatePurchasedError } = await supabaseAdmin
+        .from('user_usage')
+        .update({ usage_count: current - take, updated_at: new Date().toISOString() })
+        .eq('id', row.id)
+      if (updatePurchasedError) {
+        return NextResponse.json({ error: updatePurchasedError.message }, { status: 500 })
+      }
     }
 
     const topic = body.overrideTopic?.trim() || item.topic?.trim() || ''
@@ -181,8 +332,8 @@ export async function POST(request: Request) {
       updates.time = `${recommendedTime}:00+00`
     }
 
-    const { data: updated, error: updateError } = await supabase
-      .from('content_calendar_items')
+    const { data: updated, error: updateError } = await (supabase
+      .from('content_calendar_items') as any)
       .update(updates)
       .eq('id', calendarItemId)
       .eq('user_id', user.id)

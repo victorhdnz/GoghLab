@@ -2,10 +2,9 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
-import { createClient } from '@/lib/supabase/client'
 import { LumaSpin } from '@/components/ui/luma-spin'
 import { Button } from '@/components/ui/button'
-import { Calendar as CalendarIcon, Plus, FileText, Type, Clock, RefreshCw } from 'lucide-react'
+import { Calendar as CalendarIcon, Plus, FileText, Type, Clock, RefreshCw, Sparkles } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 type ContentProfile = {
@@ -46,7 +45,6 @@ function formatDate(d: Date) {
 
 export default function ContentPlanningPage() {
   const { isAuthenticated, loading: authLoading } = useAuth()
-  const supabase = createClient()
   const [profile, setProfile] = useState<ContentProfile | null>(null)
   const [profileLoading, setProfileLoading] = useState(true)
   const [savingProfile, setSavingProfile] = useState(false)
@@ -444,7 +442,7 @@ export default function ContentPlanningPage() {
                           >
                             {generatingId === item.id ? (
                               <>
-                                <LumaSpin size="xs" />
+                                <LumaSpin size="sm" />
                                 Gerando...
                               </>
                             ) : (

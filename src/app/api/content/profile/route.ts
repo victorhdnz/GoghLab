@@ -16,8 +16,8 @@ export async function GET() {
       return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
     }
 
-    const { data, error } = await supabase
-      .from('content_profiles')
+    const { data, error } = await (supabase
+      .from('content_profiles') as any)
       .select('*')
       .eq('user_id', user.id)
       .maybeSingle()
@@ -54,8 +54,8 @@ export async function POST(request: Request) {
     }
 
     // upsert por user_id (constraint unique na migration)
-    const { data, error } = await supabase
-      .from('content_profiles')
+    const { data, error } = await (supabase
+      .from('content_profiles') as any)
       .upsert(payload, { onConflict: 'user_id' })
       .select('*')
       .maybeSingle()
