@@ -20,19 +20,19 @@ function StarBackground({ color }: StarBackgroundProps) {
       xmlns="http://www.w3.org/2000/svg"
       aria-hidden="true"
     >
-      <rect x="0" y="0" width="100" height="40" fill="transparent" />
-      <circle cx="6" cy="8" r="0.9" fill={color || "currentColor"} />
-      <circle cx="16" cy="30" r="1.1" fill={color || "currentColor"} />
-      <circle cx="28" cy="18" r="0.9" fill={color || "currentColor"} />
-      <circle cx="40" cy="7" r="1" fill={color || "currentColor"} />
-      <circle cx="54" cy="34" r="0.9" fill={color || "currentColor"} />
-      <circle cx="68" cy="13" r="1.1" fill={color || "currentColor"} />
-      <circle cx="79" cy="31" r="0.9" fill={color || "currentColor"} />
-      <circle cx="91" cy="10" r="1" fill={color || "currentColor"} />
-      <circle cx="95" cy="24" r="0.9" fill={color || "currentColor"} />
-      <circle cx="49" cy="24" r="0.85" fill={color || "currentColor"} />
-      <circle cx="33" cy="35" r="0.8" fill={color || "currentColor"} />
-      <circle cx="73" cy="5" r="0.8" fill={color || "currentColor"} />
+      <rect x="0" y="0" width="100" height="40" fill={color || "#0A0A0A"} />
+      <circle cx="6" cy="8" r="0.9" fill="rgba(247, 201, 72, 0.6)" />
+      <circle cx="16" cy="30" r="1.1" fill="rgba(247, 201, 72, 0.5)" />
+      <circle cx="28" cy="18" r="0.9" fill="rgba(255, 255, 255, 0.35)" />
+      <circle cx="40" cy="7" r="1" fill="rgba(247, 201, 72, 0.6)" />
+      <circle cx="54" cy="34" r="0.9" fill="rgba(255, 255, 255, 0.35)" />
+      <circle cx="68" cy="13" r="1.1" fill="rgba(247, 201, 72, 0.55)" />
+      <circle cx="79" cy="31" r="0.9" fill="rgba(255, 255, 255, 0.3)" />
+      <circle cx="91" cy="10" r="1" fill="rgba(247, 201, 72, 0.55)" />
+      <circle cx="95" cy="24" r="0.9" fill="rgba(255, 255, 255, 0.3)" />
+      <circle cx="49" cy="24" r="0.85" fill="rgba(247, 201, 72, 0.5)" />
+      <circle cx="33" cy="35" r="0.8" fill="rgba(255, 255, 255, 0.3)" />
+      <circle cx="73" cy="5" r="0.8" fill="rgba(247, 201, 72, 0.5)" />
     </svg>
   )
 }
