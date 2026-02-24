@@ -884,7 +884,13 @@ export default function ToolsPage() {
             const canRequest = canRequestForTool(t)
             const pending = pendingForTool(t)
             const ticketForTool = pendingTickets.find((tk: SupportTicket & { tool_id?: string; subject?: string; status?: string }) => tk.tool_id === t.id)
-            const isReportPending = !!ticketForTool && (ticketForTool.status === 'error' || (ticketForTool.subject && String(ticketForTool.subject).includes('[REPORTE]')))
+            const isReportPending = Boolean(
+              ticketForTool &&
+              (
+                ticketForTool.status === 'error' ||
+                (ticketForTool.subject ? String(ticketForTool.subject).includes('[REPORTE]') : false)
+              )
+            )
             const hasNewCredentials = accessData?.updated_at && accessData?.access_granted_at && new Date(accessData.updated_at).getTime() > new Date(accessData.access_granted_at).getTime() && !accessData?.error_reported
             const hasOldPeriodAccess = hasOldPeriodAccessForTool(t)
             return (
