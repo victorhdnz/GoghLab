@@ -50,6 +50,15 @@ function formatDate(d: Date) {
   return d.toISOString().slice(0, 10)
 }
 
+function parseAgeRangeFromAudience(audience: string | null) {
+  if (!audience) return { min: '', max: '' }
+  const values = audience.match(/\d+/g)
+  if (!values || values.length === 0) return { min: '', max: '' }
+  const min = values[0] ?? ''
+  const max = values[1] ?? values[0] ?? ''
+  return { min, max }
+}
+
 export default function ContentPlanningPage() {
   const router = useRouter()
   const { isAuthenticated, loading: authLoading, hasActiveSubscription } = useAuth()
@@ -59,7 +68,8 @@ export default function ContentPlanningPage() {
   const [profileForm, setProfileForm] = useState({
     business_name: '',
     niche: '',
-    audience: '',
+    audience_min_age: '',
+    audience_max_age: '',
     tone_of_voice: '',
     goals: [] as string[],
     platforms: [] as string[],
@@ -128,11 +138,21 @@ export default function ContentPlanningPage() {
         const res = await fetch('/api/content/profile', { credentials: 'include' })
         const data = await res.json()
         if (res.ok && data.profile) {
+          const parsedAudience = parseAgeRangeFromAudience(data.profile.audience ?? '')
+          const minAgeFromPrefs = data.profile.extra_preferences?.audience_min_age
+          const maxAgeFromPrefs = data.profile.extra_preferences?.audience_max_age
           setProfile(data.profile)
           setProfileForm({
             business_name: data.profile.business_name ?? '',
             niche: data.profile.niche ?? '',
-            audience: data.profile.audience ?? '',
+            audience_min_age:
+              typeof minAgeFromPrefs === 'number' && Number.isFinite(minAgeFromPrefs)
+                ? String(minAgeFromPrefs)
+                : parsedAudience.min,
+            audience_max_age:
+              typeof maxAgeFromPrefs === 'number' && Number.isFinite(maxAgeFromPrefs)
+                ? String(maxAgeFromPrefs)
+                : parsedAudience.max,
             tone_of_voice: data.profile.tone_of_voice ?? '',
             goals: typeof data.profile.goals === 'string'
               ? data.profile.goals
@@ -205,18 +225,42 @@ export default function ContentPlanningPage() {
       router.push('/precos')
       return
     }
+    if (!isProfileComplete) {
+      toast.error('Preencha todos os campos obrigatórios do perfil antes de salvar.')
+      return
+    }
     setSavingProfile(true)
     try {
+      const minAge = Number(profileForm.audience_min_age)
+      const maxAge = Number(profileForm.audience_max_age)
+      const hasMinAge = Number.isFinite(minAge) && minAge > 0
+      const hasMaxAge = Number.isFinite(maxAge) && maxAge > 0
+      if (hasMinAge && hasMaxAge && minAge > maxAge) {
+        toast.error('A idade mínima não pode ser maior que a idade máxima.')
+        return
+      }
+      const audienceLabel =
+        hasMinAge && hasMaxAge
+          ? `${minAge} - ${maxAge} anos`
+          : hasMinAge
+            ? `${minAge}+ anos`
+            : hasMaxAge
+              ? `Até ${maxAge} anos`
+              : null
+
       const res = await fetch('/api/content/profile', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({
           ...profileForm,
+          audience: audienceLabel,
           goals: profileForm.goals.join(' | '),
           frequency_per_week: Math.max(1, profileForm.availability_days.length),
           extra_preferences: {
             availability_days: profileForm.availability_days,
+            audience_min_age: hasMinAge ? minAge : null,
+            audience_max_age: hasMaxAge ? maxAge : null,
           },
         }),
       })
@@ -322,6 +366,22 @@ export default function ContentPlanningPage() {
     return Number.isFinite(value) ? value : 0
   }
 
+  const parsedMinAge = Number(profileForm.audience_min_age)
+  const parsedMaxAge = Number(profileForm.audience_max_age)
+  const hasValidAgeRange =
+    Number.isFinite(parsedMinAge) &&
+    Number.isFinite(parsedMaxAge) &&
+    parsedMinAge > 0 &&
+    parsedMaxAge > 0 &&
+    parsedMinAge <= parsedMaxAge
+  const isProfileComplete =
+    profileForm.business_name.trim().length > 0 &&
+    profileForm.niche.trim().length > 0 &&
+    hasValidAgeRange &&
+    profileForm.tone_of_voice.trim().length > 0 &&
+    profileForm.goals.length > 0 &&
+    profileForm.availability_days.length > 0
+
   const handleCopyScript = (item: CalendarItem) => {
     if (!item.script) {
       toast('Ainda não há roteiro para copiar.')
@@ -392,19 +452,6 @@ export default function ContentPlanningPage() {
     { value: 5, label: 'Sex' },
     { value: 6, label: 'Sáb' },
     { value: 0, label: 'Dom' },
-  ]
-
-  const audienceOptions = [
-    '13 - 17 anos',
-    '18 - 24 anos',
-    '25 - 34 anos',
-    '35 - 44 anos',
-    '45 - 54 anos',
-    '55 - 64 anos',
-    '65+ anos',
-    '18 - 34 anos',
-    '25 - 44 anos',
-    '35 - 65+ anos',
   ]
 
   const toneOptions = [
@@ -498,18 +545,26 @@ export default function ContentPlanningPage() {
             <label className="block text-xs font-medium text-gogh-grayDark mb-1">
               Público-alvo
             </label>
-            <select
-              value={profileForm.audience}
-              onChange={(e) => setProfileForm((f) => ({ ...f, audience: e.target.value }))}
-              className="w-full px-3 py-2 border border-gogh-grayLight rounded-lg text-sm"
-            >
-              <option value="">Selecione a faixa de idade</option>
-              {audienceOptions.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
+            <div className="grid grid-cols-2 gap-2">
+              <input
+                type="number"
+                min={0}
+                max={120}
+                value={profileForm.audience_min_age}
+                onChange={(e) => setProfileForm((f) => ({ ...f, audience_min_age: e.target.value }))}
+                placeholder="Idade mínima"
+                className="w-full px-3 py-2 border border-gogh-grayLight rounded-lg text-sm"
+              />
+              <input
+                type="number"
+                min={0}
+                max={120}
+                value={profileForm.audience_max_age}
+                onChange={(e) => setProfileForm((f) => ({ ...f, audience_max_age: e.target.value }))}
+                placeholder="Idade máxima"
+                className="w-full px-3 py-2 border border-gogh-grayLight rounded-lg text-sm"
+              />
+            </div>
           </div>
           <div>
             <label className="block text-xs font-medium text-gogh-grayDark mb-1">
@@ -600,7 +655,7 @@ export default function ContentPlanningPage() {
           <Button
             size="sm"
             onClick={handleSaveProfile}
-            disabled={savingProfile}
+            disabled={savingProfile || !isProfileComplete}
             className="inline-flex items-center gap-2 bg-gogh-yellow text-gogh-black hover:bg-gogh-yellow/90"
           >
             {savingProfile ? (
@@ -639,6 +694,11 @@ export default function ContentPlanningPage() {
             )}
           </Button>
         </div>
+        {!isProfileComplete && (
+          <p className="text-xs text-red-600">
+            Preencha todos os campos do perfil (incluindo idade mínima e máxima) para salvar.
+          </p>
+        )}
       </section>
 
       <section className="bg-white rounded-2xl border border-gogh-grayLight p-4 sm:p-6">

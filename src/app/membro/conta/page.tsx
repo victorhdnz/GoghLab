@@ -21,7 +21,8 @@ import {
   RefreshCw,
   Wrench,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  LogOut
 } from 'lucide-react'
 
 type TabType = 'profile' | 'plan'
@@ -35,7 +36,7 @@ interface PlanFeatureItem {
 export default function AccountPage() {
   const pathname = usePathname()
   const router = useRouter()
-  const { user, profile, subscription, hasActiveSubscription, isPro, refreshSubscription } = useAuth()
+  const { user, profile, subscription, hasActiveSubscription, isPro, refreshSubscription, signOut } = useAuth()
   const [activeTab, setActiveTab] = useState<TabType>('profile')
 
   // Redirecionar /membro/conta → /conta (uma única interface de conta)
@@ -55,6 +56,7 @@ export default function AccountPage() {
     )
   }
   const [saving, setSaving] = useState(false)
+  const [signingOut, setSigningOut] = useState(false)
   const [openingPortal, setOpeningPortal] = useState(false)
   const [hasServiceSubscriptions, setHasServiceSubscriptions] = useState(false)
   const [hasStripeServiceSubscription, setHasStripeServiceSubscription] = useState(false)
@@ -312,6 +314,20 @@ export default function AccountPage() {
     }
   }
 
+  const handleSignOut = async () => {
+    try {
+      setSigningOut(true)
+      await signOut()
+      toast.success('Você saiu da conta com sucesso.')
+      router.push('/login')
+    } catch (error) {
+      console.error('Erro ao sair da conta:', error)
+      toast.error('Não foi possível sair da conta. Tente novamente.')
+    } finally {
+      setSigningOut(false)
+    }
+  }
+
   const tabs = [
     { id: 'profile' as TabType, label: 'Perfil', icon: User },
     { id: 'plan' as TabType, label: 'Plano & Uso', icon: CreditCard },
@@ -394,7 +410,24 @@ export default function AccountPage() {
               </div>
 
               {/* Save Button */}
-              <div className="flex justify-end">
+              <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2">
+                <button
+                  onClick={handleSignOut}
+                  disabled={signingOut}
+                  className="inline-flex items-center justify-center gap-2 px-6 py-3 border border-gogh-grayLight text-gogh-black font-medium rounded-xl hover:bg-gogh-grayLight/40 transition-colors disabled:opacity-50"
+                >
+                  {signingOut ? (
+                    <>
+                      <LumaSpin size="sm" />
+                      Saindo...
+                    </>
+                  ) : (
+                    <>
+                      <LogOut className="w-4 h-4" />
+                      Sair da conta
+                    </>
+                  )}
+                </button>
                 <button
                   onClick={handleSaveProfile}
                   disabled={saving}
