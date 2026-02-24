@@ -31,6 +31,7 @@ type CalendarItem = {
   time: string | null
   platform: string | null
   topic: string | null
+  cover_prompt?: string | null
   status: string
   script: string | null
   caption: string | null
