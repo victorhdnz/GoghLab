@@ -10,7 +10,7 @@ interface HoverButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement>
 
 const HoverButton = React.forwardRef<HTMLButtonElement, HoverButtonProps>(
   ({ className, children, ...props }, ref) => {
-    const buttonRef = React.useRef<HTMLButtonElement>(null)
+    const buttonRef = React.useRef<HTMLButtonElement | null>(null)
     const [isListening, setIsListening] = React.useState(false)
     const [circles, setCircles] = React.useState<
       Array<{
@@ -27,7 +27,7 @@ const HoverButton = React.forwardRef<HTMLButtonElement, HoverButtonProps>(
       (node: HTMLButtonElement | null) => {
         buttonRef.current = node
         if (typeof ref === "function") ref(node)
-        else if (ref) ref.current = node
+        else if (ref) (ref as React.MutableRefObject<HTMLButtonElement | null>).current = node
       },
       [ref]
     )
