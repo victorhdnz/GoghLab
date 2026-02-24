@@ -8,8 +8,7 @@ import {
   BookOpen, 
   Play, 
   Video,
-  Palette,
-  Scissors
+  Palette
 } from 'lucide-react'
 import { LumaSpin } from '@/components/ui/luma-spin'
 import Link from 'next/link'
@@ -94,8 +93,8 @@ export default function CoursesPage() {
           .from('courses')
           .select('*')
           .eq('is_published', true)
-          .order('course_type', { ascending: true, nullsLast: true })
           .order('order_position', { ascending: true, nullsLast: true })
+          .order('created_at', { ascending: true, nullsLast: true })
 
         if (coursesError) {
           console.error('Erro ao buscar cursos:', coursesError)
@@ -146,11 +145,6 @@ export default function CoursesPage() {
       </div>
     )
   }
-
-  const canvaCourses = courses.filter(c => c.course_type === 'canva' || (!c.course_type && c.title?.toLowerCase().includes('canva')))
-  const capcutCourses = courses.filter(c => c.course_type === 'capcut' || (!c.course_type && c.title?.toLowerCase().includes('capcut')))
-  const strategyCourses = courses.filter(c => c.course_type === 'strategy')
-  const otherCourses = courses.filter(c => c.course_type === 'other')
 
   return (
     <div className="max-w-5xl mx-auto px-3 sm:px-4 space-y-4 sm:space-y-6">
@@ -204,45 +198,7 @@ export default function CoursesPage() {
           )}
 
           <div className={!hasCourseAccess ? 'pointer-events-none select-none blur-sm opacity-60' : ''}>
-            {canvaCourses.length > 0 && (
-              <CourseSection
-                title="Cursos de Canva"
-                icon={Palette}
-                iconClassName="text-purple-600"
-                courses={canvaCourses}
-                hasAccess={hasCourseAccess}
-              />
-            )}
-
-            {capcutCourses.length > 0 && (
-              <CourseSection
-                title="Cursos de CapCut"
-                icon={Scissors}
-                iconClassName="text-emerald-600"
-                courses={capcutCourses}
-                hasAccess={hasCourseAccess}
-              />
-            )}
-
-            {strategyCourses.length > 0 && (
-              <CourseSection
-                title="Cursos de Estratégia"
-                icon={BookOpen}
-                iconClassName="text-amber-600"
-                courses={strategyCourses}
-                hasAccess={hasCourseAccess}
-              />
-            )}
-
-            {otherCourses.length > 0 && (
-              <CourseSection
-                title="Outros Cursos"
-                icon={BookOpen}
-                iconClassName="text-slate-600"
-                courses={otherCourses}
-                hasAccess={hasCourseAccess}
-              />
-            )}
+            <CourseSection courses={courses} hasAccess={hasCourseAccess} />
           </div>
         </div>
       )}
@@ -264,15 +220,9 @@ export default function CoursesPage() {
 }
 
 function CourseSection({
-  title,
-  icon: Icon,
-  iconClassName,
   courses,
   hasAccess,
 }: {
-  title: string
-  icon: ComponentType<{ className?: string }>
-  iconClassName: string
   courses: Course[]
   hasAccess: boolean
 }) {
@@ -299,11 +249,6 @@ function CourseSection({
 
   return (
     <div className="mt-6 sm:mt-8">
-      <div className="flex items-center gap-1.5 mb-3">
-        <Icon className={`w-4 h-4 ${iconClassName}`} />
-        <h2 className="text-base font-bold text-gogh-black">{title}</h2>
-      </div>
-
       <CourseBentoGrid
         items={items}
         selectedId={modalCourseId}

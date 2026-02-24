@@ -5,10 +5,35 @@ import { NextResponse } from 'next/server'
 // Forçar renderização dinâmica
 export const dynamic = 'force-dynamic'
 
+function normalizeLegacyMemberPath(path: string) {
+  const legacyMap: Record<string, string> = {
+    '/membro': '/conta',
+    '/membro/conta': '/conta',
+    '/membro/cursos': '/cursos',
+    '/membro/ferramentas': '/ferramentas',
+    '/membro/planejamento': '/planejamento',
+    '/membro/agentes': '/criar',
+    '/membro/prompts': '/criar',
+    '/membro/perfil': '/conta',
+    '/membro/servicos': '/servicos',
+  }
+
+  if (path.startsWith('/membro/agentes/chat/')) {
+    return '/criar'
+  }
+
+  if (path.startsWith('/membro')) {
+    return legacyMap[path] || '/conta'
+  }
+
+  return path
+}
+
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url)
   const code = requestUrl.searchParams.get('code')
-  const next = requestUrl.searchParams.get('next') || '/membro'
+  const rawNext = requestUrl.searchParams.get('next') || '/conta'
+  const next = normalizeLegacyMemberPath(rawNext)
   
   // Usar a origem da request para o redirect (mais confiável)
   const origin = requestUrl.origin
@@ -16,7 +41,7 @@ export async function GET(request: Request) {
   if (!code) {
     // Se não tem código, redirecionar para login com o redirect original
     const loginUrl = new URL('/login', origin)
-    if (next && next !== '/membro') {
+    if (next && next !== '/conta') {
       loginUrl.searchParams.set('redirect', next)
     }
     loginUrl.searchParams.set('error', 'no_code')
@@ -57,7 +82,7 @@ export async function GET(request: Request) {
     console.error('[Auth Callback] Error:', error.message)
     // Se der erro, redirecionar para login com o redirect original
     const loginUrl = new URL('/login', origin)
-    if (next && next !== '/membro') {
+    if (next && next !== '/conta') {
       loginUrl.searchParams.set('redirect', next)
     }
     loginUrl.searchParams.set('error', 'auth_failed')

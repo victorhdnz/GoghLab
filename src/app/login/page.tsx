@@ -10,6 +10,30 @@ import { Sparkles, ArrowLeft, CheckCircle2, AlertCircle } from 'lucide-react'
 import { LumaSpin } from '@/components/ui/luma-spin'
 import { createClient } from '@/lib/supabase/client'
 
+function normalizeLegacyMemberPath(path: string) {
+  const legacyMap: Record<string, string> = {
+    '/membro': '/conta',
+    '/membro/conta': '/conta',
+    '/membro/cursos': '/cursos',
+    '/membro/ferramentas': '/ferramentas',
+    '/membro/planejamento': '/planejamento',
+    '/membro/agentes': '/criar',
+    '/membro/prompts': '/criar',
+    '/membro/perfil': '/conta',
+    '/membro/servicos': '/servicos',
+  }
+
+  if (path.startsWith('/membro/agentes/chat/')) {
+    return '/criar'
+  }
+
+  if (path.startsWith('/membro')) {
+    return legacyMap[path] || '/conta'
+  }
+
+  return path
+}
+
 export default function LoginPage() {
   const { isAuthenticated, loading, signInWithGoogle } = useAuth()
   const router = useRouter()
@@ -19,7 +43,7 @@ export default function LoginPage() {
   const [siteLogo, setSiteLogo] = useState<string | null>(null)
   const [siteName, setSiteName] = useState('Gogh Lab')
 
-  const redirect = searchParams.get('redirect') || '/membro'
+  const redirect = normalizeLegacyMemberPath(searchParams.get('redirect') || '/conta')
   const errorParam = searchParams.get('error')
 
   // Buscar logo e nome do site

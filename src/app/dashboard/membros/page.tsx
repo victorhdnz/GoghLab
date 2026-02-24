@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { DashboardNavigation } from '@/components/dashboard/DashboardNavigation'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
@@ -93,7 +92,6 @@ const hasCustomPeriodEnd = (subscription?: Member['subscription']) => {
 }
 
 export default function MembrosPage() {
-  const router = useRouter()
   const supabase = createClient()
 
   const [members, setMembers] = useState<Member[]>([])
@@ -655,7 +653,9 @@ export default function MembrosPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <DashboardNavigation title="Gerenciar Membros" />
+        <div className="px-4 sm:px-6">
+          <DashboardNavigation title="Gerenciar Membros" backUrl="/dashboard" />
+        </div>
         <div className="max-w-7xl mx-auto px-4 py-8">
           <div className="flex items-center justify-center py-20">
             <LoadingSpinner size="md" />
@@ -667,7 +667,13 @@ export default function MembrosPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <DashboardNavigation title="Gerenciar Membros" subtitle="Visualize e gerencie os usuários cadastrados" />
+      <div className="px-4 sm:px-6">
+        <DashboardNavigation
+          title="Gerenciar Membros"
+          subtitle="Visualize e gerencie os usuários cadastrados"
+          backUrl="/dashboard"
+        />
+      </div>
       
       <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Stats */}
@@ -848,9 +854,6 @@ export default function MembrosPage() {
                                 )}
                                 <p className="text-xs text-gray-500">
                                   Origem: {member.subscription.is_manual ? 'Manual' : 'Stripe'}
-                                </p>
-                                <p className="text-xs text-gray-500">
-                                  Vencimento: {hasCustomPeriodEnd(member.subscription) ? 'Personalizado' : 'Padrão do ciclo'}
                                 </p>
                                 {(member.subscription.status === 'active' || member.subscription.status === 'trialing') && (
                                   <p className="text-xs text-gray-500">
