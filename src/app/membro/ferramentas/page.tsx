@@ -950,7 +950,7 @@ export default function ToolsPage() {
                       </button>
                     )
                   )}
-                  {videoUrl && (
+                  {hasAccess && videoUrl && (
                     <button
                       type="button"
                       onClick={() => setTutorialModalTool({ name: t.name, videoUrl })}

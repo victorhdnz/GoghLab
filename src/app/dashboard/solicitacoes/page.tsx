@@ -277,17 +277,13 @@ export default function SolicitacoesPage() {
 
       if (error) throw error
       const list = data || []
-      const existing = list.find((r: any) => r.tool_id === toolId || (slug && r.tool_type === slug)) ?? null
       const stillCurrent = loadingForRef.current?.userId === userId && loadingForRef.current?.toolId === toolId
       if (stillCurrent) {
         setToolAccess(list)
-        if (existing) {
-          setAccessLink(existing.access_link || '')
-          setAccessPassword(existing.password ?? '')
-        } else {
-          setAccessLink('')
-          setAccessPassword('')
-        }
+        // UX: ao abrir um ticket, sempre começar com campos limpos para evitar
+        // confusão visual com dados de solicitações anteriores.
+        setAccessLink('')
+        setAccessPassword('')
       }
     } catch (error: any) {
       console.error('Erro ao carregar acessos:', error)
