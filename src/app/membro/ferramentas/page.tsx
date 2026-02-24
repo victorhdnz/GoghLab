@@ -924,21 +924,17 @@ export default function ToolsPage() {
                       </div>
                     </div>
                     <div className="p-4 pb-5">
-                  <div className="mb-3 min-h-[86px]">
-                    {hasAccess && hasNewCredentials ? (
-                      <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-2.5">
-                        <p className="text-sm text-emerald-800 font-medium flex items-center gap-2">
-                          <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
-                          Suas credenciais foram atualizadas pela equipe. Problema resolvido.
-                        </p>
-                        <p className="text-xs text-emerald-700 mt-1">
-                          Use o botão &quot;Reportar novamente&quot; abaixo se precisar reportar outro problema.
-                        </p>
-                      </div>
-                    ) : (
-                      <div aria-hidden className="h-full" />
-                    )}
-                  </div>
+                  {hasAccess && hasNewCredentials && (
+                    <div className="mb-3 rounded-lg border border-emerald-200 bg-emerald-50 p-2.5">
+                      <p className="text-sm text-emerald-800 font-medium flex items-center gap-2">
+                        <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+                        Suas credenciais foram atualizadas pela equipe. Problema resolvido.
+                      </p>
+                      <p className="text-xs text-emerald-700 mt-1">
+                        Use o botão &quot;Reportar novamente&quot; abaixo se precisar reportar outro problema.
+                      </p>
+                    </div>
+                  )}
                   {t.description && (
                     <p className="text-gogh-grayDark text-sm mb-3">{t.description}</p>
                   )}
