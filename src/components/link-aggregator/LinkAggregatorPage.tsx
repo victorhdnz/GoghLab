@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { LinkAggregator, LinkItem, SocialLink } from '@/types/link-aggregator';
 import { AnimatedLetterText } from '@/components/ui/potfolio-text';
@@ -93,6 +93,53 @@ const iconMap: Record<string, any> = {
 export function LinkAggregatorPage({ aggregator }: LinkAggregatorPageProps) {
   const [copiedEmail, setCopiedEmail] = useState(false);
 
+  useEffect(() => {
+    const html = document.documentElement;
+    const body = document.body;
+
+    const prevHtmlOverflow = html.style.overflow;
+    const prevHtmlOverscroll = html.style.overscrollBehavior;
+    const prevHtmlBg = html.style.backgroundColor;
+    const prevHtmlHeight = html.style.height;
+
+    const prevBodyOverflow = body.style.overflow;
+    const prevBodyOverscroll = body.style.overscrollBehavior;
+    const prevBodyBg = body.style.backgroundColor;
+    const prevBodyHeight = body.style.height;
+    const prevBodyPosition = body.style.position;
+    const prevBodyInset = body.style.inset;
+    const prevBodyWidth = body.style.width;
+
+    // Evita "bounce"/scroll em browsers in-app e mantém fundo consistente.
+    html.style.overflow = 'hidden';
+    html.style.overscrollBehavior = 'none';
+    html.style.backgroundColor = '#1a1a1a';
+    html.style.height = '100%';
+
+    body.style.overflow = 'hidden';
+    body.style.overscrollBehavior = 'none';
+    body.style.backgroundColor = '#1a1a1a';
+    body.style.height = '100%';
+    body.style.position = 'fixed';
+    body.style.inset = '0';
+    body.style.width = '100%';
+
+    return () => {
+      html.style.overflow = prevHtmlOverflow;
+      html.style.overscrollBehavior = prevHtmlOverscroll;
+      html.style.backgroundColor = prevHtmlBg;
+      html.style.height = prevHtmlHeight;
+
+      body.style.overflow = prevBodyOverflow;
+      body.style.overscrollBehavior = prevBodyOverscroll;
+      body.style.backgroundColor = prevBodyBg;
+      body.style.height = prevBodyHeight;
+      body.style.position = prevBodyPosition;
+      body.style.inset = prevBodyInset;
+      body.style.width = prevBodyWidth;
+    };
+  }, []);
+
   const handleLinkClick = (link: LinkItem) => {
     if (link.url.startsWith('mailto:')) {
       // Copiar email para clipboard
@@ -150,7 +197,7 @@ export function LinkAggregatorPage({ aggregator }: LinkAggregatorPageProps) {
     .sort((a: SocialLink, b: SocialLink) => (a.order || 0) - (b.order || 0));
 
   return (
-    <div className="h-[100dvh] bg-[#1a1a1a] text-white relative overflow-hidden">
+    <div className="fixed inset-0 z-0 w-screen h-[100dvh] min-h-[100dvh] bg-[#1a1a1a] text-white relative overflow-hidden overscroll-none">
       {/* Efeito de pontos no fundo */}
       <div className="absolute inset-0 opacity-30">
         <div className="absolute inset-0" style={{
@@ -160,7 +207,13 @@ export function LinkAggregatorPage({ aggregator }: LinkAggregatorPageProps) {
       </div>
 
       {/* Conteúdo */}
-      <div className="relative z-10 flex h-full flex-col items-center justify-center py-6 md:py-8 px-4">
+      <div
+        className="relative z-10 flex h-full flex-col items-center justify-center px-4"
+        style={{
+          paddingTop: 'max(env(safe-area-inset-top), 16px)',
+          paddingBottom: 'max(env(safe-area-inset-bottom), 16px)',
+        }}
+      >
         <div className="w-full max-w-md space-y-8">
           {/* Título Principal com Efeito Portfolio Text */}
           <div className="text-center mb-4">
