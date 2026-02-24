@@ -1,8 +1,5 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { useAuth } from '@/hooks/useAuth'
 import { motion } from 'framer-motion'
 import {
   GitCompare,
@@ -21,14 +18,10 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
-import toast from 'react-hot-toast'
 
 
 // Dashboard Principal
 function DashboardContent() {
-  const { profile } = useAuth()
-  const supabase = createClient()
-
   const handleLogout = async () => {
     try {
       const supabase = createClient()
@@ -61,13 +54,6 @@ function DashboardContent() {
           href: '/dashboard/pricing',
           icon: Sparkles,
           color: 'bg-yellow-500',
-        },
-        {
-          title: 'Criação',
-          description: 'Prompts por efeito, custos dos chats e modelos de IA da página Criar',
-          href: '/dashboard/criar-prompts',
-          icon: Sparkles,
-          color: 'bg-violet-500',
         },
       ],
     },
@@ -166,20 +152,6 @@ function DashboardContent() {
           href: '/dashboard/cursos',
           icon: BookOpen,
           color: 'bg-teal-500',
-        },
-      ],
-    },
-    {
-      title: 'Prompts',
-      description: 'Biblioteca de prompts para a área de membros',
-      icon: Sparkles,
-      items: [
-        {
-          title: 'Gerenciar Prompts',
-          description: 'Crie categorias e prompts para os membros copiarem e usarem em IAs',
-          href: '/dashboard/prompts',
-          icon: Sparkles,
-          color: 'bg-amber-500',
         },
       ],
     },

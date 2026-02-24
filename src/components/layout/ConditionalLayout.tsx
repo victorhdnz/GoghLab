@@ -11,7 +11,7 @@ interface ConditionalLayoutProps {
 }
 
 // Rotas que não devem exibir Header/Footer padrão
-const hiddenLayoutRoutes = ['/membro', '/login', '/auth', '/termos', '/termos-login-google', '/termos-assinatura-planos']
+const hiddenLayoutRoutes = ['/membro', '/login', '/auth', '/termos', '/termos-login-google', '/termos-assinatura-planos', '/links']
 
 export function ConditionalLayout({ children }: ConditionalLayoutProps) {
   const pathname = usePathname()

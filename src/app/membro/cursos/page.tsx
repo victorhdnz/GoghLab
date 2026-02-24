@@ -10,8 +10,6 @@ import {
   Video,
   Palette,
   Scissors,
-  CheckCircle2,
-  Clock,
   ChevronDown,
   ChevronUp
 } from 'lucide-react'
@@ -27,6 +25,7 @@ interface Course {
   id: string
   title: string
   description: string | null
+  thumbnail_url?: string | null
   course_type?: 'canva' | 'capcut' | 'strategy' | 'other'
   order?: number
   order_position?: number
@@ -141,6 +140,8 @@ export default function CoursesPage() {
 
   const canvaCourses = courses.filter(c => c.course_type === 'canva' || (!c.course_type && c.title?.toLowerCase().includes('canva')))
   const capcutCourses = courses.filter(c => c.course_type === 'capcut' || (!c.course_type && c.title?.toLowerCase().includes('capcut')))
+  const strategyCourses = courses.filter(c => c.course_type === 'strategy')
+  const otherCourses = courses.filter(c => c.course_type === 'other')
 
   return (
     <div className="max-w-3xl mx-auto px-3 sm:px-4 space-y-4 sm:space-y-6">
@@ -171,7 +172,7 @@ export default function CoursesPage() {
       )}
 
       {/* Área de cursos com um único overlay geral quando sem acesso */}
-      {(canvaCourses.length > 0 || capcutCourses.length > 0) && (
+      {courses.length > 0 && (
         <div className={!hasCourseAccess ? 'relative' : ''}>
           {!hasCourseAccess && (
             <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-10 rounded-xl flex items-center justify-center min-h-[280px]">
@@ -223,6 +224,36 @@ export default function CoursesPage() {
                 </div>
               </div>
             )}
+
+            {/* Strategy Courses */}
+            {strategyCourses.length > 0 && (
+              <div className="mt-6 sm:mt-8">
+                <div className="flex items-center gap-1.5 mb-3">
+                  <BookOpen className="w-4 h-4 text-amber-600" />
+                  <h2 className="text-base font-bold text-gogh-black">Cursos de Estratégia</h2>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+                  {strategyCourses.map((course, index) => (
+                    <CourseCard key={course.id} course={course} index={index} hasAccess={hasCourseAccess} />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Other Courses */}
+            {otherCourses.length > 0 && (
+              <div className="mt-6 sm:mt-8">
+                <div className="flex items-center gap-1.5 mb-3">
+                  <BookOpen className="w-4 h-4 text-slate-600" />
+                  <h2 className="text-base font-bold text-gogh-black">Outros Cursos</h2>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+                  {otherCourses.map((course, index) => (
+                    <CourseCard key={course.id} course={course} index={index} hasAccess={hasCourseAccess} />
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -262,16 +293,27 @@ function CourseCard({
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.1 }}
-      className="bg-white rounded-lg border border-gogh-grayLight shadow-sm overflow-hidden"
+      className="group relative bg-white rounded-xl border border-gogh-grayLight shadow-sm overflow-hidden transition-all duration-300 hover:shadow-[0_8px_22px_rgba(0,0,0,0.08)] hover:-translate-y-0.5"
     >
+      <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,0,0,0.02)_1px,transparent_1px)] bg-[length:4px_4px]" />
+      </div>
       {/* Course Header - clicável para expandir/recolher aulas */}
       <button
         type="button"
         onClick={() => setExpanded(!expanded)}
-        className="w-full p-3 sm:p-4 border-b border-gogh-grayLight text-left hover:bg-amber-50/50 transition-colors rounded-t-lg"
+        className="relative w-full p-3 sm:p-4 border-b border-gogh-grayLight text-left hover:bg-amber-50/40 transition-colors rounded-t-xl"
       >
         <div className="flex items-start justify-between gap-2">
-          <div className="flex-1 min-w-0">
+          <div className="flex items-start gap-3 flex-1 min-w-0">
+            <div className="w-10 h-10 rounded-lg border border-gray-200 bg-black/5 overflow-hidden flex items-center justify-center flex-shrink-0">
+              {course.thumbnail_url ? (
+                <img src={course.thumbnail_url} alt={course.title} className="w-full h-full object-cover" />
+              ) : (
+                <BookOpen className="w-5 h-5 text-gray-600" />
+              )}
+            </div>
+            <div className="min-w-0">
             <h3 className="text-sm sm:text-base font-bold text-gogh-black mb-0.5">{course.title}</h3>
             <p className="text-xs text-gogh-grayDark line-clamp-2">{course.description}</p>
             <div className="flex items-center gap-4 mt-4 text-sm text-gogh-grayDark">
@@ -279,6 +321,7 @@ function CourseCard({
                 <Video className="w-4 h-4" />
                 {lessonsCount} aula{lessonsCount !== 1 ? 's' : ''}
               </span>
+            </div>
             </div>
           </div>
           <span className="flex-shrink-0 text-gogh-grayDark mt-1" aria-hidden>

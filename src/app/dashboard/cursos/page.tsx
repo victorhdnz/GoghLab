@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { motion } from 'framer-motion'
 import { 
@@ -11,7 +10,6 @@ import {
   Trash2, 
   ArrowLeft,
   Video,
-  Play,
   Palette,
   Scissors,
   ArrowUp,
@@ -21,11 +19,13 @@ import { LumaSpin } from '@/components/ui/luma-spin'
 import toast from 'react-hot-toast'
 import Link from 'next/link'
 import { VideoUploader } from '@/components/ui/VideoUploader'
+import { ImageUploader } from '@/components/ui/ImageUploader'
 
 interface Course {
   id: string
   title: string
   description: string | null
+  thumbnail_url?: string | null
   course_type?: 'canva' | 'capcut' | 'strategy' | 'other'
   order?: number
   order_position?: number
@@ -47,7 +47,6 @@ interface Lesson {
 }
 
 export default function CursosPage() {
-  const router = useRouter()
   const supabase = createClient()
   const [courses, setCourses] = useState<Course[]>([])
   const [loading, setLoading] = useState(true)
@@ -61,7 +60,8 @@ export default function CursosPage() {
   const [courseForm, setCourseForm] = useState({
     title: '',
     description: '',
-    course_type: 'canva' as 'canva' | 'capcut'
+    thumbnail_url: '',
+    course_type: 'canva' as 'canva' | 'capcut' | 'strategy' | 'other'
   })
   
   const [lessonForm, setLessonForm] = useState({
@@ -72,125 +72,7 @@ export default function CursosPage() {
 
   useEffect(() => {
     loadCourses()
-    ensureDefaultCourses()
   }, [])
-
-  // Garantir que existam sempre os cursos pré-definidos e remover os outros
-  const ensureDefaultCourses = async () => {
-    try {
-      // Buscar todos os cursos
-      const { data: allCourses } = await (supabase as any)
-        .from('courses')
-        .select('id, course_type, title')
-
-      if (!allCourses) return
-
-      // Identificar cursos de Canva e CapCut existentes
-      const canvaCourse = allCourses.find((c: Course) => c.course_type === 'canva')
-      const capcutCourse = allCourses.find((c: Course) => c.course_type === 'capcut')
-
-      // Deletar todos os cursos que não são os pré-definidos
-      const coursesToDelete = allCourses.filter((c: Course) => 
-        c.course_type !== 'canva' && c.course_type !== 'capcut'
-      )
-
-      for (const course of coursesToDelete) {
-        await (supabase as any)
-          .from('courses')
-          .delete()
-          .eq('id', course.id)
-      }
-
-      // Criar ou atualizar curso de Canva
-      if (!canvaCourse) {
-        await (supabase as any)
-          .from('courses')
-          .insert({
-            title: 'Canva do Zero ao Avançado',
-            description: 'Aprenda a criar designs profissionais no Canva, desde o básico até técnicas avançadas.',
-            course_type: 'canva',
-            slug: 'canva-do-zero-ao-avancado',
-            order_position: 1,
-            is_published: true, // Publicar automaticamente
-            plan_required: 'all',
-            lessons_count: 0,
-            duration_hours: 0,
-            instructor_name: 'Gogh Lab'
-          })
-      } else {
-        // Atualizar título, descrição e garantir que está publicado
-        await (supabase as any)
-          .from('courses')
-          .update({
-            title: 'Canva do Zero ao Avançado',
-            description: 'Aprenda a criar designs profissionais no Canva, desde o básico até técnicas avançadas.',
-            slug: 'canva-do-zero-ao-avancado',
-            is_published: true, // Garantir que está publicado
-            is_active: true // Garantir que está ativo também
-          })
-          .eq('id', canvaCourse.id)
-      }
-
-      // Criar ou atualizar curso de CapCut
-      if (!capcutCourse) {
-        await (supabase as any)
-          .from('courses')
-          .insert({
-            title: 'CapCut do Zero ao Avançado',
-            description: 'Domine a edição de vídeos para redes sociais usando o CapCut Pro, desde o básico até técnicas avançadas.',
-            course_type: 'capcut',
-            slug: 'capcut-do-zero-ao-avancado',
-            order_position: 1,
-            is_published: true, // Publicar automaticamente
-            plan_required: 'all',
-            lessons_count: 0,
-            duration_hours: 0,
-            instructor_name: 'Gogh Lab'
-          })
-      } else {
-        // Atualizar título, descrição e garantir que está publicado
-        await (supabase as any)
-          .from('courses')
-          .update({
-            title: 'CapCut do Zero ao Avançado',
-            description: 'Domine a edição de vídeos para redes sociais usando o CapCut Pro, desde o básico até técnicas avançadas.',
-            slug: 'capcut-do-zero-ao-avancado',
-            is_published: true, // Garantir que está publicado
-            is_active: true // Garantir que está ativo também
-          })
-          .eq('id', capcutCourse.id)
-      }
-
-      // Se houver múltiplos cursos do mesmo tipo, manter apenas o primeiro e deletar os outros
-      const canvaCourses = allCourses.filter((c: Course) => c.course_type === 'canva')
-      const capcutCourses = allCourses.filter((c: Course) => c.course_type === 'capcut')
-
-      if (canvaCourses.length > 1) {
-        const toDelete = canvaCourses.slice(1)
-        for (const course of toDelete) {
-          await (supabase as any)
-            .from('courses')
-            .delete()
-            .eq('id', course.id)
-        }
-      }
-
-      if (capcutCourses.length > 1) {
-        const toDelete = capcutCourses.slice(1)
-        for (const course of toDelete) {
-          await (supabase as any)
-            .from('courses')
-            .delete()
-            .eq('id', course.id)
-        }
-      }
-
-      // Recarregar cursos após garantir os padrões
-      await loadCourses()
-    } catch (error) {
-      console.error('Erro ao garantir cursos padrão:', error)
-    }
-  }
 
   const loadCourses = async () => {
     setLoading(true)
@@ -255,6 +137,7 @@ export default function CursosPage() {
       const courseData: any = {
         title: courseForm.title.trim(),
         description: courseForm.description?.trim() || null,
+        thumbnail_url: courseForm.thumbnail_url?.trim() || null,
         slug: slug,
         course_type: courseForm.course_type,
         order_position: maxOrder + 1,
@@ -279,7 +162,7 @@ export default function CursosPage() {
 
       toast.success('Curso criado com sucesso!')
       setShowCourseForm(false)
-      setCourseForm({ title: '', description: '', course_type: 'canva' })
+      setCourseForm({ title: '', description: '', thumbnail_url: '', course_type: 'canva' })
       await loadCourses()
     } catch (error: any) {
       console.error('Erro ao criar curso:', error)
@@ -301,7 +184,7 @@ export default function CursosPage() {
       toast.success('Curso atualizado com sucesso!')
       setEditingCourse(null)
       setShowCourseForm(false)
-      setCourseForm({ title: '', description: '', course_type: 'canva' })
+      setCourseForm({ title: '', description: '', thumbnail_url: '', course_type: 'canva' })
       await loadCourses()
     } catch (error: any) {
       console.error('Erro ao atualizar curso:', error)
@@ -445,18 +328,24 @@ export default function CursosPage() {
   const openCourseForm = (course?: Course) => {
     if (course) {
       setEditingCourse(course)
-      // Garantir que course_type seja apenas 'canva' ou 'capcut'
-      const validCourseType = (course.course_type === 'canva' || course.course_type === 'capcut') 
+      // Garantir que course_type seja um tipo permitido
+      const validCourseType = (
+        course.course_type === 'canva'
+        || course.course_type === 'capcut'
+        || course.course_type === 'strategy'
+        || course.course_type === 'other'
+      )
         ? course.course_type 
         : 'canva'
       setCourseForm({
         title: course.title,
         description: course.description || '',
+        thumbnail_url: course.thumbnail_url || '',
         course_type: validCourseType
       })
     } else {
       setEditingCourse(null)
-      setCourseForm({ title: '', description: '', course_type: 'canva' })
+      setCourseForm({ title: '', description: '', thumbnail_url: '', course_type: 'canva' })
     }
     setShowCourseForm(true)
   }
@@ -476,8 +365,38 @@ export default function CursosPage() {
     setShowLessonForm(true)
   }
 
-  const canvaCourses = courses.filter(c => c.course_type === 'canva' || (!c.course_type && c.title?.toLowerCase().includes('canva')))
-  const capcutCourses = courses.filter(c => c.course_type === 'capcut' || (!c.course_type && c.title?.toLowerCase().includes('capcut')))
+  const courseGroups = [
+    {
+      key: 'canva',
+      title: 'Cursos de Canva',
+      icon: Palette,
+      iconClassName: 'text-purple-600',
+      items: courses.filter(c => c.course_type === 'canva' || (!c.course_type && c.title?.toLowerCase().includes('canva')))
+    },
+    {
+      key: 'capcut',
+      title: 'Cursos de CapCut',
+      icon: Scissors,
+      iconClassName: 'text-emerald-600',
+      items: courses.filter(c => c.course_type === 'capcut' || (!c.course_type && c.title?.toLowerCase().includes('capcut')))
+    },
+    {
+      key: 'strategy',
+      title: 'Cursos de Estratégia',
+      icon: BookOpen,
+      iconClassName: 'text-amber-600',
+      items: courses.filter(c => c.course_type === 'strategy')
+    },
+    {
+      key: 'other',
+      title: 'Outros Cursos',
+      icon: Video,
+      iconClassName: 'text-slate-600',
+      items: courses.filter(c => c.course_type === 'other')
+    }
+  ]
+
+  const hasAnyCourse = courseGroups.some(group => group.items.length > 0)
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -497,9 +416,16 @@ export default function CursosPage() {
                 Gerenciar Cursos
               </h1>
               <p className="text-gray-600">
-                Gerencie cursos de Canva e CapCut. Clique em um curso para adicionar e gerenciar aulas.
+                Crie novos cursos, personalize o card com imagem e gerencie as aulas de cada curso.
               </p>
             </div>
+            <button
+              onClick={() => openCourseForm()}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+            >
+              <Plus className="w-4 h-4" />
+              Novo Curso
+            </button>
           </div>
         </div>
 
@@ -508,61 +434,45 @@ export default function CursosPage() {
             <LumaSpin size="default" className="mx-auto mb-4" />
             <p className="text-gray-500">Carregando cursos...</p>
           </div>
+        ) : hasAnyCourse ? (
+          <div className="space-y-8">
+            {courseGroups.map((group) => {
+              if (group.items.length === 0) return null
+              const GroupIcon = group.icon
+              return (
+                <div key={group.key}>
+                  <div className="flex items-center gap-2 mb-4">
+                    <GroupIcon className={`w-5 h-5 ${group.iconClassName}`} />
+                    <h2 className="text-xl font-bold text-gray-900">{group.title}</h2>
+                  </div>
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    {group.items.map((course) => (
+                      <CourseCard
+                        key={course.id}
+                        course={course}
+                        onEdit={() => openCourseForm(course)}
+                        onDelete={() => handleDeleteCourse(course.id)}
+                        onSelect={() => setSelectedCourse(course)}
+                        isSelected={selectedCourse?.id === course.id}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Canva Courses */}
-            <div>
-              <div className="flex items-center gap-2 mb-4">
-                <Palette className="w-5 h-5 text-purple-600" />
-                <h2 className="text-xl font-bold text-gray-900">Cursos de Canva</h2>
-              </div>
-              <div className="space-y-4">
-                {canvaCourses.length === 0 ? (
-                  <div className="bg-white rounded-lg border border-gray-200 p-8 text-center">
-                    <BookOpen className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                    <p className="text-gray-500">Carregando curso de Canva...</p>
-                  </div>
-                ) : (
-                  canvaCourses.map((course) => (
-                    <CourseCard
-                      key={course.id}
-                      course={course}
-                      onEdit={() => {}}
-                      onDelete={() => {}}
-                      onSelect={() => setSelectedCourse(course)}
-                      isSelected={selectedCourse?.id === course.id}
-                    />
-                  ))
-                )}
-              </div>
-            </div>
-
-            {/* CapCut Courses */}
-            <div>
-              <div className="flex items-center gap-2 mb-4">
-                <Scissors className="w-5 h-5 text-emerald-600" />
-                <h2 className="text-xl font-bold text-gray-900">Cursos de CapCut</h2>
-              </div>
-              <div className="space-y-4">
-                {capcutCourses.length === 0 ? (
-                  <div className="bg-white rounded-lg border border-gray-200 p-8 text-center">
-                    <BookOpen className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                    <p className="text-gray-500">Carregando curso de CapCut...</p>
-                  </div>
-                ) : (
-                  capcutCourses.map((course) => (
-                    <CourseCard
-                      key={course.id}
-                      course={course}
-                      onEdit={() => {}}
-                      onDelete={() => {}}
-                      onSelect={() => setSelectedCourse(course)}
-                      isSelected={selectedCourse?.id === course.id}
-                    />
-                  ))
-                )}
-              </div>
-            </div>
+          <div className="bg-white rounded-lg border border-gray-200 p-10 text-center">
+            <BookOpen className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Nenhum curso cadastrado</h3>
+            <p className="text-gray-500 mb-4">Clique em "Novo Curso" para criar seu primeiro card.</p>
+            <button
+              onClick={() => openCourseForm()}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              Criar Curso
+            </button>
           </div>
         )}
 
@@ -677,16 +587,30 @@ export default function CursosPage() {
                   />
                 </div>
                 <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Imagem do Card (ícone/capa)
+                  </label>
+                  <ImageUploader
+                    value={courseForm.thumbnail_url}
+                    onChange={(url) => setCourseForm({ ...courseForm, thumbnail_url: url })}
+                    placeholder="Clique para enviar a imagem do curso"
+                    recommendedDimensions="Quadrado 512x512px (ou maior), fundo transparente opcional"
+                    cropType="square"
+                  />
+                </div>
+                <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Tipo de Curso
                   </label>
                   <select
                     value={courseForm.course_type}
-                    onChange={(e) => setCourseForm({ ...courseForm, course_type: e.target.value as 'canva' | 'capcut' })}
+                    onChange={(e) => setCourseForm({ ...courseForm, course_type: e.target.value as 'canva' | 'capcut' | 'strategy' | 'other' })}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="canva">Canva</option>
                     <option value="capcut">CapCut</option>
+                    <option value="strategy">Estratégia</option>
+                    <option value="other">Outros</option>
                   </select>
                 </div>
                 <div className="flex gap-3 justify-end">
@@ -694,7 +618,7 @@ export default function CursosPage() {
                     onClick={() => {
                       setShowCourseForm(false)
                       setEditingCourse(null)
-                      setCourseForm({ title: '', description: '', course_type: 'canva' })
+                      setCourseForm({ title: '', description: '', thumbnail_url: '', course_type: 'canva' })
                     }}
                     className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
                   >
@@ -802,19 +726,63 @@ function CourseCard({
   return (
     <div
       className={`
-        bg-white rounded-lg border-2 p-4 cursor-pointer transition-all
-        ${isSelected ? 'border-blue-500 shadow-md' : 'border-gray-200 hover:border-gray-300'}
+        group relative p-4 rounded-xl overflow-hidden transition-all duration-300 cursor-pointer
+        border bg-white hover:-translate-y-0.5
+        ${isSelected
+          ? 'border-blue-400 shadow-[0_6px_20px_rgba(59,130,246,0.18)]'
+          : 'border-gray-200 hover:border-gray-300 hover:shadow-[0_4px_14px_rgba(0,0,0,0.08)]'
+        }
       `}
       onClick={onSelect}
     >
-      <div className="mb-2">
+      <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,0,0,0.02)_1px,transparent_1px)] bg-[length:4px_4px]" />
+      </div>
+
+      <div className="relative flex items-start justify-between gap-3 mb-3">
+        <div className="w-10 h-10 rounded-lg border border-gray-200 bg-black/5 flex items-center justify-center overflow-hidden flex-shrink-0">
+          {course.thumbnail_url ? (
+            <img src={course.thumbnail_url} alt={course.title} className="w-full h-full object-cover" />
+          ) : (
+            <BookOpen className="w-5 h-5 text-gray-600" />
+          )}
+        </div>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              onEdit()
+            }}
+            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"
+            aria-label="Editar curso"
+          >
+            <Edit className="w-4 h-4" />
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              onDelete()
+            }}
+            className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
+            aria-label="Excluir curso"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+
+      <div className="relative mb-2">
         <h3 className="font-bold text-gray-900">{course.title}</h3>
         <p className="text-sm text-gray-600 mt-1 line-clamp-2">{course.description}</p>
       </div>
-      <div className="flex items-center gap-4 text-sm text-gray-500 mt-3">
+
+      <div className="relative flex items-center justify-between text-sm text-gray-500 mt-3">
         <span className="flex items-center gap-1">
           <Video className="w-4 h-4" />
           {course.lessons?.length || 0} aulas
+        </span>
+        <span className="text-xs text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity">
+          Abrir curso →
         </span>
       </div>
     </div>

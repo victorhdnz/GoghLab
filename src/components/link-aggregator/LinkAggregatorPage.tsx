@@ -150,7 +150,7 @@ export function LinkAggregatorPage({ aggregator }: LinkAggregatorPageProps) {
     .sort((a: SocialLink, b: SocialLink) => (a.order || 0) - (b.order || 0));
 
   return (
-    <div className="min-h-screen bg-[#1a1a1a] text-white relative overflow-hidden">
+    <div className="h-[100dvh] bg-[#1a1a1a] text-white relative overflow-hidden">
       {/* Efeito de pontos no fundo */}
       <div className="absolute inset-0 opacity-30">
         <div className="absolute inset-0" style={{
@@ -160,7 +160,7 @@ export function LinkAggregatorPage({ aggregator }: LinkAggregatorPageProps) {
       </div>
 
       {/* Conteúdo */}
-      <div className="relative z-10 flex flex-col items-center justify-center min-h-screen py-12 px-4">
+      <div className="relative z-10 flex h-full flex-col items-center justify-center py-6 md:py-8 px-4">
         <div className="w-full max-w-md space-y-8">
           {/* Título Principal com Efeito Portfolio Text */}
           <div className="text-center mb-4">
