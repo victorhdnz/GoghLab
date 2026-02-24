@@ -57,8 +57,6 @@ export interface PriceTier {
   // Stripe Price IDs para checkout
   stripePriceIdMonthly?: string
   stripePriceIdAnnually?: string
-  /** Créditos IA incluídos por mês (ex.: 50 para Gogh Essencial, 200 para Gogh Pro) */
-  monthlyCredits?: number
 }
 
 export interface FeatureCategory {

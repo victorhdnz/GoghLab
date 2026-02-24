@@ -2,35 +2,19 @@ import { unstable_noStore } from 'next/cache'
 import { createServerClient } from '@/lib/supabase/server'
 import { resolvePricingFeaturesFromProducts } from '@/lib/pricing-resolve'
 import { PricingSection } from '@/components/homepage/PricingSection'
-import { getCreditsConfigKey } from '@/lib/credits'
 
 export const dynamic = 'force-dynamic'
-
-function planIdToCreditsKey(planId: string): string {
-  if (planId === 'gogh-essencial') return 'gogh_essencial'
-  if (planId === 'gogh-pro') return 'gogh_pro'
-  return planId
-}
 
 export default async function PrecosPage() {
   unstable_noStore()
 
   const supabase = createServerClient()
 
-  const [generalResult, creditsResult] = await Promise.all([
-    supabase
-      .from('site_settings')
-      .select('site_name, site_logo, contact_whatsapp, instagram_url, homepage_content')
-      .eq('key', 'general')
-      .maybeSingle(),
-    supabase
-      .from('site_settings')
-      .select('value')
-      .eq('key', getCreditsConfigKey())
-      .maybeSingle(),
-  ])
-  const { data: row, error } = generalResult
-  const { data: creditsRow } = creditsResult
+  const { data: row, error } = await supabase
+    .from('site_settings')
+    .select('site_name, site_logo, contact_whatsapp, instagram_url, homepage_content')
+    .eq('key', 'general')
+    .maybeSingle()
 
   if (error || !row) {
     return (
@@ -55,21 +39,11 @@ export default async function PrecosPage() {
   const resolvedContent = await resolvePricingFeaturesFromProducts(supabase, homepageContent)
   const pricing = resolvedContent?.pricing || {}
 
-  const creditsData = creditsRow as { value?: unknown } | null
-  const creditsConfig = creditsData?.value && typeof creditsData.value === 'object'
-    ? (creditsData.value as { monthlyCreditsByPlan?: Record<string, number> })
-    : null
-  const monthlyCreditsByPlan = creditsConfig?.monthlyCreditsByPlan || {}
-
   if (Array.isArray(pricing.pricing_plans)) {
     const allowedPlanIds = new Set(['gogh-essencial', 'gogh-pro'])
     pricing.pricing_plans = pricing.pricing_plans
       .filter((plan: any) => allowedPlanIds.has(plan.id) && plan.planType !== 'service')
-      .map((plan: any) => {
-        const creditsKey = planIdToCreditsKey(plan.id)
-        const credits = monthlyCreditsByPlan[creditsKey]
-        return { ...plan, planType: 'subscription', monthlyCredits: typeof credits === 'number' ? credits : undefined }
-      })
+      .map((plan: any) => ({ ...plan, planType: 'subscription' }))
   }
   const siteSettings = {
     contact_whatsapp: generalRow.contact_whatsapp ?? null,

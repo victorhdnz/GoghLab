@@ -85,9 +85,9 @@ export async function POST(request: Request) {
       )
 
     const occupiedDates = new Set((existingItems || []).map((it: any) => it.date))
-    const existingTopics: string[] = (existingItems || [])
-      .map((it: any) => (it.topic || '').toString().trim())
-      .filter((topic): topic is string => Boolean(topic))
+    const existingTopics = ((existingItems || []) as Array<{ topic?: unknown }>)
+      .map((it) => (it.topic || '').toString().trim())
+      .filter((topic: string) => Boolean(topic))
 
     const today = new Date()
     const isCurrentMonth = today.getFullYear() === year && today.getMonth() === monthIndex
