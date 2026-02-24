@@ -26,7 +26,11 @@ type CalendarWithEventSlotsProps = {
   onSelectDate: (date: Date | undefined) => void;
   itemsForSelectedDate: PlannerItem[];
   loading?: boolean;
+  canInteract?: boolean;
+  onCreateForSelectedDate?: () => void;
   onOpenItem: (item: PlannerItem) => void;
+  onRegenerateForItem?: (itemId: string) => void;
+  regeneratingId?: string | null;
 };
 
 export function CalendarWithEventSlots({
@@ -36,7 +40,11 @@ export function CalendarWithEventSlots({
   onSelectDate,
   itemsForSelectedDate,
   loading = false,
+  canInteract = true,
+  onCreateForSelectedDate,
   onOpenItem,
+  onRegenerateForItem,
+  regeneratingId = null,
 }: CalendarWithEventSlotsProps) {
   const hasItems = itemsForSelectedDate.length > 0;
 
@@ -74,21 +82,49 @@ export function CalendarWithEventSlots({
               <div className="font-medium text-muted-foreground text-center">
                 Nenhum vídeo planejado neste dia
               </div>
+              {onCreateForSelectedDate ? (
+                <Button
+                  size="sm"
+                  onClick={onCreateForSelectedDate}
+                  disabled={!canInteract || loading}
+                  className="mt-3 w-full bg-[#F7C948] text-[#0A0A0A] hover:bg-[#F7C948]/90"
+                >
+                  Criar vídeo
+                </Button>
+              ) : null}
             </div>
           ) : (
             itemsForSelectedDate.map((item) => {
+              const regenerateCount = Number(item.meta?.regenerate_count ?? 0)
+              const isRegenerating = regeneratingId === item.id
               return (
-                <button
-                  type="button"
+                <div
                   key={item.id}
-                  onClick={() => onOpenItem(item)}
-                  className="bg-muted hover:bg-muted/80 after:bg-primary/70 relative rounded-md p-2 pl-6 text-sm after:absolute after:inset-y-2 after:left-2 after:w-1 after:rounded-full text-left transition-colors"
+                  className="bg-muted after:bg-primary/70 relative rounded-md p-2 pl-6 text-sm after:absolute after:inset-y-2 after:left-2 after:w-1 after:rounded-full"
                 >
-                  <div className="font-medium truncate">{item.topic || "Vídeo sem tema"}</div>
-                  <div className="mt-1 text-[11px] text-muted-foreground">
-                    {item.script || item.caption || item.hashtags ? "Conteúdo gerado" : "Conteúdo pendente"}
+                  <div className="flex items-start justify-between gap-2">
+                    <button
+                      type="button"
+                      onClick={() => onOpenItem(item)}
+                      className="min-w-0 flex-1 text-left hover:opacity-90 transition-opacity"
+                    >
+                      <div className="font-medium truncate">{item.topic || "Vídeo sem tema"}</div>
+                      <div className="mt-1 text-[11px] text-muted-foreground">
+                        {item.script || item.caption || item.hashtags ? "Conteúdo gerado" : "Conteúdo pendente"}
+                      </div>
+                    </button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="h-7 px-2 text-[11px] shrink-0"
+                      onClick={() => onRegenerateForItem?.(item.id)}
+                      disabled={!canInteract || isRegenerating || regenerateCount >= 3}
+                    >
+                      {isRegenerating ? "Gerando..." : "Gerar novamente"}
+                    </Button>
                   </div>
-                </button>
+                </div>
               );
             })
           )}

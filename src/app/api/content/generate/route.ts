@@ -21,6 +21,11 @@ type ContentProfileRow = {
   goals: string | null
   platforms: string[] | null
   frequency_per_week: number | null
+  extra_preferences?: {
+    audience_min_age?: number | null
+    audience_max_age?: number | null
+    [key: string]: unknown
+  } | null
 }
 
 type CalendarItemRow = {
@@ -33,6 +38,84 @@ type CalendarItemRow = {
 
 const SERVICE_ERROR_MESSAGE =
   'Ocorreu uma instabilidade ao processar sua solicitação. Tente novamente em alguns instantes. Se o problema persistir, entre em contato com o suporte.'
+
+function normalizeHashtags(value: string) {
+  const tags = (value.match(/#[\p{L}\p{N}_]+/gu) || []).map((tag) => tag.toLowerCase())
+  return Array.from(new Set(tags)).join(' ')
+}
+
+function stripHashtags(value: string) {
+  return value.replace(/#[\p{L}\p{N}_]+/gu, '').replace(/\s+/g, ' ').trim()
+}
+
+function formatScriptForReadability(value: string) {
+  const normalized = value.trim()
+  if (!normalized) return ''
+
+  if (normalized.includes('\n')) {
+    return normalized
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .join('\n\n')
+  }
+
+  const sentences = normalized.split(/(?<=[.!?])\s+/).filter(Boolean)
+  if (sentences.length <= 2) return normalized
+
+  const chunks: string[] = []
+  for (let i = 0; i < sentences.length; i += 2) {
+    chunks.push(`${sentences[i]}${sentences[i + 1] ? ` ${sentences[i + 1]}` : ''}`.trim())
+  }
+  return chunks.join('\n\n')
+}
+
+function splitGoals(goals: string | null) {
+  return (goals || '')
+    .split('|')
+    .map((goal) => goal.trim())
+    .filter(Boolean)
+}
+
+function mapGoalToCta(goal: string) {
+  const normalized = goal.toLowerCase()
+  if (normalized.includes('vendas') || normalized.includes('site')) {
+    return 'Direcione para o link da bio com proposta clara de conversão.'
+  }
+  if (normalized.includes('seguidores')) {
+    return 'Peça para seguir o perfil para receber mais conteúdos.'
+  }
+  if (normalized.includes('engajamento') || normalized.includes('coment')) {
+    return 'Estimule comentário com pergunta estratégica no final.'
+  }
+  if (normalized.includes('whatsapp') || normalized.includes('lead')) {
+    return 'Direcione para envio de mensagem no WhatsApp.'
+  }
+  if (normalized.includes('autoridade')) {
+    return 'Peça para salvar o conteúdo como referência.'
+  }
+  if (normalized.includes('educar') || normalized.includes('educacao')) {
+    return 'Incentive compartilhar com alguém que precisa ver isso.'
+  }
+  if (normalized.includes('lancamento') || normalized.includes('oferta') || normalized.includes('promo')) {
+    return 'CTA direto para ação imediata da oferta/lançamento.'
+  }
+  if (normalized.includes('retencao') || normalized.includes('comunidade')) {
+    return 'Convite para acompanhar a série e permanecer na comunidade.'
+  }
+  return 'Use CTA objetivo e específico para o resultado desejado.'
+}
+
+function buildAudienceSummary(profile: ContentProfileRow) {
+  const min = Number(profile.extra_preferences?.audience_min_age)
+  const max = Number(profile.extra_preferences?.audience_max_age)
+  const hasMin = Number.isFinite(min) && min > 0
+  const hasMax = Number.isFinite(max) && max > 0
+  if (hasMin && hasMax) return `${min} a ${max} anos`
+  if (hasMin) return `${min}+ anos`
+  if (hasMax) return `até ${max} anos`
+  return profile.audience || 'não informado'
+}
 
 /** POST /api/content/generate
  * body: { calendarItemId, overrideTopic? }
@@ -243,12 +326,17 @@ export async function POST(request: Request) {
     const model = process.env.OPENAI_ROTEIRO_MODEL_ID || 'gpt-4o-mini'
 
     // Montar descrição do perfil
+    const goalsList = splitGoals(profile.goals)
+    const primaryGoal = goalsList[0] || ''
+    const audienceSummary = buildAudienceSummary(profile)
+    const ctaInstruction = mapGoalToCta(primaryGoal)
+
     const profileSummary = [
       profile.business_name && `Nome do projeto/empresa: ${profile.business_name}`,
       profile.niche && `Nicho: ${profile.niche}`,
-      profile.audience && `Público-alvo: ${profile.audience}`,
+      `Público-alvo: ${audienceSummary}`,
       profile.tone_of_voice && `Tom de voz: ${profile.tone_of_voice}`,
-      profile.goals && `Objetivos: ${profile.goals}`,
+      goalsList.length ? `Objetivos selecionados: ${goalsList.join(' | ')}` : null,
       Array.isArray(profile.platforms) && profile.platforms.length
         ? `Plataformas: ${profile.platforms.join(', ')}`
         : null,
@@ -280,13 +368,22 @@ export async function POST(request: Request) {
           `Perfil de conteúdo do cliente:\n${profileSummary || '(sem detalhes adicionais)'}\n\n` +
           `${platformInfo}\n${dateInfo}\n\n` +
           `${userInstruction}\n\n` +
+          `Objetivo principal detectado: ${primaryGoal || 'não informado'}.\n` +
+          `Diretriz de CTA obrigatória: ${ctaInstruction}\n\n` +
           'Retorne SOMENTE um JSON válido, sem explicações extras, no formato:' +
           '\n{\n' +
           '  "topic": "título/tema do vídeo",\n' +
-          '  "script": "roteiro detalhado do vídeo",\n' +
-          '  "caption": "legenda pronta para postar",\n' +
-          '  "hashtags": "#tag1 #tag2 #tag3...",\n' +
-          '  "recommended_time": "HH:MM"  // horário sugerido no fuso local do cliente, se fizer sentido\n' +
+          '  "script": "roteiro com seções visuais e emojis, usando quebras de linha entre: 🎣 Gancho, 🧠 Desenvolvimento, 🎬 Demonstração/Exemplo, 📣 CTA final",\n' +
+          '  "caption": "legenda pronta para postar (SEM hashtags no texto)",\n' +
+          '  "hashtags": "#tag1 #tag2 #tag3 ... (entre 10 e 15 hashtags em UMA linha)",\n' +
+          '  "recommended_time": "HH:MM",\n' +
+          '  "recommended_time_reason": "justificativa curta baseada na faixa etária",\n' +
+          '  "cover_text_options": ["opcao 1", "opcao 2", "opcao 3"],\n' +
+          '  "ad_copy": {\n' +
+          '    "headline": "headline curta e impactante",\n' +
+          '    "body": "texto persuasivo médio com foco no objetivo",\n' +
+          '    "cta": "cta forte e específico"\n' +
+          '  }\n' +
           '}\n',
       },
     ]
@@ -320,10 +417,22 @@ export async function POST(request: Request) {
     }
 
     const generatedTopic = (parsed.topic ?? '').toString().trim()
-    const script = (parsed.script ?? '').toString().trim()
-    const caption = (parsed.caption ?? '').toString().trim()
-    const hashtags = (parsed.hashtags ?? '').toString().trim()
+    const scriptRaw = (parsed.script ?? '').toString().trim()
+    const captionRaw = (parsed.caption ?? '').toString().trim()
+    const hashtagsRaw = (parsed.hashtags ?? '').toString().trim()
+    const script = formatScriptForReadability(scriptRaw)
+    const caption = stripHashtags(captionRaw)
+    const hashtags = normalizeHashtags(`${hashtagsRaw} ${captionRaw}`)
     const recommendedTime = (parsed.recommended_time ?? '').toString().trim()
+    const recommendedTimeReason = (parsed.recommended_time_reason ?? '').toString().trim() || null
+    const coverTextOptions = Array.isArray(parsed.cover_text_options)
+      ? parsed.cover_text_options.map((opt: unknown) => String(opt || '').trim()).filter(Boolean).slice(0, 3)
+      : []
+    const adCopy = {
+      headline: (parsed?.ad_copy?.headline ?? '').toString().trim() || null,
+      body: (parsed?.ad_copy?.body ?? '').toString().trim() || null,
+      cta: (parsed?.ad_copy?.cta ?? '').toString().trim() || null,
+    }
 
     // Atualizar item no calendário
     const updates: any = {
@@ -332,9 +441,15 @@ export async function POST(request: Request) {
       script,
       caption,
       hashtags,
+      cover_prompt: coverTextOptions.length ? coverTextOptions.join('\n') : null,
       meta: {
         ...(item.meta || {}),
         recommended_time: recommendedTime || null,
+        recommended_time_reason: recommendedTimeReason,
+        primary_goal: primaryGoal || null,
+        cta_focus: ctaInstruction,
+        cover_text_options: coverTextOptions,
+        ad_copy: adCopy,
         regenerate_count: mode === 'regenerate' ? regenerateCount + 1 : regenerateCount,
       },
     }
@@ -366,6 +481,9 @@ export async function POST(request: Request) {
         caption,
         hashtags,
         recommended_time: recommendedTime || null,
+        recommended_time_reason: recommendedTimeReason,
+        cover_text_options: coverTextOptions,
+        ad_copy: adCopy,
       },
     })
   } catch (e: any) {

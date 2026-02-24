@@ -3,6 +3,7 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import * as React from "react";
 import { DayPicker } from "react-day-picker";
+import { ptBR } from "date-fns/locale";
 
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
@@ -73,6 +74,7 @@ function Calendar({
 
   return (
     <DayPicker
+      locale={props.locale ?? ptBR}
       showOutsideDays={showOutsideDays}
       className={cn("w-fit", className)}
       classNames={mergedClassNames}

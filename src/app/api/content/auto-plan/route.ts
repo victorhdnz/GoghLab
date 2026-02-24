@@ -20,6 +20,57 @@ type ProfileRow = {
 const SERVICE_ERROR_MESSAGE =
   'Ocorreu uma instabilidade ao processar sua solicitacao. Tente novamente em alguns instantes.'
 
+function normalizeHashtags(value: string) {
+  const tags = (value.match(/#[\p{L}\p{N}_]+/gu) || []).map((tag) => tag.toLowerCase())
+  return Array.from(new Set(tags)).join(' ')
+}
+
+function stripHashtags(value: string) {
+  return value.replace(/#[\p{L}\p{N}_]+/gu, '').replace(/\s+/g, ' ').trim()
+}
+
+function formatScriptForReadability(value: string) {
+  const normalized = value.trim()
+  if (!normalized) return ''
+
+  if (normalized.includes('\n')) {
+    return normalized
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .join('\n\n')
+  }
+
+  const sentences = normalized.split(/(?<=[.!?])\s+/).filter(Boolean)
+  if (sentences.length <= 2) return normalized
+
+  const chunks: string[] = []
+  for (let i = 0; i < sentences.length; i += 2) {
+    chunks.push(`${sentences[i]}${sentences[i + 1] ? ` ${sentences[i + 1]}` : ''}`.trim())
+  }
+  return chunks.join('\n\n')
+}
+
+function splitGoals(goals: string | null) {
+  return (goals || '')
+    .split('|')
+    .map((goal) => goal.trim())
+    .filter(Boolean)
+}
+
+function mapGoalToCta(goal: string) {
+  const normalized = goal.toLowerCase()
+  if (normalized.includes('vendas') || normalized.includes('site')) return 'Direcione para o link da bio.'
+  if (normalized.includes('seguidores')) return 'Peça para seguir o perfil.'
+  if (normalized.includes('engajamento') || normalized.includes('coment')) return 'Peça comentário no final.'
+  if (normalized.includes('whatsapp') || normalized.includes('lead')) return 'Direcione para mensagem no WhatsApp.'
+  if (normalized.includes('autoridade')) return 'Peça para salvar o conteúdo.'
+  if (normalized.includes('educar')) return 'Incentive compartilhar com alguém.'
+  if (normalized.includes('lancamento') || normalized.includes('oferta')) return 'CTA direto para a ação da oferta.'
+  if (normalized.includes('retencao') || normalized.includes('comunidade')) return 'Convite para acompanhar a comunidade.'
+  return 'CTA específico para o objetivo principal.'
+}
+
 function toDate(value: string) {
   const date = new Date(value)
   return Number.isNaN(date.getTime()) ? null : date
@@ -115,12 +166,16 @@ export async function POST(request: Request) {
       })
     }
 
+    const goalsList = splitGoals(profile.goals)
+    const primaryGoal = goalsList[0] || ''
+    const ctaInstruction = mapGoalToCta(primaryGoal)
+
     const profileSummary = [
       profile.business_name && `Nome do projeto/empresa: ${profile.business_name}`,
       profile.niche && `Nicho: ${profile.niche}`,
       profile.audience && `Publico-alvo: ${profile.audience}`,
       profile.tone_of_voice && `Tom de voz: ${profile.tone_of_voice}`,
-      profile.goals && `Objetivos: ${profile.goals}`,
+      goalsList.length ? `Objetivos selecionados: ${goalsList.join(' | ')}` : null,
       Array.isArray(profile.platforms) && profile.platforms.length
         ? `Plataformas: ${profile.platforms.join(', ')}`
         : null,
@@ -147,9 +202,11 @@ export async function POST(request: Request) {
             `Perfil:\n${profileSummary || '(sem detalhes)'}\n\n` +
             `Datas para gerar: ${selectedDates.join(', ')}\n` +
             `Temas ja existentes para evitar duplicacao: ${existingTopics.length ? existingTopics.join(' | ') : '(nenhum)'}\n\n` +
+            `Objetivo principal detectado: ${primaryGoal || 'não informado'}\n` +
+            `Diretriz de CTA obrigatória: ${ctaInstruction}\n\n` +
             'Retorne SOMENTE JSON valido no formato:\n' +
             '{ "items": [\n' +
-            '  { "date": "YYYY-MM-DD", "topic": "...", "script": "...", "caption": "...", "hashtags": "...", "recommended_time": "HH:MM" }\n' +
+            '  { "date": "YYYY-MM-DD", "topic": "...", "script": "roteiro com seções e emojis (🎣 Gancho, 🧠 Desenvolvimento, 🎬 Demonstração/Exemplo, 📣 CTA), com quebras de linha", "caption": "legenda sem hashtags no texto", "hashtags": "...", "recommended_time": "HH:MM", "recommended_time_reason": "...", "cover_text_options": ["...", "...", "..."], "ad_copy": { "headline": "...", "body": "...", "cta": "..." } }\n' +
             ']}\n' +
             `A lista deve conter EXATAMENTE ${selectedDates.length} itens, com uma data unica para cada item, sem repetir tema.`,
         },
@@ -191,17 +248,35 @@ export async function POST(request: Request) {
       usedTopics.add(key)
 
       const recommendedTime = (rawItem?.recommended_time || '').toString().trim()
+      const scriptRaw = (rawItem?.script || '').toString().trim()
+      const captionRaw = (rawItem?.caption || '').toString().trim()
+      const hashtagsRaw = (rawItem?.hashtags || '').toString().trim()
+      const coverTextOptions = Array.isArray(rawItem?.cover_text_options)
+        ? rawItem.cover_text_options.map((opt: unknown) => String(opt || '').trim()).filter(Boolean).slice(0, 3)
+        : []
+      const adCopy = {
+        headline: (rawItem?.ad_copy?.headline || '').toString().trim() || null,
+        body: (rawItem?.ad_copy?.body || '').toString().trim() || null,
+        cta: (rawItem?.ad_copy?.cta || '').toString().trim() || null,
+      }
+      const recommendedTimeReason = (rawItem?.recommended_time_reason || '').toString().trim() || null
       payloads.push({
         user_id: user.id,
         date,
         status: 'generated',
         topic,
-        script: (rawItem?.script || '').toString().trim() || null,
-        caption: (rawItem?.caption || '').toString().trim() || null,
-        hashtags: (rawItem?.hashtags || '').toString().trim() || null,
+        script: formatScriptForReadability(scriptRaw) || null,
+        caption: stripHashtags(captionRaw) || null,
+        hashtags: normalizeHashtags(`${hashtagsRaw} ${captionRaw}`) || null,
+        cover_prompt: coverTextOptions.length ? coverTextOptions.join('\n') : null,
         time: /^\d{1,2}:\d{2}$/.test(recommendedTime) ? `${recommendedTime}:00+00` : null,
         meta: {
           recommended_time: /^\d{1,2}:\d{2}$/.test(recommendedTime) ? recommendedTime : null,
+          recommended_time_reason: recommendedTimeReason,
+          primary_goal: primaryGoal || null,
+          cta_focus: ctaInstruction,
+          cover_text_options: coverTextOptions,
+          ad_copy: adCopy,
           auto_generated: true,
           regenerate_count: 0,
         },
