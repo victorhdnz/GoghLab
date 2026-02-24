@@ -149,11 +149,11 @@ const GradientSvg = ({
   const variants = {
     hovered: {
       gradientTransform: gradientTransforms,
-      transition: { duration: 40, repeat: Infinity, ease: 'linear' },
+      transition: { duration: 40, repeat: Infinity, ease: 'linear' as const },
     },
     notHovered: {
       gradientTransform: gradientTransforms,
-      transition: { duration: 12, repeat: Infinity, ease: 'linear' },
+      transition: { duration: 12, repeat: Infinity, ease: 'linear' as const },
     },
   }
 
@@ -167,7 +167,7 @@ const GradientSvg = ({
               <motion.stop
                 initial={{ offset: stopConfigs[0].offset, stopColor: stopConfigs[0].stopColor }}
                 animate={{ offset: stopConfigs.map((c) => c.offset), stopColor: stopConfigs.map((c) => c.stopColor) }}
-                transition={{ duration: 0, ease: 'linear', repeat: Infinity }}
+                transition={{ duration: 0, ease: 'linear' as const, repeat: Infinity }}
               />
             </AnimatePresence>
           ))}
