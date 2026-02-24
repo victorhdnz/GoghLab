@@ -129,7 +129,7 @@ export function PurchaseNotificationGlobal() {
   const tourSteps = [...(isMobile ? mobileSteps : desktopSteps), ...contextualSteps]
 
   return (
-    <div className="fixed top-4 left-3 right-3 sm:left-4 sm:right-4 z-[120] max-w-2xl mx-auto pointer-events-auto">
+    <div className="fixed top-4 left-3 right-3 sm:left-4 sm:right-4 z-[120] max-w-md sm:max-w-lg md:max-w-xl mx-auto pointer-events-auto">
       <Banner
         show
         variant="gradient"

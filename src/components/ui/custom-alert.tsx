@@ -14,6 +14,8 @@ interface CustomAlertProps {
   visible?: boolean
   onClose?: () => void
   action?: ReactNode
+  actionLabel?: string
+  onAction?: () => void
   className?: string
 }
 
@@ -31,6 +33,8 @@ export default function CustomAlert({
   visible = true,
   onClose,
   action,
+  actionLabel,
+  onAction,
   className,
 }: CustomAlertProps) {
   const icon = useMemo(() => icons[variant], [variant])
@@ -67,7 +71,17 @@ export default function CustomAlert({
               {description && (
                 <p className="text-sm text-black dark:text-white opacity-80 mt-1">{description}</p>
               )}
-              {action ? <div className="mt-3">{action}</div> : null}
+              {action ? (
+                <div className="mt-3">{action}</div>
+              ) : actionLabel && onAction ? (
+                <button
+                  type="button"
+                  onClick={onAction}
+                  className="mt-3 w-fit text-xs font-semibold px-3 py-1.5 rounded-md bg-white/10 hover:bg-white/20 transition"
+                >
+                  {actionLabel}
+                </button>
+              ) : null}
             </div>
           </div>
         </motion.div>
