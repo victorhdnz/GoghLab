@@ -589,7 +589,7 @@ export default function ContentPlanningPage() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-24 lg:py-28 space-y-8 relative">
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-10 pb-8 sm:pt-16 sm:pb-10 lg:pt-28 lg:pb-12 space-y-5 sm:space-y-8 relative">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-gogh-black flex items-center gap-2">
@@ -965,6 +965,7 @@ export default function ContentPlanningPage() {
                   setRegenerateModalItem(null)
                   setRegenerateNotes('')
                 }}
+                className="rounded-full bg-gray-100 border-gray-200 text-gray-700 hover:bg-gray-200"
               >
                 Cancelar
               </Button>

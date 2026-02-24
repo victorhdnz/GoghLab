@@ -72,6 +72,26 @@ const formatDatePtBr = (isoDate?: string | null) => {
   return parsed.toLocaleDateString('pt-BR')
 }
 
+const hasCustomPeriodEnd = (subscription?: Member['subscription']) => {
+  if (!subscription?.current_period_start || !subscription.current_period_end) return false
+  if (!subscription.billing_cycle) return false
+
+  const start = new Date(subscription.current_period_start)
+  const end = new Date(subscription.current_period_end)
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return false
+
+  const expectedEnd = new Date(start)
+  if (subscription.billing_cycle === 'annual') {
+    expectedEnd.setFullYear(expectedEnd.getFullYear() + 1)
+  } else {
+    expectedEnd.setMonth(expectedEnd.getMonth() + 1)
+  }
+
+  // Margem para diferenças pequenas de horário/fuso.
+  const diffMs = Math.abs(end.getTime() - expectedEnd.getTime())
+  return diffMs > 36 * 60 * 60 * 1000
+}
+
 export default function MembrosPage() {
   const router = useRouter()
   const supabase = createClient()
@@ -134,7 +154,7 @@ export default function MembrosPage() {
     // Definir billing cycle atual ou padrão
     const currentBillingCycle = member.subscription?.billing_cycle as 'monthly' | 'annual' | undefined
     setEditingBillingCycle(currentBillingCycle || 'monthly')
-    setUseCustomPeriodEnd(false)
+    setUseCustomPeriodEnd(hasCustomPeriodEnd(member.subscription))
     setEditingCustomPeriodEnd(toDateInputValue(member.subscription?.current_period_end))
   }
 
@@ -801,6 +821,12 @@ export default function MembrosPage() {
                                     className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-black"
                                   />
                                 )}
+
+                                {!useCustomPeriodEnd && hasCustomPeriodEnd(member.subscription) && (
+                                  <p className="text-[11px] text-amber-700">
+                                    Este plano está com vencimento personalizado salvo.
+                                  </p>
+                                )}
                               </>
                             )}
                           </div>
@@ -823,6 +849,9 @@ export default function MembrosPage() {
                                 <p className="text-xs text-gray-500">
                                   Origem: {member.subscription.is_manual ? 'Manual' : 'Stripe'}
                                 </p>
+                                <p className="text-xs text-gray-500">
+                                  Vencimento: {hasCustomPeriodEnd(member.subscription) ? 'Personalizado' : 'Padrão do ciclo'}
+                                </p>
                                 {(member.subscription.status === 'active' || member.subscription.status === 'trialing') && (
                                   <p className="text-xs text-gray-500">
                                     Próxima cobrança: {formatDatePtBr(member.subscription.current_period_end) || '-'}
@@ -831,6 +860,11 @@ export default function MembrosPage() {
                                 {member.subscription.cancel_at_period_end && (
                                   <p className="text-xs text-amber-700">
                                     Cancelamento agendado para {formatDatePtBr(member.subscription.current_period_end) || '-'}
+                                  </p>
+                                )}
+                                {hasCustomPeriodEnd(member.subscription) && (
+                                  <p className="text-xs text-amber-700 font-medium">
+                                    Vencimento personalizado: {formatDatePtBr(member.subscription.current_period_end) || '-'}
                                   </p>
                                 )}
                                 {member.subscription.status === 'canceled' && (

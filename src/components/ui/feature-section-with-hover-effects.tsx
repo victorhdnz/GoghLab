@@ -1,6 +1,7 @@
 'use client'
 
 import { cn } from "@/lib/utils"
+import Image from "next/image"
 import {
   IconScissors,
   IconPalette,
@@ -39,6 +40,7 @@ export interface FeatureItemData {
   title: string
   description: string
   icon: string
+  icon_url?: string | null
 }
 
 const defaultFeatures: FeatureItemData[] = [
@@ -126,6 +128,7 @@ export function FeaturesSectionWithHoverEffects({
               title={feature.title}
               description={feature.description}
               icon={typeof feature.icon === 'string' ? iconMap[feature.icon] || <IconSparkles className="w-6 h-6" /> : feature.icon}
+              iconUrl={feature.icon_url}
               index={index} 
             />
           ))}
@@ -139,8 +142,9 @@ const Feature = ({
   title,
   description,
   icon,
+  iconUrl,
   index,
-}: { title: string; description: string; icon: React.ReactNode; index: number }) => {
+}: { title: string; description: string; icon: React.ReactNode; iconUrl?: string | null; index: number }) => {
   return (
     <div
       className={cn(
@@ -160,7 +164,13 @@ const Feature = ({
       
       {/* Icon */}
       <div className="mb-3 relative z-10 text-gogh-yellow-dark group-hover/feature:text-gogh-yellow transition-colors duration-200 [&>svg]:w-5 [&>svg]:h-5 sm:[&>svg]:w-6 sm:[&>svg]:h-6">
-        {icon}
+        {iconUrl ? (
+          <div className="relative w-6 h-6 sm:w-7 sm:h-7">
+            <Image src={iconUrl} alt={title} fill className="object-contain" />
+          </div>
+        ) : (
+          icon
+        )}
       </div>
       
       {/* Title with animated bar */}

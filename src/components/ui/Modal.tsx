@@ -48,11 +48,11 @@ export const Modal = ({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 bg-black/70 z-[220]"
+            className="fixed inset-0 bg-black/75 backdrop-blur-[1px] z-[1200]"
           />
 
           {/* Modal */}
-          <div className="fixed inset-0 z-[230] flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-[1210] flex items-center justify-center p-4">
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}

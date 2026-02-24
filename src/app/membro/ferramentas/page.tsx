@@ -21,6 +21,7 @@ import {
   Play
 } from 'lucide-react'
 import { LumaSpin } from '@/components/ui/luma-spin'
+import { GlowingShadow } from '@/components/ui/glowing-shadow'
 import toast from 'react-hot-toast'
 import { 
   getYouTubeId, 
@@ -635,28 +636,30 @@ export default function ToolsPage() {
               key={t.id}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="bg-white rounded-xl border border-gogh-grayLight shadow-sm overflow-hidden"
+              className="rounded-xl"
             >
-              <div className="p-6">
-                <div className="flex items-center gap-4 mb-3">
-                  {t.icon_url ? (
-                    <img src={t.icon_url} alt="" className="w-14 h-14 rounded-xl object-contain" />
-                  ) : (
-                    <div className="w-14 h-14 bg-gogh-yellow/20 rounded-xl flex items-center justify-center">
-                      <Wrench className="w-7 h-7 text-gogh-grayDark" />
-                    </div>
-                  )}
-                  <h3 className="text-xl font-bold text-gogh-black">{t.name}</h3>
+              <GlowingShadow className="rounded-xl">
+                <div className="bg-white rounded-xl border border-gogh-grayLight shadow-sm overflow-hidden p-6">
+                  <div className="flex items-center gap-4 mb-3">
+                    {t.icon_url ? (
+                      <img src={t.icon_url} alt="" className="w-14 h-14 rounded-xl object-contain" />
+                    ) : (
+                      <div className="w-14 h-14 bg-gogh-yellow/20 rounded-xl flex items-center justify-center">
+                        <Wrench className="w-7 h-7 text-gogh-grayDark" />
+                      </div>
+                    )}
+                    <h3 className="text-xl font-bold text-gogh-black">{t.name}</h3>
+                  </div>
+                  <p className="text-gogh-grayDark text-sm mb-4">{t.description || 'Ferramenta incluída no plano.'}</p>
+                  <Link
+                    href="/precos"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-gogh-yellow text-gogh-black font-medium rounded-lg hover:bg-gogh-yellow/90 transition-colors text-sm"
+                  >
+                    Ver planos para solicitar acesso
+                    <ExternalLink className="w-3 h-3" />
+                  </Link>
                 </div>
-                <p className="text-gogh-grayDark text-sm mb-4">{t.description || 'Ferramenta incluída no plano.'}</p>
-                <Link
-                  href="/precos"
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-gogh-yellow text-gogh-black font-medium rounded-lg hover:bg-gogh-yellow/90 transition-colors text-sm"
-                >
-                  Ver planos para solicitar acesso
-                  <ExternalLink className="w-3 h-3" />
-                </Link>
-              </div>
+              </GlowingShadow>
             </motion.div>
           ))}
         </div>
@@ -704,28 +707,30 @@ export default function ToolsPage() {
               key={t.id}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="bg-white rounded-xl border border-gogh-grayLight shadow-sm overflow-hidden"
+              className="rounded-xl"
             >
-              <div className="p-6">
-                <div className="flex items-center gap-4 mb-3">
-                  {t.icon_url ? (
-                    <img src={t.icon_url} alt="" className="w-14 h-14 rounded-xl object-contain" />
-                  ) : (
-                    <div className="w-14 h-14 bg-gogh-yellow/20 rounded-xl flex items-center justify-center">
-                      <Wrench className="w-7 h-7 text-gogh-grayDark" />
-                    </div>
-                  )}
-                  <h3 className="text-xl font-bold text-gogh-black">{t.name}</h3>
+              <GlowingShadow className="rounded-xl">
+                <div className="bg-white rounded-xl border border-gogh-grayLight shadow-sm overflow-hidden p-6">
+                  <div className="flex items-center gap-4 mb-3">
+                    {t.icon_url ? (
+                      <img src={t.icon_url} alt="" className="w-14 h-14 rounded-xl object-contain" />
+                    ) : (
+                      <div className="w-14 h-14 bg-gogh-yellow/20 rounded-xl flex items-center justify-center">
+                        <Wrench className="w-7 h-7 text-gogh-grayDark" />
+                      </div>
+                    )}
+                    <h3 className="text-xl font-bold text-gogh-black">{t.name}</h3>
+                  </div>
+                  <p className="text-gogh-grayDark text-sm mb-4">{t.description || 'Ferramenta incluída no plano.'}</p>
+                  <Link
+                    href="/precos"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-gogh-yellow text-gogh-black font-medium rounded-lg hover:bg-gogh-yellow/90 transition-colors text-sm"
+                  >
+                    Assinar para usar
+                    <ExternalLink className="w-3 h-3" />
+                  </Link>
                 </div>
-                <p className="text-gogh-grayDark text-sm mb-4">{t.description || 'Ferramenta incluída no plano.'}</p>
-                <Link
-                  href="/precos"
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-gogh-yellow text-gogh-black font-medium rounded-lg hover:bg-gogh-yellow/90 transition-colors text-sm"
-                >
-                  Assinar para usar
-                  <ExternalLink className="w-3 h-3" />
-                </Link>
-              </div>
+              </GlowingShadow>
             </motion.div>
           ))}
         </div>
@@ -879,29 +884,31 @@ export default function ToolsPage() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.1 }}
-                className="bg-white rounded-lg border border-gogh-grayLight shadow-sm overflow-hidden"
+                className="rounded-lg"
               >
-                <div className="bg-gradient-to-r from-gogh-yellow to-amber-500 p-4 text-white">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white/20 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
-                      {t.icon_url ? (
-                        <img src={t.icon_url} alt="" className="w-full h-full object-contain p-0.5" />
-                      ) : (
-                        <Wrench className="w-5 h-5 sm:w-6 sm:h-6" />
-                      )}
+                <GlowingShadow className="rounded-lg">
+                  <div className="bg-white rounded-lg border border-gogh-grayLight shadow-sm overflow-hidden">
+                    <div className="bg-gradient-to-r from-gogh-yellow to-amber-500 p-4 text-white">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white/20 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
+                          {t.icon_url ? (
+                            <img src={t.icon_url} alt="" className="w-full h-full object-contain p-0.5" />
+                          ) : (
+                            <Wrench className="w-5 h-5 sm:w-6 sm:h-6" />
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <h3 className="text-base sm:text-lg font-bold truncate">{t.name}</h3>
+                          {hasAccess && (
+                            <span className="inline-flex items-center gap-1 text-xs bg-white/20 px-2 py-0.5 rounded-full mt-1">
+                              <CheckCircle2 className="w-3 h-3" />
+                              Acesso liberado
+                            </span>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                    <div className="min-w-0">
-                      <h3 className="text-base sm:text-lg font-bold truncate">{t.name}</h3>
-                      {hasAccess && (
-                        <span className="inline-flex items-center gap-1 text-xs bg-white/20 px-2 py-0.5 rounded-full mt-1">
-                          <CheckCircle2 className="w-3 h-3" />
-                          Acesso liberado
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-                <div className="p-4 pb-5">
+                    <div className="p-4 pb-5">
                   {hasAccess && hasNewCredentials && (
                     <div className="mb-3 rounded-lg border border-emerald-200 bg-emerald-50 p-2.5">
                       <p className="text-sm text-emerald-800 font-medium flex items-center gap-2">
@@ -1010,7 +1017,9 @@ export default function ToolsPage() {
                       )}
                     </div>
                   )}
-                </div>
+                    </div>
+                  </div>
+                </GlowingShadow>
               </motion.div>
             )
           })}

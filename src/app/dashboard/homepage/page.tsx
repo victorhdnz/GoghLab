@@ -136,6 +136,7 @@ interface HomepageSettings {
     title: string
     description: string
     icon: 'scissors' | 'palette' | 'robot' | 'video' | 'instagram' | 'megaphone' | 'school' | 'sparkles' | 'settings' | 'target'
+    icon_url?: string | null
   }>
 
   // Seção Trusted By (Plataformas que utilizamos)
@@ -1589,6 +1590,7 @@ export default function HomepageEditorPage() {
                           title: 'Nova Feature',
                           description: 'Descrição da feature',
                           icon: 'sparkles' as const,
+                          icon_url: null,
                         }
                         setFormData({
                           ...formData,
@@ -1631,20 +1633,74 @@ export default function HomepageEditorPage() {
                               />
                             </div>
                             <div>
-                              <label className="block text-xs font-medium mb-1">Ícone</label>
-                              <select
-                                value={item.icon}
-                                onChange={(e) => {
-                                  const updated = [...(formData.features_items || [])]
-                                  updated[index] = { ...updated[index], icon: e.target.value as any }
-                                  setFormData({ ...formData, features_items: updated })
-                                }}
-                                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                              >
-                                {featureIconOptions.map((opt) => (
-                                  <option key={opt.value} value={opt.value}>{opt.label}</option>
-                                ))}
-                              </select>
+                              <label className="block text-xs font-medium mb-1">Tipo de ícone</label>
+                              <div className="flex gap-2 mb-2">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const updated = [...(formData.features_items || [])]
+                                    updated[index] = { ...updated[index], icon_url: null }
+                                    setFormData({ ...formData, features_items: updated })
+                                  }}
+                                  className={`px-2 py-1 text-xs rounded-md border ${
+                                    (item.icon_url === null || item.icon_url === undefined) ? 'bg-gogh-yellow/20 border-gogh-yellow text-gogh-black' : 'border-gray-300 text-gray-600'
+                                  }`}
+                                >
+                                  Emoji
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const updated = [...(formData.features_items || [])]
+                                    updated[index] = { ...updated[index], icon_url: '' }
+                                    setFormData({ ...formData, features_items: updated })
+                                  }}
+                                  className={`px-2 py-1 text-xs rounded-md border ${
+                                    (item.icon_url !== null && item.icon_url !== undefined) ? 'bg-gogh-yellow/20 border-gogh-yellow text-gogh-black' : 'border-gray-300 text-gray-600'
+                                  }`}
+                                >
+                                  Foto
+                                </button>
+                              </div>
+
+                              {(item.icon_url !== null && item.icon_url !== undefined) ? (
+                                <div className="space-y-2">
+                                  <ImageUploader
+                                    value={item.icon_url || ''}
+                                    onChange={(url) => {
+                                      const updated = [...(formData.features_items || [])]
+                                      updated[index] = { ...updated[index], icon_url: url || null }
+                                      setFormData({ ...formData, features_items: updated })
+                                    }}
+                                    placeholder="Upload do ícone da feature"
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const updated = [...(formData.features_items || [])]
+                                      updated[index] = { ...updated[index], icon_url: null }
+                                      setFormData({ ...formData, features_items: updated })
+                                    }}
+                                    className="text-xs text-red-600 hover:text-red-700"
+                                  >
+                                    Remover foto e voltar para emoji
+                                  </button>
+                                </div>
+                              ) : (
+                                <select
+                                  value={item.icon}
+                                  onChange={(e) => {
+                                    const updated = [...(formData.features_items || [])]
+                                    updated[index] = { ...updated[index], icon: e.target.value as any }
+                                    setFormData({ ...formData, features_items: updated })
+                                  }}
+                                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                >
+                                  {featureIconOptions.map((opt) => (
+                                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                  ))}
+                                </select>
+                              )}
                             </div>
                           </div>
                           <div className="flex flex-col items-center gap-1">
