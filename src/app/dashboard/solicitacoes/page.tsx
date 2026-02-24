@@ -60,6 +60,7 @@ interface ToolAccess {
   password?: string
   tutorial_video_url?: string
   access_granted_at: string
+  updated_at?: string
   is_active: boolean
   error_reported?: boolean
   error_message?: string
@@ -117,7 +118,7 @@ export default function SolicitacoesPage() {
       const toolId = selectedTicket.tool_id ?? null
       const slug = toolId ? toolsMap[toolId]?.slug : undefined
       loadingForRef.current = { userId, toolId }
-      loadToolAccessForTicket(userId, toolId, slug)
+      loadToolAccessForTicket(userId, toolId, slug, selectedTicket.status === 'resolved')
       const tool = toolId ? toolsMap[toolId] : undefined
       loadSubscriptionInfo(selectedTicket.user_id, tool)
       loadTicketMessages(selectedTicket.id)
@@ -256,7 +257,12 @@ export default function SolicitacoesPage() {
     }
   }
 
-  const loadToolAccessForTicket = async (userId: string, toolId: string | null, slug?: string) => {
+  const loadToolAccessForTicket = async (
+    userId: string,
+    toolId: string | null,
+    slug?: string,
+    prefillFields: boolean = false
+  ) => {
     try {
       if (!toolId) {
         const stillCurrent = loadingForRef.current && loadingForRef.current.userId === userId && loadingForRef.current.toolId === null
@@ -273,17 +279,21 @@ export default function SolicitacoesPage() {
       } else {
         query = query.eq('tool_id', toolId)
       }
-      const { data, error } = await query
+      const { data, error } = await query.order('updated_at', { ascending: false })
 
       if (error) throw error
       const list = data || []
       const stillCurrent = loadingForRef.current?.userId === userId && loadingForRef.current?.toolId === toolId
       if (stillCurrent) {
         setToolAccess(list)
-        // UX: ao abrir um ticket, sempre começar com campos limpos para evitar
-        // confusão visual com dados de solicitações anteriores.
-        setAccessLink('')
-        setAccessPassword('')
+        if (prefillFields && list.length > 0) {
+          const latestAccess = list[0]
+          setAccessLink(latestAccess.access_link || '')
+          setAccessPassword(latestAccess.password || '')
+        } else {
+          setAccessLink('')
+          setAccessPassword('')
+        }
       }
     } catch (error: any) {
       console.error('Erro ao carregar acessos:', error)
@@ -409,13 +419,32 @@ export default function SolicitacoesPage() {
         .upsert(payload, { onConflict: 'user_id,tool_type' })
       if (error) throw error
 
+      // Registrar histórico no ticket para auditoria/comprovação do que foi enviado.
+      const sentSummary =
+        `[LIBERACAO DE ACESSO - ${tool.name}]\n` +
+        `Link/Email enviado: ${linkValue}\n` +
+        `${accessPassword.trim() ? `Senha enviada: ${accessPassword.trim()}\n` : ''}` +
+        `Enviado em: ${new Date().toLocaleString('pt-BR')}`
+
+      const { error: logMessageError } = await (supabase as any)
+        .from('support_messages')
+        .insert({
+          ticket_id: selectedTicket.id,
+          sender_id: user.id,
+          content: sentSummary
+        })
+      if (logMessageError) {
+        console.warn('Não foi possível registrar histórico do envio no ticket:', logMessageError)
+      }
+
       if (selectedTicket.status === 'open' || selectedTicket.status === 'error') {
         await updateTicketStatus(selectedTicket.id, 'resolved')
       }
 
       toast.success('Acesso salvo com sucesso! O cliente já pode ver o link/credenciais na página de ferramentas.')
       loadingForRef.current = { userId: selectedTicket.user_id, toolId: selectedTicket.tool_id ?? null }
-      await loadToolAccessForTicket(selectedTicket.user_id, selectedTicket.tool_id ?? null, tool.slug)
+      await loadToolAccessForTicket(selectedTicket.user_id, selectedTicket.tool_id ?? null, tool.slug, true)
+      await loadTicketMessages(selectedTicket.id)
       const currentSelectedId = selectedTicket.id
       const updatedList = await loadTickets()
       const reloaded = updatedList.find(t => t.id === currentSelectedId)
@@ -581,9 +610,9 @@ export default function SolicitacoesPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
           {/* Tickets List */}
-          <div className="lg:col-span-1 bg-white rounded-lg shadow-sm border border-gray-200">
+          <div className="lg:col-span-1 bg-white rounded-lg shadow-sm border border-gray-200 flex flex-col lg:h-[calc(100vh-220px)]">
             {/* Filters */}
             <div className="p-4 border-b border-gray-200 space-y-3">
               <div className="relative">
@@ -609,7 +638,7 @@ export default function SolicitacoesPage() {
             </div>
 
             {/* Tickets */}
-            <div className="overflow-y-auto max-h-[calc(100vh-300px)]">
+            <div className="overflow-y-auto flex-1 min-h-0">
               {loading ? (
                 <div className="p-8 text-center">
                   <LumaSpin size="sm" className="mx-auto mb-4" />
