@@ -62,11 +62,14 @@ export default async function PrecosPage() {
   const monthlyCreditsByPlan = creditsConfig?.monthlyCreditsByPlan || {}
 
   if (Array.isArray(pricing.pricing_plans)) {
-    pricing.pricing_plans = pricing.pricing_plans.map((plan: any) => {
-      const creditsKey = planIdToCreditsKey(plan.id)
-      const credits = monthlyCreditsByPlan[creditsKey]
-      return { ...plan, monthlyCredits: typeof credits === 'number' ? credits : undefined }
-    })
+    const allowedPlanIds = new Set(['gogh-essencial', 'gogh-pro'])
+    pricing.pricing_plans = pricing.pricing_plans
+      .filter((plan: any) => allowedPlanIds.has(plan.id) && plan.planType !== 'service')
+      .map((plan: any) => {
+        const creditsKey = planIdToCreditsKey(plan.id)
+        const credits = monthlyCreditsByPlan[creditsKey]
+        return { ...plan, planType: 'subscription', monthlyCredits: typeof credits === 'number' ? credits : undefined }
+      })
   }
   const siteSettings = {
     contact_whatsapp: generalRow.contact_whatsapp ?? null,
