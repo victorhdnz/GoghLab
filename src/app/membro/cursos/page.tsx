@@ -143,7 +143,7 @@ export default function CoursesPage() {
   const otherCourses = courses.filter(c => c.course_type === 'other')
 
   return (
-    <div className="max-w-3xl mx-auto px-3 sm:px-4 space-y-4 sm:space-y-6">
+    <div className="max-w-6xl mx-auto px-3 sm:px-4 space-y-4 sm:space-y-6">
       {/* Header */}
       <div>
         <h1 className="text-lg sm:text-xl font-bold text-gogh-black mb-1">
@@ -271,7 +271,7 @@ function CourseSection({
 
   const expandedCourse = courses.find((course) => course.id === expandedCourseId) || null
 
-  const items = courses.map((course) => {
+  const items = courses.map((course, index) => {
     const lessonsCount = course.lessons?.length || 0
     return {
       id: course.id,
@@ -281,6 +281,7 @@ function CourseSection({
       status: `${lessonsCount} aula${lessonsCount !== 1 ? 's' : ''}`,
       tags: [course.course_type || 'curso'],
       cta: expandedCourseId === course.id ? 'Fechar curso ↑' : 'Abrir curso →',
+      colSpan: courses.length > 1 ? (index % 2 === 0 ? 2 : 1) : 2,
       hasPersistentHover: expandedCourseId === course.id,
     }
   })
@@ -295,7 +296,7 @@ function CourseSection({
       <CourseBentoGrid
         items={items}
         selectedId={expandedCourseId}
-        className="max-w-none"
+        className="max-w-none p-0"
         onItemClick={(item) => {
           setSelectedLesson(null)
           setExpandedCourseId((prev) => (prev === item.id ? null : item.id))

@@ -1,7 +1,7 @@
 "use client"
 
 import { ComponentPropsWithoutRef, ReactNode } from "react"
-import { ArrowRight, ExternalLink } from "lucide-react"
+import { ArrowRight } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 
@@ -119,7 +119,7 @@ interface CourseBentoGridProps {
 
 export function CourseBentoGrid({ items, onItemClick, selectedId, className }: CourseBentoGridProps) {
   return (
-    <div className={cn("grid grid-cols-1 md:grid-cols-2 gap-3", className)}>
+    <div className={cn("grid grid-cols-1 md:grid-cols-3 gap-3 p-4 max-w-7xl mx-auto", className)}>
       {items.map((item) => {
         const isSelected = selectedId === item.id
         return (
@@ -129,14 +129,13 @@ export function CourseBentoGrid({ items, onItemClick, selectedId, className }: C
             onClick={() => onItemClick?.(item)}
             className={cn(
               "group relative p-4 rounded-xl overflow-hidden transition-all duration-300 text-left",
-              "border bg-white",
-              "hover:shadow-[0_4px_16px_rgba(0,0,0,0.08)] hover:-translate-y-0.5",
+              "border border-gray-100/80 bg-white",
+              "hover:shadow-[0_2px_12px_rgba(0,0,0,0.03)] hover:-translate-y-0.5 will-change-transform",
               item.colSpan || "col-span-1",
               item.colSpan === 2 ? "md:col-span-2" : "",
               {
-                "border-[#F7C948] shadow-[0_8px_22px_rgba(247,201,72,0.28)]": isSelected,
-                "border-gray-200": !isSelected,
-                "shadow-[0_4px_12px_rgba(0,0,0,0.05)] -translate-y-0.5": item.hasPersistentHover,
+                "shadow-[0_2px_12px_rgba(0,0,0,0.03)] -translate-y-0.5":
+                  item.hasPersistentHover || isSelected,
               }
             )}
           >
@@ -151,19 +150,17 @@ export function CourseBentoGrid({ items, onItemClick, selectedId, className }: C
 
             <div className="relative flex flex-col space-y-3">
               <div className="flex items-center justify-between gap-2">
-                <div className="w-9 h-9 rounded-lg flex items-center justify-center overflow-hidden bg-black/5 border border-gray-200">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center overflow-hidden bg-black/5 group-hover:bg-gradient-to-br transition-all duration-300">
                   {item.imageUrl ? (
                     <img src={item.imageUrl} alt={item.title} className="w-full h-full object-cover" />
                   ) : (
-                    <span className="text-xs font-semibold text-gray-600">Curso</span>
+                    <span className="text-[10px] font-semibold text-gray-600">Curso</span>
                   )}
                 </div>
                 <span
                   className={cn(
-                    "text-xs font-medium px-2 py-1 rounded-lg",
-                    "bg-black/5 text-gray-600 transition-colors",
-                    "group-hover:bg-black/10",
-                    isSelected && "bg-[#F7C948]/25 text-[#6B4E00]"
+                    "text-xs font-medium px-2 py-1 rounded-lg backdrop-blur-sm",
+                    "bg-black/5 text-gray-600 transition-colors duration-300 group-hover:bg-black/10"
                   )}
                 >
                   {item.status || "Ativo"}
@@ -171,38 +168,37 @@ export function CourseBentoGrid({ items, onItemClick, selectedId, className }: C
               </div>
 
               <div className="space-y-2">
-                <h3 className="font-semibold text-gray-900 tracking-tight text-[15px] leading-tight">
+                <h3 className="font-medium text-gray-900 tracking-tight text-[15px] leading-tight">
                   {item.title}
                   {item.meta ? (
                     <span className="ml-2 text-xs text-gray-500 font-normal">{item.meta}</span>
                   ) : null}
                 </h3>
                 {item.description ? (
-                  <p className="text-sm text-gray-600 leading-snug">{item.description}</p>
+                  <p className="text-sm text-gray-600 leading-snug font-[425]">{item.description}</p>
                 ) : null}
               </div>
 
               <div className="flex items-center justify-between mt-2">
-                <div className="flex flex-wrap items-center gap-1.5 text-xs text-gray-500">
+                <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500">
                   {item.tags?.map((tag) => (
                     <span
                       key={`${item.id}-${tag}`}
-                      className="px-2 py-1 rounded-md bg-black/5 transition-all duration-200 hover:bg-black/10"
+                      className="px-2 py-1 rounded-md bg-black/5 backdrop-blur-sm transition-all duration-200 hover:bg-black/10"
                     >
                       #{tag}
                     </span>
                   ))}
                 </div>
-                <span className="text-xs text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity inline-flex items-center gap-1">
-                  {item.cta || "Abrir"}
-                  <ExternalLink className="w-3 h-3" />
+                <span className="text-xs text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity inline-flex items-center gap-1 whitespace-nowrap">
+                  {item.cta || "Explore →"}
                 </span>
               </div>
             </div>
 
             <div
               className={cn(
-                "absolute inset-0 -z-10 rounded-xl p-px bg-gradient-to-br from-transparent via-gray-100/70 to-transparent transition-opacity duration-300",
+                "absolute inset-0 -z-10 rounded-xl p-px bg-gradient-to-br from-transparent via-gray-100/50 to-transparent transition-opacity duration-300",
                 item.hasPersistentHover || isSelected ? "opacity-100" : "opacity-0 group-hover:opacity-100"
               )}
             />
