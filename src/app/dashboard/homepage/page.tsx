@@ -8,7 +8,7 @@ import { ImageUploader } from '@/components/ui/ImageUploader'
 import { VideoUploader } from '@/components/ui/VideoUploader'
 import { Switch } from '@/components/ui/Switch'
 import { createClient } from '@/lib/supabase/client'
-import { Save, Eye, Trash2, Plus } from 'lucide-react'
+import { Save, Eye, Trash2, Plus, ArrowUp, ArrowDown } from 'lucide-react'
 import { LumaSpin } from '@/components/ui/luma-spin'
 import toast from 'react-hot-toast'
 import Link from 'next/link'
@@ -1544,6 +1544,13 @@ export default function HomepageEditorPage() {
           { value: 'settings', label: '⚙️ Configurações' },
           { value: 'target', label: '🎯 Alvo' },
         ]
+        const moveFeatureItem = (fromIndex: number, toIndex: number) => {
+          const currentItems = [...(formData.features_items || [])]
+          if (toIndex < 0 || toIndex >= currentItems.length) return
+          const [movedItem] = currentItems.splice(fromIndex, 1)
+          currentItems.splice(toIndex, 0, movedItem)
+          setFormData({ ...formData, features_items: currentItems })
+        }
         return (
           <div className="space-y-4">
             <Switch
@@ -1640,17 +1647,37 @@ export default function HomepageEditorPage() {
                               </select>
                             </div>
                           </div>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const updated = formData.features_items?.filter((_, i) => i !== index) || []
-                              setFormData({ ...formData, features_items: updated })
-                            }}
-                            className="text-red-500 hover:text-red-700 p-1"
-                            title="Remover feature"
-                          >
-                            🗑️
-                          </button>
+                          <div className="flex flex-col items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={() => moveFeatureItem(index, index - 1)}
+                              disabled={index === 0}
+                              className="text-gray-500 hover:text-gray-700 p-1 disabled:opacity-30 disabled:cursor-not-allowed"
+                              title="Subir feature"
+                            >
+                              <ArrowUp className="w-4 h-4" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => moveFeatureItem(index, index + 1)}
+                              disabled={index === (formData.features_items?.length || 0) - 1}
+                              className="text-gray-500 hover:text-gray-700 p-1 disabled:opacity-30 disabled:cursor-not-allowed"
+                              title="Descer feature"
+                            >
+                              <ArrowDown className="w-4 h-4" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const updated = formData.features_items?.filter((_, i) => i !== index) || []
+                                setFormData({ ...formData, features_items: updated })
+                              }}
+                              className="text-red-500 hover:text-red-700 p-1"
+                              title="Remover feature"
+                            >
+                              🗑️
+                            </button>
+                          </div>
                         </div>
                       </div>
                     ))}

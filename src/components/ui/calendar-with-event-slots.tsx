@@ -120,16 +120,25 @@ export function CalendarWithEventSlots({
             itemsForSelectedDate.map((item) => {
               const regenerateCount = Number(item.meta?.regenerate_count ?? 0)
               const isRegenerating = regeneratingId === item.id
+              const hasGeneratedContent = Boolean(item.script || item.caption || item.hashtags || item.status === "generated")
               return (
                 <div
                   key={item.id}
-                  className="bg-muted after:bg-primary/70 relative rounded-md p-2 pl-6 text-sm after:absolute after:inset-y-2 after:left-2 after:w-1 after:rounded-full"
+                  className={
+                    hasGeneratedContent
+                      ? "bg-muted relative rounded-md p-2 pl-6 text-sm border border-[#F7C948]/45 shadow-[0_0_0_1px_rgba(247,201,72,0.24),0_0_18px_rgba(247,201,72,0.25)] after:absolute after:inset-y-2 after:left-2 after:w-1 after:rounded-full after:bg-[#F7C948] transition-all hover:shadow-[0_0_0_1px_rgba(247,201,72,0.45),0_0_24px_rgba(247,201,72,0.35)]"
+                      : "bg-muted relative rounded-md p-2 pl-6 text-sm after:absolute after:inset-y-2 after:left-2 after:w-1 after:rounded-full after:bg-primary/70"
+                  }
                 >
                   <div className="flex items-start justify-between gap-2">
                     <button
                       type="button"
                       onClick={() => onOpenItem(item)}
-                      className="min-w-0 flex-1 text-left hover:opacity-90 transition-opacity"
+                      className={
+                        hasGeneratedContent
+                          ? "min-w-0 flex-1 text-left cursor-pointer transition-all hover:opacity-95"
+                          : "min-w-0 flex-1 text-left hover:opacity-90 transition-opacity"
+                      }
                     >
                       <div className="font-medium truncate">{item.topic || "Vídeo sem tema"}</div>
                       <div className="mt-1 text-[11px] text-muted-foreground">

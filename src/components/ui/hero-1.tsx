@@ -3,13 +3,8 @@
 import { ChevronRight } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { ShimmerButton } from '@/components/ui/shimmer-button'
+import { ButtonOne } from '@/components/ui/button-1'
 import { WorldMap } from '@/components/ui/world-map'
-
-// Paleta Gogh Lab: yellow #F7C948, black #0A0A0A, beige #F5F1E8
-const GOGH_BLACK = '#0A0A0A'
-const GOGH_BEIGE = '#F5F1E8'
-const GOGH_YELLOW = '#F7C948'
 
 interface HeroProps {
   eyebrow?: string
@@ -64,15 +59,14 @@ export function Hero({
       {/* CTA - ShimmerButton que leva para planos */}
       {ctaLabel && (
         <div className="flex justify-center">
-          <ShimmerButton
+          <ButtonOne
             type="button"
-            background={GOGH_BLACK}
-            shimmerColor="#F7C948"
-            className="mt-[-20px] w-fit md:w-52 z-20 tracking-tighter text-center text-lg text-white border-[#0A0A0A]"
+            containerClassName="mt-[-20px] w-fit md:w-52 z-20"
+            className="tracking-tighter text-center text-lg"
             onClick={() => router.push(ctaHref)}
           >
-            <span className="relative z-10 whitespace-nowrap">{ctaLabel}</span>
-          </ShimmerButton>
+            {ctaLabel}
+          </ButtonOne>
         </div>
       )}
 

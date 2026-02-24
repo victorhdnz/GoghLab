@@ -618,7 +618,7 @@ export default function ToolsPage() {
           className="bg-gradient-to-r from-gogh-yellow/20 to-amber-100 rounded-xl p-5 border border-gogh-yellow/30"
         >
           <p className="text-sm text-gogh-grayDark">
-            Você está vendo o catálogo de ferramentas. Para solicitar acesso e usar, <strong>faça login</strong> e assine um plano.
+            Você está vendo o catálogo de ferramentas. Para solicitar acesso e usar, <strong>assine um plano</strong>.
           </p>
         </motion.div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
@@ -642,10 +642,10 @@ export default function ToolsPage() {
                 </div>
                 <p className="text-gogh-grayDark text-sm mb-4">{t.description || 'Ferramenta incluída no plano.'}</p>
                 <Link
-                  href={`/login?redirect=${encodeURIComponent('/ferramentas')}`}
+                  href="/precos"
                   className="inline-flex items-center gap-2 px-4 py-2 bg-gogh-yellow text-gogh-black font-medium rounded-lg hover:bg-gogh-yellow/90 transition-colors text-sm"
                 >
-                  Entrar para solicitar acesso
+                  Ver planos para solicitar acesso
                   <ExternalLink className="w-3 h-3" />
                 </Link>
               </div>

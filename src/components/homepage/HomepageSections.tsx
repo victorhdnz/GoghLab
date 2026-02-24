@@ -26,7 +26,7 @@ import type { GalleryHoverCarouselItem } from '@/components/ui/gallery-hover-car
 import { getYouTubeId } from '@/lib/utils/youtube'
 import { TypewriterEffectSmooth } from '@/components/ui/typewriter-effect'
 import { Hero } from '@/components/ui/hero-1'
-import { RainbowButton } from '@/components/ui/rainbow-button'
+import { ButtonOne } from '@/components/ui/button-1'
 
 interface HomepageSectionsProps {
   homepageContent: any
@@ -159,14 +159,15 @@ export function HomepageSections({
           </p>
           <TypewriterEffectSmooth words={words} className="justify-center" />
           <div className="mt-4 sm:mt-6">
-            <RainbowButton
+            <ButtonOne
               onClick={() => {
                 window.location.href = '/precos'
               }}
-              className="w-40 h-11 sm:h-10 rounded-full"
+              containerClassName="w-40"
+              className="h-11 sm:h-10"
             >
               {buttonLabel}
-            </RainbowButton>
+            </ButtonOne>
           </div>
         </div>
       </section>
