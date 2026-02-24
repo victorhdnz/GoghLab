@@ -64,116 +64,77 @@ export default function PricingEditorPage() {
   const [savingCredits, setSavingCredits] = useState(false)
   const [monthlyCredits, setMonthlyCredits] = useState<Record<string, number>>({ gogh_essencial: 50, gogh_pro: 200 })
   const [creditPlans, setCreditPlans] = useState<CreditPlan[]>([])
-  const defaultAgencyPlan: PriceTier = {
-    id: 'gogh-agencia',
-    name: 'Gogh Agency',
-    description: 'Serviços completos de agência. Escolha o que você quer que a gente faça por você.',
-    priceMonthly: 0,
-    priceAnnually: 0,
-    isPopular: false,
-    buttonLabel: 'Solicitar serviço',
-    planType: 'service',
-    features: [
-      { name: 'Gestão feita pela equipe', isIncluded: true },
-      { name: 'Planejamento e execução completos', isIncluded: true },
-      { name: 'Relatórios e acompanhamento', isIncluded: true },
-    ],
-    serviceOptions: [
-      {
-        id: 'marketing-trafego-pago',
-        name: 'Marketing (Tráfego Pago)',
-        description: 'Campanhas, otimizações e relatórios contínuos.',
-        priceMonthly: 800,
-        priceAnnually: 7680, // 800 * 12 * 0.8 = 7680 (20% desconto)
-      },
-      {
-        id: 'criacao-sites',
-        name: 'Criação de sites completos',
-        description: 'Projeto, design, desenvolvimento e publicação.',
-        priceMonthly: 1200,
-        priceAnnually: 11520, // 1200 * 12 * 0.8 = 11520 (20% desconto)
-      },
-      {
-        id: 'criacao-conteudo',
-        name: 'Criação de conteúdo completa',
-        description: 'Roteiro, produção, edição e pós-produção.',
-        priceMonthly: 1500,
-        priceAnnually: 14400, // 1500 * 12 * 0.8 = 14400 (20% desconto)
-      },
-      {
-        id: 'gestao-redes-sociais',
-        name: 'Gestão de redes sociais',
-        description: 'Calendário, postagem e interação com a audiência.',
-        priceMonthly: 1000,
-        priceAnnually: 9600, // 1000 * 12 * 0.8 = 9600 (20% desconto)
-      },
-      {
-        id: 'manutencao-sites',
-        name: 'Manutenção e Alteração em sites existentes',
-        description: 'Manutenção, correções, e adição em sites existentes.',
-        priceMonthly: 400,
-        priceAnnually: 3840, // 400 * 12 * 0.8 = 3840 (20% desconto)
-      },
-    ],
-  }
 
-  const ensureAgencyPlan = (plans: PriceTier[] | undefined) => {
-    const currentPlans = plans || []
-    const hasAgency = currentPlans.some(plan => plan.id === defaultAgencyPlan.id)
-    if (hasAgency) return currentPlans
-    return [...currentPlans, defaultAgencyPlan]
+  const defaultSubscriptionPlans: PriceTier[] = [
+    {
+      id: 'gogh-essencial',
+      name: 'Gogh Essencial',
+      description: 'Acesso a todos os agentes de IA para criar conteúdos de vídeo, redes sociais e anúncios.',
+      priceMonthly: 67.90,
+      priceAnnually: 651.90,
+      isPopular: false,
+      buttonLabel: 'Começar agora',
+      planType: 'subscription',
+      features: [
+        { name: 'Agente de IA para Vídeos', isIncluded: true },
+        { name: 'Agente de IA para Redes Sociais', isIncluded: true },
+        { name: 'Agente de IA para Anúncios', isIncluded: true },
+        { name: '8 interações por dia', isIncluded: true },
+        { name: 'Suporte por e-mail', isIncluded: true },
+        { name: 'Cursos de edição', isIncluded: false },
+        { name: 'Canva Pro + CapCut Pro', isIncluded: false },
+      ],
+      stripePriceIdMonthly: 'price_1SpjGIJmSvvqlkSQGIpVMt0H',
+      stripePriceIdAnnually: 'price_1SpjHyJmSvvqlkSQRBubxB7K',
+    },
+    {
+      id: 'gogh-pro',
+      name: 'Gogh Pro',
+      description: 'Tudo do Essencial + cursos completos de edição + acesso ao Canva Pro e CapCut Pro.',
+      priceMonthly: 127.90,
+      priceAnnually: 1226.90,
+      isPopular: true,
+      buttonLabel: 'Assinar Pro',
+      planType: 'subscription',
+      features: [
+        { name: 'Tudo do plano Essencial', isIncluded: true },
+        { name: '20 interações por dia (2,5x mais)', isIncluded: true },
+        { name: 'Respostas mais completas', isIncluded: true },
+        { name: 'Cursos de edição (Canva + CapCut)', isIncluded: true },
+        { name: 'Acesso ao Canva Pro', isIncluded: true },
+        { name: 'Acesso ao CapCut Pro', isIncluded: true },
+        { name: 'Suporte prioritário', isIncluded: true },
+      ],
+      stripePriceIdMonthly: 'price_1SpjJIJmSvvqlkSQpBHztwk6',
+      stripePriceIdAnnually: 'price_1SpjKSJmSvvqlkSQlr8jNDTf',
+    },
+  ]
+
+  const normalizePricingPlans = (plans: PriceTier[] | undefined): PriceTier[] => {
+    const currentPlans = Array.isArray(plans) ? plans : []
+    const allowedIds = new Set(['gogh-essencial', 'gogh-pro'])
+    const sanitizedMap = new Map(
+      currentPlans
+        .filter((plan) => allowedIds.has(plan.id))
+        .map((plan) => [plan.id, { ...plan, planType: 'subscription', serviceOptions: undefined }])
+    )
+
+    return defaultSubscriptionPlans.map((basePlan) => ({
+      ...basePlan,
+      ...(sanitizedMap.get(basePlan.id) || {}),
+      id: basePlan.id,
+      planType: 'subscription',
+      serviceOptions: undefined,
+    }))
   }
 
   const [formData, setFormData] = useState<PricingSettings>({
     pricing_enabled: true,
     pricing_title: 'Escolha seu plano e comece a criar',
-    pricing_description: 'Acesse a plataforma com IA e, se preferir, contrate nossa equipe para executar tudo como agência completa.',
+    pricing_description: 'Acesse a plataforma com IA para criar conteúdos de vídeo, redes sociais e anúncios.',
     pricing_annual_discount: 20, // 20% de desconto no plano anual
     pricing_whatsapp_number: '',
-    pricing_plans: ensureAgencyPlan([
-      {
-        id: 'gogh-essencial',
-        name: 'Gogh Essencial',
-        description: 'Acesso a todos os agentes de IA para criar conteúdos de vídeo, redes sociais e anúncios.',
-        priceMonthly: 67.90,
-        priceAnnually: 651.90,
-        isPopular: false,
-        buttonLabel: 'Começar agora',
-        planType: 'subscription',
-        features: [
-          { name: 'Agente de IA para Vídeos', isIncluded: true },
-          { name: 'Agente de IA para Redes Sociais', isIncluded: true },
-          { name: 'Agente de IA para Anúncios', isIncluded: true },
-          { name: '8 interações por dia', isIncluded: true },
-          { name: 'Suporte por e-mail', isIncluded: true },
-          { name: 'Cursos de edição', isIncluded: false },
-          { name: 'Canva Pro + CapCut Pro', isIncluded: false },
-        ],
-        stripePriceIdMonthly: 'price_1SpjGIJmSvvqlkSQGIpVMt0H',
-        stripePriceIdAnnually: 'price_1SpjHyJmSvvqlkSQRBubxB7K',
-      },
-      {
-        id: 'gogh-pro',
-        name: 'Gogh Pro',
-        description: 'Tudo do Essencial + cursos completos de edição + acesso ao Canva Pro e CapCut Pro.',
-        priceMonthly: 127.90,
-        priceAnnually: 1226.90,
-        isPopular: true,
-        buttonLabel: 'Assinar Pro',
-        planType: 'subscription',
-        features: [
-          { name: 'Tudo do plano Essencial', isIncluded: true },
-          { name: '20 interações por dia (2,5x mais)', isIncluded: true },
-          { name: 'Respostas mais completas', isIncluded: true },
-          { name: 'Cursos de edição (Canva + CapCut)', isIncluded: true },
-          { name: 'Acesso ao Canva Pro', isIncluded: true },
-          { name: 'Acesso ao CapCut Pro', isIncluded: true },
-          { name: 'Suporte prioritário', isIncluded: true },
-        ],
-        stripePriceIdMonthly: 'price_1SpjJIJmSvvqlkSQpBHztwk6',
-        stripePriceIdAnnually: 'price_1SpjKSJmSvvqlkSQlr8jNDTf',
-      },
-    ]),
+    pricing_plans: normalizePricingPlans(defaultSubscriptionPlans),
   })
 
   useEffect(() => {
@@ -198,7 +159,7 @@ export default function PricingEditorPage() {
         
         setFormData(prev => {
           const dbPlans = pricing.pricing_plans || []
-          const plans = ensureAgencyPlan(dbPlans.length > 0 ? dbPlans : prev.pricing_plans)
+          const plans = normalizePricingPlans(dbPlans.length > 0 ? dbPlans : prev.pricing_plans)
           
           // Garantir que o plano de serviço tenha textos padrão se não tiver
           const plansWithDefaults = plans

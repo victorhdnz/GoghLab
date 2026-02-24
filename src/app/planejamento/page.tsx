@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
+import { useRouter } from 'next/navigation'
 import { LumaSpin } from '@/components/ui/luma-spin'
 import { Button } from '@/components/ui/button'
 import { Calendar as CalendarIcon, Plus, FileText, Type, Clock, RefreshCw, Sparkles } from 'lucide-react'
@@ -44,7 +45,8 @@ function formatDate(d: Date) {
 }
 
 export default function ContentPlanningPage() {
-  const { isAuthenticated, loading: authLoading } = useAuth()
+  const router = useRouter()
+  const { isAuthenticated, loading: authLoading, hasActiveSubscription } = useAuth()
   const [profile, setProfile] = useState<ContentProfile | null>(null)
   const [profileLoading, setProfileLoading] = useState(true)
   const [savingProfile, setSavingProfile] = useState(false)
@@ -69,6 +71,41 @@ export default function ContentPlanningPage() {
   const monthLabel = useMemo(() => {
     return currentMonth.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })
   }, [currentMonth])
+
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      router.replace(`/login?redirect=${encodeURIComponent('/planejamento')}`)
+    }
+  }, [authLoading, isAuthenticated, router])
+
+  useEffect(() => {
+    if (!isAuthenticated || hasActiveSubscription) return
+
+    const redirectToPlans = (event?: Event) => {
+      if (event) {
+        event.preventDefault()
+        event.stopPropagation()
+      }
+      router.push('/precos')
+    }
+
+    const onWheel = (event: WheelEvent) => redirectToPlans(event)
+    const onTouchStart = (event: TouchEvent) => redirectToPlans(event)
+    const onKeyDown = (event: KeyboardEvent) => {
+      const blockedKeys = [' ', 'PageDown', 'PageUp', 'ArrowDown', 'ArrowUp', 'Home', 'End']
+      if (blockedKeys.includes(event.key)) redirectToPlans(event)
+    }
+
+    window.addEventListener('wheel', onWheel, { passive: false })
+    window.addEventListener('touchstart', onTouchStart, { passive: false })
+    window.addEventListener('keydown', onKeyDown)
+
+    return () => {
+      window.removeEventListener('wheel', onWheel)
+      window.removeEventListener('touchstart', onTouchStart)
+      window.removeEventListener('keydown', onKeyDown)
+    }
+  }, [isAuthenticated, hasActiveSubscription, router])
 
   useEffect(() => {
     if (!isAuthenticated) return
@@ -135,7 +172,7 @@ export default function ContentPlanningPage() {
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <p className="text-gogh-grayDark">Faça login para acessar o planejamento de conteúdo.</p>
+        <LumaSpin size="lg" />
       </div>
     )
   }
@@ -165,6 +202,10 @@ export default function ContentPlanningPage() {
   }, [items])
 
   const handleSaveProfile = async () => {
+    if (!hasActiveSubscription) {
+      router.push('/precos')
+      return
+    }
     setSavingProfile(true)
     try {
       const res = await fetch('/api/content/profile', {
@@ -189,6 +230,10 @@ export default function ContentPlanningPage() {
   }
 
   const handleCreateItem = async (date: string) => {
+    if (!hasActiveSubscription) {
+      router.push('/precos')
+      return
+    }
     try {
       const res = await fetch('/api/content/calendar', {
         method: 'POST',
@@ -209,6 +254,10 @@ export default function ContentPlanningPage() {
   }
 
   const handleGenerate = async (itemId: string) => {
+    if (!hasActiveSubscription) {
+      router.push('/precos')
+      return
+    }
     setGeneratingId(itemId)
     try {
       const res = await fetch('/api/content/generate', {
@@ -248,7 +297,26 @@ export default function ContentPlanningPage() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-24 lg:py-28 space-y-8">
+    <div
+      className="max-w-5xl mx-auto px-4 sm:px-6 py-24 lg:py-28 space-y-8 relative"
+      onClickCapture={(e) => {
+        if (!hasActiveSubscription) {
+          e.preventDefault()
+          e.stopPropagation()
+          router.push('/precos')
+        }
+      }}
+      onWheelCapture={(e) => {
+        if (!hasActiveSubscription) {
+          e.preventDefault()
+          e.stopPropagation()
+          router.push('/precos')
+        }
+      }}
+    >
+      {!hasActiveSubscription && (
+        <div className="absolute inset-0 z-20 bg-white/35 backdrop-blur-[1px] rounded-2xl" />
+      )}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-gogh-black flex items-center gap-2">

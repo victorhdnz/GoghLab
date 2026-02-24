@@ -2,9 +2,9 @@ import { MetadataRoute } from 'next'
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'MV Company',
-    short_name: 'MVC',
-    description: 'Prestadora de serviços digitais - Criação de sites, tráfego pago e gestão de redes sociais',
+    name: 'Gogh Lab',
+    short_name: 'Gogh Lab',
+    description: 'Planejamento de conteúdo com IA, roteiros de vídeo, legendas e hashtags para redes sociais.',
     start_url: '/',
     display: 'standalone',
     background_color: '#ffffff',

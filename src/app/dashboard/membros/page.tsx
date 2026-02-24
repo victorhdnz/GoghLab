@@ -501,14 +501,11 @@ export default function MembrosPage() {
       (member.full_name?.toLowerCase() || '').includes(searchTerm.toLowerCase())
 
     const hasSubscription = !!member.subscription
-    const hasServices = (member.serviceSubscriptions || []).length > 0
 
     const matchesPlan =
       filterPlan === 'all' ||
       (filterPlan === 'subscription' && hasSubscription) ||
-      (filterPlan === 'service' && hasServices) ||
-      (filterPlan === 'both' && hasSubscription && hasServices) ||
-      (filterPlan === 'none' && !hasSubscription && !hasServices)
+      (filterPlan === 'none' && !hasSubscription)
 
     return matchesSearch && matchesPlan
   })
@@ -619,9 +616,7 @@ export default function MembrosPage() {
             >
               <option value="all">Todos os membros</option>
               <option value="subscription">Com assinatura</option>
-              <option value="service">Com serviços personalizados</option>
-              <option value="both">Assinatura + Serviços</option>
-              <option value="none">Gratuito (sem nada)</option>
+              <option value="none">Gratuito (sem plano)</option>
             </select>
           </div>
         </div>
@@ -639,9 +634,6 @@ export default function MembrosPage() {
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Assinatura
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Serviços personalizados
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Cadastro
@@ -742,115 +734,16 @@ export default function MembrosPage() {
                         )}
                       </td>
                       <td className="px-6 py-4">
-                        {editingServiceMember === member.id ? (
-                          <div className="space-y-2">
-                            <div className="text-xs text-gray-600 mb-2">Selecione os serviços:</div>
-                            {(() => {
-                              // Buscar serviços disponíveis do site_settings
-                              const serviceOptions = [
-                                { id: 'marketing-trafego-pago', name: 'Marketing (Tráfego Pago)' },
-                                { id: 'criacao-sites', name: 'Criação de sites completos' },
-                                { id: 'criacao-conteudo', name: 'Criação de conteúdo completa' },
-                                { id: 'gestao-redes-sociais', name: 'Gestão de redes sociais' },
-                                { id: 'manutencao-sites', name: 'Manutenção e Alteração em sites existentes' },
-                              ]
-                              
-                              // Mapear nomes dos serviços existentes para IDs
-                              const existingServiceNames = member.serviceSubscriptions?.[0]?.selected_services || []
-                              const existingServiceIds = existingServiceNames
-                                .map((serviceName: string) => {
-                                  const option = serviceOptions.find(opt => opt.name === serviceName)
-                                  return option?.id
-                                })
-                                .filter((id): id is string => !!id)
-                              
-                              // Se está editando, usar os IDs mapeados, senão usar os que já estão selecionados
-                              const checkedIds = editingServiceMember === member.id 
-                                ? editingServiceOptions 
-                                : existingServiceIds
-                              
-                              return (
-                                <div className="space-y-1">
-                                  {serviceOptions.map(option => (
-                                    <label key={option.id} className="flex items-center gap-2 text-sm">
-                                      <input
-                                        type="checkbox"
-                                        checked={checkedIds.includes(option.id)}
-                                        onChange={(e) => {
-                                          if (e.target.checked) {
-                                            // Remover duplicatas antes de adicionar
-                                            const newOptions = [...new Set([...editingServiceOptions, option.id])]
-                                            setEditingServiceOptions(newOptions)
-                                          } else {
-                                            setEditingServiceOptions(editingServiceOptions.filter(id => id !== option.id))
-                                          }
-                                        }}
-                                        className="rounded border-gray-300 text-[#F7C948] focus:ring-[#F7C948]"
-                                      />
-                                      <span>{option.name}</span>
-                                    </label>
-                                  ))}
-                                </div>
-                              )
-                            })()}
-                            <select
-                              value={editingServiceBillingCycle}
-                              onChange={(e) => setEditingServiceBillingCycle(e.target.value as 'monthly' | 'annual')}
-                              className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-black"
-                            >
-                              <option value="monthly">Mensal</option>
-                              <option value="annual">Anual</option>
-                            </select>
-                          </div>
-                        ) : (
-                          <div>
-                            {(member.serviceSubscriptions || []).length === 0 ? (
-                              <span className="text-sm text-gray-400">—</span>
-                            ) : (
-                              <div className="space-y-2 text-sm text-gray-700">
-                                {(member.serviceSubscriptions || []).map((service) => {
-                                  // Remover duplicatas e mostrar cada serviço em uma linha separada
-                                  const uniqueServices = service.selected_services 
-                                    ? [...new Set(service.selected_services)]
-                                    : []
-                                  
-                                  return (
-                                    <div key={service.id} className="space-y-1">
-                                      <span className="font-medium text-gray-900">{service.plan_name || 'Serviços Personalizados'}:</span>
-                                      {uniqueServices.length > 0 ? (
-                                        <ul className="list-disc list-inside ml-2 space-y-0.5">
-                                          {uniqueServices.map((serviceName, idx) => (
-                                            <li key={idx} className="text-gray-600">{serviceName}</li>
-                                          ))}
-                                        </ul>
-                                      ) : (
-                                        <span className="text-gray-500">Serviços personalizados</span>
-                                      )}
-                                    </div>
-                                  )
-                                })}
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </td>
-                      <td className="px-6 py-4">
                         <div className="flex items-center gap-1 text-sm text-gray-500">
                           <Calendar className="w-4 h-4" />
                           {new Date(member.created_at).toLocaleDateString('pt-BR')}
                         </div>
                       </td>
                       <td className="px-6 py-4 text-right">
-                        {editingMember === member.id || editingServiceMember === member.id ? (
+                        {editingMember === member.id ? (
                           <div className="flex items-center justify-end gap-2">
                             <button
-                              onClick={() => {
-                                if (editingMember === member.id) {
-                                  handleSavePlan(member.id)
-                                } else if (editingServiceMember === member.id) {
-                                  handleSaveService(member.id)
-                                }
-                              }}
+                              onClick={() => handleSavePlan(member.id)}
                               disabled={saving}
                               className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors disabled:opacity-50"
                             >
@@ -861,15 +754,7 @@ export default function MembrosPage() {
                               )}
                             </button>
                             <button
-                              onClick={() => {
-                                if (editingMember === member.id) {
-                                  handleCancelEdit()
-                                } else if (editingServiceMember === member.id) {
-                                  setEditingServiceMember(null)
-                                  setEditingServiceOptions([])
-                                  setEditingServiceBillingCycle('monthly')
-                                }
-                              }}
+                              onClick={handleCancelEdit}
                               className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"
                             >
                               <X className="w-4 h-4" />
@@ -884,61 +769,6 @@ export default function MembrosPage() {
                             >
                               <Edit2 className="w-4 h-4" />
                             </button>
-                            <button
-                              onClick={async () => {
-                                setEditingServiceMember(member.id)
-                                // Se já tem serviços, carregar os selecionados e mapear nomes para IDs
-                                const existingServiceNames = member.serviceSubscriptions?.[0]?.selected_services || []
-                                
-                                // Buscar serviços disponíveis do site_settings para mapear
-                                const { data: settings } = await (supabase as any)
-                                  .from('site_settings')
-                                  .select('homepage_content')
-                                  .eq('key', 'general')
-                                  .maybeSingle()
-                                
-                                const serviceOptions = [
-                                  { id: 'marketing-trafego-pago', name: 'Marketing (Tráfego Pago)' },
-                                  { id: 'criacao-sites', name: 'Criação de sites completos' },
-                                  { id: 'criacao-conteudo', name: 'Criação de conteúdo completa' },
-                                  { id: 'gestao-redes-sociais', name: 'Gestão de redes sociais' },
-                                  { id: 'manutencao-sites', name: 'Manutenção e Alteração em sites existentes' },
-                                ]
-                                
-                                // Se não encontrou no site_settings, tentar buscar do plano
-                                let mappedIds: string[] = []
-                                if (settings?.homepage_content?.pricing?.pricing_plans) {
-                                  const agencyPlan = settings.homepage_content.pricing.pricing_plans.find((p: any) => p.id === 'gogh-agencia' || p.planType === 'service')
-                                  if (agencyPlan?.serviceOptions) {
-                                    mappedIds = existingServiceNames
-                                      .map((serviceName: string) => {
-                                        const option = agencyPlan.serviceOptions.find((opt: any) => opt.name === serviceName)
-                                        return option?.id
-                                      })
-                                      .filter((id): id is string => !!id)
-                                  }
-                                }
-                                
-                                // Se não encontrou, mapear usando a lista local
-                                if (mappedIds.length === 0) {
-                                  mappedIds = existingServiceNames
-                                    .map((serviceName: string) => {
-                                      const option = serviceOptions.find(opt => opt.name === serviceName)
-                                      return option?.id
-                                    })
-                                    .filter((id): id is string => !!id)
-                                }
-                                
-                                // Remover duplicatas
-                                setEditingServiceOptions([...new Set(mappedIds)])
-                                const existingCycle = member.serviceSubscriptions?.[0]?.billing_cycle || 'monthly'
-                                setEditingServiceBillingCycle(existingCycle as 'monthly' | 'annual')
-                              }}
-                              className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"
-                              title="Editar serviços personalizados"
-                            >
-                              <Edit2 className="w-4 h-4" />
-                            </button>
                           </div>
                         )}
                       </td>
@@ -947,7 +777,7 @@ export default function MembrosPage() {
 
                   {filteredMembers.length === 0 && (
                     <tr>
-                      <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
+                      <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
                         Nenhum membro encontrado
                       </td>
                     </tr>

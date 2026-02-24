@@ -18,8 +18,7 @@ import {
   Sparkles,
   ChevronRight,
   Home,
-  ExternalLink,
-  Briefcase
+  ExternalLink
 } from 'lucide-react'
 import { LumaSpin } from '@/components/ui/luma-spin'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -45,16 +44,6 @@ const subscriberMenuItems = [
   },
 ]
 
-// Itens do menu que são sempre visíveis (não requerem assinatura)
-const alwaysVisibleMenuItems = [
-  { 
-    href: '/servicos', 
-    label: 'Meus Serviços', 
-    icon: Briefcase,
-    description: 'Serviços personalizados contratados'
-  },
-]
-
 // Item de conta (sempre visível) — URL canônica é /conta
 const accountMenuItem = {
   href: '/conta',
@@ -72,7 +61,6 @@ export default function MemberLayout({ children }: MemberLayoutProps) {
   const [siteLogo, setSiteLogo] = useState<string | null>(null)
   const [whatsappNumber, setWhatsappNumber] = useState<string>('5534999999999')
   const [signingOut, setSigningOut] = useState(false)
-  const [hasServiceSubscriptions, setHasServiceSubscriptions] = useState(false)
   const supabase = createClient()
 
   // Carregar logo e WhatsApp do site
@@ -107,62 +95,6 @@ export default function MemberLayout({ children }: MemberLayoutProps) {
     loadSiteData()
   }, [supabase])
 
-  // Verificar se o usuário tem serviços contratados
-  useEffect(() => {
-    const checkServiceSubscriptions = async () => {
-      if (!user) {
-        setHasServiceSubscriptions(false)
-        return
-      }
-
-      try {
-        const { data, error } = await (supabase as any)
-          .from('service_subscriptions')
-          .select('id')
-          .eq('user_id', user.id)
-          .in('status', ['active', 'trialing'])
-          .limit(1)
-
-        if (error) {
-          console.error('Erro ao verificar serviços:', error)
-          setHasServiceSubscriptions(false)
-          return
-        }
-
-        setHasServiceSubscriptions((data && data.length > 0) || false)
-      } catch (error) {
-        console.error('Erro ao verificar serviços:', error)
-        setHasServiceSubscriptions(false)
-      }
-    }
-
-    checkServiceSubscriptions()
-    
-    // Atualizar quando a página ganha foco
-    const handleFocus = () => {
-      checkServiceSubscriptions()
-    }
-    
-    // Atualizar quando receber evento de atualização de serviço
-    const handleServiceUpdate = () => {
-      checkServiceSubscriptions()
-    }
-    
-    // Atualizar periodicamente (a cada 5 segundos) para pegar mudanças manuais
-    const interval = setInterval(() => {
-      checkServiceSubscriptions()
-    }, 5000)
-    
-    window.addEventListener('focus', handleFocus)
-    window.addEventListener('service-subscription-updated', handleServiceUpdate)
-    
-    return () => {
-      window.removeEventListener('focus', handleFocus)
-      window.removeEventListener('service-subscription-updated', handleServiceUpdate)
-      clearInterval(interval)
-    }
-  }, [user, supabase])
-
   // Abrir portal de gerenciamento do Stripe
   const handleManageSubscription = async () => {
     try {
@@ -190,7 +122,7 @@ export default function MemberLayout({ children }: MemberLayoutProps) {
   const isPublicPage = publicMemberPages.some(page => pathname === page || pathname.startsWith(page + '/'))
   
   // Verificar se pode acessar a página atual
-  const canAccessPage = hasActiveSubscription || isPublicPage || hasServiceSubscriptions
+  const canAccessPage = hasActiveSubscription || isPublicPage
 
   // Verificar autenticação e assinatura
   useEffect(() => {
@@ -211,7 +143,7 @@ export default function MemberLayout({ children }: MemberLayoutProps) {
       
       return () => clearTimeout(checkAuth)
     }
-  }, [loading, isAuthenticated, hasActiveSubscription, hasServiceSubscriptions, router, pathname, isPublicPage])
+  }, [loading, isAuthenticated, hasActiveSubscription, router, pathname, isPublicPage])
 
   // Loading state
   if (loading) {
@@ -380,36 +312,6 @@ export default function MemberLayout({ children }: MemberLayoutProps) {
                 </Link>
               )
             }            )}
-
-            {/* Meus Serviços: sempre visível (com ou sem serviços; sem serviços mostra estado borrado) */}
-            {alwaysVisibleMenuItems.map((item) => {
-              const isActive = pathname === item.href || 
-                (item.href !== '/membro' && pathname.startsWith(item.href))
-              
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={() => setSidebarOpen(false)}
-                  className={`
-                    flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200
-                    ${isActive 
-                      ? 'bg-gogh-yellow text-gogh-black shadow-sm' 
-                      : 'text-gogh-grayDark hover:bg-gogh-grayLight hover:text-gogh-black'
-                    }
-                  `}
-                >
-                  <item.icon className={`w-5 h-5 ${isActive ? 'text-gogh-black' : ''}`} />
-                  <div className="flex-1">
-                    <p className="font-medium">{item.label}</p>
-                    <p className={`text-xs ${isActive ? 'text-gogh-black/70' : 'text-gogh-grayDark'}`}>
-                      {item.description}
-                    </p>
-                  </div>
-                  {isActive && <ChevronRight className="w-4 h-4" />}
-                </Link>
-              )
-            })}
 
             {/* Item de conta (sempre visível) */}
             {(() => {

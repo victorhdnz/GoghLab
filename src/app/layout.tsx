@@ -57,7 +57,7 @@ async function getSiteDescription(): Promise<string> {
   }
 
   // Descrição padrão caso não encontre no banco
-  return 'Criatividade guiada por tecnologia. Agentes de IA para criação de conteúdo.'
+  return 'Planejamento de conteúdo com IA: agenda de vídeos, roteiros, legendas e hashtags para creators e empresas.'
 }
 
 // Função para buscar nome do site do banco de dados
@@ -138,7 +138,7 @@ async function getSiteTitle(): Promise<string | null> {
       }
       // Se não tiver site_title, usar site_name + sufixo
       if (fallbackDataTyped?.site_name) {
-        return `${fallbackDataTyped.site_name} - Criatividade guiada por tecnologia`
+        return `${fallbackDataTyped.site_name} - Planejamento e criação de conteúdo com IA`
       }
     }
 
@@ -147,13 +147,13 @@ async function getSiteTitle(): Promise<string | null> {
     }
     // Se não tiver site_title, usar site_name + sufixo padrão
     if (dataTyped?.site_name) {
-      return `${dataTyped.site_name} - Criatividade guiada por tecnologia`
+      return `${dataTyped.site_name} - Planejamento e criação de conteúdo com IA`
     }
   } catch (error) {
     console.error('Erro ao buscar título do site:', error)
   }
 
-  return 'Gogh Lab - Criatividade guiada por tecnologia'
+  return 'Gogh Lab - Planejamento e criação de conteúdo com IA'
 }
 
 // Função para buscar logo do site do banco de dados
@@ -229,23 +229,25 @@ export async function generateMetadata(): Promise<Metadata> {
     keywords: [
       'Gogh Lab',
       siteName,
-      'agentes de IA',
+      'planejamento de conteúdo',
+      'agenda de conteúdo',
+      'calendário editorial',
+      'roteiro de vídeo',
+      'legenda para Instagram',
+      'hashtags para redes sociais',
       'inteligência artificial',
-      'IA para criação de conteúdo',
+      'IA para creators',
+      'IA para marketing',
       'cursos de edição',
       'Canva Pro',
       'CapCut Pro',
       'ferramentas de criação',
-      'prompts para IA',
-      'ChatGPT',
-      'criação de conteúdo',
+      'plataforma de conteúdo',
       'marketing digital',
-      'edição de vídeo',
-      'edição de fotos',
-      'tráfego pago',
       'redes sociais',
-      'serviços digitais',
-      'plataforma de assinatura',
+      'assinatura mensal',
+      'plano essencial',
+      'plano pro',
     ],
     authors: [{ name: siteName }],
     creator: siteName,

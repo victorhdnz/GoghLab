@@ -5,5 +5,5 @@ import { redirect } from 'next/navigation'
  * Redireciona quem acessar /membro/servicos para lá.
  */
 export default function MembroServicosRedirect() {
-  redirect('/servicos')
+  redirect('/precos')
 }

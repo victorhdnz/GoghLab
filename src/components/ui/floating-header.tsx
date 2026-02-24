@@ -10,7 +10,6 @@ import {
   Sparkles,
   Wrench,
   BookOpen,
-  Briefcase,
   User,
   Package,
   ChevronDown,
@@ -114,7 +113,6 @@ const menuWithDropdowns: Array<
     items: [
       { title: 'Ferramentas', description: 'Ferramentas profissionais para criação', url: '/ferramentas', icon: Wrench },
       { title: 'Cursos', description: 'Cursos e formação', url: '/cursos', icon: BookOpen },
-      { title: 'Serviços personalizados', description: 'Serviços sob demanda da Agency', url: '/servicos', icon: Briefcase },
     ],
   },
 ]
@@ -143,7 +141,7 @@ export function FloatingHeader() {
     ) setMobileActiveIndex(2)
     else if (pathname === '/precos') setMobileActiveIndex(3)
     else if (pathname === '/conta' || pathname?.startsWith('/conta/') || pathname === '/login') setMobileActiveIndex(4)
-    else if (pathname === '/ferramentas' || pathname === '/cursos' || pathname === '/servicos' || pathname?.startsWith('/servicos/')) setMobileActiveIndex(1)
+    else if (pathname === '/ferramentas' || pathname === '/cursos') setMobileActiveIndex(1)
   }, [pathname])
 
   // Posicionar indicador branco do nav mobile pelo elemento ativo (responsivo)
