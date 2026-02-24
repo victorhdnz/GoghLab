@@ -1,8 +1,9 @@
 'use client'
 
-import { ReactNode, useEffect } from 'react'
+import { ReactNode, useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X } from 'lucide-react'
+import { createPortal } from 'react-dom'
 
 interface ModalProps {
   isOpen: boolean
@@ -10,6 +11,7 @@ interface ModalProps {
   title?: string
   children: ReactNode
   size?: 'sm' | 'md' | 'lg' | 'xl'
+  showCloseButton?: boolean
 }
 
 export const Modal = ({
@@ -18,7 +20,10 @@ export const Modal = ({
   title,
   children,
   size = 'md',
+  showCloseButton = true,
 }: ModalProps) => {
+  const [mounted, setMounted] = useState(false)
+
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden'
@@ -31,6 +36,11 @@ export const Modal = ({
     }
   }, [isOpen])
 
+  useEffect(() => {
+    setMounted(true)
+    return () => setMounted(false)
+  }, [])
+
   const sizes = {
     sm: 'max-w-md',
     md: 'max-w-lg',
@@ -38,7 +48,9 @@ export const Modal = ({
     xl: 'max-w-4xl',
   }
 
-  return (
+  if (!mounted) return null
+
+  return createPortal(
     <AnimatePresence>
       {isOpen && (
         <>
@@ -48,11 +60,11 @@ export const Modal = ({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 bg-black/75 backdrop-blur-[1px] z-[1200]"
+            className="fixed inset-0 h-[100dvh] bg-black/75 backdrop-blur-[1px] z-[1200]"
           />
 
           {/* Modal */}
-          <div className="fixed inset-0 z-[1210] flex items-center justify-center p-4">
+          <div className="fixed inset-0 h-[100dvh] z-[1210] flex items-center justify-center p-4">
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -63,12 +75,14 @@ export const Modal = ({
               {title && (
                 <div className="flex items-center justify-between p-6 border-b">
                   <h2 className="text-2xl font-bold">{title}</h2>
-                  <button
-                    onClick={onClose}
-                    className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-                  >
-                    <X size={24} />
-                  </button>
+                  {showCloseButton ? (
+                    <button
+                      onClick={onClose}
+                      className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                    >
+                      <X size={24} />
+                    </button>
+                  ) : <span className="w-10" aria-hidden />}
                 </div>
               )}
 
@@ -79,6 +93,8 @@ export const Modal = ({
         </>
       )}
     </AnimatePresence>
+    ,
+    document.body
   )
 }
 

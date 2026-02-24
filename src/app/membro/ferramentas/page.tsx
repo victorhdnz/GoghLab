@@ -1028,7 +1028,7 @@ export default function ToolsPage() {
         {/* Modal de Credenciais (ferramentas dinâmicas: email/usuário + senha) */}
         {credentialsModal && (
           <div
-            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+            className="fixed inset-0 bg-black/70 flex items-center justify-center z-[260] p-4"
             onClick={(e) => {
               if (e.target === e.currentTarget) setCredentialsModal(null)
             }}
@@ -1103,15 +1103,6 @@ export default function ToolsPage() {
                   Use essas credenciais para fazer login. Você pode copiar cada campo. Se encontrar algum problema, use &quot;Reportar Erro na Conta&quot;.
                 </p>
               </div>
-              <div className="mt-4">
-                <button
-                  type="button"
-                  onClick={() => setCredentialsModal(null)}
-                  className="w-full px-4 py-2 border border-amber-300 text-gogh-black rounded-lg hover:bg-amber-50/80 transition-colors"
-                >
-                  Fechar
-                </button>
-              </div>
             </motion.div>
           </div>
         )}
@@ -1119,7 +1110,7 @@ export default function ToolsPage() {
         {/* Modal de Vídeo Tutorial (ferramentas dinâmicas) */}
         {tutorialModalTool && (
           <div
-            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+            className="fixed inset-0 bg-black/70 flex items-center justify-center z-[260] p-4"
             onClick={(e) => {
               if (e.target === e.currentTarget) setTutorialModalTool(null)
             }}
@@ -1176,7 +1167,7 @@ export default function ToolsPage() {
 
         {/* Modal de Reporte de Erro (ferramentas dinâmicas) */}
         {showErrorModal && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[260] p-4">
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}

@@ -61,7 +61,6 @@ export default function CursosPage() {
     title: '',
     description: '',
     thumbnail_url: '',
-    course_type: 'canva' as 'canva' | 'capcut' | 'strategy' | 'other'
   })
   
   const [lessonForm, setLessonForm] = useState({
@@ -150,8 +149,9 @@ export default function CursosPage() {
       }
 
       // Pegar o próximo order
+      const inferredType = inferCourseType(courseForm.title.trim())
       const maxOrder = courses
-        .filter(c => c.course_type === courseForm.course_type)
+        .filter(c => c.course_type === inferredType)
         .reduce((max, c) => Math.max(max, c.order || c.order_position || 0), 0)
 
       // Preparar dados do curso
@@ -183,7 +183,7 @@ export default function CursosPage() {
 
       toast.success('Curso criado com sucesso!')
       setShowCourseForm(false)
-      setCourseForm({ title: '', description: '', thumbnail_url: '', course_type: 'canva' })
+      setCourseForm({ title: '', description: '', thumbnail_url: '' })
       await loadCourses()
     } catch (error: any) {
       console.error('Erro ao criar curso:', error)
@@ -198,7 +198,10 @@ export default function CursosPage() {
       const { error } = await (supabase as any)
         .from('courses')
         .update({
-          ...courseForm,
+          title: courseForm.title.trim(),
+          description: courseForm.description?.trim() || null,
+          thumbnail_url: courseForm.thumbnail_url?.trim() || null,
+          course_type: inferCourseType(courseForm.title.trim()),
           is_published: true,
         })
         .eq('id', editingCourse.id)
@@ -208,7 +211,7 @@ export default function CursosPage() {
       toast.success('Curso atualizado com sucesso!')
       setEditingCourse(null)
       setShowCourseForm(false)
-      setCourseForm({ title: '', description: '', thumbnail_url: '', course_type: 'canva' })
+      setCourseForm({ title: '', description: '', thumbnail_url: '' })
       await loadCourses()
     } catch (error: any) {
       console.error('Erro ao atualizar curso:', error)
@@ -358,24 +361,14 @@ export default function CursosPage() {
   const openCourseForm = (course?: Course) => {
     if (course) {
       setEditingCourse(course)
-      // Garantir que course_type seja um tipo permitido
-      const validCourseType = (
-        course.course_type === 'canva'
-        || course.course_type === 'capcut'
-        || course.course_type === 'strategy'
-        || course.course_type === 'other'
-      )
-        ? course.course_type 
-        : 'canva'
       setCourseForm({
         title: course.title,
         description: course.description || '',
         thumbnail_url: course.thumbnail_url || '',
-        course_type: validCourseType
       })
     } else {
       setEditingCourse(null)
-      setCourseForm({ title: '', description: '', thumbnail_url: '', course_type: 'canva' })
+      setCourseForm({ title: '', description: '', thumbnail_url: '' })
     }
     setShowCourseForm(true)
   }
@@ -628,29 +621,12 @@ export default function CursosPage() {
                     cropType="square"
                   />
                 </div>
-                {editingCourse && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Tipo de Curso
-                    </label>
-                    <select
-                      value={courseForm.course_type}
-                      onChange={(e) => setCourseForm({ ...courseForm, course_type: e.target.value as 'canva' | 'capcut' | 'strategy' | 'other' })}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      <option value="canva">Canva</option>
-                      <option value="capcut">CapCut</option>
-                      <option value="strategy">Estratégia</option>
-                      <option value="other">Outros</option>
-                    </select>
-                  </div>
-                )}
                 <div className="flex gap-3 justify-end">
                   <button
                     onClick={() => {
                       setShowCourseForm(false)
                       setEditingCourse(null)
-                      setCourseForm({ title: '', description: '', thumbnail_url: '', course_type: 'canva' })
+                      setCourseForm({ title: '', description: '', thumbnail_url: '' })
                     }}
                     className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
                   >

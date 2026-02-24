@@ -940,6 +940,7 @@ export default function ContentPlanningPage() {
         }}
         title="Gerar novamente com ajustes"
         size="md"
+        showCloseButton={false}
       >
         {regenerateModalItem ? (
           <div className="space-y-4">
@@ -965,14 +966,14 @@ export default function ContentPlanningPage() {
                   setRegenerateModalItem(null)
                   setRegenerateNotes('')
                 }}
-                className="rounded-full bg-gray-100 border-gray-200 text-gray-700 hover:bg-gray-200"
+                className="h-9 px-4 rounded-full bg-gray-100 border-gray-200 text-gray-700 hover:bg-gray-200"
               >
                 Cancelar
               </Button>
               <HoverButton
                 onClick={handleConfirmRegenerate}
                 disabled={generatingId === regenerateModalItem.id}
-                className="h-9 px-4 text-sm"
+                className="h-9 px-4 text-sm rounded-full"
               >
                 {generatingId === regenerateModalItem.id ? 'Gerando...' : 'Gerar novamente'}
               </HoverButton>
