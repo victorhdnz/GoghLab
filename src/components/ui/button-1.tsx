@@ -214,25 +214,32 @@ type ButtonOneProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
 
 export function ButtonOne({ children, className, containerClassName, disabled, ...props }: ButtonOneProps) {
   const [isHovered, setIsHovered] = React.useState(false)
+  const [mounted, setMounted] = React.useState(false)
+
+  React.useEffect(() => {
+    setMounted(true)
+  }, [])
+
   return (
     <div className={cn('flex justify-center', containerClassName)}>
       <div
         className={cn(
           'relative inline-block h-11 min-w-[10rem] mx-auto group rounded-full',
-          'border border-black/70 bg-[#0A0A0A]',
+          'border border-black/70 bg-[#0A0A0A] shadow-[0_10px_24px_-12px_rgba(0,0,0,0.65)]',
           disabled && 'opacity-50'
         )}
       >
-        <div className="absolute w-[112%] h-[128%] top-[8%] left-1/2 -translate-x-1/2 blur-[19px] opacity-65 pointer-events-none">
-          <span className="absolute inset-0 rounded-full bg-[#F7C948]/70 blur-[6.5px]" />
-          <div className="relative w-full h-full overflow-hidden rounded-full">
-            <Liquid isHovered={isHovered} colors={COLORS} />
-          </div>
+        <div className="absolute w-[112%] h-[128%] top-[8%] left-1/2 -translate-x-1/2 opacity-65 pointer-events-none overflow-hidden rounded-full">
+          <span className="absolute inset-0 rounded-full bg-[#F7C948]/70 blur-[8px]" />
+          {mounted ? (
+            <div className="relative w-full h-full overflow-hidden rounded-full">
+              <Liquid isHovered={isHovered} colors={COLORS} />
+            </div>
+          ) : null}
         </div>
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-[40%] w-[92%] h-[112%] rounded-full bg-[#0A0A0A] blur-[8px] pointer-events-none" />
         <div className="relative w-full h-full overflow-hidden rounded-full">
           <span className="absolute inset-0 rounded-full bg-[#0A0A0A]" />
-          <Liquid isHovered={isHovered} colors={COLORS} />
+          {mounted ? <Liquid isHovered={isHovered} colors={COLORS} /> : null}
           <span className="absolute inset-0 rounded-full border border-white/20 mix-blend-overlay" />
           <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-[40%] w-[70%] h-[45%] rounded-full blur-[15px] bg-[#B77700]/50" />
         </div>
