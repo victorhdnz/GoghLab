@@ -326,9 +326,6 @@ export const PricingComponent: React.FC<PricingComponentProps> = ({
                       />
                       <span className="text-base font-normal text-gray-500">/mês</span>
                     </p>
-                    {plan.planType !== 'service' && plan.monthlyCredits != null && plan.monthlyCredits > 0 && (
-                      <p className="text-sm text-[#0A0A0A] mt-1.5 font-medium">{plan.monthlyCredits} créditos IA/mês</p>
-                    )}
                     <p className="text-xs text-gray-500 mt-2">
                       Economize {annualDiscountPercent}% com o plano anual
                     </p>
@@ -343,9 +340,6 @@ export const PricingComponent: React.FC<PricingComponentProps> = ({
                       />
                       <span className="text-base font-normal text-gray-500">/mês</span>
                     </p>
-                    {plan.planType !== 'service' && plan.monthlyCredits != null && plan.monthlyCredits > 0 && (
-                      <p className="text-sm text-[#0A0A0A] mt-1.5 font-medium">{plan.monthlyCredits} créditos IA/mês</p>
-                    )}
                   </>
                 )}
               </div>

@@ -5,8 +5,9 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useRouter } from 'next/navigation'
 import { LumaSpin } from '@/components/ui/luma-spin'
 import { Button } from '@/components/ui/button'
-import { Calendar as CalendarIcon, RefreshCw } from 'lucide-react'
+import { Calendar as CalendarIcon, RefreshCw, Sparkles, FileText, Type, Clock } from 'lucide-react'
 import { CalendarWithEventSlots } from '@/components/ui/calendar-with-event-slots'
+import { Modal } from '@/components/ui/Modal'
 import toast from 'react-hot-toast'
 
 type ContentProfile = {
@@ -18,6 +19,10 @@ type ContentProfile = {
   goals: string | null
   platforms: string[] | null
   frequency_per_week: number | null
+  extra_preferences?: {
+    availability_days?: number[]
+    [key: string]: any
+  } | null
 }
 
 type CalendarItem = {
@@ -59,6 +64,7 @@ export default function ContentPlanningPage() {
     goals: '',
     platforms: [] as string[],
     frequency_per_week: 3,
+    availability_days: [1, 2, 3, 4, 5] as number[],
   })
 
   const [currentMonth, setCurrentMonth] = useState(() => {
@@ -69,6 +75,15 @@ export default function ContentPlanningPage() {
   const [items, setItems] = useState<CalendarItem[]>([])
   const [itemsLoading, setItemsLoading] = useState(true)
   const [generatingId, setGeneratingId] = useState<string | null>(null)
+  const [autoPlanning, setAutoPlanning] = useState(false)
+  const [createModalOpen, setCreateModalOpen] = useState(false)
+  const [createForm, setCreateForm] = useState({
+    topic: '',
+    platform: '',
+    time: '',
+  })
+  const [itemModal, setItemModal] = useState<CalendarItem | null>(null)
+  const [contentModal, setContentModal] = useState<{ type: 'script' | 'caption' | 'time'; item: CalendarItem } | null>(null)
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -122,6 +137,9 @@ export default function ContentPlanningPage() {
             goals: data.profile.goals ?? '',
             platforms: Array.isArray(data.profile.platforms) ? data.profile.platforms : [],
             frequency_per_week: data.profile.frequency_per_week ?? 3,
+            availability_days: Array.isArray(data.profile.extra_preferences?.availability_days)
+              ? data.profile.extra_preferences.availability_days
+              : [1, 2, 3, 4, 5],
           })
         }
       } catch (e) {
@@ -186,7 +204,12 @@ export default function ContentPlanningPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify(profileForm),
+        body: JSON.stringify({
+          ...profileForm,
+          extra_preferences: {
+            availability_days: profileForm.availability_days,
+          },
+        }),
       })
       const data = await res.json()
       if (!res.ok) {
@@ -213,7 +236,12 @@ export default function ContentPlanningPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ date }),
+        body: JSON.stringify({
+          date,
+          topic: createForm.topic?.trim() || null,
+          platform: createForm.platform?.trim() || null,
+          time: createForm.time?.trim() ? `${createForm.time}:00+00` : null,
+        }),
       })
       const data = await res.json()
       if (!res.ok) {
@@ -221,13 +249,16 @@ export default function ContentPlanningPage() {
         return
       }
       setItems((prev) => [...prev, data.item])
+      setCreateModalOpen(false)
+      setCreateForm({ topic: '', platform: '', time: '' })
+      toast.success('Vídeo criado para este dia.')
     } catch (e) {
       console.error('Erro ao criar item', e)
       toast.error('Erro ao criar item')
     }
   }
 
-  const handleGenerate = async (itemId: string) => {
+  const handleGenerate = async (itemId: string, regenerate = false) => {
     if (!hasActiveSubscription) {
       router.push('/precos')
       return
@@ -238,7 +269,7 @@ export default function ContentPlanningPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ calendarItemId: itemId }),
+        body: JSON.stringify({ calendarItemId: itemId, mode: regenerate ? 'regenerate' : 'generate' }),
       })
       const data = await res.json()
       if (!res.ok) {
@@ -252,7 +283,9 @@ export default function ContentPlanningPage() {
       }
       const updated: CalendarItem = data.item
       setItems((prev) => prev.map((it) => (it.id === updated.id ? updated : it)))
-      toast.success('Conteúdo gerado com sucesso.')
+      if (itemModal?.id === updated.id) setItemModal(updated)
+      if (contentModal?.item?.id === updated.id) setContentModal({ ...contentModal, item: updated })
+      toast.success(regenerate ? 'Novo conteúdo gerado com sucesso.' : 'Conteúdo gerado com sucesso.')
     } catch (e) {
       console.error('Erro ao gerar conteúdo', e)
       toast.error('Erro ao gerar conteúdo')
@@ -274,6 +307,11 @@ export default function ContentPlanningPage() {
     const selectedDateString = formatDate(selectedDate)
     return items.filter((item) => item.date === selectedDateString)
   }, [items, selectedDate])
+
+  const regenerateCount = (item: CalendarItem) => {
+    const value = Number(item.meta?.regenerate_count ?? 0)
+    return Number.isFinite(value) ? value : 0
+  }
 
   const handleCopyScript = (item: CalendarItem) => {
     if (!item.script) {
@@ -303,6 +341,49 @@ export default function ContentPlanningPage() {
     navigator.clipboard.writeText(recTime)
     toast.success('Horário recomendado copiado.')
   }
+
+  const handleAutoPlanMonth = async () => {
+    if (!hasActiveSubscription) {
+      router.push('/precos')
+      return
+    }
+    setAutoPlanning(true)
+    try {
+      const res = await fetch('/api/content/auto-plan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ month: formatDate(currentMonth) }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        toast.error(data.error || 'Erro ao gerar agenda automática')
+        return
+      }
+      const createdItems: CalendarItem[] = Array.isArray(data.items) ? data.items : []
+      setItems((prev) => {
+        const map = new Map(prev.map((it) => [it.id, it]))
+        for (const item of createdItems) map.set(item.id, item)
+        return Array.from(map.values())
+      })
+      toast.success(`Agenda automática criada com ${createdItems.length} vídeo(s).`)
+    } catch (e) {
+      console.error('Erro na agenda automática', e)
+      toast.error('Erro ao gerar agenda automática')
+    } finally {
+      setAutoPlanning(false)
+    }
+  }
+
+  const weekDayOptions = [
+    { value: 1, label: 'Seg' },
+    { value: 2, label: 'Ter' },
+    { value: 3, label: 'Qua' },
+    { value: 4, label: 'Qui' },
+    { value: 5, label: 'Sex' },
+    { value: 6, label: 'Sáb' },
+    { value: 0, label: 'Dom' },
+  ]
 
   return (
     <div
@@ -404,6 +485,54 @@ export default function ContentPlanningPage() {
               className="w-full px-3 py-2 border border-gogh-grayLight rounded-lg text-sm"
             />
           </div>
+          <div>
+            <label className="block text-xs font-medium text-gogh-grayDark mb-1">
+              Frequência desejada por semana
+            </label>
+            <input
+              type="number"
+              min={1}
+              max={7}
+              value={profileForm.frequency_per_week}
+              onChange={(e) =>
+                setProfileForm((f) => ({
+                  ...f,
+                  frequency_per_week: Math.max(1, Math.min(7, Number(e.target.value || 1))),
+                }))
+              }
+              className="w-full px-3 py-2 border border-gogh-grayLight rounded-lg text-sm"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gogh-grayDark mb-1">
+              Dias disponíveis para gravação
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {weekDayOptions.map((day) => {
+                const checked = profileForm.availability_days.includes(day.value)
+                return (
+                  <button
+                    key={day.value}
+                    type="button"
+                    onClick={() =>
+                      setProfileForm((f) => {
+                        const exists = f.availability_days.includes(day.value)
+                        const next = exists
+                          ? f.availability_days.filter((d) => d !== day.value)
+                          : [...f.availability_days, day.value]
+                        return { ...f, availability_days: next.sort() }
+                      })
+                    }
+                    className={`px-2 py-1 rounded-md text-xs border ${
+                      checked ? 'bg-gogh-yellow/20 border-gogh-yellow text-gogh-black' : 'border-gogh-grayLight text-gogh-grayDark'
+                    }`}
+                  >
+                    {day.label}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
         </div>
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-2">
           <p className="text-xs text-gogh-grayDark">
@@ -429,6 +558,29 @@ export default function ContentPlanningPage() {
             )}
           </Button>
         </div>
+        <div className="pt-2 border-t border-gogh-grayLight/80 flex flex-wrap items-center justify-between gap-3">
+          <p className="text-xs text-gogh-grayDark">
+            Automático: cria os vídeos do mês em uma requisição (tema + roteiro + legenda + hashtags + horário).
+          </p>
+          <Button
+            size="sm"
+            onClick={handleAutoPlanMonth}
+            disabled={autoPlanning || !profile}
+            className="inline-flex items-center gap-2 bg-gogh-black text-white hover:bg-gogh-black/90"
+          >
+            {autoPlanning ? (
+              <>
+                <LumaSpin size="sm" />
+                Gerando agenda...
+              </>
+            ) : (
+              <>
+                <Sparkles className="w-4 h-4" />
+                Gerar agenda automática
+              </>
+            )}
+          </Button>
+        </div>
       </section>
 
       <section className="bg-white rounded-2xl border border-gogh-grayLight p-4 sm:p-6">
@@ -448,17 +600,155 @@ export default function ContentPlanningPage() {
             }}
             itemsForSelectedDate={selectedDateItems}
             loading={itemsLoading}
-            generatingId={generatingId}
             canInteract={hasActiveSubscription && !!profile}
-            onCreateForSelectedDate={() => handleCreateItem(formatDate(selectedDate))}
-            onGenerate={handleGenerate}
-            onCopyScript={handleCopyScript}
-            onCopyCaptionHashtags={handleCopyCaptionHashtags}
-            onCopyRecommendedTime={handleCopyRecommendedTime}
-            getRecommendedTime={getRecommendedTime}
+            onCreateForSelectedDate={() => setCreateModalOpen(true)}
+            onOpenItem={(item) => setItemModal(item)}
           />
         </div>
       </section>
+
+      <Modal
+        isOpen={createModalOpen}
+        onClose={() => setCreateModalOpen(false)}
+        title={`Criar vídeo para ${selectedDate.toLocaleDateString('pt-BR')}`}
+        size="md"
+      >
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium mb-1 text-gogh-black">Tema/título (opcional)</label>
+            <input
+              type="text"
+              value={createForm.topic}
+              onChange={(e) => setCreateForm((f) => ({ ...f, topic: e.target.value }))}
+              placeholder="Ex.: 3 erros que fazem perder engajamento"
+              className="w-full px-3 py-2 border border-gogh-grayLight rounded-lg text-sm"
+            />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm font-medium mb-1 text-gogh-black">Plataforma</label>
+              <input
+                type="text"
+                value={createForm.platform}
+                onChange={(e) => setCreateForm((f) => ({ ...f, platform: e.target.value }))}
+                placeholder="Instagram, TikTok..."
+                className="w-full px-3 py-2 border border-gogh-grayLight rounded-lg text-sm"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1 text-gogh-black">Horário (opcional)</label>
+              <input
+                type="time"
+                value={createForm.time}
+                onChange={(e) => setCreateForm((f) => ({ ...f, time: e.target.value }))}
+                className="w-full px-3 py-2 border border-gogh-grayLight rounded-lg text-sm"
+              />
+            </div>
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" onClick={() => setCreateModalOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={() => handleCreateItem(formatDate(selectedDate))} className="bg-gogh-yellow text-gogh-black hover:bg-gogh-yellow/90">
+              Criar vídeo
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={!!itemModal}
+        onClose={() => setItemModal(null)}
+        title={itemModal?.topic || 'Vídeo planejado'}
+        size="md"
+      >
+        {itemModal && (
+          <div className="space-y-3">
+            <p className="text-sm text-gogh-grayDark">
+              Selecione o que deseja visualizar ou gerar para este conteúdo.
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <Button
+                onClick={() => handleGenerate(itemModal.id, false)}
+                disabled={!!generatingId}
+                className="justify-start bg-gogh-yellow text-gogh-black hover:bg-gogh-yellow/90"
+              >
+                <Sparkles className="w-4 h-4 mr-2" />
+                {generatingId === itemModal.id ? 'Gerando...' : 'Gerar estrutura'}
+              </Button>
+              <Button
+                onClick={() => handleGenerate(itemModal.id, true)}
+                disabled={!!generatingId || regenerateCount(itemModal) >= 3}
+                className="justify-start"
+                variant="outline"
+              >
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Gerar novo ({Math.max(0, 3 - regenerateCount(itemModal))}/3)
+              </Button>
+              <Button
+                onClick={() => setContentModal({ type: 'script', item: itemModal })}
+                variant="outline"
+                className="justify-start"
+              >
+                <FileText className="w-4 h-4 mr-2" />
+                Roteiro
+              </Button>
+              <Button
+                onClick={() => setContentModal({ type: 'caption', item: itemModal })}
+                variant="outline"
+                className="justify-start"
+              >
+                <Type className="w-4 h-4 mr-2" />
+                Legenda + hashtags
+              </Button>
+              <Button
+                onClick={() => setContentModal({ type: 'time', item: itemModal })}
+                variant="outline"
+                className="justify-start sm:col-span-2"
+              >
+                <Clock className="w-4 h-4 mr-2" />
+                Horário recomendado
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      <Modal
+        isOpen={!!contentModal}
+        onClose={() => setContentModal(null)}
+        title={
+          contentModal?.type === 'script'
+            ? 'Roteiro'
+            : contentModal?.type === 'caption'
+              ? 'Legenda + hashtags'
+              : 'Horário recomendado'
+        }
+        size="lg"
+      >
+        {contentModal && (
+          <div className="space-y-4">
+            <pre className="whitespace-pre-wrap text-sm bg-gogh-grayLight/30 rounded-lg p-3 max-h-[50vh] overflow-auto">
+              {contentModal.type === 'script'
+                ? contentModal.item.script || 'Ainda não há roteiro.'
+                : contentModal.type === 'caption'
+                  ? [contentModal.item.caption, contentModal.item.hashtags].filter(Boolean).join('\n\n') || 'Ainda não há legenda/hashtags.'
+                  : getRecommendedTime(contentModal.item) || 'Ainda não há horário recomendado.'}
+            </pre>
+            <div className="flex justify-end">
+              <Button
+                onClick={() => {
+                  if (contentModal.type === 'script') handleCopyScript(contentModal.item)
+                  else if (contentModal.type === 'caption') handleCopyCaptionHashtags(contentModal.item)
+                  else handleCopyRecommendedTime(contentModal.item)
+                }}
+              >
+                Copiar
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   )
 }

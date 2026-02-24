@@ -10,6 +10,7 @@ type GenerateBody = {
   calendarItemId: string
   /** Se o usuário quiser forçar um tema específico nesse slot */
   overrideTopic?: string | null
+  mode?: 'generate' | 'regenerate'
 }
 
 type ContentProfileRow = {
@@ -228,7 +229,15 @@ export async function POST(request: Request) {
       }
     }
 
+    const mode: 'generate' | 'regenerate' = body.mode === 'regenerate' ? 'regenerate' : 'generate'
     const topic = body.overrideTopic?.trim() || item.topic?.trim() || ''
+    const regenerateCount = Number(item.meta?.regenerate_count ?? 0) || 0
+    if (mode === 'regenerate' && regenerateCount >= 3) {
+      return NextResponse.json(
+        { error: 'Limite atingido: você pode gerar novo conteúdo até 3 vezes por vídeo.' },
+        { status: 400 }
+      )
+    }
 
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
     const model = process.env.OPENAI_ROTEIRO_MODEL_ID || 'gpt-4o-mini'
@@ -253,9 +262,11 @@ export async function POST(request: Request) {
     const platformInfo = item.platform ? `Plataforma principal para este vídeo: ${item.platform}.` : ''
     const dateInfo = item.date ? `Data planejada: ${item.date}.` : ''
 
-    const userInstruction = topic
-      ? `Gere conteúdo para o seguinte tema específico: "${topic}".`
-      : 'Sugira um tema relevante para o nicho e gere o conteúdo completo com base nesse tema sugerido.'
+    const userInstruction = mode === 'regenerate'
+      ? `Gere uma NOVA estrutura completa para este vídeo, com tema diferente do tema atual "${topic || 'sem tema'}". Não repita ideias já usadas e mantenha aderência ao perfil do cliente.`
+      : topic
+        ? `Gere conteúdo para o seguinte tema específico: "${topic}".`
+        : 'Sugira um tema relevante para o nicho e gere o conteúdo completo com base nesse tema sugerido.'
 
     const messages = [
       {
@@ -324,6 +335,7 @@ export async function POST(request: Request) {
       meta: {
         ...(item.meta || {}),
         recommended_time: recommendedTime || null,
+        regenerate_count: mode === 'regenerate' ? regenerateCount + 1 : regenerateCount,
       },
     }
 
