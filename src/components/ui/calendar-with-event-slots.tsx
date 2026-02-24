@@ -4,6 +4,7 @@ import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
+import { HoverButton } from "@/components/ui/hover-button";
 import { LumaSpin } from "@/components/ui/luma-spin";
 
 type PlannerItem = {
@@ -24,12 +25,13 @@ type CalendarWithEventSlotsProps = {
   selectedDate: Date;
   onMonthChange: (month: Date) => void;
   onSelectDate: (date: Date | undefined) => void;
+  itemsForMonth: PlannerItem[];
   itemsForSelectedDate: PlannerItem[];
   loading?: boolean;
   canInteract?: boolean;
   onCreateForSelectedDate?: () => void;
   onOpenItem: (item: PlannerItem) => void;
-  onRegenerateForItem?: (itemId: string) => void;
+  onRegenerateForItem?: (item: PlannerItem) => void;
   regeneratingId?: string | null;
 };
 
@@ -38,6 +40,7 @@ export function CalendarWithEventSlots({
   selectedDate,
   onMonthChange,
   onSelectDate,
+  itemsForMonth,
   itemsForSelectedDate,
   loading = false,
   canInteract = true,
@@ -46,7 +49,20 @@ export function CalendarWithEventSlots({
   onRegenerateForItem,
   regeneratingId = null,
 }: CalendarWithEventSlotsProps) {
-  const hasItems = itemsForSelectedDate.length > 0;
+  const formatDateKey = React.useCallback((date: Date) => {
+    const year = date.getFullYear();
+    const monthValue = String(date.getMonth() + 1).padStart(2, "0");
+    const dayValue = String(date.getDate()).padStart(2, "0");
+    return `${year}-${monthValue}-${dayValue}`;
+  }, []);
+
+  const daysWithContent = React.useMemo(() => {
+    return new Set(
+      itemsForMonth
+        .filter((item) => Boolean(item.script || item.caption || item.hashtags || item.status === "generated"))
+        .map((item) => item.date)
+    );
+  }, [itemsForMonth]);
 
   return (
     <Card className="w-full max-w-[430px] py-4">
@@ -58,6 +74,13 @@ export function CalendarWithEventSlots({
           onMonthChange={onMonthChange}
           onSelect={onSelectDate}
           className="bg-transparent p-0"
+          modifiers={{
+            hasContent: (date) => daysWithContent.has(formatDateKey(date)),
+          }}
+          modifiersClassNames={{
+            hasContent:
+              "[&>button]:bg-[#F7C948]/35 [&>button]:text-[#0A0A0A] [&>button]:shadow-[inset_0_0_0_1px_rgba(247,201,72,0.75)]",
+          }}
           required
         />
       </CardContent>
@@ -113,16 +136,14 @@ export function CalendarWithEventSlots({
                         {item.script || item.caption || item.hashtags ? "Conteúdo gerado" : "Conteúdo pendente"}
                       </div>
                     </button>
-                    <Button
+                    <HoverButton
                       type="button"
-                      size="sm"
-                      variant="outline"
-                      className="h-7 px-2 text-[11px] shrink-0"
-                      onClick={() => onRegenerateForItem?.(item.id)}
-                      disabled={!canInteract || isRegenerating || regenerateCount >= 3}
+                      className="shrink-0"
+                      onClick={() => onRegenerateForItem?.(item)}
+                      disabled={!canInteract || isRegenerating || regenerateCount >= 2}
                     >
                       {isRegenerating ? "Gerando..." : "Gerar novamente"}
-                    </Button>
+                    </HoverButton>
                   </div>
                 </div>
               );

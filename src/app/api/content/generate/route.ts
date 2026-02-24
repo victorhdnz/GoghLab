@@ -11,6 +11,7 @@ type GenerateBody = {
   /** Se o usuário quiser forçar um tema específico nesse slot */
   overrideTopic?: string | null
   mode?: 'generate' | 'regenerate'
+  regenerateInstruction?: string | null
 }
 
 type ContentProfileRow = {
@@ -362,9 +363,9 @@ export async function POST(request: Request) {
     const mode: 'generate' | 'regenerate' = body.mode === 'regenerate' ? 'regenerate' : 'generate'
     const topic = body.overrideTopic?.trim() || item.topic?.trim() || ''
     const regenerateCount = Number(item.meta?.regenerate_count ?? 0) || 0
-    if (mode === 'regenerate' && regenerateCount >= 3) {
+    if (mode === 'regenerate' && regenerateCount >= 2) {
       return NextResponse.json(
-        { error: 'Limite atingido: você pode gerar novo conteúdo até 3 vezes por vídeo.' },
+        { error: 'Limite atingido: você pode gerar novamente até 2 vezes por vídeo.' },
         { status: 400 }
       )
     }
@@ -397,8 +398,9 @@ export async function POST(request: Request) {
     const platformInfo = item.platform ? `Plataforma principal para este vídeo: ${item.platform}.` : ''
     const dateInfo = item.date ? `Data planejada: ${item.date}.` : ''
 
+    const regenerateInstruction = (body.regenerateInstruction || '').toString().trim()
     const userInstruction = mode === 'regenerate'
-      ? `Gere uma NOVA estrutura completa para este vídeo, com tema diferente do tema atual "${topic || 'sem tema'}". Não repita ideias já usadas e mantenha aderência ao perfil do cliente.`
+      ? `Gere uma NOVA estrutura completa para este vídeo, com tema diferente do tema atual "${topic || 'sem tema'}". Não repita ideias já usadas e mantenha aderência ao perfil do cliente.${regenerateInstruction ? `\n\nAjustes solicitados pelo cliente para esta regeneração: ${regenerateInstruction}` : ''}`
       : topic
         ? `Gere conteúdo para o seguinte tema específico: "${topic}".`
         : 'Sugira um tema relevante para o nicho e gere o conteúdo completo com base nesse tema sugerido.'

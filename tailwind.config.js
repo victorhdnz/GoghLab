@@ -9,6 +9,11 @@ module.exports = {
   theme: {
         extend: {
 		colors: {
+				'color-1': 'hsl(var(--color-1))',
+				'color-2': 'hsl(var(--color-2))',
+				'color-3': 'hsl(var(--color-3))',
+				'color-4': 'hsl(var(--color-4))',
+				'color-5': 'hsl(var(--color-5))',
 				// Paleta Gogh Lab
 				gogh: {
 					yellow: '#F7C948',      // Amarelo girassol (cor principal)
@@ -94,7 +99,9 @@ module.exports = {
                         'loader-anim': 'loaderAnim 2.5s infinite',
                         'loader-anim-delayed': 'loaderAnim 2.5s -1.25s infinite',
                         'shimmer-slide': 'shimmer-slide var(--speed) ease-in-out infinite alternate',
-                        'spin-around': 'spin-around calc(var(--speed) * 2) infinite linear'
+                        'spin-around': 'spin-around calc(var(--speed) * 2) infinite linear',
+                        'rainbow': 'rainbow var(--speed, 2s) infinite linear',
+                        'star-btn': 'star-btn calc(var(--duration) * 1s) linear infinite'
                 },
                 keyframes: {
                         fadeIn: {
@@ -194,6 +201,14 @@ module.exports = {
                         },
                         'shimmer-slide': {
                                 to: { transform: 'translate(calc(100cqw - 100%), 0)' }
+                        },
+                        rainbow: {
+                                '0%': { 'background-position': '0%' },
+                                '100%': { 'background-position': '200%' }
+                        },
+                        'star-btn': {
+                                '0%': { 'offset-distance': '0%' },
+                                '100%': { 'offset-distance': '100%' }
                         }
                 },
                 borderRadius: {

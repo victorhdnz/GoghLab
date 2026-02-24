@@ -26,6 +26,7 @@ import type { GalleryHoverCarouselItem } from '@/components/ui/gallery-hover-car
 import { getYouTubeId } from '@/lib/utils/youtube'
 import { TypewriterEffectSmooth } from '@/components/ui/typewriter-effect'
 import { Hero } from '@/components/ui/hero-1'
+import { StarButton } from '@/components/ui/star-button'
 
 interface HomepageSectionsProps {
   homepageContent: any
@@ -158,12 +159,16 @@ export function HomepageSections({
           </p>
           <TypewriterEffectSmooth words={words} className="justify-center" />
           <div className="mt-4 sm:mt-6">
-            <Link
-              href="/precos"
-              className="inline-flex items-center justify-center min-w-[10rem] w-40 h-11 sm:h-10 rounded-xl bg-[#0A0A0A] border border-transparent text-white text-base sm:text-sm font-medium hover:opacity-90 transition-opacity dark:bg-white dark:text-[#0A0A0A] dark:border-white"
+            <StarButton
+              onClick={() => {
+                window.location.href = '/precos'
+              }}
+              className="w-40 h-11 sm:h-10"
+              lightColor="#F7C948"
+              backgroundColor="#0A0A0A"
             >
               {buttonLabel}
-            </Link>
+            </StarButton>
           </div>
         </div>
       </section>

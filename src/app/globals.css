@@ -85,6 +85,11 @@
     --gogh-beige: #F5F1E8;
     --gogh-beige-light: #FBF8F3;
     --gogh-white: #FFFFFF;
+    --color-1: 45 91% 63%;
+    --color-2: 40 89% 56%;
+    --color-3: 52 95% 68%;
+    --color-4: 35 87% 52%;
+    --color-5: 48 90% 60%;
     
     --background: 43 33% 94%; /* Bege Gogh Lab #F5F1E8 em HSL */
     --foreground: 0 0% 3.9%;

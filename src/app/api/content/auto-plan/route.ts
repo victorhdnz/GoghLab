@@ -14,6 +14,7 @@ type ProfileRow = {
   frequency_per_week: number | null
   extra_preferences: {
     availability_days?: number[]
+    auto_plan_last_month?: string
   } | null
 }
 
@@ -150,6 +151,7 @@ export async function POST(request: Request) {
     const base = parsedMonth || new Date()
     const year = base.getFullYear()
     const monthIndex = base.getMonth()
+    const monthKey = `${year}-${String(monthIndex + 1).padStart(2, '0')}`
 
     const { data: profile, error: profileError } = (await (supabase
       .from('content_profiles') as any)
@@ -168,6 +170,16 @@ export async function POST(request: Request) {
       )
     }
 
+    if (profile.extra_preferences?.auto_plan_last_month === monthKey) {
+      return NextResponse.json(
+        {
+          error: 'A agenda automática deste mês já foi gerada. Aguarde o próximo mês para gerar novamente.',
+          code: 'AUTO_PLAN_ALREADY_USED',
+        },
+        { status: 400 }
+      )
+    }
+
     const availabilityDays = Array.isArray(profile.extra_preferences?.availability_days)
       ? profile.extra_preferences?.availability_days ?? []
       : [1, 2, 3, 4, 5]
@@ -181,6 +193,37 @@ export async function POST(request: Request) {
         'date',
         `${year}-${String(monthIndex + 1).padStart(2, '0')}-${String(daysInMonth(year, monthIndex)).padStart(2, '0')}`
       )
+
+    const { data: existingAutoPlanItem } = await (supabase.from('content_calendar_items') as any)
+      .select('id')
+      .eq('user_id', user.id)
+      .contains('meta', { auto_generated: true })
+      .gte('date', `${year}-${String(monthIndex + 1).padStart(2, '0')}-01`)
+      .lte(
+        'date',
+        `${year}-${String(monthIndex + 1).padStart(2, '0')}-${String(daysInMonth(year, monthIndex)).padStart(2, '0')}`
+      )
+      .limit(1)
+      .maybeSingle()
+
+    if (existingAutoPlanItem?.id) {
+      const mergedPrefs = {
+        ...(profile.extra_preferences || {}),
+        auto_plan_last_month: monthKey,
+      }
+      await (supabase
+        .from('content_profiles') as any)
+        .update({ extra_preferences: mergedPrefs })
+        .eq('user_id', user.id)
+
+      return NextResponse.json(
+        {
+          error: 'A agenda automática deste mês já foi gerada. Aguarde o próximo mês para gerar novamente.',
+          code: 'AUTO_PLAN_ALREADY_USED',
+        },
+        { status: 400 }
+      )
+    }
 
     const occupiedDates = new Set((existingItems || []).map((it: any) => it.date))
     const existingTopics = ((existingItems || []) as Array<{ topic?: unknown }>)
@@ -352,6 +395,15 @@ export async function POST(request: Request) {
     if (insertError) {
       return NextResponse.json({ error: insertError.message }, { status: 500 })
     }
+
+    const mergedPrefs = {
+      ...(profile.extra_preferences || {}),
+      auto_plan_last_month: monthKey,
+    }
+    await (supabase
+      .from('content_profiles') as any)
+      .update({ extra_preferences: mergedPrefs })
+      .eq('user_id', user.id)
 
     return NextResponse.json({ items: inserted || [] })
   } catch (e: any) {
