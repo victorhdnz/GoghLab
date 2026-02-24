@@ -558,6 +558,15 @@ export default function ToolsPage() {
         .eq('is_active', true)
 
       setToolAccess(accessData || [])
+
+      const { data: ticketsData } = await (supabase as any)
+        .from('support_tickets')
+        .select('*')
+        .eq('user_id', user.id)
+        .in('status', ['open', 'in_progress', 'error'])
+        .order('created_at', { ascending: false })
+
+      setPendingTickets(ticketsData || [])
     } catch (error) {
       console.error('Error reporting link error:', error)
       toast.error('Erro ao reportar problema. Tente novamente.')
@@ -909,17 +918,21 @@ export default function ToolsPage() {
                       </div>
                     </div>
                     <div className="p-4 pb-5">
-                  {hasAccess && hasNewCredentials && (
-                    <div className="mb-3 rounded-lg border border-emerald-200 bg-emerald-50 p-2.5">
-                      <p className="text-sm text-emerald-800 font-medium flex items-center gap-2">
-                        <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
-                        Suas credenciais foram atualizadas pela equipe. Problema resolvido.
-                      </p>
-                      <p className="text-xs text-emerald-700 mt-1">
-                        Use o botão &quot;Reportar novamente&quot; abaixo se precisar reportar outro problema.
-                      </p>
-                    </div>
-                  )}
+                  <div className="mb-3 min-h-[86px]">
+                    {hasAccess && hasNewCredentials ? (
+                      <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-2.5">
+                        <p className="text-sm text-emerald-800 font-medium flex items-center gap-2">
+                          <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+                          Suas credenciais foram atualizadas pela equipe. Problema resolvido.
+                        </p>
+                        <p className="text-xs text-emerald-700 mt-1">
+                          Use o botão &quot;Reportar novamente&quot; abaixo se precisar reportar outro problema.
+                        </p>
+                      </div>
+                    ) : (
+                      <div aria-hidden className="h-full" />
+                    )}
+                  </div>
                   {t.description && (
                     <p className="text-gogh-grayDark text-sm mb-3">{t.description}</p>
                   )}
@@ -965,10 +978,11 @@ export default function ToolsPage() {
                       <button
                         type="button"
                         onClick={() => reportLinkError(t.slug, t.name)}
-                        className="w-full flex items-center justify-center gap-1.5 px-3 py-2 text-xs sm:text-sm text-red-600 hover:bg-red-50 rounded-lg border border-red-200 transition-colors"
+                        disabled={isReportPending}
+                        className="w-full flex items-center justify-center gap-1.5 px-3 py-2 text-xs sm:text-sm text-red-600 hover:bg-red-50 rounded-lg border border-red-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent"
                       >
                         <AlertTriangle className="w-3.5 h-3.5" />
-                        {hasNewCredentials ? 'Reportar novamente' : 'Reportar Erro na Conta'}
+                        {isReportPending ? 'Reporte em análise' : hasNewCredentials ? 'Reportar novamente' : 'Reportar Erro na Conta'}
                       </button>
                     </div>
                   )}
