@@ -1,8 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { PlusIcon } from "lucide-react";
-
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
@@ -28,8 +26,6 @@ type CalendarWithEventSlotsProps = {
   onSelectDate: (date: Date | undefined) => void;
   itemsForSelectedDate: PlannerItem[];
   loading?: boolean;
-  canInteract: boolean;
-  onCreateForSelectedDate: () => void;
   onOpenItem: (item: PlannerItem) => void;
 };
 
@@ -40,8 +36,6 @@ export function CalendarWithEventSlots({
   onSelectDate,
   itemsForSelectedDate,
   loading = false,
-  canInteract,
-  onCreateForSelectedDate,
   onOpenItem,
 }: CalendarWithEventSlotsProps) {
   const hasItems = itemsForSelectedDate.length > 0;
@@ -68,19 +62,6 @@ export function CalendarWithEventSlots({
               year: "numeric",
             })}
           </div>
-          {hasItems ? (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="size-7"
-              title="Adicionar vídeo"
-              onClick={onCreateForSelectedDate}
-              disabled={!canInteract || loading}
-            >
-              <PlusIcon className="w-4 h-4" />
-              <span className="sr-only">Adicionar vídeo</span>
-            </Button>
-          ) : null}
         </div>
 
         <div className="flex w-full flex-col gap-2">
@@ -93,15 +74,6 @@ export function CalendarWithEventSlots({
               <div className="font-medium text-muted-foreground text-center">
                 Nenhum vídeo planejado neste dia
               </div>
-              <Button
-                size="sm"
-                onClick={onCreateForSelectedDate}
-                disabled={!canInteract || loading}
-                className="mt-3 w-full bg-[#F7C948] text-[#0A0A0A] hover:bg-[#F7C948]/90"
-              >
-                <PlusIcon className="w-4 h-4 mr-1" />
-                Criar vídeo
-              </Button>
             </div>
           ) : (
             itemsForSelectedDate.map((item) => {

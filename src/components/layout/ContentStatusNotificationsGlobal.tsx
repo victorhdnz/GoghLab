@@ -105,14 +105,14 @@ export function ContentStatusNotificationsGlobal() {
   if (!notice || !shouldRun) return null
 
   return (
-    <div className="fixed top-20 left-3 right-3 sm:left-4 sm:right-4 z-[110] pointer-events-none">
-      <div className="max-w-md mx-auto pointer-events-auto">
+    <div className="fixed top-16 right-3 sm:right-4 z-[110] w-[min(calc(100vw-1.5rem),320px)] sm:w-[340px] pointer-events-none">
+      <div className="pointer-events-auto">
         <CustomAlert
           visible
           variant={notice.variant}
           title={notice.title}
           description={notice.description}
-          className="bg-black/85 border-white/20 text-white"
+          className="bg-black/88 border-white/20 text-white"
           onClose={() => {
             localStorage.setItem(`content_notice_dismissed:${notice.id}`, '1')
             setNotice(null)

@@ -90,7 +90,7 @@ export function ContentStatusNotificationGlobal() {
   }
 
   return (
-    <div className="fixed top-20 left-3 right-3 sm:left-4 sm:right-4 z-[115] pointer-events-auto">
+    <div className="fixed top-16 right-3 sm:right-4 z-[115] w-[min(calc(100vw-1.5rem),320px)] sm:w-[340px] pointer-events-auto">
       <CustomAlert
         visible
         variant={current.variant === 'warning' ? 'warning' : current.variant === 'success' ? 'success' : 'info'}

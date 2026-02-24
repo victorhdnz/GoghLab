@@ -61,7 +61,7 @@ export default function ContentPlanningPage() {
     niche: '',
     audience: '',
     tone_of_voice: '',
-    goals: '',
+    goals: [] as string[],
     platforms: [] as string[],
     frequency_per_week: 3,
     availability_days: [1, 2, 3, 4, 5] as number[],
@@ -134,9 +134,16 @@ export default function ContentPlanningPage() {
             niche: data.profile.niche ?? '',
             audience: data.profile.audience ?? '',
             tone_of_voice: data.profile.tone_of_voice ?? '',
-            goals: data.profile.goals ?? '',
+            goals: typeof data.profile.goals === 'string'
+              ? data.profile.goals
+                  .split('|')
+                  .map((value: string) => value.trim())
+                  .filter(Boolean)
+              : [],
             platforms: Array.isArray(data.profile.platforms) ? data.profile.platforms : [],
-            frequency_per_week: data.profile.frequency_per_week ?? 3,
+            frequency_per_week: Array.isArray(data.profile.extra_preferences?.availability_days)
+              ? Math.max(1, data.profile.extra_preferences.availability_days.length)
+              : data.profile.frequency_per_week ?? 3,
             availability_days: Array.isArray(data.profile.extra_preferences?.availability_days)
               ? data.profile.extra_preferences.availability_days
               : [1, 2, 3, 4, 5],
@@ -206,6 +213,8 @@ export default function ContentPlanningPage() {
         credentials: 'include',
         body: JSON.stringify({
           ...profileForm,
+          goals: profileForm.goals.join(' | '),
+          frequency_per_week: Math.max(1, profileForm.availability_days.length),
           extra_preferences: {
             availability_days: profileForm.availability_days,
           },
@@ -385,6 +394,42 @@ export default function ContentPlanningPage() {
     { value: 0, label: 'Dom' },
   ]
 
+  const audienceOptions = [
+    '13 - 17 anos',
+    '18 - 24 anos',
+    '25 - 34 anos',
+    '35 - 44 anos',
+    '45 - 54 anos',
+    '55 - 64 anos',
+    '65+ anos',
+    '18 - 34 anos',
+    '25 - 44 anos',
+    '35 - 65+ anos',
+  ]
+
+  const toneOptions = [
+    'Profissional e formal',
+    'Profissional e amigável',
+    'Descontraído e leve',
+    'Educativo e didático',
+    'Inspirador e motivacional',
+    'Direto e objetivo',
+    'Humor inteligente',
+  ]
+
+  const goalOptions = [
+    'Converter vendas no meu site',
+    'Ganhar seguidores',
+    'Aumentar engajamento',
+    'Gerar leads no WhatsApp',
+    'Fortalecer autoridade no nicho',
+    'Educar o público sobre o produto/serviço',
+    'Atrair clientes locais',
+    'Melhorar reconhecimento da marca',
+    'Divulgar lançamentos/ofertas',
+    'Aumentar retenção de clientes',
+  ]
+
   return (
     <div
       className="max-w-5xl mx-auto px-4 sm:px-6 py-24 lg:py-28 space-y-8 relative"
@@ -453,59 +498,68 @@ export default function ContentPlanningPage() {
             <label className="block text-xs font-medium text-gogh-grayDark mb-1">
               Público-alvo
             </label>
-            <input
-              type="text"
+            <select
               value={profileForm.audience}
               onChange={(e) => setProfileForm((f) => ({ ...f, audience: e.target.value }))}
-              placeholder="Ex.: mulheres 25-40 anos que empreendem..."
               className="w-full px-3 py-2 border border-gogh-grayLight rounded-lg text-sm"
-            />
+            >
+              <option value="">Selecione a faixa de idade</option>
+              {audienceOptions.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
           </div>
           <div>
             <label className="block text-xs font-medium text-gogh-grayDark mb-1">
               Tom de voz
             </label>
-            <input
-              type="text"
+            <select
               value={profileForm.tone_of_voice}
               onChange={(e) => setProfileForm((f) => ({ ...f, tone_of_voice: e.target.value }))}
-              placeholder="Ex.: leve e descontraído, porém profissional"
               className="w-full px-3 py-2 border border-gogh-grayLight rounded-lg text-sm"
-            />
+            >
+              <option value="">Selecione o tom de voz</option>
+              {toneOptions.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
           </div>
           <div className="md:col-span-2">
             <label className="block text-xs font-medium text-gogh-grayDark mb-1">
               Objetivos com os vídeos
             </label>
-            <textarea
-              value={profileForm.goals}
-              onChange={(e) => setProfileForm((f) => ({ ...f, goals: e.target.value }))}
-              placeholder="Ex.: atrair novos pacientes, gerar autoridade, educar o público..."
-              rows={2}
-              className="w-full px-3 py-2 border border-gogh-grayLight rounded-lg text-sm"
-            />
+            <div className="flex flex-wrap gap-2">
+              {goalOptions.map((goal) => {
+                const selected = profileForm.goals.includes(goal)
+                return (
+                  <button
+                    key={goal}
+                    type="button"
+                    onClick={() =>
+                      setProfileForm((f) => ({
+                        ...f,
+                        goals: selected ? f.goals.filter((g) => g !== goal) : [...f.goals, goal],
+                      }))
+                    }
+                    className={`px-2.5 py-1.5 rounded-md text-xs border transition-colors ${
+                      selected
+                        ? 'bg-gogh-yellow/20 border-gogh-yellow text-gogh-black'
+                        : 'border-gogh-grayLight text-gogh-grayDark'
+                    }`}
+                  >
+                    {goal}
+                  </button>
+                )
+              })}
+            </div>
           </div>
           <div>
             <label className="block text-xs font-medium text-gogh-grayDark mb-1">
               Frequência desejada por semana
-            </label>
-            <input
-              type="number"
-              min={1}
-              max={7}
-              value={profileForm.frequency_per_week}
-              onChange={(e) =>
-                setProfileForm((f) => ({
-                  ...f,
-                  frequency_per_week: Math.max(1, Math.min(7, Number(e.target.value || 1))),
-                }))
-              }
-              className="w-full px-3 py-2 border border-gogh-grayLight rounded-lg text-sm"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-gogh-grayDark mb-1">
-              Dias disponíveis para gravação
             </label>
             <div className="flex flex-wrap gap-2">
               {weekDayOptions.map((day) => {
@@ -517,10 +571,14 @@ export default function ContentPlanningPage() {
                     onClick={() =>
                       setProfileForm((f) => {
                         const exists = f.availability_days.includes(day.value)
-                        const next = exists
+                        if (exists && f.availability_days.length <= 1) {
+                          return f
+                        }
+                        const nextDays = exists
                           ? f.availability_days.filter((d) => d !== day.value)
                           : [...f.availability_days, day.value]
-                        return { ...f, availability_days: next.sort() }
+                        const next = [...nextDays].sort((a, b) => a - b)
+                        return { ...f, availability_days: next, frequency_per_week: Math.max(1, next.length) }
                       })
                     }
                     className={`px-2 py-1 rounded-md text-xs border ${
@@ -600,8 +658,6 @@ export default function ContentPlanningPage() {
             }}
             itemsForSelectedDate={selectedDateItems}
             loading={itemsLoading}
-            canInteract={hasActiveSubscription && !!profile}
-            onCreateForSelectedDate={() => setCreateModalOpen(true)}
             onOpenItem={(item) => setItemModal(item)}
           />
         </div>
