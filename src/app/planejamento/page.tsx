@@ -643,9 +643,14 @@ export default function ContentPlanningPage() {
 
       <section className="bg-white rounded-2xl border border-gogh-grayLight p-4 sm:p-6 space-y-4">
         <div className="flex items-center justify-between gap-3">
-          <h2 className="text-base sm:text-lg font-semibold text-gogh-black">
-            Perfil de Conteúdo da sua Marca
-          </h2>
+          <div>
+            <h2 className="text-base sm:text-lg font-semibold text-gogh-black">
+              Configure o perfil da sua marca
+            </h2>
+            <p className="text-xs text-gogh-grayDark mt-0.5">
+              A IA usa essas configurações para personalizar temas, roteiros, legendas e horários.
+            </p>
+          </div>
           {profileLoading && <LumaSpin size="sm" />}
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -848,9 +853,25 @@ export default function ContentPlanningPage() {
             )}
           </ShinyButton>
         </div>
-        <div className="pt-2 border-t border-gogh-grayLight/80 flex flex-wrap items-center justify-between gap-3">
+        {!isProfileComplete && (
+          <p className="text-xs text-red-600">
+            Preencha todos os campos do perfil (incluindo idade mínima e máxima) para salvar.
+          </p>
+        )}
+      </section>
+
+      <section className="bg-white rounded-2xl border border-gogh-grayLight p-4 sm:p-6">
+        <div className="mb-3">
+          <h2 className="text-base sm:text-lg font-semibold text-gogh-black">
+            Calendário de conteúdo
+          </h2>
+          <p className="text-xs text-gogh-grayDark mt-0.5">
+            Visualize os dias planejados, abra cada conteúdo e use a geração automática do mês.
+          </p>
+        </div>
+        <div className="pb-4 mb-4 border-b border-gogh-grayLight/80 flex flex-wrap items-center justify-between gap-3">
           <p className="text-xs text-gogh-grayDark">
-            Automático: cria os vídeos do mês em uma requisição (tema + roteiro + legenda + hashtags + horário).
+            Automático: cria os vídeos do mês em uma única solicitação (tema + roteiro + legenda + hashtags + horário).
           </p>
           <RainbowButton
             type="button"
@@ -876,14 +897,6 @@ export default function ContentPlanningPage() {
             )}
           </RainbowButton>
         </div>
-        {!isProfileComplete && (
-          <p className="text-xs text-red-600">
-            Preencha todos os campos do perfil (incluindo idade mínima e máxima) para salvar.
-          </p>
-        )}
-      </section>
-
-      <section className="bg-white rounded-2xl border border-gogh-grayLight p-4 sm:p-6">
         <div className="flex justify-center">
           <CalendarWithEventSlots
             month={currentMonth}
