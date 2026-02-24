@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ComponentType } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { createClient } from '@/lib/supabase/client'
 import { motion } from 'framer-motion'
@@ -9,12 +9,11 @@ import {
   Play, 
   Video,
   Palette,
-  Scissors,
-  ChevronDown,
-  ChevronUp
+  Scissors
 } from 'lucide-react'
 import { LumaSpin } from '@/components/ui/luma-spin'
 import Link from 'next/link'
+import { CourseBentoGrid } from '@/components/ui/bento-grid'
 import { 
   getYouTubeId, 
   getYouTubeEmbedUrl,
@@ -195,64 +194,44 @@ export default function CoursesPage() {
           )}
 
           <div className={!hasCourseAccess ? 'pointer-events-none select-none blur-sm opacity-60' : ''}>
-            {/* Canva Courses */}
             {canvaCourses.length > 0 && (
-              <div className="mb-6 sm:mb-8">
-                <div className="flex items-center gap-1.5 mb-3">
-                  <Palette className="w-4 h-4 text-purple-600" />
-                  <h2 className="text-base font-bold text-gogh-black">Cursos de Canva</h2>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
-                  {canvaCourses.map((course, index) => (
-                    <CourseCard key={course.id} course={course} index={index} hasAccess={hasCourseAccess} />
-                  ))}
-                </div>
-              </div>
+              <CourseSection
+                title="Cursos de Canva"
+                icon={Palette}
+                iconClassName="text-purple-600"
+                courses={canvaCourses}
+                hasAccess={hasCourseAccess}
+              />
             )}
 
-            {/* CapCut Courses */}
             {capcutCourses.length > 0 && (
-              <div>
-                <div className="flex items-center gap-1.5 mb-3">
-                  <Scissors className="w-4 h-4 text-emerald-600" />
-                  <h2 className="text-base font-bold text-gogh-black">Cursos de CapCut</h2>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
-                  {capcutCourses.map((course, index) => (
-                    <CourseCard key={course.id} course={course} index={index} hasAccess={hasCourseAccess} />
-                  ))}
-                </div>
-              </div>
+              <CourseSection
+                title="Cursos de CapCut"
+                icon={Scissors}
+                iconClassName="text-emerald-600"
+                courses={capcutCourses}
+                hasAccess={hasCourseAccess}
+              />
             )}
 
-            {/* Strategy Courses */}
             {strategyCourses.length > 0 && (
-              <div className="mt-6 sm:mt-8">
-                <div className="flex items-center gap-1.5 mb-3">
-                  <BookOpen className="w-4 h-4 text-amber-600" />
-                  <h2 className="text-base font-bold text-gogh-black">Cursos de Estratégia</h2>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
-                  {strategyCourses.map((course, index) => (
-                    <CourseCard key={course.id} course={course} index={index} hasAccess={hasCourseAccess} />
-                  ))}
-                </div>
-              </div>
+              <CourseSection
+                title="Cursos de Estratégia"
+                icon={BookOpen}
+                iconClassName="text-amber-600"
+                courses={strategyCourses}
+                hasAccess={hasCourseAccess}
+              />
             )}
 
-            {/* Other Courses */}
             {otherCourses.length > 0 && (
-              <div className="mt-6 sm:mt-8">
-                <div className="flex items-center gap-1.5 mb-3">
-                  <BookOpen className="w-4 h-4 text-slate-600" />
-                  <h2 className="text-base font-bold text-gogh-black">Outros Cursos</h2>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
-                  {otherCourses.map((course, index) => (
-                    <CourseCard key={course.id} course={course} index={index} hasAccess={hasCourseAccess} />
-                  ))}
-                </div>
-              </div>
+              <CourseSection
+                title="Outros Cursos"
+                icon={BookOpen}
+                iconClassName="text-slate-600"
+                courses={otherCourses}
+                hasAccess={hasCourseAccess}
+              />
             )}
           </div>
         </div>
@@ -274,152 +253,143 @@ export default function CoursesPage() {
   )
 }
 
-function CourseCard({ 
-  course, 
-  index, 
-  hasAccess 
-}: { 
-  course: Course
-  index: number
+function CourseSection({
+  title,
+  icon: Icon,
+  iconClassName,
+  courses,
+  hasAccess,
+}: {
+  title: string
+  icon: ComponentType<{ className?: string }>
+  iconClassName: string
+  courses: Course[]
   hasAccess: boolean
 }) {
+  const [expandedCourseId, setExpandedCourseId] = useState<string | null>(null)
   const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null)
-  const [expanded, setExpanded] = useState(false)
 
-  const lessonsCount = course.lessons?.length || 0
+  const expandedCourse = courses.find((course) => course.id === expandedCourseId) || null
+
+  const items = courses.map((course) => {
+    const lessonsCount = course.lessons?.length || 0
+    return {
+      id: course.id,
+      title: course.title,
+      description: course.description || 'Curso sem descrição',
+      imageUrl: course.thumbnail_url || null,
+      status: `${lessonsCount} aula${lessonsCount !== 1 ? 's' : ''}`,
+      tags: [course.course_type || 'curso'],
+      cta: expandedCourseId === course.id ? 'Fechar curso ↑' : 'Abrir curso →',
+      hasPersistentHover: expandedCourseId === course.id,
+    }
+  })
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.1 }}
-      className="group relative bg-white rounded-xl border border-gogh-grayLight shadow-sm overflow-hidden transition-all duration-300 hover:shadow-[0_8px_22px_rgba(0,0,0,0.08)] hover:-translate-y-0.5"
-    >
-      <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,0,0,0.02)_1px,transparent_1px)] bg-[length:4px_4px]" />
+    <div className="mt-6 sm:mt-8">
+      <div className="flex items-center gap-1.5 mb-3">
+        <Icon className={`w-4 h-4 ${iconClassName}`} />
+        <h2 className="text-base font-bold text-gogh-black">{title}</h2>
       </div>
-      {/* Course Header - clicável para expandir/recolher aulas */}
-      <button
-        type="button"
-        onClick={() => setExpanded(!expanded)}
-        className="relative w-full p-3 sm:p-4 border-b border-gogh-grayLight text-left hover:bg-amber-50/40 transition-colors rounded-t-xl"
-      >
-        <div className="flex items-start justify-between gap-2">
-          <div className="flex items-start gap-3 flex-1 min-w-0">
-            <div className="w-10 h-10 rounded-lg border border-gray-200 bg-black/5 overflow-hidden flex items-center justify-center flex-shrink-0">
-              {course.thumbnail_url ? (
-                <img src={course.thumbnail_url} alt={course.title} className="w-full h-full object-cover" />
-              ) : (
-                <BookOpen className="w-5 h-5 text-gray-600" />
-              )}
-            </div>
-            <div className="min-w-0">
-            <h3 className="text-sm sm:text-base font-bold text-gogh-black mb-0.5">{course.title}</h3>
-            <p className="text-xs text-gogh-grayDark line-clamp-2">{course.description}</p>
-            <div className="flex items-center gap-4 mt-4 text-sm text-gogh-grayDark">
-              <span className="flex items-center gap-1">
-                <Video className="w-4 h-4" />
-                {lessonsCount} aula{lessonsCount !== 1 ? 's' : ''}
-              </span>
-            </div>
-            </div>
-          </div>
-          <span className="flex-shrink-0 text-gogh-grayDark mt-1" aria-hidden>
-            {expanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
-          </span>
-        </div>
-      </button>
 
-      {/* Lessons List - visível apenas quando expandido */}
-      {expanded && (
-      <div className="p-3 sm:p-4">
-        {hasAccess ? (
-          <div className="space-y-2">
-            {course.lessons && course.lessons.length > 0 ? (
-              course.lessons.map((lesson) => (
-                <div key={lesson.id}>
-                  <button
-                    onClick={() => setSelectedLesson(selectedLesson?.id === lesson.id ? null : lesson)}
-                    className="w-full flex items-center justify-between p-3 rounded-lg hover:bg-gogh-grayLight transition-colors text-left"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 bg-gogh-yellow/20 rounded-lg flex items-center justify-center">
-                        <Play className="w-4 h-4 text-gogh-black" />
+      <CourseBentoGrid
+        items={items}
+        selectedId={expandedCourseId}
+        className="max-w-none"
+        onItemClick={(item) => {
+          setSelectedLesson(null)
+          setExpandedCourseId((prev) => (prev === item.id ? null : item.id))
+        }}
+      />
+
+      {expandedCourse && (
+        <div className="mt-3 bg-white border border-gogh-grayLight rounded-xl p-3 sm:p-4">
+          {hasAccess ? (
+            <div className="space-y-2">
+              {expandedCourse.lessons && expandedCourse.lessons.length > 0 ? (
+                expandedCourse.lessons.map((lesson) => (
+                  <div key={lesson.id}>
+                    <button
+                      onClick={() => setSelectedLesson(selectedLesson?.id === lesson.id ? null : lesson)}
+                      className="w-full flex items-center justify-between p-3 rounded-lg hover:bg-gogh-grayLight transition-colors text-left"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-gogh-yellow/20 rounded-lg flex items-center justify-center">
+                          <Play className="w-4 h-4 text-gogh-black" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-gogh-black text-sm">{lesson.title}</p>
+                          {lesson.description && (
+                            <p className="text-xs text-gogh-grayDark mt-0.5">{lesson.description}</p>
+                          )}
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-medium text-gogh-black text-sm">{lesson.title}</p>
-                        {lesson.description && (
-                          <p className="text-xs text-gogh-grayDark mt-0.5">{lesson.description}</p>
-                        )}
-                      </div>
-                    </div>
-                  </button>
-                  
-                  {selectedLesson?.id === lesson.id && lesson.video_url && (() => {
-                    const youtubeId = getYouTubeId(lesson.video_url)
-                    const isYouTube = !!youtubeId
-                    
-                    if (!isYouTube || !youtubeId) {
+                    </button>
+
+                    {selectedLesson?.id === lesson.id && lesson.video_url && (() => {
+                      const youtubeId = getYouTubeId(lesson.video_url)
+                      const isYouTube = !!youtubeId
+
+                      if (!isYouTube || !youtubeId) {
+                        return (
+                          <div className="mt-3 p-4 bg-gogh-grayLight rounded-lg">
+                            <div className="flex justify-center">
+                              <div className="relative w-full max-w-sm mx-auto">
+                                <div className="relative aspect-[9/16] rounded-xl overflow-hidden bg-gray-900 flex items-center justify-center">
+                                  <p className="text-white text-sm">URL de vídeo inválida. Use uma URL do YouTube.</p>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )
+                      }
+
+                      const containerClasses = getYouTubeContainerClasses(lesson.video_url)
+                      const embedUrl = getYouTubeEmbedUrl(lesson.video_url)
+
                       return (
                         <div className="mt-3 p-4 bg-gogh-grayLight rounded-lg">
                           <div className="flex justify-center">
-                            <div className="relative w-full max-w-sm mx-auto">
-                              <div className="relative aspect-[9/16] rounded-xl overflow-hidden bg-gray-900 flex items-center justify-center">
-                                <p className="text-white text-sm">URL de vídeo inválida. Use uma URL do YouTube.</p>
+                            <div className={`relative w-full ${containerClasses.wrapper}`}>
+                              <div className="relative rounded-2xl overflow-hidden bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 p-1 shadow-2xl">
+                                <div className={`relative ${containerClasses.aspectRatio} rounded-xl overflow-hidden bg-black`}>
+                                  <iframe
+                                    src={embedUrl || ''}
+                                    title={lesson.title}
+                                    className="w-full h-full"
+                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                    allowFullScreen
+                                  />
+                                </div>
                               </div>
                             </div>
                           </div>
                         </div>
                       )
-                    }
-                    
-                    const containerClasses = getYouTubeContainerClasses(lesson.video_url)
-                    const embedUrl = getYouTubeEmbedUrl(lesson.video_url)
-                    
-                    return (
-                      <div className="mt-3 p-4 bg-gogh-grayLight rounded-lg">
-                        <div className="flex justify-center">
-                          <div className={`relative w-full ${containerClasses.wrapper}`}>
-                            {/* Container com gradiente sutil ao redor */}
-                            <div className="relative rounded-2xl overflow-hidden bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 p-1 shadow-2xl">
-                              <div className={`relative ${containerClasses.aspectRatio} rounded-xl overflow-hidden bg-black`}>
-                                <iframe
-                                  src={embedUrl || ''}
-                                  title={lesson.title}
-                                  className="w-full h-full"
-                                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                  allowFullScreen
-                                />
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    )
-                  })()}
-                </div>
-              ))
-            ) : (
-              <p className="text-sm text-gogh-grayDark text-center py-4">
-                Nenhuma aula disponível ainda
+                    })()}
+                  </div>
+                ))
+              ) : (
+                <p className="text-sm text-gogh-grayDark text-center py-4">
+                  Nenhuma aula disponível ainda
+                </p>
+              )}
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <p className="text-gogh-grayDark mb-4">
+                Você precisa de uma assinatura ativa para acessar este curso
               </p>
-            )}
-          </div>
-        ) : (
-          <div className="text-center py-8">
-            <p className="text-gogh-grayDark mb-4">
-              Você precisa de uma assinatura ativa para acessar este curso
-            </p>
-            <Link
-              href="/precos"
-              className="inline-flex items-center gap-2 px-6 py-3 bg-gogh-yellow text-gogh-black font-medium rounded-xl hover:bg-gogh-yellow/90 transition-colors"
-            >
-              Ver Planos
-            </Link>
-          </div>
-        )}
-      </div>
+              <Link
+                href="/precos"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-gogh-yellow text-gogh-black font-medium rounded-xl hover:bg-gogh-yellow/90 transition-colors"
+              >
+                Ver Planos
+              </Link>
+            </div>
+          )}
+        </div>
       )}
-    </motion.div>
+    </div>
   )
 }

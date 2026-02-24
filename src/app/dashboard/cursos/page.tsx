@@ -70,6 +70,14 @@ export default function CursosPage() {
     video_url: ''
   })
 
+  const inferCourseType = (title: string): 'canva' | 'capcut' | 'strategy' | 'other' => {
+    const normalized = title.toLowerCase()
+    if (normalized.includes('canva')) return 'canva'
+    if (normalized.includes('capcut')) return 'capcut'
+    if (normalized.includes('estratégia') || normalized.includes('estrategia')) return 'strategy'
+    return 'other'
+  }
+
   useEffect(() => {
     loadCourses()
   }, [])
@@ -139,7 +147,7 @@ export default function CursosPage() {
         description: courseForm.description?.trim() || null,
         thumbnail_url: courseForm.thumbnail_url?.trim() || null,
         slug: slug,
-        course_type: courseForm.course_type,
+        course_type: inferCourseType(courseForm.title.trim()),
         order_position: maxOrder + 1,
         is_published: false, // Começar como não publicado
         is_featured: false,
@@ -598,21 +606,23 @@ export default function CursosPage() {
                     cropType="square"
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Tipo de Curso
-                  </label>
-                  <select
-                    value={courseForm.course_type}
-                    onChange={(e) => setCourseForm({ ...courseForm, course_type: e.target.value as 'canva' | 'capcut' | 'strategy' | 'other' })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="canva">Canva</option>
-                    <option value="capcut">CapCut</option>
-                    <option value="strategy">Estratégia</option>
-                    <option value="other">Outros</option>
-                  </select>
-                </div>
+                {editingCourse && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Tipo de Curso
+                    </label>
+                    <select
+                      value={courseForm.course_type}
+                      onChange={(e) => setCourseForm({ ...courseForm, course_type: e.target.value as 'canva' | 'capcut' | 'strategy' | 'other' })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="canva">Canva</option>
+                      <option value="capcut">CapCut</option>
+                      <option value="strategy">Estratégia</option>
+                      <option value="other">Outros</option>
+                    </select>
+                  </div>
+                )}
                 <div className="flex gap-3 justify-end">
                   <button
                     onClick={() => {
