@@ -7,7 +7,6 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { 
   MessageSquare, 
-  Calendar,
   BookOpen, 
   Wrench, 
   User, 
@@ -32,12 +31,6 @@ interface MemberLayoutProps {
 
 // Itens do menu que requerem assinatura
 const subscriberMenuItems = [
-  { 
-    href: '/membro/planejamento', 
-    label: 'Planejamento', 
-    icon: Calendar,
-    description: 'Agenda de vídeos e roteiros com IA'
-  },
   { 
     href: '/membro/cursos', 
     label: 'Cursos', 

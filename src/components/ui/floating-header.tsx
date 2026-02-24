@@ -107,7 +107,7 @@ type SubItem = { title: string; description?: string; url: string; icon: React.E
 const menuWithDropdowns: Array<
   { title: string; url: string; highlight?: boolean; items?: SubItem[] }> = [
   { title: 'Início', url: '/' },
-  { title: 'Criar', url: '/membro/planejamento', highlight: true },
+  { title: 'Criar', url: '/planejamento', highlight: true },
   {
     title: 'Produto',
     url: '/ferramentas',
@@ -133,7 +133,14 @@ export function FloatingHeader() {
   // Sincronizar ícone ativo no mobile com a rota atual
   React.useEffect(() => {
     if (pathname === '/') setMobileActiveIndex(0)
-    else if (pathname === '/criar' || pathname?.startsWith('/criar/') || pathname === '/membro/planejamento' || pathname?.startsWith('/membro/planejamento/')) setMobileActiveIndex(2)
+    else if (
+      pathname === '/criar' ||
+      pathname?.startsWith('/criar/') ||
+      pathname === '/planejamento' ||
+      pathname?.startsWith('/planejamento/') ||
+      pathname === '/membro/planejamento' ||
+      pathname?.startsWith('/membro/planejamento/')
+    ) setMobileActiveIndex(2)
     else if (pathname === '/precos') setMobileActiveIndex(3)
     else if (pathname === '/conta' || pathname?.startsWith('/conta/') || pathname === '/login') setMobileActiveIndex(4)
     else if (pathname === '/ferramentas' || pathname === '/cursos' || pathname === '/servicos' || pathname?.startsWith('/servicos/')) setMobileActiveIndex(1)
@@ -320,7 +327,7 @@ export function FloatingHeader() {
   const mobileNavItems = [
     { index: 0, icon: Home, label: 'Início', href: '/' },
     { index: 1, icon: Package, label: 'Produto', openDropdown: true },
-    { index: 2, icon: Sparkles, label: 'Criar', href: '/criar' },
+    { index: 2, icon: Sparkles, label: 'Criar', href: '/planejamento' },
     { index: 3, icon: CreditCard, label: 'Planos', href: '/precos' },
     { index: 4, icon: User, label: isAuthenticated ? 'Conta' : 'Entrar', href: isAuthenticated ? '/conta' : '/login' },
   ]

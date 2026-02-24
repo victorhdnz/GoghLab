@@ -185,7 +185,7 @@ export function HomepageSections({
     return (
       <Hero
         eyebrow="Criar"
-        eyebrowHref="/criar"
+        eyebrowHref="/planejamento"
         title={heroTitle}
         subtitle={heroSubtitle}
         ctaLabel={ctaLabel}

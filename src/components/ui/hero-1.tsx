@@ -22,7 +22,7 @@ interface HeroProps {
 
 export function Hero({
   eyebrow = 'Criar',
-  eyebrowHref = '/criar',
+  eyebrowHref = '/planejamento',
   title,
   subtitle,
   ctaLabel = 'Ver planos',
