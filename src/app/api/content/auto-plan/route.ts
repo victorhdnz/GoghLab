@@ -29,26 +29,73 @@ function stripHashtags(value: string) {
   return value.replace(/#[\p{L}\p{N}_]+/gu, '').replace(/\s+/g, ' ').trim()
 }
 
+function stripDecorativeEmojis(value: string) {
+  return value.replace(/[\p{Extended_Pictographic}\uFE0F]/gu, '').replace(/\s{2,}/g, ' ').trim()
+}
+
 function formatScriptForReadability(value: string) {
   const normalized = value.trim()
   if (!normalized) return ''
 
-  if (normalized.includes('\n')) {
-    return normalized
-      .split('\n')
-      .map((line) => line.trim())
-      .filter(Boolean)
-      .join('\n\n')
+  const sectionMap = [
+    { regex: /(gancho)/i, heading: '🎣 Gancho:' },
+    { regex: /(desenvolvimento)/i, heading: '🧠 Desenvolvimento:' },
+    { regex: /(demonstra|exemplo)/i, heading: '🎬 Demonstração/Exemplo:' },
+    { regex: /(cta|chamada para ação|chamada para acao)/i, heading: '📣 CTA final:' },
+  ]
+
+  const sourceLines = normalized
+    .replace(/\r/g, '')
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+
+  const lines = sourceLines.length
+    ? sourceLines
+    : normalized
+        .split(/(?<=[.!?])\s+/)
+        .map((line) => line.trim())
+        .filter(Boolean)
+
+  const formatted: string[] = []
+  for (const rawLine of lines) {
+    const line = rawLine.replace(/\s+/g, ' ').trim()
+    const matched = sectionMap.find((entry) => entry.regex.test(line))
+    if (matched) {
+      const cleaned = stripDecorativeEmojis(
+        line.replace(/^[\p{Extended_Pictographic}\uFE0F\s]*(gancho|desenvolvimento|demonstração\/exemplo|demonstração|demonstracao\/exemplo|demonstracao|exemplo|cta final|cta)\s*:\s*/iu, '')
+      )
+      formatted.push(`${matched.heading} ${cleaned}`.trim())
+      continue
+    }
+    formatted.push(stripDecorativeEmojis(line))
   }
 
-  const sentences = normalized.split(/(?<=[.!?])\s+/).filter(Boolean)
-  if (sentences.length <= 2) return normalized
+  return formatted.filter(Boolean).join('\n\n')
+}
 
-  const chunks: string[] = []
-  for (let i = 0; i < sentences.length; i += 2) {
-    chunks.push(`${sentences[i]}${sentences[i + 1] ? ` ${sentences[i + 1]}` : ''}`.trim())
-  }
-  return chunks.join('\n\n')
+function formatCaptionForReadability(value: string) {
+  const clean = stripHashtags(value)
+  if (!clean) return ''
+
+  const rawParagraphs = clean
+    .replace(/\r/g, '')
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+
+  const paragraphs = rawParagraphs.length
+    ? rawParagraphs
+    : clean
+        .split(/(?<=[.!?])\s+/)
+        .reduce<string[]>((acc, sentence, index) => {
+          if (!sentence) return acc
+          const bucket = Math.floor(index / 2)
+          acc[bucket] = `${acc[bucket] ? `${acc[bucket]} ` : ''}${sentence}`.trim()
+          return acc
+        }, [])
+
+  return paragraphs.join('\n\n')
 }
 
 function splitGoals(goals: string | null) {
@@ -194,7 +241,7 @@ export async function POST(request: Request) {
         {
           role: 'system',
           content:
-            'Voce e estrategista de conteudo e roteirista. Gere planos completos e evite repetir temas.',
+            'Voce e estrategista senior de conteudo e roteirista. Gere planos completos, com alta legibilidade visual e sem repetir temas.',
         },
         {
           role: 'user',
@@ -204,9 +251,16 @@ export async function POST(request: Request) {
             `Temas ja existentes para evitar duplicacao: ${existingTopics.length ? existingTopics.join(' | ') : '(nenhum)'}\n\n` +
             `Objetivo principal detectado: ${primaryGoal || 'não informado'}\n` +
             `Diretriz de CTA obrigatória: ${ctaInstruction}\n\n` +
+            'REGRAS OBRIGATORIAS:\n' +
+            '- Cada roteiro precisa ter profundidade para pelo menos 1:00 de video (minimo de 170 palavras).\n' +
+            '- Estruture o roteiro em 4 blocos: Gancho, Desenvolvimento, Demonstracao/Exemplo e CTA final.\n' +
+            '- Use emoji APENAS no inicio do titulo de cada bloco. Nao use emoji no final de frases e nem no corpo do texto.\n' +
+            '- A legenda deve vir sem hashtags no corpo, com 2 a 3 paragrafos curtos e espaco entre paragrafos.\n' +
+            '- Na legenda, use poucos emojis estrategicos para destaque (sem poluicao visual).\n' +
+            '- Hashtags em uma unica linha, entre 10 e 15, relevantes e sem duplicacao.\n\n' +
             'Retorne SOMENTE JSON valido no formato:\n' +
             '{ "items": [\n' +
-            '  { "date": "YYYY-MM-DD", "topic": "...", "script": "roteiro com seções e emojis (🎣 Gancho, 🧠 Desenvolvimento, 🎬 Demonstração/Exemplo, 📣 CTA), com quebras de linha", "caption": "legenda sem hashtags no texto", "hashtags": "...", "recommended_time": "HH:MM", "recommended_time_reason": "...", "cover_text_options": ["...", "...", "..."], "ad_copy": { "headline": "...", "body": "...", "cta": "..." } }\n' +
+            '  { "date": "YYYY-MM-DD", "topic": "...", "script": "roteiro detalhado (min. 170 palavras) com blocos e quebras de linha: 🎣 Gancho, 🧠 Desenvolvimento, 🎬 Demonstração/Exemplo, 📣 CTA", "caption": "legenda com emojis estrategicos e paragrafos separados (sem hashtags no texto)", "hashtags": "...", "recommended_time": "HH:MM", "recommended_time_reason": "...", "cover_text_options": ["...", "...", "..."], "ad_copy": { "headline": "...", "body": "...", "cta": "..." } }\n' +
             ']}\n' +
             `A lista deve conter EXATAMENTE ${selectedDates.length} itens, com uma data unica para cada item, sem repetir tema.`,
         },
@@ -266,7 +320,7 @@ export async function POST(request: Request) {
         status: 'generated',
         topic,
         script: formatScriptForReadability(scriptRaw) || null,
-        caption: stripHashtags(captionRaw) || null,
+        caption: formatCaptionForReadability(captionRaw) || null,
         hashtags: normalizeHashtags(`${hashtagsRaw} ${captionRaw}`) || null,
         cover_prompt: coverTextOptions.length ? coverTextOptions.join('\n') : null,
         time: /^\d{1,2}:\d{2}$/.test(recommendedTime) ? `${recommendedTime}:00+00` : null,

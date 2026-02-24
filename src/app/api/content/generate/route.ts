@@ -48,26 +48,73 @@ function stripHashtags(value: string) {
   return value.replace(/#[\p{L}\p{N}_]+/gu, '').replace(/\s+/g, ' ').trim()
 }
 
+function stripDecorativeEmojis(value: string) {
+  return value.replace(/[\p{Extended_Pictographic}\uFE0F]/gu, '').replace(/\s{2,}/g, ' ').trim()
+}
+
 function formatScriptForReadability(value: string) {
   const normalized = value.trim()
   if (!normalized) return ''
 
-  if (normalized.includes('\n')) {
-    return normalized
-      .split('\n')
-      .map((line) => line.trim())
-      .filter(Boolean)
-      .join('\n\n')
+  const sectionMap = [
+    { regex: /(gancho)/i, heading: '🎣 Gancho:' },
+    { regex: /(desenvolvimento)/i, heading: '🧠 Desenvolvimento:' },
+    { regex: /(demonstra|exemplo)/i, heading: '🎬 Demonstração/Exemplo:' },
+    { regex: /(cta|chamada para ação|chamada para acao)/i, heading: '📣 CTA final:' },
+  ]
+
+  const sourceLines = normalized
+    .replace(/\r/g, '')
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+
+  const lines = sourceLines.length
+    ? sourceLines
+    : normalized
+        .split(/(?<=[.!?])\s+/)
+        .map((line) => line.trim())
+        .filter(Boolean)
+
+  const formatted: string[] = []
+  for (const rawLine of lines) {
+    const line = rawLine.replace(/\s+/g, ' ').trim()
+    const matched = sectionMap.find((entry) => entry.regex.test(line))
+    if (matched) {
+      const cleaned = stripDecorativeEmojis(
+        line.replace(/^[\p{Extended_Pictographic}\uFE0F\s]*(gancho|desenvolvimento|demonstração\/exemplo|demonstração|demonstracao\/exemplo|demonstracao|exemplo|cta final|cta)\s*:\s*/iu, '')
+      )
+      formatted.push(`${matched.heading} ${cleaned}`.trim())
+      continue
+    }
+    formatted.push(stripDecorativeEmojis(line))
   }
 
-  const sentences = normalized.split(/(?<=[.!?])\s+/).filter(Boolean)
-  if (sentences.length <= 2) return normalized
+  return formatted.filter(Boolean).join('\n\n')
+}
 
-  const chunks: string[] = []
-  for (let i = 0; i < sentences.length; i += 2) {
-    chunks.push(`${sentences[i]}${sentences[i + 1] ? ` ${sentences[i + 1]}` : ''}`.trim())
-  }
-  return chunks.join('\n\n')
+function formatCaptionForReadability(value: string) {
+  const clean = stripHashtags(value)
+  if (!clean) return ''
+
+  const rawParagraphs = clean
+    .replace(/\r/g, '')
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+
+  const paragraphs = rawParagraphs.length
+    ? rawParagraphs
+    : clean
+        .split(/(?<=[.!?])\s+/)
+        .reduce<string[]>((acc, sentence, index) => {
+          if (!sentence) return acc
+          const bucket = Math.floor(index / 2)
+          acc[bucket] = `${acc[bucket] ? `${acc[bucket]} ` : ''}${sentence}`.trim()
+          return acc
+        }, [])
+
+  return paragraphs.join('\n\n')
 }
 
 function splitGoals(goals: string | null) {
@@ -360,7 +407,7 @@ export async function POST(request: Request) {
       {
         role: 'system' as const,
         content:
-          'Você é um roteirista e planejador de conteúdo para redes sociais. Gere respostas objetivas e práticas para criadores de conteúdo.',
+          'Você é um estrategista e roteirista sênior de conteúdo para redes sociais. Gere conteúdo pronto para copiar e postar, com alto nível de clareza visual.',
       },
       {
         role: 'user' as const,
@@ -370,11 +417,18 @@ export async function POST(request: Request) {
           `${userInstruction}\n\n` +
           `Objetivo principal detectado: ${primaryGoal || 'não informado'}.\n` +
           `Diretriz de CTA obrigatória: ${ctaInstruction}\n\n` +
+          'REGRAS OBRIGATÓRIAS:\n' +
+          '- O roteiro precisa ter profundidade para pelo menos 1:00 de vídeo (mínimo de 170 palavras).\n' +
+          '- Estruture o roteiro em 4 blocos: Gancho, Desenvolvimento, Demonstração/Exemplo e CTA final.\n' +
+          '- Use emoji APENAS no início do título de cada bloco. Não use emoji no final de frases e nem no corpo do texto.\n' +
+          '- A legenda deve vir sem hashtags no corpo, com 2 a 3 parágrafos curtos e espaçamento entre parágrafos.\n' +
+          '- Na legenda, use poucos emojis estratégicos para destaque (sem poluição visual).\n' +
+          '- Hashtags devem vir em uma única linha, entre 10 e 15, relevantes e sem duplicação.\n\n' +
           'Retorne SOMENTE um JSON válido, sem explicações extras, no formato:' +
           '\n{\n' +
           '  "topic": "título/tema do vídeo",\n' +
-          '  "script": "roteiro com seções visuais e emojis, usando quebras de linha entre: 🎣 Gancho, 🧠 Desenvolvimento, 🎬 Demonstração/Exemplo, 📣 CTA final",\n' +
-          '  "caption": "legenda pronta para postar (SEM hashtags no texto)",\n' +
+          '  "script": "roteiro detalhado (mín. 170 palavras) com quebras de linha entre blocos: 🎣 Gancho, 🧠 Desenvolvimento, 🎬 Demonstração/Exemplo, 📣 CTA final",\n' +
+          '  "caption": "legenda pronta para postar, com emojis estratégicos e parágrafos separados por linha em branco (SEM hashtags no texto)",\n' +
           '  "hashtags": "#tag1 #tag2 #tag3 ... (entre 10 e 15 hashtags em UMA linha)",\n' +
           '  "recommended_time": "HH:MM",\n' +
           '  "recommended_time_reason": "justificativa curta baseada na faixa etária",\n' +
@@ -421,7 +475,7 @@ export async function POST(request: Request) {
     const captionRaw = (parsed.caption ?? '').toString().trim()
     const hashtagsRaw = (parsed.hashtags ?? '').toString().trim()
     const script = formatScriptForReadability(scriptRaw)
-    const caption = stripHashtags(captionRaw)
+    const caption = formatCaptionForReadability(captionRaw)
     const hashtags = normalizeHashtags(`${hashtagsRaw} ${captionRaw}`)
     const recommendedTime = (parsed.recommended_time ?? '').toString().trim()
     const recommendedTimeReason = (parsed.recommended_time_reason ?? '').toString().trim() || null

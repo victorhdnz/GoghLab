@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useRouter } from 'next/navigation'
 import { LumaSpin } from '@/components/ui/luma-spin'
 import { Button } from '@/components/ui/button'
-import { Calendar as CalendarIcon, FileText, Type, Clock, ImageIcon, Megaphone, RefreshCw, Sparkles } from 'lucide-react'
+import { Calendar as CalendarIcon, FileText, Type, Clock, ImageIcon, Megaphone, RefreshCw, Sparkles, Plus, X } from 'lucide-react'
 import { CalendarWithEventSlots } from '@/components/ui/calendar-with-event-slots'
 import { Modal } from '@/components/ui/Modal'
 import toast from 'react-hot-toast'
@@ -21,6 +21,7 @@ type ContentProfile = {
   frequency_per_week: number | null
   extra_preferences?: {
     availability_days?: number[]
+    custom_goals?: string[]
     [key: string]: any
   } | null
 }
@@ -77,6 +78,8 @@ export default function ContentPlanningPage() {
     frequency_per_week: 3,
     availability_days: [1, 2, 3, 4, 5] as number[],
   })
+  const [customGoals, setCustomGoals] = useState<string[]>([])
+  const [newGoalInput, setNewGoalInput] = useState('')
 
   const [currentMonth, setCurrentMonth] = useState(() => {
     const now = new Date()
@@ -170,6 +173,13 @@ export default function ContentPlanningPage() {
               ? data.profile.extra_preferences.availability_days
               : [1, 2, 3, 4, 5],
           })
+          setCustomGoals(
+            Array.isArray(data.profile.extra_preferences?.custom_goals)
+              ? data.profile.extra_preferences.custom_goals
+                  .map((goal: unknown) => String(goal || '').trim())
+                  .filter(Boolean)
+              : []
+          )
         }
       } catch (e) {
         console.error('Erro ao carregar perfil de conteúdo', e)
@@ -247,6 +257,7 @@ export default function ContentPlanningPage() {
             availability_days: profileForm.availability_days,
             audience_min_age: hasMinAge ? minAge : null,
             audience_max_age: hasMaxAge ? maxAge : null,
+            custom_goals: customGoals,
           },
         }),
       })
@@ -370,7 +381,13 @@ export default function ContentPlanningPage() {
       .filter((token) => token.startsWith('#'))
     const uniqueHashtags = Array.from(new Set([...hashtagsFromCaption, ...hashtagsFromField]))
     const hashtagsLine = uniqueHashtags.join(' ')
-    return `${caption}${caption && hashtagsLine ? ' ' : ''}${hashtagsLine}`.trim()
+    const captionParagraphs = caption
+      .split(/\n+/)
+      .map((line) => line.trim())
+      .filter(Boolean)
+    const captionBlock = captionParagraphs.join('\n\n')
+    if (captionBlock && hashtagsLine) return `${captionBlock}\n\n${hashtagsLine}`
+    return `${captionBlock}${hashtagsLine}`.trim()
   }
 
   const formatCoverText = (item: CalendarItem) => {
@@ -527,6 +544,7 @@ export default function ContentPlanningPage() {
     'Divulgar lançamentos/ofertas',
     'Aumentar retenção de clientes',
   ]
+  const allGoalOptions = Array.from(new Set([...goalOptions, ...customGoals]))
 
   if (authLoading || !isAuthenticated) {
     return (
@@ -596,7 +614,7 @@ export default function ContentPlanningPage() {
               type="text"
               value={profileForm.niche}
               onChange={(e) => setProfileForm((f) => ({ ...f, niche: e.target.value }))}
-              placeholder="Ex.: Psicologia, Marketing, Advocacia..."
+              placeholder="Ex.: Nutrição esportiva para mulheres 30+, advocacia trabalhista para pequenas empresas..."
               className="w-full px-3 py-2 border border-gogh-grayLight rounded-lg text-sm"
             />
           </div>
@@ -647,28 +665,74 @@ export default function ContentPlanningPage() {
               Objetivos com os vídeos
             </label>
             <div className="flex flex-wrap gap-2">
-              {goalOptions.map((goal) => {
+              {allGoalOptions.map((goal) => {
                 const selected = profileForm.goals.includes(goal)
+                const isCustomGoal = customGoals.includes(goal)
                 return (
-                  <button
+                  <div
                     key={goal}
-                    type="button"
-                    onClick={() =>
-                      setProfileForm((f) => ({
-                        ...f,
-                        goals: selected ? f.goals.filter((g) => g !== goal) : [...f.goals, goal],
-                      }))
-                    }
-                    className={`px-2.5 py-1.5 rounded-md text-xs border transition-colors ${
+                    className={`inline-flex items-center gap-1 rounded-md border ${
                       selected
                         ? 'bg-gogh-yellow/20 border-gogh-yellow text-gogh-black'
                         : 'border-gogh-grayLight text-gogh-grayDark'
                     }`}
                   >
-                    {goal}
-                  </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setProfileForm((f) => ({
+                          ...f,
+                          goals: selected ? f.goals.filter((g) => g !== goal) : [...f.goals, goal],
+                        }))
+                      }
+                      className="px-2.5 py-1.5 text-xs transition-colors"
+                    >
+                      {goal}
+                    </button>
+                    {isCustomGoal ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCustomGoals((prev) => prev.filter((g) => g !== goal))
+                          setProfileForm((f) => ({ ...f, goals: f.goals.filter((g) => g !== goal) }))
+                        }}
+                        className="pr-1.5 text-gogh-grayDark hover:text-gogh-black"
+                        aria-label={`Remover objetivo ${goal}`}
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    ) : null}
+                  </div>
                 )
               })}
+            </div>
+            <div className="mt-2 flex flex-col sm:flex-row gap-2">
+              <input
+                type="text"
+                value={newGoalInput}
+                onChange={(e) => setNewGoalInput(e.target.value)}
+                placeholder="Adicionar objetivo personalizado..."
+                className="w-full px-3 py-2 border border-gogh-grayLight rounded-lg text-sm"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                className="shrink-0"
+                onClick={() => {
+                  const value = newGoalInput.trim()
+                  if (!value) return
+                  if (allGoalOptions.includes(value)) {
+                    setNewGoalInput('')
+                    return
+                  }
+                  setCustomGoals((prev) => [...prev, value])
+                  setProfileForm((f) => ({ ...f, goals: [...f.goals, value] }))
+                  setNewGoalInput('')
+                }}
+              >
+                <Plus className="w-4 h-4 mr-1" />
+                Adicionar
+              </Button>
             </div>
           </div>
           <div>
