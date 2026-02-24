@@ -112,7 +112,7 @@ export function ContentStatusNotificationsGlobal() {
           variant={notice.variant}
           title={notice.title}
           description={notice.description}
-          className="bg-black/88 border-white/20 text-white"
+          className="!bg-[#121212] !text-white border-white/20 shadow-2xl"
           onClose={() => {
             localStorage.setItem(`content_notice_dismissed:${notice.id}`, '1')
             setNotice(null)

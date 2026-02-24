@@ -206,22 +206,6 @@ export default function ContentPlanningPage() {
     loadItems()
   }, [isAuthenticated, currentMonth])
 
-  if (authLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <LumaSpin size="lg" />
-      </div>
-    )
-  }
-
-  if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <LumaSpin size="lg" />
-      </div>
-    )
-  }
-
   const handleSaveProfile = async () => {
     if (!hasActiveSubscription) {
       router.push('/precos')
@@ -543,6 +527,14 @@ export default function ContentPlanningPage() {
     'Divulgar lançamentos/ofertas',
     'Aumentar retenção de clientes',
   ]
+
+  if (authLoading || !isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <LumaSpin size="lg" />
+      </div>
+    )
+  }
 
   return (
     <div

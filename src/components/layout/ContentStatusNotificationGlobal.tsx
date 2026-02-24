@@ -96,6 +96,7 @@ export function ContentStatusNotificationGlobal() {
         variant={current.variant === 'warning' ? 'warning' : current.variant === 'success' ? 'success' : 'info'}
         title={current.title}
         description={current.description}
+        className="!bg-[#121212] !text-white border-white/20 shadow-2xl"
         onClose={closeCurrent}
         actionLabel="Ir para planejamento"
         onAction={() => {
