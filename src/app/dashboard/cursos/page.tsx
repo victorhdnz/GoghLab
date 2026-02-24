@@ -95,6 +95,19 @@ export default function CursosPage() {
         .order('order_position', { ascending: true, nullsLast: true })
 
       if (error) throw error
+
+      // Compatibilidade: cursos antigos com aulas podiam ficar não publicados
+      // e, por isso, não apareciam em /cursos. Publicamos automaticamente.
+      const unpublishedWithLessons = (data || []).filter((course: any) =>
+        !course.is_published && Array.isArray(course.lessons) && course.lessons.length > 0
+      )
+      if (unpublishedWithLessons.length > 0) {
+        const ids = unpublishedWithLessons.map((course: any) => course.id)
+        await (supabase as any)
+          .from('courses')
+          .update({ is_published: true })
+          .in('id', ids)
+      }
       
       // Ordenar lessons dentro de cada curso
       const coursesWithOrderedLessons = (data || []).map((course: Course) => ({
@@ -149,7 +162,7 @@ export default function CursosPage() {
         slug: slug,
         course_type: inferCourseType(courseForm.title.trim()),
         order_position: maxOrder + 1,
-        is_published: false, // Começar como não publicado
+        is_published: true,
         is_featured: false,
         plan_required: 'all', // Padrão: todos podem acessar
         lessons_count: 0,
@@ -184,7 +197,10 @@ export default function CursosPage() {
     try {
       const { error } = await (supabase as any)
         .from('courses')
-        .update(courseForm)
+        .update({
+          ...courseForm,
+          is_published: true,
+        })
         .eq('id', editingCourse.id)
 
       if (error) throw error
@@ -234,6 +250,12 @@ export default function CursosPage() {
         })
 
       if (error) throw error
+
+      // Sempre que houver aula, garantir curso publicado para aparecer em /cursos.
+      await (supabase as any)
+        .from('courses')
+        .update({ is_published: true })
+        .eq('id', selectedCourse.id)
 
       toast.success('Aula criada com sucesso!')
       setShowLessonForm(false)

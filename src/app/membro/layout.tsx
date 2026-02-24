@@ -137,7 +137,7 @@ export default function MemberLayout({ children }: MemberLayoutProps) {
         
         // Para outras páginas, verificar se tem assinatura ou está em página pública
         if (!hasActiveSubscription && !isPublicPage) {
-          router.push('/conta')
+          router.push('/precos')
         }
       }, 300) // Pequeno delay para garantir sincronização
       

@@ -162,26 +162,21 @@ export async function POST(request: Request) {
     // Se encontrou assinatura, verificar se está dentro do período válido
     let hasValidSubscription = false
     if (subscriptionData) {
-      // Planos manuais não têm stripe_subscription_id (é NULL), então são sempre válidos
-      if (subscriptionData.stripe_subscription_id === null) {
-        hasValidSubscription = true
-        console.log('[AI Chat] Assinatura manual detectada - sempre válida')
-      } else {
-        // Para planos Stripe, verificar se está dentro do período válido
-        const now = new Date()
-        const periodEnd = new Date(subscriptionData.current_period_end)
-        hasValidSubscription = periodEnd >= now
-        
-        console.log('[AI Chat] Validação de período:', {
-          now: now.toISOString(),
-          periodEnd: periodEnd.toISOString(),
-          isManual: subscriptionData.stripe_subscription_id === null,
-          isValid: hasValidSubscription
-        })
-        
-        if (!hasValidSubscription) {
-          console.log('[AI Chat] Assinatura encontrada mas período expirado')
-        }
+      // Regra única para Stripe e manual: acesso só até current_period_end.
+      // Isso garante que liberações manuais expirem automaticamente no fim do prazo.
+      const now = new Date()
+      const periodEnd = new Date(subscriptionData.current_period_end)
+      hasValidSubscription = periodEnd >= now
+
+      console.log('[AI Chat] Validação de período:', {
+        now: now.toISOString(),
+        periodEnd: periodEnd.toISOString(),
+        isManual: subscriptionData.stripe_subscription_id === null,
+        isValid: hasValidSubscription
+      })
+
+      if (!hasValidSubscription) {
+        console.log('[AI Chat] Assinatura encontrada mas período expirado')
       }
     } else {
       console.log('[AI Chat] Nenhuma assinatura ativa encontrada - permitindo uso com limite padrão')

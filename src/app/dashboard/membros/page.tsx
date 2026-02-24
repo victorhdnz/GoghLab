@@ -33,10 +33,14 @@ interface Member {
     status: string
     billing_cycle: string
     current_period_end: string
+    current_period_start?: string | null
+    cancel_at_period_end?: boolean
+    canceled_at?: string | null
     stripe_subscription_id: string | null
     is_manual?: boolean
     manually_edited?: boolean
     manually_edited_at?: string | null
+    updated_at?: string | null
   } | null
   serviceSubscriptions?: {
     id: string
@@ -54,6 +58,20 @@ const planOptions = [
   { value: 'gogh_pro', label: 'Gogh Pro' },
 ]
 
+const toDateInputValue = (isoDate?: string | null) => {
+  if (!isoDate) return ''
+  const parsed = new Date(isoDate)
+  if (Number.isNaN(parsed.getTime())) return ''
+  return parsed.toISOString().slice(0, 10)
+}
+
+const formatDatePtBr = (isoDate?: string | null) => {
+  if (!isoDate) return null
+  const parsed = new Date(isoDate)
+  if (Number.isNaN(parsed.getTime())) return null
+  return parsed.toLocaleDateString('pt-BR')
+}
+
 export default function MembrosPage() {
   const router = useRouter()
   const supabase = createClient()
@@ -65,6 +83,8 @@ export default function MembrosPage() {
   const [editingMember, setEditingMember] = useState<string | null>(null)
   const [editingPlan, setEditingPlan] = useState<string>('')
   const [editingBillingCycle, setEditingBillingCycle] = useState<'monthly' | 'annual'>('monthly')
+  const [useCustomPeriodEnd, setUseCustomPeriodEnd] = useState(false)
+  const [editingCustomPeriodEnd, setEditingCustomPeriodEnd] = useState('')
   const [saving, setSaving] = useState(false)
   const [editingServiceMember, setEditingServiceMember] = useState<string | null>(null)
   const [editingServiceOptions, setEditingServiceOptions] = useState<string[]>([])
@@ -114,12 +134,16 @@ export default function MembrosPage() {
     // Definir billing cycle atual ou padrão
     const currentBillingCycle = member.subscription?.billing_cycle as 'monthly' | 'annual' | undefined
     setEditingBillingCycle(currentBillingCycle || 'monthly')
+    setUseCustomPeriodEnd(false)
+    setEditingCustomPeriodEnd(toDateInputValue(member.subscription?.current_period_end))
   }
 
   const handleCancelEdit = () => {
     setEditingMember(null)
     setEditingPlan('')
     setEditingBillingCycle('monthly')
+    setUseCustomPeriodEnd(false)
+    setEditingCustomPeriodEnd('')
   }
 
   const handleSaveService = async (memberId: string) => {
@@ -294,15 +318,27 @@ export default function MembrosPage() {
                                       stripeSubId.trim() !== '' && 
                                       !stripeSubId.startsWith('manual_')
           
-          // Atualizar existente - SEMPRE recalcular datas a partir do dia atual
           const now = new Date()
-          // Calcular novo período final baseado no billing_cycle escolhido
-          // SEMPRE começar do dia atual, independente da data anterior
-          const periodEnd = new Date(now)
-          if (editingBillingCycle === 'annual') {
-            periodEnd.setFullYear(periodEnd.getFullYear() + 1)
-          } else {
-            periodEnd.setMonth(periodEnd.getMonth() + 1)
+          // Permite vencimento personalizado para casos operacionais (extensão, testes, correções manuais).
+          const periodEnd = useCustomPeriodEnd && editingCustomPeriodEnd
+            ? new Date(`${editingCustomPeriodEnd}T23:59:59`)
+            : (() => {
+                const calculated = new Date(now)
+                if (editingBillingCycle === 'annual') {
+                  calculated.setFullYear(calculated.getFullYear() + 1)
+                } else {
+                  calculated.setMonth(calculated.getMonth() + 1)
+                }
+                return calculated
+              })()
+
+          if (Number.isNaN(periodEnd.getTime())) {
+            toast.error('Data personalizada inválida.')
+            return
+          }
+          if (periodEnd.getTime() <= now.getTime()) {
+            toast.error('A data de vencimento deve ser futura.')
+            return
           }
           
           // Converter plan_id para plan_type (para compatibilidade com estrutura antiga)
@@ -315,8 +351,8 @@ export default function MembrosPage() {
             plan_id: editingPlan,
             plan_type: planType, // Preencher também para compatibilidade
             billing_cycle: editingBillingCycle,
-            current_period_start: now.toISOString(), // SEMPRE começar do dia atual
-            current_period_end: periodEnd.toISOString(), // SEMPRE calcular a partir do dia atual
+            current_period_start: now.toISOString(),
+            current_period_end: periodEnd.toISOString(),
             updated_at: new Date().toISOString()
           }
           
@@ -375,14 +411,26 @@ export default function MembrosPage() {
             }
           }
         } else {
-          // Criar nova (assinatura manual sem Stripe)
           const now = new Date()
-          // Calcular período final baseado no billing_cycle escolhido
-          const periodEnd = new Date(now)
-          if (editingBillingCycle === 'annual') {
-            periodEnd.setFullYear(periodEnd.getFullYear() + 1)
-          } else {
-            periodEnd.setMonth(periodEnd.getMonth() + 1)
+          const periodEnd = useCustomPeriodEnd && editingCustomPeriodEnd
+            ? new Date(`${editingCustomPeriodEnd}T23:59:59`)
+            : (() => {
+                const calculated = new Date(now)
+                if (editingBillingCycle === 'annual') {
+                  calculated.setFullYear(calculated.getFullYear() + 1)
+                } else {
+                  calculated.setMonth(calculated.getMonth() + 1)
+                }
+                return calculated
+              })()
+
+          if (Number.isNaN(periodEnd.getTime())) {
+            toast.error('Data personalizada inválida.')
+            return
+          }
+          if (periodEnd.getTime() <= now.getTime()) {
+            toast.error('A data de vencimento deve ser futura.')
+            return
           }
           const manualId = `manual_${memberId.slice(0, 8)}_${Date.now()}`
           
@@ -470,6 +518,8 @@ export default function MembrosPage() {
       setEditingMember(null)
       setEditingPlan('')
       setEditingBillingCycle('monthly')
+      setUseCustomPeriodEnd(false)
+      setEditingCustomPeriodEnd('')
       
       // Recarregar membros para atualizar a exibição
       await loadMembers()
@@ -510,8 +560,19 @@ export default function MembrosPage() {
     return matchesSearch && matchesPlan
   })
 
+  const hasPaidAccess = (member: Member) => {
+    if (!member.subscription) return false
+    const normalizedStatus = (member.subscription.status || '').toLowerCase()
+    const statusAllowsAccess = normalizedStatus === 'active' || normalizedStatus === 'trialing'
+    if (!statusAllowsAccess) return false
+
+    const periodEnd = new Date(member.subscription.current_period_end)
+    if (Number.isNaN(periodEnd.getTime())) return false
+    return periodEnd.getTime() >= Date.now()
+  }
+
   const getPlanBadge = (member: Member) => {
-    if (!member.subscription) {
+    if (!member.subscription || !hasPaidAccess(member)) {
       return (
         <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
           Gratuito
@@ -547,6 +608,28 @@ export default function MembrosPage() {
     )
   }
 
+  const getSubscriptionStatusBadge = (status?: string) => {
+    const normalized = (status || '').toLowerCase()
+    switch (normalized) {
+      case 'active':
+        return { label: 'Ativa', className: 'bg-emerald-100 text-emerald-700' }
+      case 'trialing':
+        return { label: 'Teste', className: 'bg-sky-100 text-sky-700' }
+      case 'past_due':
+        return { label: 'Pagamento pendente', className: 'bg-amber-100 text-amber-800' }
+      case 'unpaid':
+        return { label: 'Não paga', className: 'bg-rose-100 text-rose-700' }
+      case 'canceled':
+        return { label: 'Cancelada', className: 'bg-gray-200 text-gray-700' }
+      case 'incomplete':
+        return { label: 'Incompleta', className: 'bg-yellow-100 text-yellow-700' }
+      case 'incomplete_expired':
+        return { label: 'Expirada', className: 'bg-gray-200 text-gray-700' }
+      default:
+        return { label: normalized || 'Desconhecido', className: 'bg-gray-100 text-gray-600' }
+    }
+  }
+
 
   // Carregando dados
   if (loading) {
@@ -576,19 +659,19 @@ export default function MembrosPage() {
           <div className="bg-white rounded-xl p-4 border border-gray-200">
             <p className="text-sm text-gray-500 mb-1">Plano Pro</p>
             <p className="text-2xl font-bold text-amber-600">
-              {members.filter(m => m.subscription?.plan_id === 'gogh_pro').length}
+              {members.filter(m => hasPaidAccess(m) && m.subscription?.plan_id === 'gogh_pro').length}
             </p>
           </div>
           <div className="bg-white rounded-xl p-4 border border-gray-200">
             <p className="text-sm text-gray-500 mb-1">Plano Essencial</p>
             <p className="text-2xl font-bold text-yellow-600">
-              {members.filter(m => m.subscription?.plan_id === 'gogh_essencial').length}
+              {members.filter(m => hasPaidAccess(m) && m.subscription?.plan_id === 'gogh_essencial').length}
             </p>
           </div>
           <div className="bg-white rounded-xl p-4 border border-gray-200">
             <p className="text-sm text-gray-500 mb-1">Gratuitos</p>
             <p className="text-2xl font-bold text-gray-600">
-              {members.filter(m => !m.subscription).length}
+              {members.filter(m => !hasPaidAccess(m)).length}
             </p>
           </div>
         </div>
@@ -672,7 +755,14 @@ export default function MembrosPage() {
                           <div className="space-y-2">
                             <select
                               value={editingPlan}
-                              onChange={(e) => setEditingPlan(e.target.value)}
+                              onChange={(e) => {
+                                const value = e.target.value
+                                setEditingPlan(value)
+                                if (!value) {
+                                  setUseCustomPeriodEnd(false)
+                                  setEditingCustomPeriodEnd('')
+                                }
+                              }}
                               className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-black"
                             >
                               {planOptions.map((option) => (
@@ -682,14 +772,36 @@ export default function MembrosPage() {
                               ))}
                             </select>
                             {editingPlan !== '' && (
-                              <select
-                                value={editingBillingCycle}
-                                onChange={(e) => setEditingBillingCycle(e.target.value as 'monthly' | 'annual')}
-                                className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-black"
-                              >
-                                <option value="monthly">Mensal</option>
-                                <option value="annual">Anual</option>
-                              </select>
+                              <>
+                                <select
+                                  value={editingBillingCycle}
+                                  onChange={(e) => setEditingBillingCycle(e.target.value as 'monthly' | 'annual')}
+                                  className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-black"
+                                >
+                                  <option value="monthly">Mensal</option>
+                                  <option value="annual">Anual</option>
+                                </select>
+
+                                <label className="flex items-center gap-2 text-xs text-gray-700">
+                                  <input
+                                    type="checkbox"
+                                    checked={useCustomPeriodEnd}
+                                    onChange={(e) => setUseCustomPeriodEnd(e.target.checked)}
+                                    className="rounded border-gray-300"
+                                  />
+                                  Definir vencimento personalizado
+                                </label>
+
+                                {useCustomPeriodEnd && (
+                                  <input
+                                    type="date"
+                                    value={editingCustomPeriodEnd}
+                                    min={new Date().toISOString().slice(0, 10)}
+                                    onChange={(e) => setEditingCustomPeriodEnd(e.target.value)}
+                                    className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-black"
+                                  />
+                                )}
+                              </>
                             )}
                           </div>
                         ) : (
@@ -697,6 +809,9 @@ export default function MembrosPage() {
                             {getPlanBadge(member)}
                             {member.subscription && (
                               <div className="mt-1 space-y-0.5">
+                                <span className={`inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full ${getSubscriptionStatusBadge(member.subscription.status).className}`}>
+                                  {getSubscriptionStatusBadge(member.subscription.status).label}
+                                </span>
                                 {member.subscription.billing_cycle && (
                                   <p className="text-xs text-gray-500">
                                     {member.subscription.billing_cycle === 'annual' ? 'Anual' : 'Mensal'}
@@ -705,9 +820,22 @@ export default function MembrosPage() {
                                     )}
                                   </p>
                                 )}
-                                {member.subscription.is_manual && (
-                                  <p className="text-xs text-amber-600 font-medium">
-                                    Plano Manual
+                                <p className="text-xs text-gray-500">
+                                  Origem: {member.subscription.is_manual ? 'Manual' : 'Stripe'}
+                                </p>
+                                {(member.subscription.status === 'active' || member.subscription.status === 'trialing') && (
+                                  <p className="text-xs text-gray-500">
+                                    Próxima cobrança: {formatDatePtBr(member.subscription.current_period_end) || '-'}
+                                  </p>
+                                )}
+                                {member.subscription.cancel_at_period_end && (
+                                  <p className="text-xs text-amber-700">
+                                    Cancelamento agendado para {formatDatePtBr(member.subscription.current_period_end) || '-'}
+                                  </p>
+                                )}
+                                {member.subscription.status === 'canceled' && (
+                                  <p className="text-xs text-gray-500">
+                                    Cancelada em {formatDatePtBr(member.subscription.canceled_at) || formatDatePtBr(member.subscription.updated_at) || '-'}
                                   </p>
                                 )}
                                 {member.subscription.manually_edited && !member.subscription.is_manual && (

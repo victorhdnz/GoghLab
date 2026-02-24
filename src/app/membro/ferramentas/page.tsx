@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useRef } from 'react'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { createClient } from '@/lib/supabase/client'
 import { motion } from 'framer-motion'
@@ -65,8 +65,9 @@ interface SupportTicket {
 
 export default function ToolsPage() {
   const pathname = usePathname()
+  const router = useRouter()
   const isPublicRoute = pathname === '/ferramentas'
-  const { user, subscription, hasActiveSubscription, isPro } = useAuth()
+  const { user, subscription, hasActiveSubscription, isPro, loading: authLoading } = useAuth()
   const [toolAccess, setToolAccess] = useState<ToolAccess[]>([])
   const [publicTools, setPublicTools] = useState<ToolFromDB[]>([])
   const [pendingTickets, setPendingTickets] = useState<SupportTicket[]>([])
@@ -88,6 +89,13 @@ export default function ToolsPage() {
   const isAccessLinkUrl = (s: string) => /^https?:\/\//i.test(s?.trim() ?? '')
 
   const supabase = createClient()
+
+  useEffect(() => {
+    if (authLoading) return
+    if (!hasActiveSubscription) {
+      router.replace('/precos')
+    }
+  }, [authLoading, hasActiveSubscription, router])
 
   // Lista de ferramentas para exibir em modo público (sem login) ou quando não tem assinatura
   useEffect(() => {
@@ -590,7 +598,7 @@ export default function ToolsPage() {
     }
   ]
 
-  if (loading && user) {
+  if (authLoading || !hasActiveSubscription || (loading && user)) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">

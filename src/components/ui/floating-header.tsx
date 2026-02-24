@@ -123,7 +123,7 @@ const menuWithDropdowns: Array<
 
 export function FloatingHeader() {
   const pathname = usePathname()
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated, hasActiveSubscription } = useAuth()
   const [siteName, setSiteName] = useState('Gogh Lab')
   const [siteLogo, setSiteLogo] = useState<string | null>(null)
   const [mobileActiveIndex, setMobileActiveIndex] = useState(0)
@@ -131,6 +131,8 @@ export function FloatingHeader() {
   const navRef = useRef<HTMLElement>(null)
   const itemRefs = useRef<(HTMLElement | null)[]>([])
   const [indicatorStyle, setIndicatorStyle] = useState<{ left: number; width: number } | null>(null)
+  const gatedRoutes = new Set(['/planejamento', '/ferramentas', '/cursos'])
+  const getProtectedHref = (url: string) => (hasActiveSubscription || !gatedRoutes.has(url) ? url : '/precos')
 
   // Sincronizar ícone ativo no mobile com a rota atual
   React.useEffect(() => {
@@ -267,7 +269,7 @@ export function FloatingHeader() {
                               return (
                                 <li key={sub.url}>
                                   <Link
-                                    href={sub.url}
+                                    href={getProtectedHref(sub.url)}
                                     className="flex select-none gap-4 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-muted hover:text-accent-foreground text-foreground"
                                     onClick={() => setProdutoDropdownOpen(false)}
                                   >
@@ -292,7 +294,7 @@ export function FloatingHeader() {
                   <NavigationMenuItem key={item.title}>
                     <NavigationMenuLink asChild>
                       <Link
-                        href={item.url}
+                        href={getProtectedHref(item.url)}
                         data-tour={
                           item.title === 'Início'
                             ? 'nav-home-desktop'
@@ -338,7 +340,7 @@ export function FloatingHeader() {
   const mobileNavItems = [
     { index: 0, icon: Home, label: 'Início', href: '/', dataTour: 'nav-home-mobile' },
     { index: 1, icon: Package, label: 'Produto', openDropdown: true, dataTour: 'nav-product-mobile' },
-    { index: 2, icon: Calendar, label: 'Criar', href: '/planejamento', dataTour: 'nav-create-mobile' },
+    { index: 2, icon: Calendar, label: 'Criar', href: getProtectedHref('/planejamento'), dataTour: 'nav-create-mobile' },
     { index: 3, icon: CreditCard, label: 'Planos', href: '/precos', dataTour: 'nav-plans-mobile' },
     { index: 4, icon: User, label: isAuthenticated ? 'Conta' : 'Entrar', href: isAuthenticated ? '/conta' : '/login', dataTour: 'nav-account-mobile' },
   ]
@@ -403,7 +405,7 @@ export function FloatingHeader() {
                     return (
                       <DropdownMenuItem key={sub.url} asChild>
                         <Link
-                          href={sub.url}
+                          href={getProtectedHref(sub.url)}
                           className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-white/90 no-underline outline-none transition-colors hover:bg-white/10 hover:text-white focus:bg-white/10 focus:text-white"
                         >
                           {SubIcon && <SubIcon className="size-5 shrink-0 text-white/70" />}

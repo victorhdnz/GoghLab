@@ -43,15 +43,17 @@ export async function GET() {
       const { data: subsData, error: subsError } = await supabase
         .from('subscriptions')
         .select('*')
-        .in('status', ['active', 'trialing'])
+        .order('updated_at', { ascending: false })
+        .order('created_at', { ascending: false })
 
       if (!subsError) {
         subscriptions = subsData || []
       } else if (subsError.code === '42703' || subsError.message?.includes('does not exist')) {
         const { data: altData, error: altError } = await supabase
           .from('subscriptions')
-          .select('id, user_id, plan_type, status, current_period_end, current_period_start, stripe_subscription_id, manually_edited, manually_edited_at')
-          .in('status', ['active', 'trialing'])
+          .select('id, user_id, plan_type, status, current_period_end, current_period_start, stripe_subscription_id, manually_edited, manually_edited_at, cancel_at_period_end, canceled_at, updated_at, created_at')
+          .order('updated_at', { ascending: false })
+          .order('created_at', { ascending: false })
         if (!altError && altData) {
           subscriptions = altData.map((sub: any) => ({
             ...sub,
@@ -126,6 +128,9 @@ export async function GET() {
                     : 'monthly'
                   : 'monthly'),
               current_period_end: subscription.current_period_end,
+              current_period_start: subscription.current_period_start || null,
+              cancel_at_period_end: Boolean(subscription.cancel_at_period_end),
+              canceled_at: subscription.canceled_at || null,
               stripe_subscription_id:
                 subscription.stripe_subscription_id && String(subscription.stripe_subscription_id).trim() !== ''
                   ? subscription.stripe_subscription_id
@@ -133,6 +138,7 @@ export async function GET() {
               is_manual: !subscription.stripe_subscription_id || String(subscription.stripe_subscription_id).trim() === '',
               manually_edited: subscription.manually_edited || false,
               manually_edited_at: subscription.manually_edited_at || null,
+              updated_at: subscription.updated_at || subscription.created_at || null,
             }
           : null,
         serviceSubscriptions: memberServices || [],

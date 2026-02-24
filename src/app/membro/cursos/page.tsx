@@ -13,7 +13,9 @@ import {
 } from 'lucide-react'
 import { LumaSpin } from '@/components/ui/luma-spin'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { CourseBentoGrid } from '@/components/ui/bento-grid'
+import { Modal } from '@/components/ui/Modal'
 import { 
   getYouTubeId, 
   getYouTubeEmbedUrl,
@@ -42,7 +44,8 @@ interface Lesson {
 }
 
 export default function CoursesPage() {
-  const { user, hasActiveSubscription, subscription, isPro } = useAuth()
+  const { user, hasActiveSubscription, subscription, isPro, loading: authLoading } = useAuth()
+  const router = useRouter()
   const [courses, setCourses] = useState<Course[]>([])
   const [loading, setLoading] = useState(true)
   const [planHasCoursesProduct, setPlanHasCoursesProduct] = useState<boolean | null>(null)
@@ -52,6 +55,13 @@ export default function CoursesPage() {
   // Acesso aos cursos: plano tem produto "cursos-edicao" OU legado (isPro)
   const hasCourseAccess =
     planHasCoursesProduct === true || (planHasCoursesProduct !== false && isPro && hasActiveSubscription)
+
+  useEffect(() => {
+    if (authLoading) return
+    if (!hasActiveSubscription) {
+      router.replace('/precos')
+    }
+  }, [authLoading, hasActiveSubscription, router])
 
   useEffect(() => {
     const checkPlanProducts = async () => {
@@ -126,7 +136,7 @@ export default function CoursesPage() {
     fetchCourses()
   }, [user])
 
-  if (loading) {
+  if (authLoading || !hasActiveSubscription || loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
@@ -143,7 +153,7 @@ export default function CoursesPage() {
   const otherCourses = courses.filter(c => c.course_type === 'other')
 
   return (
-    <div className="max-w-6xl mx-auto px-3 sm:px-4 space-y-4 sm:space-y-6">
+    <div className="max-w-5xl mx-auto px-3 sm:px-4 space-y-4 sm:space-y-6">
       {/* Header */}
       <div>
         <h1 className="text-lg sm:text-xl font-bold text-gogh-black mb-1">
@@ -266,12 +276,14 @@ function CourseSection({
   courses: Course[]
   hasAccess: boolean
 }) {
-  const [expandedCourseId, setExpandedCourseId] = useState<string | null>(null)
-  const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null)
+  const [modalCourseId, setModalCourseId] = useState<string | null>(null)
+  const [selectedLessonId, setSelectedLessonId] = useState<string | null>(null)
 
-  const expandedCourse = courses.find((course) => course.id === expandedCourseId) || null
+  const modalCourse = courses.find((course) => course.id === modalCourseId) || null
+  const selectedLesson =
+    modalCourse?.lessons?.find((lesson) => lesson.id === selectedLessonId) || null
 
-  const items = courses.map((course, index) => {
+  const items = courses.map((course) => {
     const lessonsCount = course.lessons?.length || 0
     return {
       id: course.id,
@@ -279,10 +291,9 @@ function CourseSection({
       description: course.description || 'Curso sem descrição',
       imageUrl: course.thumbnail_url || null,
       status: `${lessonsCount} aula${lessonsCount !== 1 ? 's' : ''}`,
-      tags: [course.course_type || 'curso'],
-      cta: expandedCourseId === course.id ? 'Fechar curso ↑' : 'Abrir curso →',
-      colSpan: courses.length > 1 ? (index % 2 === 0 ? 2 : 1) : 2,
-      hasPersistentHover: expandedCourseId === course.id,
+      cta: 'Abrir curso →',
+      colSpan: 1,
+      hasPersistentHover: modalCourseId === course.id,
     }
   })
 
@@ -295,86 +306,83 @@ function CourseSection({
 
       <CourseBentoGrid
         items={items}
-        selectedId={expandedCourseId}
-        className="max-w-none p-0"
+        selectedId={modalCourseId}
+        className="max-w-3xl p-0 md:grid-cols-2"
         onItemClick={(item) => {
-          setSelectedLesson(null)
-          setExpandedCourseId((prev) => (prev === item.id ? null : item.id))
+          const course = courses.find((c) => c.id === item.id)
+          const firstLessonId = course?.lessons?.[0]?.id || null
+          setModalCourseId(item.id)
+          setSelectedLessonId(firstLessonId)
         }}
       />
 
-      {expandedCourse && (
-        <div className="mt-3 bg-white border border-gogh-grayLight rounded-xl p-3 sm:p-4">
-          {hasAccess ? (
-            <div className="space-y-2">
-              {expandedCourse.lessons && expandedCourse.lessons.length > 0 ? (
-                expandedCourse.lessons.map((lesson) => (
-                  <div key={lesson.id}>
-                    <button
-                      onClick={() => setSelectedLesson(selectedLesson?.id === lesson.id ? null : lesson)}
-                      className="w-full flex items-center justify-between p-3 rounded-lg hover:bg-gogh-grayLight transition-colors text-left"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-gogh-yellow/20 rounded-lg flex items-center justify-center">
-                          <Play className="w-4 h-4 text-gogh-black" />
-                        </div>
-                        <div>
-                          <p className="font-medium text-gogh-black text-sm">{lesson.title}</p>
-                          {lesson.description && (
-                            <p className="text-xs text-gogh-grayDark mt-0.5">{lesson.description}</p>
-                          )}
+      <Modal
+        isOpen={!!modalCourse}
+        onClose={() => {
+          setModalCourseId(null)
+          setSelectedLessonId(null)
+        }}
+        title={modalCourse?.title || 'Curso'}
+        size="xl"
+      >
+        {modalCourse ? (
+          hasAccess ? (
+            <div className="grid grid-cols-1 lg:grid-cols-[280px_minmax(0,1fr)] gap-4">
+              <div className="border border-gogh-grayLight rounded-lg p-2 max-h-[60vh] overflow-y-auto">
+                {modalCourse.lessons && modalCourse.lessons.length > 0 ? (
+                  <div className="space-y-2">
+                    {modalCourse.lessons.map((lesson) => (
+                      <button
+                        key={lesson.id}
+                        onClick={() => setSelectedLessonId(lesson.id)}
+                        className={`w-full p-2.5 rounded-lg text-left transition-colors ${
+                          selectedLessonId === lesson.id
+                            ? 'bg-gogh-yellow/20 border border-gogh-yellow/50'
+                            : 'hover:bg-gogh-grayLight'
+                        }`}
+                      >
+                        <p className="text-sm font-medium text-gogh-black">{lesson.title}</p>
+                        {lesson.description ? (
+                          <p className="text-xs text-gogh-grayDark mt-0.5 line-clamp-2">{lesson.description}</p>
+                        ) : null}
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-gogh-grayDark text-center py-6">Nenhuma aula disponível ainda.</p>
+                )}
+              </div>
+
+              <div className="border border-gogh-grayLight rounded-lg p-3 bg-gogh-grayLight/20 min-h-[320px] flex items-center justify-center">
+                {selectedLesson?.video_url ? (() => {
+                  const youtubeId = getYouTubeId(selectedLesson.video_url)
+                  if (!youtubeId) {
+                    return <p className="text-sm text-gogh-grayDark">URL de vídeo inválida. Use uma URL do YouTube.</p>
+                  }
+                  const containerClasses = getYouTubeContainerClasses(selectedLesson.video_url)
+                  const embedUrl = getYouTubeEmbedUrl(selectedLesson.video_url)
+                  return (
+                    <div className={`relative w-full ${containerClasses.wrapper}`}>
+                      <div className="relative rounded-xl overflow-hidden bg-black">
+                        <div className={`relative ${containerClasses.aspectRatio} bg-black`}>
+                          <iframe
+                            src={embedUrl || ''}
+                            title={selectedLesson.title}
+                            className="w-full h-full"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowFullScreen
+                          />
                         </div>
                       </div>
-                    </button>
-
-                    {selectedLesson?.id === lesson.id && lesson.video_url && (() => {
-                      const youtubeId = getYouTubeId(lesson.video_url)
-                      const isYouTube = !!youtubeId
-
-                      if (!isYouTube || !youtubeId) {
-                        return (
-                          <div className="mt-3 p-4 bg-gogh-grayLight rounded-lg">
-                            <div className="flex justify-center">
-                              <div className="relative w-full max-w-sm mx-auto">
-                                <div className="relative aspect-[9/16] rounded-xl overflow-hidden bg-gray-900 flex items-center justify-center">
-                                  <p className="text-white text-sm">URL de vídeo inválida. Use uma URL do YouTube.</p>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        )
-                      }
-
-                      const containerClasses = getYouTubeContainerClasses(lesson.video_url)
-                      const embedUrl = getYouTubeEmbedUrl(lesson.video_url)
-
-                      return (
-                        <div className="mt-3 p-4 bg-gogh-grayLight rounded-lg">
-                          <div className="flex justify-center">
-                            <div className={`relative w-full ${containerClasses.wrapper}`}>
-                              <div className="relative rounded-2xl overflow-hidden bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 p-1 shadow-2xl">
-                                <div className={`relative ${containerClasses.aspectRatio} rounded-xl overflow-hidden bg-black`}>
-                                  <iframe
-                                    src={embedUrl || ''}
-                                    title={lesson.title}
-                                    className="w-full h-full"
-                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                    allowFullScreen
-                                  />
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      )
-                    })()}
+                    </div>
+                  )
+                })() : (
+                  <div className="text-center">
+                    <Play className="w-8 h-8 text-gogh-grayDark mx-auto mb-2" />
+                    <p className="text-sm text-gogh-grayDark">Selecione uma aula à esquerda para assistir.</p>
                   </div>
-                ))
-              ) : (
-                <p className="text-sm text-gogh-grayDark text-center py-4">
-                  Nenhuma aula disponível ainda
-                </p>
-              )}
+                )}
+              </div>
             </div>
           ) : (
             <div className="text-center py-8">
@@ -388,9 +396,9 @@ function CourseSection({
                 Ver Planos
               </Link>
             </div>
-          )}
-        </div>
-      )}
+          )
+        ) : null}
+      </Modal>
     </div>
   )
 }
