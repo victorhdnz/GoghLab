@@ -12,9 +12,8 @@ import Link from 'next/link'
 import { DashboardNavigation } from '@/components/dashboard/DashboardNavigation'
 import { getSiteSettings, saveSiteSettings } from '@/lib/supabase/site-settings-helper'
 import { PriceTier, Feature, ServiceOption } from '@/components/ui/pricing-card'
-import { Plus, Trash2, ChevronDown, ChevronUp, ArrowUp, ArrowDown, Pencil, X, Check, Zap } from 'lucide-react'
+import { Plus, Trash2, ChevronDown, ChevronUp, ArrowUp, ArrowDown, Pencil, X, Check } from 'lucide-react'
 import { LumaSpin } from '@/components/ui/luma-spin'
-import { getCreditsConfigKey, getCreditPlansKey, type CreditsConfig, type CreditPlan } from '@/lib/credits'
 
 interface PricingSettings {
   pricing_enabled?: boolean
@@ -52,7 +51,7 @@ export default function PricingEditorPage() {
   const [planProducts, setPlanProducts] = useState<PlanProduct[]>([])
   const [newProductName, setNewProductName] = useState('')
   const [newProductSlug, setNewProductSlug] = useState('')
-  const [newProductType, setNewProductType] = useState<'tool' | 'course' | 'credits' | 'other'>('tool')
+  const [newProductType, setNewProductType] = useState<'tool' | 'course' | 'other'>('tool')
   const [addingProduct, setAddingProduct] = useState(false)
   const [uploadingProductId, setUploadingProductId] = useState<string | null>(null)
   const [reorderingProductId, setReorderingProductId] = useState<string | null>(null)
@@ -61,9 +60,6 @@ export default function PricingEditorPage() {
   const [editingProductSlug, setEditingProductSlug] = useState('')
   const [savingProductId, setSavingProductId] = useState<string | null>(null)
   const [deletingProductId, setDeletingProductId] = useState<string | null>(null)
-  const [savingCredits, setSavingCredits] = useState(false)
-  const [monthlyCredits, setMonthlyCredits] = useState<Record<string, number>>({ gogh_essencial: 50, gogh_pro: 200 })
-  const [creditPlans, setCreditPlans] = useState<CreditPlan[]>([])
 
   const defaultSubscriptionPlans: PriceTier[] = [
     {
@@ -201,27 +197,6 @@ export default function PricingEditorPage() {
         // Tabelas podem não existir ainda (migration não rodada)
       }
 
-      // Config de Créditos IA (site_settings)
-      try {
-        const { data: configRow } = await (supabase as any)
-          .from('site_settings')
-          .select('value')
-          .eq('key', getCreditsConfigKey())
-          .maybeSingle()
-        const config = (configRow?.value as CreditsConfig) ?? null
-        if (config?.monthlyCreditsByPlan) {
-          setMonthlyCredits((prev) => ({ ...prev, ...config.monthlyCreditsByPlan }))
-        }
-        const { data: plansData } = await (supabase as any)
-          .from('site_settings')
-          .select('value')
-          .eq('key', getCreditPlansKey())
-          .maybeSingle()
-        const plans = Array.isArray(plansData?.value) ? plansData.value : []
-        setCreditPlans(plans)
-      } catch (_) {
-        // ignorar
-      }
     } catch (error: any) {
       console.error('Erro ao carregar configurações:', error)
       toast.error('Erro ao carregar configurações de pricing.')
@@ -272,46 +247,6 @@ export default function PricingEditorPage() {
       toast.error('Erro ao salvar configurações de pricing.')
     } finally {
       setSaving(false)
-    }
-  }
-
-  const PLAN_IDS_CREDITS = ['gogh_essencial', 'gogh_pro'] as const
-
-  const handleSaveCredits = async () => {
-    setSavingCredits(true)
-    try {
-      const value: CreditsConfig = {
-        monthlyCreditsByPlan: { ...monthlyCredits },
-      }
-      const { error } = await (supabase as any)
-        .from('site_settings')
-        .upsert(
-          {
-            key: getCreditsConfigKey(),
-            value,
-            description: 'Créditos IA: créditos mensais por plano e planos avulsos',
-            updated_at: new Date().toISOString(),
-          },
-          { onConflict: 'key' }
-        )
-      if (error) throw error
-      const { error: plansError } = await (supabase as any)
-        .from('site_settings')
-        .upsert(
-          {
-            key: getCreditPlansKey(),
-            value: creditPlans,
-            description: 'Planos de créditos avulsos (exibidos na área de conta em Uso)',
-            updated_at: new Date().toISOString(),
-          },
-          { onConflict: 'key' }
-        )
-      if (plansError) throw plansError
-      toast.success('Configurações de créditos salvas!')
-    } catch (e: any) {
-      toast.error(e?.message ?? 'Erro ao salvar créditos')
-    } finally {
-      setSavingCredits(false)
     }
   }
 
@@ -391,11 +326,7 @@ export default function PricingEditorPage() {
       .replace(/^-|-$/g, '')
 
   const sortProductsCreditsFirst = (list: Product[]) =>
-    [...list].sort((a, b) => {
-      if (a.product_type === 'credits' && b.product_type !== 'credits') return -1
-      if (b.product_type === 'credits' && a.product_type !== 'credits') return 1
-      return a.order_position - b.order_position
-    })
+    [...list].sort((a, b) => a.order_position - b.order_position)
 
   const handleAddProduct = async () => {
     if (!newProductName.trim()) {
@@ -405,20 +336,12 @@ export default function PricingEditorPage() {
     const slug = newProductSlug.trim() || slugFromName(newProductName)
     setAddingProduct(true)
     try {
-      if (newProductType === 'credits') {
-        for (const p of products) {
-          await (supabase as any).from('products').update({ order_position: p.order_position + 1 }).eq('id', p.id)
-        }
-      }
       const insertPayload: Record<string, unknown> = {
         name: newProductName.trim(),
         slug,
         product_type: newProductType,
-        order_position: newProductType === 'credits' ? 0 : products.length,
+        order_position: products.length,
         is_active: true,
-      }
-      if (newProductType === 'credits') {
-        insertPayload.icon_url = '/icons/lightning-credits.svg'
       }
       const { data: insertedProduct, error } = await (supabase as any)
         .from('products')
@@ -749,7 +672,7 @@ export default function PricingEditorPage() {
                 <div className="space-y-4">
                   <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
                     <p className="text-sm text-amber-800">
-                      <strong>Produtos</strong> definem o que cada plano inclui (ferramentas, cursos, créditos). Crie produtos aqui e marque em cada plano (Gogh Essencial / Gogh Pro) quais produtos estão incluídos. Abaixo você configura os <strong>créditos IA</strong> (mensais por plano e planos avulsos). O custo por uso de cada modelo de IA é definido na aba &quot;Criação (Prompts e IAs)&quot;. O checkout usa os <strong>Price IDs do Stripe</strong> configurados em cada plano.
+                      <strong>Produtos</strong> definem o que cada plano inclui (ferramentas e cursos). Crie produtos aqui e marque em cada plano (Gogh Essencial / Gogh Pro) quais produtos estão incluídos. O checkout usa os <strong>Price IDs do Stripe</strong> configurados em cada plano.
                     </p>
                   </div>
                   <div className="flex flex-wrap gap-2 items-center">
@@ -775,7 +698,6 @@ export default function PricingEditorPage() {
                     >
                       <option value="tool">Ferramenta</option>
                       <option value="course">Curso</option>
-                      <option value="credits">Créditos</option>
                       <option value="other">Outro</option>
                     </select>
                     <Button onClick={handleAddProduct} disabled={addingProduct}>
@@ -823,33 +745,27 @@ export default function PricingEditorPage() {
                                 </td>
                                 <td className="py-2 pr-2 align-middle">
                                   <div className="flex items-center gap-2">
-                                    {p.product_type === 'credits' ? (
-                                      <div className="h-10 w-10 rounded-lg border border-amber-200 bg-amber-50 flex items-center justify-center text-amber-600" title="Créditos">
-                                        <Zap size={22} strokeWidth={2} />
-                                      </div>
-                                    ) : p.icon_url ? (
+                                    {p.icon_url ? (
                                       <img src={p.icon_url} alt="" className="h-10 w-10 rounded-lg object-cover border border-gray-200" />
                                     ) : (
                                       <div className="h-10 w-10 rounded-lg border border-dashed border-gray-300 bg-gray-50 flex items-center justify-center text-gray-400 text-xs">Ícone</div>
                                     )}
-                                    {p.product_type !== 'credits' && (
-                                      <label className="cursor-pointer">
-                                        <input
-                                          type="file"
-                                          accept="image/jpeg,image/png,image/webp,image/gif"
-                                          className="sr-only"
-                                          disabled={uploadingProductId === p.id}
-                                          onChange={(e) => {
-                                            const file = e.target.files?.[0]
-                                            if (file) handleProductIconUpload(p.id, file)
-                                            e.target.value = ''
-                                          }}
-                                        />
-                                        <span className="text-xs text-blue-600 hover:underline">
-                                          {uploadingProductId === p.id ? 'Enviando...' : p.icon_url ? 'Trocar' : 'Upload'}
-                                        </span>
-                                      </label>
-                                    )}
+                                    <label className="cursor-pointer">
+                                      <input
+                                        type="file"
+                                        accept="image/jpeg,image/png,image/webp,image/gif"
+                                        className="sr-only"
+                                        disabled={uploadingProductId === p.id}
+                                        onChange={(e) => {
+                                          const file = e.target.files?.[0]
+                                          if (file) handleProductIconUpload(p.id, file)
+                                          e.target.value = ''
+                                        }}
+                                      />
+                                      <span className="text-xs text-blue-600 hover:underline">
+                                        {uploadingProductId === p.id ? 'Enviando...' : p.icon_url ? 'Trocar' : 'Upload'}
+                                      </span>
+                                    </label>
                                   </div>
                                 </td>
                                 <td className="py-2 pr-4 align-middle">
@@ -940,131 +856,6 @@ export default function PricingEditorPage() {
                     </div>
                   )}
 
-                  {/* Configuração de Créditos IA */}
-                  <div className="border-t pt-6 mt-6 space-y-6">
-                    <h4 className="font-semibold flex items-center gap-2">
-                      <Zap size={18} className="text-amber-500" />
-                      Configuração de Créditos IA
-                    </h4>
-                    <p className="text-sm text-gray-600">
-                      Créditos mensais por plano e planos avulsos (compra na área de conta). O custo por uso é definido por modelo na aba &quot;Criação (Prompts e IAs)&quot;.
-                    </p>
-                    <div className="space-y-3">
-                      <h5 className="text-sm font-medium text-gray-700">Créditos mensais por plano</h5>
-                      {PLAN_IDS_CREDITS.map((planId) => (
-                        <div key={planId} className="flex items-center gap-4">
-                          <label className="w-36 text-sm text-gray-700 capitalize">
-                            {planId.replace('_', ' ')}
-                          </label>
-                          <input
-                            type="number"
-                            min={0}
-                            value={monthlyCredits[planId] ?? 0}
-                            onChange={(e) =>
-                              setMonthlyCredits((prev) => ({
-                                ...prev,
-                                [planId]: parseInt(e.target.value, 10) || 0,
-                              }))
-                            }
-                            className="w-24 rounded-lg border border-gray-300 px-3 py-2 text-sm"
-                          />
-                          <span className="text-sm text-gray-500">créditos/mês</span>
-                        </div>
-                      ))}
-                    </div>
-                    <div className="space-y-3">
-                      <h5 className="text-sm font-medium text-gray-700">Planos de créditos avulsos</h5>
-                        <p className="text-xs text-gray-500">
-                        Aparecem na área de conta (Uso) para compra de créditos extras. Informe a URL do checkout Stripe e o <strong>Price ID</strong> (ex.: price_xxx) do produto no Stripe para que os créditos sejam creditados automaticamente após o pagamento.
-                      </p>
-                      <div className="space-y-3">
-                        {creditPlans.map((plan, index) => (
-                          <div key={plan.id} className="flex flex-wrap items-center gap-2 p-3 rounded-lg border border-gray-200 bg-gray-50/50">
-                            <input
-                              type="text"
-                              placeholder="Nome (ex: 50 créditos)"
-                              value={plan.name}
-                              onChange={(e) => {
-                                const next = [...creditPlans]
-                                next[index] = { ...next[index], name: e.target.value }
-                                setCreditPlans(next)
-                              }}
-                              className="flex-1 min-w-[120px] rounded-lg border border-gray-300 px-3 py-1.5 text-sm"
-                            />
-                            <input
-                              type="number"
-                              min={1}
-                              placeholder="Créditos"
-                              value={plan.credits || ''}
-                              onChange={(e) => {
-                                const next = [...creditPlans]
-                                next[index] = { ...next[index], credits: parseInt(e.target.value, 10) || 0 }
-                                setCreditPlans(next)
-                              }}
-                              className="w-20 rounded-lg border border-gray-300 px-3 py-1.5 text-sm"
-                            />
-                            <input
-                              type="url"
-                              placeholder="URL checkout Stripe"
-                              value={plan.stripe_checkout_url || ''}
-                              onChange={(e) => {
-                                const next = [...creditPlans]
-                                next[index] = { ...next[index], stripe_checkout_url: e.target.value }
-                                setCreditPlans(next)
-                              }}
-                              className="flex-1 min-w-[180px] rounded-lg border border-gray-300 px-3 py-1.5 text-sm"
-                            />
-                            <input
-                              type="text"
-                              placeholder="Price ID (ex: price_xxx)"
-                              value={plan.stripe_price_id || ''}
-                              onChange={(e) => {
-                                const next = [...creditPlans]
-                                next[index] = { ...next[index], stripe_price_id: e.target.value.trim() || undefined }
-                                setCreditPlans(next)
-                              }}
-                              className="flex-1 min-w-[140px] rounded-lg border border-gray-300 px-3 py-1.5 text-sm"
-                              title="Obrigatório para o webhook creditar na conta após a compra. Copie o Price ID do produto no Stripe."
-                            />
-                            <button
-                              type="button"
-                              onClick={() => setCreditPlans((prev) => prev.filter((_, i) => i !== index))}
-                              className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                              title="Remover"
-                            >
-                              <Trash2 size={16} />
-                            </button>
-                          </div>
-                        ))}
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setCreditPlans((prev) => [
-                              ...prev,
-                              {
-                                id: `plan-${Date.now()}`,
-                                name: '',
-                                credits: 0,
-                                stripe_checkout_url: '',
-                                stripe_price_id: undefined,
-                                order: prev.length,
-                              },
-                            ])
-                          }
-                          className="inline-flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-gray-900 border border-dashed border-gray-300 rounded-lg px-3 py-2"
-                        >
-                          <Plus size={16} />
-                          Adicionar plano de créditos
-                        </button>
-                      </div>
-                    </div>
-                    <div className="flex justify-end">
-                      <Button onClick={handleSaveCredits} disabled={savingCredits} className="gap-2">
-                        <Save size={18} />
-                        {savingCredits ? 'Salvando...' : 'Salvar créditos'}
-                      </Button>
-                    </div>
-                  </div>
                 </div>
               )}
             </div>

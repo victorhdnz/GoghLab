@@ -7,7 +7,7 @@ import { usePathname } from 'next/navigation'
 import {
   Home,
   CreditCard,
-  Sparkles,
+  Calendar,
   Wrench,
   BookOpen,
   User,
@@ -43,6 +43,7 @@ function SpotlightNavItem({
   href,
   label,
   innerRef,
+  dataTour,
 }: {
   icon: React.ElementType
   isActive: boolean
@@ -52,6 +53,7 @@ function SpotlightNavItem({
   href?: string
   label: string
   innerRef?: (el: HTMLElement | null) => void
+  dataTour?: string
 }) {
   const distance = Math.abs(indicatorPosition - position)
   const spotlightOpacity = isActive ? 1 : Math.max(0, 1 - distance * 0.6)
@@ -80,6 +82,7 @@ function SpotlightNavItem({
         ref={innerRef as any}
         href={href}
         className={className}
+        data-tour={dataTour}
         title={label}
         aria-label={label}
       >
@@ -93,6 +96,7 @@ function SpotlightNavItem({
       type="button"
       className={className}
       onClick={onClick}
+      data-tour={dataTour}
       title={label}
       aria-label={label}
     >
@@ -247,6 +251,7 @@ export function FloatingHeader() {
                     <div key={item.title} className="flex items-center">
                       <DropdownMenu open={produtoDropdownOpen} onOpenChange={setProdutoDropdownOpen}>
                         <DropdownMenuTrigger
+                          data-tour="nav-product-desktop"
                           className={cn(
                             'group inline-flex h-9 w-max items-center justify-center rounded-md px-4 py-2 text-sm font-medium transition-colors',
                             'bg-transparent text-white/90 hover:bg-white/10 hover:text-white data-[state=open]:bg-white/10 outline-none'
@@ -288,6 +293,13 @@ export function FloatingHeader() {
                     <NavigationMenuLink asChild>
                       <Link
                         href={item.url}
+                        data-tour={
+                          item.title === 'Início'
+                            ? 'nav-home-desktop'
+                            : item.title === 'Criar'
+                              ? 'nav-create-desktop'
+                              : undefined
+                        }
                         className={cn(
                           'inline-flex h-9 w-max items-center justify-center rounded-md px-4 py-2 text-sm font-medium transition-colors hover:bg-white/10',
                           item.highlight ? 'bg-primary text-primary-foreground hover:bg-primary/90' : 'text-white/90 hover:text-white'
@@ -305,10 +317,11 @@ export function FloatingHeader() {
 
         <div className="hidden lg:flex flex-shrink-0 items-center gap-2">
           <Button asChild size="sm" className="rounded-lg">
-            <Link href="/precos">Ver planos</Link>
+            <Link href="/precos" data-tour="nav-plans-desktop">Ver planos</Link>
           </Button>
           <Link
             href={isAuthenticated ? '/conta' : '/login'}
+            data-tour="nav-account-desktop"
             className="flex items-center justify-center w-9 h-9 rounded-lg text-white/90 hover:bg-white/10 hover:text-white transition-colors"
             title={isAuthenticated ? 'Conta' : 'Entrar'}
             aria-label={isAuthenticated ? 'Conta' : 'Entrar'}
@@ -323,11 +336,11 @@ export function FloatingHeader() {
   // ——— Mobile: barra inferior com ícone Produto que abre pop-up (Ferramentas + Cursos)
   const produtoItem = menuWithDropdowns.find((m) => m.title === 'Produto' && m.items?.length)
   const mobileNavItems = [
-    { index: 0, icon: Home, label: 'Início', href: '/' },
-    { index: 1, icon: Package, label: 'Produto', openDropdown: true },
-    { index: 2, icon: Sparkles, label: 'Criar', href: '/planejamento' },
-    { index: 3, icon: CreditCard, label: 'Planos', href: '/precos' },
-    { index: 4, icon: User, label: isAuthenticated ? 'Conta' : 'Entrar', href: isAuthenticated ? '/conta' : '/login' },
+    { index: 0, icon: Home, label: 'Início', href: '/', dataTour: 'nav-home-mobile' },
+    { index: 1, icon: Package, label: 'Produto', openDropdown: true, dataTour: 'nav-product-mobile' },
+    { index: 2, icon: Calendar, label: 'Criar', href: '/planejamento', dataTour: 'nav-create-mobile' },
+    { index: 3, icon: CreditCard, label: 'Planos', href: '/precos', dataTour: 'nav-plans-mobile' },
+    { index: 4, icon: User, label: isAuthenticated ? 'Conta' : 'Entrar', href: isAuthenticated ? '/conta' : '/login', dataTour: 'nav-account-mobile' },
   ]
 
   const mobileBar = (
@@ -358,6 +371,7 @@ export function FloatingHeader() {
                   <button
                     ref={(el) => { itemRefs.current[item.index] = el }}
                     type="button"
+                    data-tour={item.dataTour}
                     className="relative flex items-center justify-center w-12 h-12 min-w-[3rem] mx-1 sm:mx-2 transition-all duration-400 outline-none"
                     title={item.label}
                     aria-label={item.label}
@@ -411,6 +425,7 @@ export function FloatingHeader() {
               position={item.index}
               href={item.href}
               label={item.label}
+              dataTour={item.dataTour}
               innerRef={(el) => { itemRefs.current[item.index] = el }}
             />
           )

@@ -5,7 +5,8 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useRouter } from 'next/navigation'
 import { LumaSpin } from '@/components/ui/luma-spin'
 import { Button } from '@/components/ui/button'
-import { Calendar as CalendarIcon, Plus, FileText, Type, Clock, RefreshCw, Sparkles } from 'lucide-react'
+import { Calendar as CalendarIcon, RefreshCw } from 'lucide-react'
+import { CalendarWithEventSlots } from '@/components/ui/calendar-with-event-slots'
 import toast from 'react-hot-toast'
 
 type ContentProfile = {
@@ -64,13 +65,10 @@ export default function ContentPlanningPage() {
     const now = new Date()
     return new Date(now.getFullYear(), now.getMonth(), 1)
   })
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date())
   const [items, setItems] = useState<CalendarItem[]>([])
   const [itemsLoading, setItemsLoading] = useState(true)
   const [generatingId, setGeneratingId] = useState<string | null>(null)
-
-  const monthLabel = useMemo(() => {
-    return currentMonth.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })
-  }, [currentMonth])
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -177,30 +175,6 @@ export default function ContentPlanningPage() {
     )
   }
 
-  const days: Date[] = []
-  const start = startOfMonth(currentMonth)
-  const end = endOfMonth(currentMonth)
-  const startWeekday = start.getDay() || 7
-  for (let i = 1; i < startWeekday; i++) {
-    days.push(new Date(start.getFullYear(), start.getMonth(), start.getDate() - (startWeekday - i)))
-  }
-  for (let d = 0; d <= end.getDate() - 1; d++) {
-    days.push(new Date(start.getFullYear(), start.getMonth(), 1 + d))
-  }
-  while (days.length % 7 !== 0) {
-    const last = days[days.length - 1]
-    days.push(new Date(last.getFullYear(), last.getMonth(), last.getDate() + 1))
-  }
-
-  const dayItemsMap = useMemo(() => {
-    const map: Record<string, CalendarItem[]> = {}
-    for (const item of items) {
-      map[item.date] = map[item.date] || []
-      map[item.date].push(item)
-    }
-    return map
-  }, [items])
-
   const handleSaveProfile = async () => {
     if (!hasActiveSubscription) {
       router.push('/precos')
@@ -296,6 +270,40 @@ export default function ContentPlanningPage() {
     return null
   }
 
+  const selectedDateItems = useMemo(() => {
+    const selectedDateString = formatDate(selectedDate)
+    return items.filter((item) => item.date === selectedDateString)
+  }, [items, selectedDate])
+
+  const handleCopyScript = (item: CalendarItem) => {
+    if (!item.script) {
+      toast('Ainda não há roteiro para copiar.')
+      return
+    }
+    navigator.clipboard.writeText(item.script)
+    toast.success('Roteiro copiado.')
+  }
+
+  const handleCopyCaptionHashtags = (item: CalendarItem) => {
+    const textParts = [item.caption, item.hashtags].filter(Boolean)
+    if (!textParts.length) {
+      toast('Ainda não há legenda/hashtags para copiar.')
+      return
+    }
+    navigator.clipboard.writeText(textParts.join('\n\n'))
+    toast.success('Legenda + hashtags copiadas.')
+  }
+
+  const handleCopyRecommendedTime = (item: CalendarItem) => {
+    const recTime = getRecommendedTime(item)
+    if (!recTime) {
+      toast('Ainda não há horário recomendado.')
+      return
+    }
+    navigator.clipboard.writeText(recTime)
+    toast.success('Horário recomendado copiado.')
+  }
+
   return (
     <div
       className="max-w-5xl mx-auto px-4 sm:px-6 py-24 lg:py-28 space-y-8 relative"
@@ -326,22 +334,6 @@ export default function ContentPlanningPage() {
           <p className="text-sm text-gogh-grayDark">
             Defina o perfil da sua marca, planeje seus vídeos e gere roteiros, legendas e hashtags com um clique.
           </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setCurrentMonth((m) => new Date(m.getFullYear(), m.getMonth() - 1, 1))}
-          >
-            ← Mês anterior
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setCurrentMonth((m) => new Date(m.getFullYear(), m.getMonth() + 1, 1))}
-          >
-            Próximo mês →
-          </Button>
         </div>
       </div>
 
@@ -439,146 +431,32 @@ export default function ContentPlanningPage() {
         </div>
       </section>
 
-      <section className="bg-white rounded-2xl border border-gogh-grayLight p-4 sm:p-6 space-y-4">
-        <div className="flex items-center justify-between mb-2">
-          <h2 className="text-base sm:text-lg font-semibold text-gogh-black flex items-center gap-2">
-            <CalendarIcon className="w-5 h-5 text-gogh-yellow" />
-            Calendário de vídeos — {monthLabel}
-          </h2>
-          {itemsLoading && <LumaSpin size="sm" />}
-        </div>
-        <div className="grid grid-cols-7 gap-2 text-xs sm:text-sm text-center text-gogh-grayDark font-medium">
-          <span>Seg</span>
-          <span>Ter</span>
-          <span>Qua</span>
-          <span>Qui</span>
-          <span>Sex</span>
-          <span>Sáb</span>
-          <span>Dom</span>
-        </div>
-        <div className="grid grid-cols-7 gap-2 text-xs">
-          {days.map((d, index) => {
-            const dateStr = formatDate(d)
-            const isCurrentMonth = d.getMonth() === currentMonthNumber
-            const dayItems = dayItemsMap[dateStr] || []
-            return (
-              <div
-                key={index}
-                className={`min-h-[90px] rounded-lg border p-1.5 flex flex-col ${
-                  isCurrentMonth ? 'bg-white border-gogh-grayLight' : 'bg-gogh-grayLight/40 border-gogh-grayLight/80 text-gogh-grayDark/60'
-                }`}
-              >
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-[11px] font-semibold">{d.getDate()}</span>
-                  {isCurrentMonth && (
-                    <button
-                      type="button"
-                      onClick={() => handleCreateItem(dateStr)}
-                      className="p-0.5 rounded-full hover:bg-gogh-grayLight"
-                      title="Adicionar vídeo neste dia"
-                    >
-                      <Plus className="w-3 h-3" />
-                    </button>
-                  )}
-                </div>
-                <div className="space-y-1 flex-1 overflow-hidden">
-                  {dayItems.map((item) => {
-                    const hasGenerated = !!item.script || !!item.caption || !!item.hashtags
-                    const recTime = getRecommendedTime(item)
-                    return (
-                      <div
-                        key={item.id}
-                        className="rounded-md border border-gogh-grayLight bg-gogh-beige-light/60 px-1.5 py-1 space-y-1"
-                      >
-                        <div className="flex items-center justify-between gap-1">
-                          <span className="text-[11px] font-semibold truncate">
-                            {item.topic || 'Vídeo sem tema ainda'}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => handleGenerate(item.id)}
-                            disabled={!!generatingId || !profile}
-                            className="text-[10px] inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-gogh-yellow text-gogh-black disabled:opacity-60"
-                          >
-                            {generatingId === item.id ? (
-                              <>
-                                <LumaSpin size="sm" />
-                                Gerando...
-                              </>
-                            ) : (
-                              <>
-                                <Sparkles className="w-3 h-3" />
-                                {hasGenerated ? 'Regenerar' : 'Gerar'}
-                              </>
-                            )}
-                          </button>
-                        </div>
-                        {hasGenerated && (
-                          <div className="flex flex-wrap gap-1 mt-0.5">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                if (item.script) {
-                                  navigator.clipboard.writeText(item.script)
-                                  toast.success('Roteiro copiado.')
-                                } else {
-                                  toast('Ainda não há roteiro para copiar.')
-                                }
-                              }}
-                              className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-gogh-grayLight text-[10px]"
-                            >
-                              <FileText className="w-3 h-3" />
-                              Roteiro
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const textParts = [item.caption, item.hashtags].filter(Boolean)
-                                if (textParts.length) {
-                                  navigator.clipboard.writeText(textParts.join('\n\n'))
-                                  toast.success('Legenda + hashtags copiadas.')
-                                } else {
-                                  toast('Ainda não há legenda/hashtags para copiar.')
-                                }
-                              }}
-                              className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-gogh-grayLight text-[10px]"
-                            >
-                              <Type className="w-3 h-3" />
-                              Legenda + hashtags
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                if (recTime) {
-                                  navigator.clipboard.writeText(recTime)
-                                  toast.success('Horário recomendado copiado.')
-                                } else {
-                                  toast('Ainda não há horário recomendado.')
-                                }
-                              }}
-                              className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-gogh-grayLight text-[10px]"
-                            >
-                              <Clock className="w-3 h-3" />
-                              {recTime ? recTime : 'Horário'}
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    )
-                  })}
-                  {!dayItems.length && isCurrentMonth && (
-                    <button
-                      type="button"
-                      onClick={() => handleCreateItem(dateStr)}
-                      className="w-full h-7 rounded-md border border-dashed border-gogh-grayLight text-[10px] text-gogh-grayDark hover:bg-gogh-grayLight/50"
-                    >
-                      + Planejar vídeo
-                    </button>
-                  )}
-                </div>
-              </div>
-            )
-          })}
+      <section className="bg-white rounded-2xl border border-gogh-grayLight p-4 sm:p-6">
+        <div className="flex justify-center">
+          <CalendarWithEventSlots
+            month={currentMonth}
+            selectedDate={selectedDate}
+            onMonthChange={(month) => {
+              setCurrentMonth(new Date(month.getFullYear(), month.getMonth(), 1))
+            }}
+            onSelectDate={(date) => {
+              if (!date) return
+              setSelectedDate(date)
+              if (date.getMonth() !== currentMonthNumber || date.getFullYear() !== currentMonth.getFullYear()) {
+                setCurrentMonth(new Date(date.getFullYear(), date.getMonth(), 1))
+              }
+            }}
+            itemsForSelectedDate={selectedDateItems}
+            loading={itemsLoading}
+            generatingId={generatingId}
+            canInteract={hasActiveSubscription && !!profile}
+            onCreateForSelectedDate={() => handleCreateItem(formatDate(selectedDate))}
+            onGenerate={handleGenerate}
+            onCopyScript={handleCopyScript}
+            onCopyCaptionHashtags={handleCopyCaptionHashtags}
+            onCopyRecommendedTime={handleCopyRecommendedTime}
+            getRecommendedTime={getRecommendedTime}
+          />
         </div>
       </section>
     </div>

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { createClient } from '@/lib/supabase/client'
@@ -20,7 +20,6 @@ import {
   Sparkles,
   RefreshCw,
   Wrench,
-  Coins,
   ChevronDown,
   ChevronUp
 } from 'lucide-react'
@@ -59,9 +58,6 @@ export default function AccountPage() {
   const [openingPortal, setOpeningPortal] = useState(false)
   const [hasServiceSubscriptions, setHasServiceSubscriptions] = useState(false)
   const [hasStripeServiceSubscription, setHasStripeServiceSubscription] = useState(false)
-  const [creditsBalanceMonthly, setCreditsBalanceMonthly] = useState<number | null>(null)
-  const [creditsBalancePurchased, setCreditsBalancePurchased] = useState<number | null>(null)
-  const [creditPlans, setCreditPlans] = useState<Array<{ id: string; name: string; credits: number; stripe_checkout_url: string }>>([])
   const [planFeatures, setPlanFeatures] = useState<PlanFeatureItem[]>([])
   const [planResourcesExpanded, setPlanResourcesExpanded] = useState(false)
   
@@ -133,46 +129,6 @@ export default function AccountPage() {
     }
   }, [])
 
-  // Créditos IA (mensais + comprados separados); refetch ao ganhar foco (ex.: volta do checkout Stripe)
-  const fetchCredits = useCallback(async () => {
-    if (!user || !hasActiveSubscription) {
-      setCreditsBalanceMonthly(null)
-      setCreditsBalancePurchased(null)
-      return
-    }
-    try {
-      const res = await fetch('/api/credits/balance', { credentials: 'include' })
-      const data = await res.json()
-      if (res.ok) {
-        setCreditsBalanceMonthly(typeof data.balanceMonthly === 'number' ? data.balanceMonthly : data.balance ?? null)
-        setCreditsBalancePurchased(typeof data.balancePurchased === 'number' ? data.balancePurchased : 0)
-      } else {
-        setCreditsBalanceMonthly(null)
-        setCreditsBalancePurchased(null)
-      }
-    } catch {
-      setCreditsBalanceMonthly(null)
-      setCreditsBalancePurchased(null)
-    }
-  }, [user, hasActiveSubscription])
-
-  useEffect(() => {
-    if (!user || !hasActiveSubscription) {
-      setCreditsBalanceMonthly(null)
-      setCreditsBalancePurchased(null)
-      return
-    }
-    fetchCredits()
-  }, [user, hasActiveSubscription, fetchCredits])
-
-  useEffect(() => {
-    const onFocus = () => {
-      if (user && hasActiveSubscription) fetchCredits()
-    }
-    window.addEventListener('focus', onFocus)
-    return () => window.removeEventListener('focus', onFocus)
-  }, [user, hasActiveSubscription, fetchCredits])
-
   // Recursos do plano (espelhar o que está cadastrado no dashboard: plan_products + products)
   useEffect(() => {
     if (!hasActiveSubscription || !subscription?.plan_id) {
@@ -208,25 +164,6 @@ export default function AccountPage() {
     }
     load()
   }, [hasActiveSubscription, subscription?.plan_id])
-
-  // Planos de créditos avulsos (para exibir na seção Uso)
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const { data } = await (supabase as any)
-          .from('site_settings')
-          .select('value')
-          .eq('key', 'ai_credits_plans')
-          .maybeSingle()
-        const plans = Array.isArray(data?.value) ? data.value : []
-        setCreditPlans(plans)
-      } catch {
-        setCreditPlans([])
-      }
-    }
-    load()
-  }, [supabase])
-
 
   // Listener para atualização de assinatura
   useEffect(() => {
@@ -398,6 +335,7 @@ export default function AccountPage() {
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
+            data-tour={tab.id === 'plan' ? 'account-tab-plan' : tab.id === 'profile' ? 'account-tab-profile' : undefined}
             className={`
               flex-1 flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-3 rounded-lg min-w-0
               font-medium text-sm sm:text-base transition-all duration-200 relative
@@ -471,9 +409,7 @@ export default function AccountPage() {
 
         {activeTab === 'plan' && (
           <div className="space-y-6">
-            <div className="grid lg:grid-cols-2 gap-6">
-            {/* Current Plan */}
-            <div className="bg-white rounded-2xl border border-gogh-grayLight p-6 lg:p-8">
+            <div id="usage" className="bg-white rounded-2xl border border-gogh-grayLight p-6 lg:p-8 space-y-6 scroll-mt-6">
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-3">
                   <CreditCard className="w-5 h-5 text-gogh-grayDark" />
@@ -508,6 +444,7 @@ export default function AccountPage() {
                     </p>
                     <button
                       onClick={handleManageSubscription}
+                      data-tour="manage-subscription"
                       disabled={openingPortal}
                       className="inline-flex items-center gap-2 px-6 py-3 bg-gogh-black text-white font-medium rounded-xl hover:bg-gogh-black/90 transition-colors disabled:opacity-50"
                     >
@@ -535,6 +472,7 @@ export default function AccountPage() {
                     </p>
                     <button
                       onClick={handleManageSubscription}
+                      data-tour="manage-subscription"
                       disabled={openingPortal}
                       className="inline-flex items-center gap-2 px-6 py-3 bg-gogh-black text-white font-medium rounded-xl hover:bg-gogh-black/90 transition-colors disabled:opacity-50"
                     >
@@ -572,64 +510,8 @@ export default function AccountPage() {
                   </>
                 )}
               </div>
-            </div>
 
-            {/* Usage & Features */}
-            <div id="usage" className="bg-white rounded-2xl border border-gogh-grayLight p-6 lg:p-8 space-y-6 scroll-mt-6">
-              {/* Créditos IA / Uso */}
-              {hasActiveSubscription && (
-                <div className="space-y-6">
-                  <div>
-                    <div className="flex items-center gap-3 mb-4">
-                      <Coins className="w-5 h-5 text-gogh-grayDark" />
-                      <h3 className="text-lg font-bold text-gogh-black">Créditos para criação com IA</h3>
-                    </div>
-                    <p className="text-xs text-gogh-grayDark mb-4">
-                      Os créditos são usados ao criar fotos, vídeos, roteiros e prompts com IA.
-                    </p>
-                    <div className="grid gap-4 sm:grid-cols-2">
-                      <div className="rounded-xl border border-gogh-grayLight bg-gogh-beige/30 p-4">
-                        <p className="text-xs font-medium text-gogh-grayDark mb-1">Créditos mensais</p>
-                        <p className="text-2xl font-bold text-gogh-black">
-                          {creditsBalanceMonthly !== null ? creditsBalanceMonthly : '—'}
-                        </p>
-                        <p className="text-xs text-gogh-grayDark mt-1">Renovam todo mês conforme seu plano.</p>
-                      </div>
-                      <div className="rounded-xl border border-gogh-grayLight bg-gogh-beige/30 p-4">
-                        <p className="text-xs font-medium text-gogh-grayDark mb-1">Créditos comprados</p>
-                        <p className="text-2xl font-bold text-gogh-black">
-                          {creditsBalancePurchased !== null ? creditsBalancePurchased : '—'}
-                        </p>
-                        <p className="text-xs text-gogh-grayDark mt-1">Pacotes avulsos que você comprou.</p>
-                      </div>
-                    </div>
-                    {creditPlans.length > 0 ? (
-                      <div className="space-y-2 mt-4">
-                        <p className="text-sm font-medium text-gogh-black mb-2">Comprar mais créditos</p>
-                        <div className="flex flex-wrap gap-2">
-                          {creditPlans.map((plan) => (
-                            <a
-                              key={plan.id}
-                              href={plan.stripe_checkout_url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gogh-yellow text-gogh-black font-medium hover:bg-gogh-yellow/90 transition-colors text-sm"
-                            >
-                              {plan.name} ({plan.credits} créditos)
-                              <ExternalLink className="w-3 h-3" />
-                            </a>
-                          ))}
-                        </div>
-                      </div>
-                    ) : (
-                      <p className="text-sm text-gogh-grayDark mt-4">Planos de créditos avulsos serão exibidos aqui quando configurados.</p>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* Recursos do Plano */}
-              <div>
+              <div className="pt-6 border-t border-gogh-grayLight" data-tour="plan-features">
                 <div className="flex items-center gap-3 mb-4">
                   <Sparkles className="w-5 h-5 text-gogh-grayDark" />
                   <h3 className="text-lg font-bold text-gogh-black">
@@ -693,7 +575,6 @@ export default function AccountPage() {
                 )}
               </div>
 
-              {/* Subscription Period */}
               {hasActiveSubscription && subscription && (
                 <div className="pt-6 border-t border-gogh-grayLight">
                   <p className="text-sm text-gogh-grayDark">
@@ -704,7 +585,6 @@ export default function AccountPage() {
                   </p>
                 </div>
               )}
-            </div>
             </div>
           </div>
         )}
