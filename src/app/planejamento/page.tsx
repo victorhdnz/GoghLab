@@ -50,6 +50,19 @@ type CalendarItem = {
   meta: any | null
 }
 
+type ProfileFormState = {
+  business_name: string
+  niche: string
+  audience_min_age: string
+  audience_max_age: string
+  tone_of_voice: string
+  goals: string[]
+  platforms: string[]
+  frequency_per_week: number
+  availability_days: number[]
+  script_strategy_key: ScriptStrategyKey
+}
+
 function startOfMonth(date: Date) {
   return new Date(date.getFullYear(), date.getMonth(), 1)
 }
@@ -73,6 +86,60 @@ function normalizeDateKey(value: string | null | undefined) {
   const parsed = new Date(raw)
   if (Number.isNaN(parsed.getTime())) return null
   return formatDate(parsed)
+}
+
+function buildProfileSignature(form: ProfileFormState, customGoals: string[]) {
+  return JSON.stringify({
+    business_name: form.business_name.trim(),
+    niche: form.niche.trim(),
+    audience_min_age: form.audience_min_age.trim(),
+    audience_max_age: form.audience_max_age.trim(),
+    tone_of_voice: form.tone_of_voice.trim(),
+    goals: [...form.goals].map((goal) => goal.trim()).filter(Boolean).sort(),
+    platforms: [...form.platforms].map((platform) => platform.trim()).filter(Boolean).sort(),
+    availability_days: [...form.availability_days].sort((a, b) => a - b),
+    script_strategy_key: getScriptStrategy(form.script_strategy_key).key,
+    custom_goals: [...customGoals].map((goal) => goal.trim()).filter(Boolean).sort(),
+  })
+}
+
+function splitSentencesForReadability(text: string) {
+  return text
+    .replace(/\s+/g, ' ')
+    .trim()
+    .split(/(?<=[.!?])\s+(?=[^\s])/g)
+    .map((sentence) => sentence.trim())
+    .filter(Boolean)
+    .join('\n\n')
+}
+
+function formatReadableBlock(text: string) {
+  const lines = text
+    .replace(/\r/g, '')
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+
+  const formatted: string[] = []
+  for (const line of lines) {
+    if (line.startsWith('#')) {
+      formatted.push(line)
+      continue
+    }
+    const headingMatch = line.match(/^([\p{Extended_Pictographic}\uFE0F\s]*[^:\n]{2,}:\s*)(.*)$/u)
+    if (headingMatch) {
+      const heading = headingMatch[1].trim()
+      const content = headingMatch[2].trim()
+      formatted.push(heading)
+      if (content) {
+        formatted.push(splitSentencesForReadability(content))
+      }
+      continue
+    }
+    formatted.push(splitSentencesForReadability(line))
+  }
+
+  return formatted.join('\n\n')
 }
 
 function parseAgeRangeFromAudience(audience: string | null) {
@@ -104,6 +171,7 @@ export default function ContentPlanningPage() {
   })
   const [customGoals, setCustomGoals] = useState<string[]>([])
   const [newGoalInput, setNewGoalInput] = useState('')
+  const [savedProfileSignature, setSavedProfileSignature] = useState('')
 
   const [currentMonth, setCurrentMonth] = useState(() => {
     const now = new Date()
@@ -186,6 +254,47 @@ export default function ContentPlanningPage() {
                   .map((goal: unknown) => String(goal || '').trim())
                   .filter(Boolean)
               : []
+          )
+          const loadedCustomGoals = Array.isArray(data.profile.extra_preferences?.custom_goals)
+            ? data.profile.extra_preferences.custom_goals
+                .map((goal: unknown) => String(goal || '').trim())
+                .filter(Boolean)
+            : []
+          setSavedProfileSignature(
+            buildProfileSignature(
+              {
+                business_name: data.profile.business_name ?? '',
+                niche: data.profile.niche ?? '',
+                audience_min_age:
+                  typeof minAgeFromPrefs === 'number' && Number.isFinite(minAgeFromPrefs)
+                    ? String(minAgeFromPrefs)
+                    : parsedAudience.min,
+                audience_max_age:
+                  typeof maxAgeFromPrefs === 'number' && Number.isFinite(maxAgeFromPrefs)
+                    ? String(maxAgeFromPrefs)
+                    : parsedAudience.max,
+                tone_of_voice: data.profile.tone_of_voice ?? '',
+                goals: typeof data.profile.goals === 'string'
+                  ? data.profile.goals
+                      .split('|')
+                      .map((value: string) => value.trim())
+                      .filter(Boolean)
+                  : [],
+                platforms: Array.isArray(data.profile.platforms) ? data.profile.platforms : [],
+                frequency_per_week: Array.isArray(data.profile.extra_preferences?.availability_days)
+                  ? Math.max(1, data.profile.extra_preferences.availability_days.length)
+                  : data.profile.frequency_per_week ?? 3,
+                availability_days: Array.isArray(data.profile.extra_preferences?.availability_days)
+                  ? data.profile.extra_preferences.availability_days
+                  : [1, 2, 3, 4, 5],
+                script_strategy_key: getScriptStrategy(
+                  typeof data.profile.extra_preferences?.script_strategy_key === 'string'
+                    ? data.profile.extra_preferences?.script_strategy_key
+                    : DEFAULT_SCRIPT_STRATEGY_KEY
+                ).key,
+              },
+              loadedCustomGoals
+            )
           )
         }
       } catch (e) {
@@ -281,6 +390,7 @@ export default function ContentPlanningPage() {
         return
       }
       setProfile(data.profile)
+      setSavedProfileSignature(buildProfileSignature(profileForm, customGoals))
       toast.success('Perfil de conteúdo salvo com sucesso.')
     } catch (e) {
       console.error('Erro ao salvar perfil', e)
@@ -396,6 +506,12 @@ export default function ContentPlanningPage() {
     return items.filter((item) => normalizeDateKey(item.date) === selectedDateString)
   }, [items, selectedDate])
 
+  const currentProfileSignature = useMemo(
+    () => buildProfileSignature(profileForm, customGoals),
+    [profileForm, customGoals]
+  )
+  const isProfileDirty = savedProfileSignature.length === 0 || currentProfileSignature !== savedProfileSignature
+
   const formatCaptionWithHashtags = (item: CalendarItem) => {
     const captionRaw = (item.caption || '').toString().trim()
     const hashtagsFromCaption = captionRaw.match(/#[^\s#]+/g) ?? []
@@ -411,7 +527,10 @@ export default function ContentPlanningPage() {
       .split(/\n+/)
       .map((line) => line.trim())
       .filter(Boolean)
-    const captionBlock = captionParagraphs.join('\n\n')
+    const captionBlock = captionParagraphs
+      .map((paragraph) => splitSentencesForReadability(paragraph))
+      .filter(Boolean)
+      .join('\n\n')
     if (captionBlock && hashtagsLine) return `${captionBlock}\n\n${hashtagsLine}`
     return `${captionBlock}${hashtagsLine}`.trim()
   }
@@ -433,9 +552,9 @@ export default function ContentPlanningPage() {
     const body = (ad?.body || '').toString().trim()
     const cta = (ad?.cta || '').toString().trim()
     const lines = [
-      headline ? `Headline: ${headline}` : '',
-      body ? `Texto: ${body}` : '',
-      cta ? `CTA: ${cta}` : '',
+      headline ? `Headline: ${splitSentencesForReadability(headline)}` : '',
+      body ? `Texto: ${splitSentencesForReadability(body)}` : '',
+      cta ? `CTA: ${splitSentencesForReadability(cta)}` : '',
     ].filter(Boolean)
     return lines.join('\n\n') || 'Ainda não há texto para anúncio.'
   }
@@ -461,7 +580,7 @@ export default function ContentPlanningPage() {
       toast('Ainda não há roteiro para copiar.')
       return
     }
-    navigator.clipboard.writeText(item.script)
+    navigator.clipboard.writeText(formatReadableBlock(item.script))
     toast.success('Roteiro copiado.')
   }
 
@@ -854,7 +973,7 @@ export default function ContentPlanningPage() {
           <ShinyButton
             type="button"
             onClick={handleSaveProfile}
-            disabled={savingProfile || !isProfileComplete}
+            disabled={savingProfile || !isProfileComplete || !isProfileDirty}
             className="h-9 px-4"
           >
             {savingProfile ? (
@@ -1117,7 +1236,7 @@ export default function ContentPlanningPage() {
           <div className="space-y-4">
             <pre className="whitespace-pre-wrap text-sm bg-gogh-grayLight/30 rounded-lg p-3 max-h-[50vh] overflow-auto">
               {contentModal.type === 'script'
-                ? contentModal.item.script || 'Ainda não há roteiro.'
+                ? (contentModal.item.script ? formatReadableBlock(contentModal.item.script) : 'Ainda não há roteiro.')
                 : contentModal.type === 'caption'
                   ? formatCaptionWithHashtags(contentModal.item) || 'Ainda não há legenda/hashtags.'
                   : contentModal.type === 'cover'
