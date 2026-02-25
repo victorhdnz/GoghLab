@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createRouteHandlerClient } from '@/lib/supabase/server'
 import OpenAI from 'openai'
+import { buildScriptStructureInstruction } from '@/lib/content/script-strategies'
 
 export const dynamic = 'force-dynamic'
 
@@ -63,13 +64,25 @@ function formatScriptForReadability(value: string) {
     const line = rawLine.replace(/\s+/g, ' ').trim()
     const matched = sectionMap.find((entry) => entry.regex.test(line))
     if (matched) {
+      const headingLabel = stripDecorativeEmojis(matched.heading.replace(':', ''))
+      const headingToken = headingLabel.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '')
       const cleaned = stripDecorativeEmojis(
-        line.replace(/^[\p{Extended_Pictographic}\uFE0F\s]*(gancho|desenvolvimento|demonstração\/exemplo|demonstração|demonstracao\/exemplo|demonstracao|exemplo|cta final|cta)\s*:\s*/iu, '')
+        line.replace(
+          /^[\p{Extended_Pictographic}\uFE0F\s-]*(gancho|desenvolvimento|demonstração\/exemplo|demonstração|demonstracao\/exemplo|demonstracao|exemplo|problema\/dor|problema|agitação|agitacao|insight\/virada de chave|insight|virada de chave|solução|solucao|atenção|atencao|interesse|desejo|ação|acao|contexto\/história|contexto|história|historia|conflito|oferta|cta final|cta)\s*:?\s*/iu,
+          ''
+        )
       )
-      formatted.push(`${matched.heading} ${cleaned}`.trim())
+      const cleanedToken = cleaned.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '')
+      const candidate = !cleaned || cleanedToken === headingToken ? matched.heading : `${matched.heading} ${cleaned}`.trim()
+      if (formatted[formatted.length - 1] !== candidate) {
+        formatted.push(candidate)
+      }
       continue
     }
-    formatted.push(stripDecorativeEmojis(line))
+    const plain = stripDecorativeEmojis(line)
+    if (plain && formatted[formatted.length - 1] !== plain) {
+      formatted.push(plain)
+    }
   }
 
   return formatted.filter(Boolean).join('\n\n')
@@ -120,12 +133,24 @@ function mapGoalToCta(goal: string) {
 }
 
 function toDate(value: string) {
-  const date = new Date(value)
+  const normalized = value.trim()
+  const ymd = normalized.match(/^(\d{4})-(\d{2})-(\d{2})$/)
+  if (ymd) {
+    const year = Number(ymd[1])
+    const month = Number(ymd[2]) - 1
+    const day = Number(ymd[3])
+    const date = new Date(year, month, day)
+    return Number.isNaN(date.getTime()) ? null : date
+  }
+  const date = new Date(normalized)
   return Number.isNaN(date.getTime()) ? null : date
 }
 
 function formatDate(date: Date) {
-  return date.toISOString().slice(0, 10)
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
 }
 
 function daysInMonth(year: number, monthIndex: number) {
@@ -148,6 +173,9 @@ export async function POST(request: Request) {
 
     const body = await request.json().catch(() => ({}))
     const parsedMonth = typeof body.month === 'string' ? toDate(body.month) : null
+    const scriptStrategy = buildScriptStructureInstruction(
+      typeof body.scriptStrategyKey === 'string' ? body.scriptStrategyKey : null
+    )
     const base = parsedMonth || new Date()
     const year = base.getFullYear()
     const monthIndex = base.getMonth()
@@ -296,14 +324,14 @@ export async function POST(request: Request) {
             `Diretriz de CTA obrigatória: ${ctaInstruction}\n\n` +
             'REGRAS OBRIGATORIAS:\n' +
             '- Cada roteiro precisa ter profundidade para pelo menos 1:00 de video (minimo de 170 palavras).\n' +
-            '- Estruture o roteiro em 4 blocos: Gancho, Desenvolvimento, Demonstracao/Exemplo e CTA final.\n' +
+            scriptStrategy.promptInstruction +
             '- Use emoji APENAS no inicio do titulo de cada bloco. Nao use emoji no final de frases e nem no corpo do texto.\n' +
             '- A legenda deve vir sem hashtags no corpo, com 2 a 3 paragrafos curtos e espaco entre paragrafos.\n' +
             '- Na legenda, use poucos emojis estrategicos para destaque (sem poluicao visual).\n' +
             '- Hashtags em uma unica linha, entre 10 e 15, relevantes e sem duplicacao.\n\n' +
             'Retorne SOMENTE JSON valido no formato:\n' +
             '{ "items": [\n' +
-            '  { "date": "YYYY-MM-DD", "topic": "...", "script": "roteiro detalhado (min. 170 palavras) com blocos e quebras de linha: 🎣 Gancho, 🧠 Desenvolvimento, 🎬 Demonstração/Exemplo, 📣 CTA", "caption": "legenda com emojis estrategicos e paragrafos separados (sem hashtags no texto)", "hashtags": "...", "recommended_time": "HH:MM", "recommended_time_reason": "...", "cover_text_options": ["...", "...", "..."], "ad_copy": { "headline": "...", "body": "...", "cta": "..." } }\n' +
+            `  { "date": "YYYY-MM-DD", "topic": "...", "script": "roteiro detalhado (min. 170 palavras) com blocos e quebras de linha na ordem: ${scriptStrategy.steps.join(' -> ')}", "caption": "legenda com emojis estrategicos e paragrafos separados (sem hashtags no texto)", "hashtags": "...", "recommended_time": "HH:MM", "recommended_time_reason": "...", "cover_text_options": ["...", "...", "..."], "ad_copy": { "headline": "...", "body": "...", "cta": "..." } }\n` +
             ']}\n' +
             `A lista deve conter EXATAMENTE ${selectedDates.length} itens, com uma data unica para cada item, sem repetir tema.`,
         },
@@ -376,6 +404,9 @@ export async function POST(request: Request) {
           ad_copy: adCopy,
           auto_generated: true,
           regenerate_count: 0,
+          script_strategy_key: scriptStrategy.key,
+          script_strategy_label: scriptStrategy.label,
+          script_strategy_steps: scriptStrategy.steps,
         },
       })
     }

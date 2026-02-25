@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createRouteHandlerClient } from '@/lib/supabase/server'
 import { createSupabaseAdmin } from '@/lib/supabase/admin'
 import { getCreditCost, getCreditsConfigKey, getMonthBounds, getMonthlyCreditsForPlan, type CreditsConfig } from '@/lib/credits'
+import { buildScriptStructureInstruction } from '@/lib/content/script-strategies'
 import OpenAI from 'openai'
 
 export const dynamic = 'force-dynamic'
@@ -12,6 +13,7 @@ type GenerateBody = {
   overrideTopic?: string | null
   mode?: 'generate' | 'regenerate'
   regenerateInstruction?: string | null
+  scriptStrategyKey?: string | null
 }
 
 type ContentProfileRow = {
@@ -82,13 +84,25 @@ function formatScriptForReadability(value: string) {
     const line = rawLine.replace(/\s+/g, ' ').trim()
     const matched = sectionMap.find((entry) => entry.regex.test(line))
     if (matched) {
+      const headingLabel = stripDecorativeEmojis(matched.heading.replace(':', ''))
+      const headingToken = headingLabel.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '')
       const cleaned = stripDecorativeEmojis(
-        line.replace(/^[\p{Extended_Pictographic}\uFE0F\s]*(gancho|desenvolvimento|demonstração\/exemplo|demonstração|demonstracao\/exemplo|demonstracao|exemplo|cta final|cta)\s*:\s*/iu, '')
+        line.replace(
+          /^[\p{Extended_Pictographic}\uFE0F\s-]*(gancho|desenvolvimento|demonstração\/exemplo|demonstração|demonstracao\/exemplo|demonstracao|exemplo|problema\/dor|problema|agitação|agitacao|insight\/virada de chave|insight|virada de chave|solução|solucao|atenção|atencao|interesse|desejo|ação|acao|contexto\/história|contexto|história|historia|conflito|oferta|cta final|cta)\s*:?\s*/iu,
+          ''
+        )
       )
-      formatted.push(`${matched.heading} ${cleaned}`.trim())
+      const cleanedToken = cleaned.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '')
+      const candidate = !cleaned || cleanedToken === headingToken ? matched.heading : `${matched.heading} ${cleaned}`.trim()
+      if (formatted[formatted.length - 1] !== candidate) {
+        formatted.push(candidate)
+      }
       continue
     }
-    formatted.push(stripDecorativeEmojis(line))
+    const plain = stripDecorativeEmojis(line)
+    if (plain && formatted[formatted.length - 1] !== plain) {
+      formatted.push(plain)
+    }
   }
 
   return formatted.filter(Boolean).join('\n\n')
@@ -378,6 +392,13 @@ export async function POST(request: Request) {
     const primaryGoal = goalsList[0] || ''
     const audienceSummary = buildAudienceSummary(profile)
     const ctaInstruction = mapGoalToCta(primaryGoal)
+    const strategyFromProfile =
+      typeof profile.extra_preferences?.script_strategy_key === 'string'
+        ? profile.extra_preferences.script_strategy_key
+        : null
+    const scriptStrategy = buildScriptStructureInstruction(
+      (body.scriptStrategyKey || strategyFromProfile || null) as string | null
+    )
 
     const profileSummary = [
       profile.business_name && `Nome do projeto/empresa: ${profile.business_name}`,
@@ -421,7 +442,7 @@ export async function POST(request: Request) {
           `Diretriz de CTA obrigatória: ${ctaInstruction}\n\n` +
           'REGRAS OBRIGATÓRIAS:\n' +
           '- O roteiro precisa ter profundidade para pelo menos 1:00 de vídeo (mínimo de 170 palavras).\n' +
-          '- Estruture o roteiro em 4 blocos: Gancho, Desenvolvimento, Demonstração/Exemplo e CTA final.\n' +
+          scriptStrategy.promptInstruction +
           '- Use emoji APENAS no início do título de cada bloco. Não use emoji no final de frases e nem no corpo do texto.\n' +
           '- A legenda deve vir sem hashtags no corpo, com 2 a 3 parágrafos curtos e espaçamento entre parágrafos.\n' +
           '- Na legenda, use poucos emojis estratégicos para destaque (sem poluição visual).\n' +
@@ -429,7 +450,7 @@ export async function POST(request: Request) {
           'Retorne SOMENTE um JSON válido, sem explicações extras, no formato:' +
           '\n{\n' +
           '  "topic": "título/tema do vídeo",\n' +
-          '  "script": "roteiro detalhado (mín. 170 palavras) com quebras de linha entre blocos: 🎣 Gancho, 🧠 Desenvolvimento, 🎬 Demonstração/Exemplo, 📣 CTA final",\n' +
+          `  "script": "roteiro detalhado (mín. 170 palavras) com quebras de linha entre os blocos na sequência: ${scriptStrategy.steps.join(' -> ')}",\n` +
           '  "caption": "legenda pronta para postar, com emojis estratégicos e parágrafos separados por linha em branco (SEM hashtags no texto)",\n' +
           '  "hashtags": "#tag1 #tag2 #tag3 ... (entre 10 e 15 hashtags em UMA linha)",\n' +
           '  "recommended_time": "HH:MM",\n' +
@@ -507,6 +528,9 @@ export async function POST(request: Request) {
         cover_text_options: coverTextOptions,
         ad_copy: adCopy,
         regenerate_count: mode === 'regenerate' ? regenerateCount + 1 : regenerateCount,
+        script_strategy_key: scriptStrategy.key,
+        script_strategy_label: scriptStrategy.label,
+        script_strategy_steps: scriptStrategy.steps,
       },
     }
 

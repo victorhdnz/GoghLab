@@ -12,6 +12,7 @@ interface ModalProps {
   children: ReactNode
   size?: 'sm' | 'md' | 'lg' | 'xl'
   showCloseButton?: boolean
+  stackLevel?: number
 }
 
 export const Modal = ({
@@ -21,6 +22,7 @@ export const Modal = ({
   children,
   size = 'md',
   showCloseButton = true,
+  stackLevel = 1,
 }: ModalProps) => {
   const [mounted, setMounted] = useState(false)
 
@@ -47,6 +49,9 @@ export const Modal = ({
     lg: 'max-w-2xl',
     xl: 'max-w-4xl',
   }
+  const safeStackLevel = Number.isFinite(stackLevel) ? Math.max(1, Math.floor(stackLevel)) : 1
+  const backdropZ = 1200 + (safeStackLevel - 1) * 30
+  const modalZ = backdropZ + 10
 
   if (!mounted) return null
 
@@ -60,11 +65,15 @@ export const Modal = ({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 h-[100dvh] bg-black/75 backdrop-blur-[1px] z-[1200]"
+            className="fixed inset-0 h-[100dvh] bg-black/75 backdrop-blur-[1px]"
+            style={{ zIndex: backdropZ }}
           />
 
           {/* Modal */}
-          <div className="fixed inset-0 h-[100dvh] z-[1210] flex items-center justify-center p-4">
+          <div
+            className="fixed inset-0 h-[100dvh] flex items-center justify-center p-4"
+            style={{ zIndex: modalZ }}
+          >
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}

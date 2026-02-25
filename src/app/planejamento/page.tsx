@@ -11,6 +11,12 @@ import { HoverButton } from '@/components/ui/hover-button'
 import { Calendar as CalendarIcon, FileText, Type, Clock, ImageIcon, Megaphone, RefreshCw, Sparkles, Plus, X } from 'lucide-react'
 import { CalendarWithEventSlots } from '@/components/ui/calendar-with-event-slots'
 import { Modal } from '@/components/ui/Modal'
+import {
+  DEFAULT_SCRIPT_STRATEGY_KEY,
+  SCRIPT_STRATEGIES,
+  getScriptStrategy,
+  type ScriptStrategyKey,
+} from '@/lib/content/script-strategies'
 import toast from 'react-hot-toast'
 
 type ContentProfile = {
@@ -53,7 +59,20 @@ function endOfMonth(date: Date) {
 }
 
 function formatDate(d: Date) {
-  return d.toISOString().slice(0, 10)
+  const year = d.getFullYear()
+  const month = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+function normalizeDateKey(value: string | null | undefined) {
+  if (!value) return null
+  const raw = value.trim()
+  const match = raw.match(/^(\d{4}-\d{2}-\d{2})/)
+  if (match?.[1]) return match[1]
+  const parsed = new Date(raw)
+  if (Number.isNaN(parsed.getTime())) return null
+  return formatDate(parsed)
 }
 
 function parseAgeRangeFromAudience(audience: string | null) {
@@ -81,6 +100,7 @@ export default function ContentPlanningPage() {
     platforms: [] as string[],
     frequency_per_week: 3,
     availability_days: [1, 2, 3, 4, 5] as number[],
+    script_strategy_key: DEFAULT_SCRIPT_STRATEGY_KEY as ScriptStrategyKey,
   })
   const [customGoals, setCustomGoals] = useState<string[]>([])
   const [newGoalInput, setNewGoalInput] = useState('')
@@ -154,6 +174,11 @@ export default function ContentPlanningPage() {
             availability_days: Array.isArray(data.profile.extra_preferences?.availability_days)
               ? data.profile.extra_preferences.availability_days
               : [1, 2, 3, 4, 5],
+            script_strategy_key: getScriptStrategy(
+              typeof data.profile.extra_preferences?.script_strategy_key === 'string'
+                ? data.profile.extra_preferences?.script_strategy_key
+                : DEFAULT_SCRIPT_STRATEGY_KEY
+            ).key,
           })
           setCustomGoals(
             Array.isArray(data.profile.extra_preferences?.custom_goals)
@@ -245,6 +270,8 @@ export default function ContentPlanningPage() {
             audience_min_age: hasMinAge ? minAge : null,
             audience_max_age: hasMaxAge ? maxAge : null,
             custom_goals: customGoals,
+            script_strategy_key: profileForm.script_strategy_key,
+            script_strategy_name: getScriptStrategy(profileForm.script_strategy_key).label,
           },
         }),
       })
@@ -312,6 +339,7 @@ export default function ContentPlanningPage() {
           calendarItemId: itemId,
           mode: regenerate ? 'regenerate' : 'generate',
           regenerateInstruction: regenerate ? (regenerateInstruction || '').trim() : undefined,
+          scriptStrategyKey: profileForm.script_strategy_key,
         }),
       })
       const data = await res.json()
@@ -365,7 +393,7 @@ export default function ContentPlanningPage() {
 
   const selectedDateItems = useMemo(() => {
     const selectedDateString = formatDate(selectedDate)
-    return items.filter((item) => item.date === selectedDateString)
+    return items.filter((item) => normalizeDateKey(item.date) === selectedDateString)
   }, [items, selectedDate])
 
   const formatCaptionWithHashtags = (item: CalendarItem) => {
@@ -484,11 +512,15 @@ export default function ContentPlanningPage() {
     }
     setAutoPlanning(true)
     try {
+      const selectedStrategy = getScriptStrategy(profileForm.script_strategy_key)
       const res = await fetch('/api/content/auto-plan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ month: formatDate(currentMonth) }),
+        body: JSON.stringify({
+          month: formatDate(currentMonth),
+          scriptStrategyKey: selectedStrategy.key,
+        }),
       })
       const data = await res.json()
       if (!res.ok) {
@@ -679,6 +711,30 @@ export default function ContentPlanningPage() {
                 </option>
               ))}
             </select>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gogh-grayDark mb-1">
+              Estratégia de roteiro
+            </label>
+            <select
+              value={profileForm.script_strategy_key}
+              onChange={(e) =>
+                setProfileForm((f) => ({
+                  ...f,
+                  script_strategy_key: getScriptStrategy(e.target.value).key,
+                }))
+              }
+              className="w-full px-3 py-2 border border-gogh-grayLight rounded-lg text-sm"
+            >
+              {SCRIPT_STRATEGIES.map((strategy) => (
+                <option key={strategy.key} value={strategy.key}>
+                  {strategy.label}
+                </option>
+              ))}
+            </select>
+            <p className="text-[11px] text-gogh-grayDark mt-1">
+              {getScriptStrategy(profileForm.script_strategy_key).description}
+            </p>
           </div>
           <div className="md:col-span-2">
             <label className="block text-xs font-medium text-gogh-grayDark mb-1">
@@ -987,6 +1043,7 @@ export default function ContentPlanningPage() {
         onClose={() => setItemModal(null)}
         title={itemModal?.topic || 'Vídeo planejado'}
         size="md"
+        stackLevel={1}
       >
         {itemModal && (
           <div className="space-y-3">
@@ -1054,6 +1111,7 @@ export default function ContentPlanningPage() {
                   : 'Horário recomendado'
         }
         size="lg"
+        stackLevel={2}
       >
         {contentModal && (
           <div className="space-y-4">
