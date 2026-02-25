@@ -49,9 +49,9 @@ export default function CoursesPage() {
 
   const supabase = createClient()
 
-  // Acesso aos cursos: plano tem produto "cursos-edicao" OU legado (isPro)
+  // Acesso aos cursos: plano tem produto "cursos-edicao" OU usuário Pro com assinatura ativa
   const hasCourseAccess =
-    planHasCoursesProduct === true || (planHasCoursesProduct !== false && isPro && hasActiveSubscription)
+    planHasCoursesProduct === true || (isPro && hasActiveSubscription)
 
   useEffect(() => {
     const checkPlanProducts = async () => {
