@@ -234,7 +234,16 @@ export function ButtonOne({ children, className, containerClassName, disabled, .
         </div>
         <div className="relative w-full h-full overflow-hidden rounded-full">
           <span className="absolute inset-0 rounded-full bg-[#0A0A0A]" />
-          {mounted ? <Liquid isHovered={isHovered} colors={COLORS} /> : null}
+          {mounted ? (
+            <Liquid isHovered={isHovered} colors={COLORS} />
+          ) : (
+            <span
+              className="absolute inset-0 rounded-full opacity-90"
+              style={{
+                background: 'linear-gradient(135deg, #F7C948 0%, #FFD966 35%, #E5A800 70%, #C68A00 100%)',
+              }}
+            />
+          )}
           <span className="absolute inset-0 rounded-full border border-white/20 mix-blend-overlay" />
           <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-[40%] w-[70%] h-[45%] rounded-full blur-[15px] bg-[#B77700]/50" />
         </div>

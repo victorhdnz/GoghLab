@@ -8,12 +8,14 @@ import { ConditionalWhatsAppFloat } from './ConditionalWhatsAppFloat'
 
 interface ConditionalLayoutProps {
   children: ReactNode
+  initialSiteLogo?: string | null
+  initialSiteName?: string | null
 }
 
 // Rotas que não devem exibir Header/Footer padrão
 const hiddenLayoutRoutes = ['/membro', '/login', '/auth', '/termos', '/termos-login-google', '/termos-assinatura-planos', '/links']
 
-export function ConditionalLayout({ children }: ConditionalLayoutProps) {
+export function ConditionalLayout({ children, initialSiteLogo, initialSiteName }: ConditionalLayoutProps) {
   const pathname = usePathname()
   
   const shouldHideLayout = hiddenLayoutRoutes.some(route => pathname.startsWith(route))
@@ -46,7 +48,7 @@ export function ConditionalLayout({ children }: ConditionalLayoutProps) {
   return (
     <>
       <MainBackground />
-      <FloatingHeader />
+      <FloatingHeader initialSiteLogo={initialSiteLogo} initialSiteName={initialSiteName} />
       <div className="pt-16 sm:pt-20 md:pt-24 pb-24 lg:pb-0">{children}</div>
       <ConditionalWhatsAppFloat />
     </>

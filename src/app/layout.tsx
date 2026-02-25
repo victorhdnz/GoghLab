@@ -292,11 +292,12 @@ export async function generateMetadata(): Promise<Metadata> {
   }
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
+  const [siteLogo, siteName] = await Promise.all([getSiteLogo(), getSiteName()])
   return (
     <html lang="pt-BR">
       <body className={inter.className}>
@@ -305,7 +306,7 @@ export default function RootLayout({
         <ScrollEnabler />
         <Providers>
           <NotFoundProvider>
-            <ConditionalLayout>
+            <ConditionalLayout initialSiteLogo={siteLogo ?? undefined} initialSiteName={siteName ?? undefined}>
               <PurchaseNotificationGlobal />
               <ContentStatusNotificationsGlobal />
               <PageTransition>

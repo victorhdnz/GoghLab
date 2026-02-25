@@ -143,7 +143,7 @@ export default function CoursesPage() {
           Cursos
         </h1>
         <p className="text-xs sm:text-sm text-gogh-grayDark">
-          Aprenda novas habilidades com nossos cursos exclusivos de criação de conteúdo.
+          Aprenda novas habilidades com nossos cursos exclusivos.
         </p>
       </div>
 

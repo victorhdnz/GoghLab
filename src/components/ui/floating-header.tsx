@@ -121,11 +121,16 @@ const menuWithDropdowns: Array<
   },
 ]
 
-export function FloatingHeader() {
+type FloatingHeaderProps = {
+  initialSiteLogo?: string | null
+  initialSiteName?: string | null
+}
+
+export function FloatingHeader({ initialSiteLogo = null, initialSiteName }: FloatingHeaderProps) {
   const pathname = usePathname()
   const { isAuthenticated } = useAuth()
-  const [siteName, setSiteName] = useState('Gogh Lab')
-  const [siteLogo, setSiteLogo] = useState<string | null>(null)
+  const [siteName, setSiteName] = useState(initialSiteName ?? 'Gogh Lab')
+  const [siteLogo, setSiteLogo] = useState<string | null>(initialSiteLogo ?? null)
   const [mobileActiveIndex, setMobileActiveIndex] = useState(0)
   const [produtoDropdownOpen, setProdutoDropdownOpen] = useState(false)
   const navRef = useRef<HTMLElement>(null)
