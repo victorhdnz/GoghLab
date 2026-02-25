@@ -35,16 +35,61 @@ function stripDecorativeEmojis(value: string) {
   return value.replace(/[\p{Extended_Pictographic}\uFE0F]/gu, '').replace(/\s{2,}/g, ' ').trim()
 }
 
+const SCRIPT_SECTIONS: Array<{ heading: string; aliases: string[] }> = [
+  { heading: '🎣 Gancho:', aliases: ['gancho', 'hook', 'abertura'] },
+  { heading: '😣 Problema/Dor:', aliases: ['problema', 'dor', 'problema dor'] },
+  { heading: '💡 Insight/Virada de chave:', aliases: ['insight', 'virada', 'virada de chave'] },
+  { heading: '🧠 Desenvolvimento:', aliases: ['desenvolvimento', 'explicacao', 'explicação'] },
+  { heading: '🎬 Demonstração/Exemplo:', aliases: ['demonstração', 'demonstracao', 'exemplo', 'demonstração exemplo', 'demonstracao exemplo'] },
+  { heading: '✅ Solução:', aliases: ['solução', 'solucao'] },
+  { heading: '👀 Atenção:', aliases: ['atenção', 'atencao'] },
+  { heading: '🤝 Interesse:', aliases: ['interesse'] },
+  { heading: '🔥 Desejo:', aliases: ['desejo'] },
+  { heading: '📣 CTA final:', aliases: ['cta', 'cta final', 'acao', 'ação', 'chamada para acao', 'chamada para ação'] },
+  { heading: '🪜 Agitação:', aliases: ['agitação', 'agitacao'] },
+  { heading: '📖 Contexto/História:', aliases: ['contexto', 'história', 'historia', 'contexto história', 'contexto historia'] },
+  { heading: '⚔️ Conflito:', aliases: ['conflito'] },
+  { heading: '🎯 Oferta:', aliases: ['oferta'] },
+]
+
+function normalizeHeadingToken(value: string) {
+  return value
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+function resolveHeading(raw: string) {
+  const token = normalizeHeadingToken(raw)
+  if (!token) return null
+  for (const section of SCRIPT_SECTIONS) {
+    for (const alias of section.aliases) {
+      const aliasToken = normalizeHeadingToken(alias)
+      if (token === aliasToken || token.startsWith(`${aliasToken} `) || token.endsWith(` ${aliasToken}`)) {
+        return section.heading
+      }
+    }
+  }
+  return null
+}
+
+function stripLeadingRepeatedHeading(content: string, heading: string) {
+  const normalizedHeading = normalizeHeadingToken(heading.replace(':', ''))
+  const match = content.match(/^\(?([^)]+)\)?\s*:?\s*(.*)$/u)
+  if (!match) return content.trim()
+  const maybeHeading = normalizeHeadingToken(match[1] || '')
+  if (maybeHeading && (maybeHeading === normalizedHeading || normalizedHeading.includes(maybeHeading) || maybeHeading.includes(normalizedHeading))) {
+    return (match[2] || '').trim()
+  }
+  return content.trim()
+}
+
 function formatScriptForReadability(value: string) {
   const normalized = value.trim()
   if (!normalized) return ''
-
-  const sectionMap = [
-    { regex: /(gancho)/i, heading: '🎣 Gancho:' },
-    { regex: /(desenvolvimento)/i, heading: '🧠 Desenvolvimento:' },
-    { regex: /(demonstra|exemplo)/i, heading: '🎬 Demonstração/Exemplo:' },
-    { regex: /(cta|chamada para ação|chamada para acao)/i, heading: '📣 CTA final:' },
-  ]
 
   const sourceLines = normalized
     .replace(/\r/g, '')
@@ -60,43 +105,45 @@ function formatScriptForReadability(value: string) {
         .filter(Boolean)
 
   const formatted: string[] = []
-  const toToken = (text: string) =>
-    stripDecorativeEmojis(text).toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '')
+  let lastHeading: string | null = null
 
   for (const rawLine of lines) {
     const line = rawLine.replace(/\s+/g, ' ').trim()
-    const matched = sectionMap.find((entry) => entry.regex.test(line))
-    if (matched) {
-      const headingLabel = stripDecorativeEmojis(matched.heading.replace(':', ''))
-      const headingToken = toToken(headingLabel)
-      const cleaned = stripDecorativeEmojis(
-        line.replace(
-          /^[\p{Extended_Pictographic}\uFE0F\s-]*(gancho|desenvolvimento|demonstração\/exemplo|demonstração|demonstracao\/exemplo|demonstracao|exemplo|problema\/dor|problema|agitação|agitacao|insight\/virada de chave|insight|virada de chave|solução|solucao|atenção|atencao|interesse|desejo|ação|acao|contexto\/história|contexto|história|historia|conflito|oferta|cta final|cta)\s*:?\s*/iu,
-          ''
-        )
-      )
-      const cleanedToken = toToken(cleaned)
-      const candidate = !cleaned || cleanedToken === headingToken ? matched.heading : `${matched.heading} ${cleaned}`.trim()
-      if (formatted[formatted.length - 1] !== candidate) {
-        formatted.push(candidate)
+    const headingMatch = line.match(/^([\p{Extended_Pictographic}\uFE0F\s()/-]*[^:\n]{2,})\s*:\s*(.*)$/u)
+    if (headingMatch) {
+      const resolved = resolveHeading(stripDecorativeEmojis(headingMatch[1] || ''))
+      const contentRaw = stripDecorativeEmojis(headingMatch[2] || '')
+      if (resolved) {
+        if (lastHeading !== resolved) {
+          formatted.push(resolved)
+          lastHeading = resolved
+        }
+        const content = stripLeadingRepeatedHeading(contentRaw, resolved)
+        if (content && formatted[formatted.length - 1] !== content) {
+          formatted.push(content)
+        }
+        continue
+      }
+      const fallback = stripDecorativeEmojis(line)
+      if (fallback && formatted[formatted.length - 1] !== fallback) {
+        formatted.push(fallback)
+      }
+      lastHeading = null
+      continue
+    }
+    const headingOnly = resolveHeading(stripDecorativeEmojis(line))
+    if (headingOnly) {
+      if (lastHeading !== headingOnly) {
+        formatted.push(headingOnly)
+        lastHeading = headingOnly
       }
       continue
     }
-    let plain = stripDecorativeEmojis(line)
-    const genericHeadingMatch = plain.match(/^([^:\n]{2,}):\s*(.+)$/u)
-    if (genericHeadingMatch) {
-      const heading = genericHeadingMatch[1].trim()
-      let content = genericHeadingMatch[2].trim()
-      const headingToken = toToken(heading)
-      const contentToken = toToken(content)
-      if (headingToken && contentToken && contentToken.startsWith(headingToken)) {
-        content = content.replace(new RegExp(`^${heading.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*:?[\\s-]*`, 'i'), '').trim()
-      }
-      plain = content ? `${heading}: ${content}` : `${heading}:`
-    }
+    const plain = stripDecorativeEmojis(line)
     if (plain && formatted[formatted.length - 1] !== plain) {
       formatted.push(plain)
     }
+    lastHeading = null
   }
 
   return formatted.filter(Boolean).join('\n\n')
@@ -131,6 +178,16 @@ function splitGoals(goals: string | null) {
     .split('|')
     .map((goal) => goal.trim())
     .filter(Boolean)
+}
+
+function normalizeTopicKey(value: string) {
+  return value
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
 }
 
 function mapGoalToCta(goal: string) {
@@ -227,7 +284,7 @@ export async function POST(request: Request) {
       : [1, 2, 3, 4, 5]
     const freqPerWeek = Math.max(1, Math.min(7, Number(profile.frequency_per_week || 3)))
 
-    const { data: existingItems } = await (supabase.from('content_calendar_items') as any)
+    const { data: existingItemsInMonth } = await (supabase.from('content_calendar_items') as any)
       .select('date, topic')
       .eq('user_id', user.id)
       .gte('date', `${year}-${String(monthIndex + 1).padStart(2, '0')}-01`)
@@ -235,6 +292,11 @@ export async function POST(request: Request) {
         'date',
         `${year}-${String(monthIndex + 1).padStart(2, '0')}-${String(daysInMonth(year, monthIndex)).padStart(2, '0')}`
       )
+
+    const { data: existingTopicsAll } = await (supabase.from('content_calendar_items') as any)
+      .select('topic')
+      .eq('user_id', user.id)
+      .not('topic', 'is', null)
 
     const { data: existingAutoPlanItem } = await (supabase.from('content_calendar_items') as any)
       .select('id')
@@ -267,8 +329,8 @@ export async function POST(request: Request) {
       )
     }
 
-    const occupiedDates = new Set((existingItems || []).map((it: any) => it.date))
-    const existingTopics = ((existingItems || []) as Array<{ topic?: unknown }>)
+    const occupiedDates = new Set((existingItemsInMonth || []).map((it: any) => it.date))
+    const existingTopics = ((existingTopicsAll || []) as Array<{ topic?: unknown }>)
       .map((it) => (it.topic || '').toString().trim())
       .filter((topic: string) => Boolean(topic))
 
@@ -287,9 +349,9 @@ export async function POST(request: Request) {
       candidateDates.push(dateStr)
     }
 
-    const approxWeeksLeft = Math.max(1, Math.ceil((endDay - startDay + 1) / 7))
-    const targetCount = Math.max(1, Math.min(12, freqPerWeek * approxWeeksLeft))
-    const selectedDates = candidateDates.slice(0, targetCount)
+    // Regra nova: gerar para TODAS as ocorrências dos dias marcados no mês,
+    // respeitando datas já ocupadas.
+    const selectedDates = candidateDates
 
     if (selectedDates.length === 0) {
       return NextResponse.json({
@@ -373,7 +435,7 @@ export async function POST(request: Request) {
 
     const aiItems = Array.isArray(parsed?.items) ? parsed.items : []
     const selectedSet = new Set(selectedDates)
-    const usedTopics = new Set(existingTopics.map((topic) => topic.toLowerCase()))
+    const usedTopics = new Set(existingTopics.map((topic) => normalizeTopicKey(topic)))
     const payloads: any[] = []
 
     for (const rawItem of aiItems) {
@@ -382,7 +444,7 @@ export async function POST(request: Request) {
 
       const topic = (rawItem?.topic || '').toString().trim()
       if (!topic) continue
-      const key = topic.toLowerCase()
+      const key = normalizeTopicKey(topic)
       if (usedTopics.has(key)) continue
       usedTopics.add(key)
 

@@ -126,6 +126,59 @@ function splitSentencesForReadability(text: string) {
   return mergedParts.join('\n\n')
 }
 
+const SCRIPT_HEADING_ALIASES: Array<{ heading: string; aliases: string[] }> = [
+  { heading: '🎣 Gancho:', aliases: ['gancho', 'hook', 'abertura'] },
+  { heading: '😣 Problema/Dor:', aliases: ['problema', 'dor', 'problema dor'] },
+  { heading: '💡 Insight/Virada de chave:', aliases: ['insight', 'virada', 'virada de chave'] },
+  { heading: '🧠 Desenvolvimento:', aliases: ['desenvolvimento', 'explicacao', 'explicação'] },
+  { heading: '🎬 Demonstração/Exemplo:', aliases: ['demonstracao', 'demonstração', 'exemplo', 'demonstracao exemplo', 'demonstração exemplo'] },
+  { heading: '✅ Solução:', aliases: ['solucao', 'solução'] },
+  { heading: '👀 Atenção:', aliases: ['atencao', 'atenção'] },
+  { heading: '🤝 Interesse:', aliases: ['interesse'] },
+  { heading: '🔥 Desejo:', aliases: ['desejo'] },
+  { heading: '📣 CTA final:', aliases: ['cta', 'acao', 'ação', 'cta final', 'chamada para acao', 'chamada para ação'] },
+  { heading: '🪜 Agitação:', aliases: ['agitacao', 'agitação'] },
+  { heading: '📖 Contexto/História:', aliases: ['contexto', 'historia', 'história', 'contexto historia', 'contexto história'] },
+  { heading: '⚔️ Conflito:', aliases: ['conflito'] },
+  { heading: '🎯 Oferta:', aliases: ['oferta'] },
+]
+
+function normalizeHeadingToken(value: string) {
+  return value
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+function resolveCanonicalHeading(rawHeading: string) {
+  const token = normalizeHeadingToken(rawHeading)
+  if (!token) return null
+  for (const def of SCRIPT_HEADING_ALIASES) {
+    for (const alias of def.aliases) {
+      const aliasToken = normalizeHeadingToken(alias)
+      if (token === aliasToken || token.startsWith(`${aliasToken} `) || token.endsWith(` ${aliasToken}`)) {
+        return def.heading
+      }
+    }
+  }
+  return null
+}
+
+function removeRepeatedHeadingPrefix(content: string, heading: string) {
+  const headingToken = normalizeHeadingToken(heading.replace(':', ''))
+  const plain = content.trim()
+  const match = plain.match(/^\(?([^)]+)\)?\s*:?\s*(.*)$/u)
+  if (!match) return plain
+  const possibleHeading = normalizeHeadingToken(match[1] || '')
+  if (possibleHeading && (possibleHeading === headingToken || headingToken.includes(possibleHeading) || possibleHeading.includes(headingToken))) {
+    return (match[2] || '').trim()
+  }
+  return plain
+}
+
 function formatReadableBlock(text: string) {
   const lines = text
     .replace(/\r/g, '')
@@ -134,21 +187,39 @@ function formatReadableBlock(text: string) {
     .filter(Boolean)
 
   const formatted: string[] = []
+  let lastHeading: string | null = null
   for (const line of lines) {
     if (line.startsWith('#')) {
       formatted.push(line)
+      lastHeading = null
       continue
     }
-    const headingMatch = line.match(/^([\p{Extended_Pictographic}\uFE0F\s]*[^:\n]{2,}:\s*)(.*)$/u)
+    const headingMatch = line.match(/^([\p{Extended_Pictographic}\uFE0F\s()/-]*[^:\n]{2,})\s*:\s*(.*)$/u)
     if (headingMatch) {
-      const heading = headingMatch[1].trim()
-      const content = headingMatch[2].trim()
-      formatted.push(heading)
+      const rawHeading = headingMatch[1].trim()
+      let content = headingMatch[2].trim()
+      const canonicalHeading = resolveCanonicalHeading(rawHeading) || `${rawHeading.replace(/\s+$/g, '')}:`
+      if (lastHeading !== canonicalHeading) {
+        formatted.push(canonicalHeading)
+        lastHeading = canonicalHeading
+      }
+      if (content) {
+        content = removeRepeatedHeadingPrefix(content, canonicalHeading)
+      }
       if (content) {
         formatted.push(splitSentencesForReadability(content))
       }
       continue
     }
+    const asHeadingOnly = resolveCanonicalHeading(line)
+    if (asHeadingOnly) {
+      if (lastHeading !== asHeadingOnly) {
+        formatted.push(asHeadingOnly)
+        lastHeading = asHeadingOnly
+      }
+      continue
+    }
+    lastHeading = null
     formatted.push(splitSentencesForReadability(line))
   }
 
