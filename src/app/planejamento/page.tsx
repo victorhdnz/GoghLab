@@ -19,6 +19,9 @@ import {
 } from '@/lib/content/script-strategies'
 import toast from 'react-hot-toast'
 
+const ERRO_GERACAO_MENSAGEM =
+  'Ocorreu uma instabilidade. Tente novamente. Se o problema persistir, entre em contato com o suporte pelo WhatsApp.'
+
 type ContentProfile = {
   id: string
   business_name: string | null
@@ -531,12 +534,10 @@ export default function ContentPlanningPage() {
       })
       const data = await res.json()
       if (!res.ok) {
+        toast.error(ERRO_GERACAO_MENSAGEM)
         if (data?.code === 'insufficient_credits' && data?.redirectTo) {
-          toast.error(data.error || 'Créditos insuficientes')
           window.location.href = data.redirectTo
-          return
         }
-        toast.error(data.error || 'Erro ao gerar conteúdo')
         return
       }
       const updated: CalendarItem = data.item
@@ -546,7 +547,7 @@ export default function ContentPlanningPage() {
       toast.success(regenerate ? 'Novo conteúdo gerado com sucesso.' : 'Conteúdo gerado com sucesso.')
     } catch (e) {
       console.error('Erro ao gerar conteúdo', e)
-      toast.error('Erro ao gerar conteúdo')
+      toast.error(ERRO_GERACAO_MENSAGEM)
     } finally {
       setGeneratingId(null)
     }
@@ -733,7 +734,7 @@ export default function ContentPlanningPage() {
               : prev
           )
         }
-        toast.error(data.error || 'Erro ao gerar agenda automática')
+        toast.error(data?.code === 'AUTO_PLAN_ALREADY_USED' ? (data.error || 'Erro ao gerar agenda automática') : ERRO_GERACAO_MENSAGEM)
         return
       }
       const createdItems: CalendarItem[] = Array.isArray(data.items) ? data.items : []
@@ -756,7 +757,7 @@ export default function ContentPlanningPage() {
       toast.success(`Agenda automática criada com ${createdItems.length} vídeo(s).`)
     } catch (e) {
       console.error('Erro na agenda automática', e)
-      toast.error('Erro ao gerar agenda automática')
+      toast.error(ERRO_GERACAO_MENSAGEM)
     } finally {
       setAutoPlanning(false)
     }

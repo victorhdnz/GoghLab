@@ -150,11 +150,11 @@ export function CourseBentoGrid({ items, onItemClick, selectedId, className }: C
 
             <div className="relative flex flex-col space-y-3">
               <div className="flex items-center justify-between gap-2">
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center overflow-hidden bg-black/5 group-hover:bg-gradient-to-br transition-all duration-300">
+                <div className="w-14 h-14 rounded-xl flex items-center justify-center overflow-hidden bg-black/5 flex-shrink-0 group-hover:bg-black/[0.07] transition-all duration-300">
                   {item.imageUrl ? (
                     <img src={item.imageUrl} alt={item.title} className="w-full h-full object-cover" />
                   ) : (
-                    <span className="text-[10px] font-semibold text-gray-600">Curso</span>
+                    <span className="text-base font-semibold text-gray-500">Curso</span>
                   )}
                 </div>
                 <span
@@ -168,10 +168,10 @@ export function CourseBentoGrid({ items, onItemClick, selectedId, className }: C
               </div>
 
               <div className="space-y-2">
-                <h3 className="font-medium text-gray-900 tracking-tight text-[15px] leading-tight">
+                <h3 className="font-semibold text-gray-900 tracking-tight text-lg leading-snug">
                   {item.title}
                   {item.meta ? (
-                    <span className="ml-2 text-xs text-gray-500 font-normal">{item.meta}</span>
+                    <span className="ml-2 text-sm text-gray-500 font-normal">{item.meta}</span>
                   ) : null}
                 </h3>
                 {item.description ? (
