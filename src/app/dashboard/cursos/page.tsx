@@ -65,7 +65,6 @@ export default function CursosPage() {
   
   const [lessonForm, setLessonForm] = useState({
     title: '',
-    description: '',
     video_url: ''
   })
 
@@ -247,7 +246,9 @@ export default function CursosPage() {
       const { error } = await (supabase as any)
         .from('course_lessons')
         .insert({
-          ...lessonForm,
+          title: lessonForm.title,
+          video_url: lessonForm.video_url,
+          description: null,
           course_id: selectedCourse.id,
           order_position: maxOrder + 1
         })
@@ -262,7 +263,7 @@ export default function CursosPage() {
 
       toast.success('Aula criada com sucesso!')
       setShowLessonForm(false)
-      setLessonForm({ title: '', description: '', video_url: '' })
+      setLessonForm({ title: '', video_url: '' })
       await loadCourses()
       if (selectedCourse) {
         const updated = courses.find(c => c.id === selectedCourse.id)
@@ -280,7 +281,11 @@ export default function CursosPage() {
     try {
       const { error } = await (supabase as any)
         .from('course_lessons')
-        .update(lessonForm)
+        .update({
+          title: lessonForm.title,
+          video_url: lessonForm.video_url,
+          description: null,
+        })
         .eq('id', editingLesson.id)
 
       if (error) throw error
@@ -288,7 +293,7 @@ export default function CursosPage() {
       toast.success('Aula atualizada com sucesso!')
       setEditingLesson(null)
       setShowLessonForm(false)
-      setLessonForm({ title: '', description: '', video_url: '' })
+      setLessonForm({ title: '', video_url: '' })
       await loadCourses()
       if (selectedCourse) {
         const updated = courses.find(c => c.id === selectedCourse.id)
@@ -378,12 +383,11 @@ export default function CursosPage() {
       setEditingLesson(lesson)
       setLessonForm({
         title: lesson.title,
-        description: lesson.description || '',
         video_url: lesson.video_url || ''
       })
     } else {
       setEditingLesson(null)
-      setLessonForm({ title: '', description: '', video_url: '' })
+      setLessonForm({ title: '', video_url: '' })
     }
     setShowLessonForm(true)
   }
@@ -548,7 +552,6 @@ export default function CursosPage() {
                         <Video className="w-4 h-4 text-gray-400" />
                         <h4 className="font-medium text-gray-900">{lesson.title}</h4>
                       </div>
-                      <p className="text-sm text-gray-600">{lesson.description}</p>
                     </div>
                     <div className="flex items-center gap-2">
                       <button
@@ -669,17 +672,6 @@ export default function CursosPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Descrição
-                  </label>
-                  <textarea
-                    value={lessonForm.description}
-                    onChange={(e) => setLessonForm({ ...lessonForm, description: e.target.value })}
-                    rows={3}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
                     Vídeo da Aula
                   </label>
                   <VideoUploader
@@ -696,7 +688,7 @@ export default function CursosPage() {
                     onClick={() => {
                       setShowLessonForm(false)
                       setEditingLesson(null)
-                      setLessonForm({ title: '', description: '', video_url: '' })
+                      setLessonForm({ title: '', video_url: '' })
                     }}
                     className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
                   >
