@@ -1153,7 +1153,6 @@ export default function ContentPlanningPage() {
         </div>
       </section>
       </div>
-      </div>
 
       <Modal
         isOpen={createModalOpen}
