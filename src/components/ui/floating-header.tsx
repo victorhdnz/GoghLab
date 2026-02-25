@@ -123,7 +123,7 @@ const menuWithDropdowns: Array<
 
 export function FloatingHeader() {
   const pathname = usePathname()
-  const { isAuthenticated, hasActiveSubscription } = useAuth()
+  const { isAuthenticated } = useAuth()
   const [siteName, setSiteName] = useState('Gogh Lab')
   const [siteLogo, setSiteLogo] = useState<string | null>(null)
   const [mobileActiveIndex, setMobileActiveIndex] = useState(0)
@@ -131,8 +131,8 @@ export function FloatingHeader() {
   const navRef = useRef<HTMLElement>(null)
   const itemRefs = useRef<(HTMLElement | null)[]>([])
   const [indicatorStyle, setIndicatorStyle] = useState<{ left: number; width: number } | null>(null)
-  const gatedRoutes = new Set(['/planejamento', '/ferramentas', '/cursos'])
-  const getProtectedHref = (url: string) => (hasActiveSubscription || !gatedRoutes.has(url) ? url : '/precos')
+  // Rotas vitrine: sempre abrir a página e deixar o bloqueio visual acontecer nela.
+  const getProtectedHref = (url: string) => url
 
   // Sincronizar ícone ativo no mobile com a rota atual
   React.useEffect(() => {
