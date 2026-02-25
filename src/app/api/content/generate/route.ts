@@ -80,26 +80,40 @@ function formatScriptForReadability(value: string) {
         .filter(Boolean)
 
   const formatted: string[] = []
+  const toToken = (text: string) =>
+    stripDecorativeEmojis(text).toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '')
+
   for (const rawLine of lines) {
     const line = rawLine.replace(/\s+/g, ' ').trim()
     const matched = sectionMap.find((entry) => entry.regex.test(line))
     if (matched) {
       const headingLabel = stripDecorativeEmojis(matched.heading.replace(':', ''))
-      const headingToken = headingLabel.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '')
+      const headingToken = toToken(headingLabel)
       const cleaned = stripDecorativeEmojis(
         line.replace(
           /^[\p{Extended_Pictographic}\uFE0F\s-]*(gancho|desenvolvimento|demonstração\/exemplo|demonstração|demonstracao\/exemplo|demonstracao|exemplo|problema\/dor|problema|agitação|agitacao|insight\/virada de chave|insight|virada de chave|solução|solucao|atenção|atencao|interesse|desejo|ação|acao|contexto\/história|contexto|história|historia|conflito|oferta|cta final|cta)\s*:?\s*/iu,
           ''
         )
       )
-      const cleanedToken = cleaned.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '')
+      const cleanedToken = toToken(cleaned)
       const candidate = !cleaned || cleanedToken === headingToken ? matched.heading : `${matched.heading} ${cleaned}`.trim()
       if (formatted[formatted.length - 1] !== candidate) {
         formatted.push(candidate)
       }
       continue
     }
-    const plain = stripDecorativeEmojis(line)
+    let plain = stripDecorativeEmojis(line)
+    const genericHeadingMatch = plain.match(/^([^:\n]{2,}):\s*(.+)$/u)
+    if (genericHeadingMatch) {
+      const heading = genericHeadingMatch[1].trim()
+      let content = genericHeadingMatch[2].trim()
+      const headingToken = toToken(heading)
+      const contentToken = toToken(content)
+      if (headingToken && contentToken && contentToken.startsWith(headingToken)) {
+        content = content.replace(new RegExp(`^${heading.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*:?[\\s-]*`, 'i'), '').trim()
+      }
+      plain = content ? `${heading}: ${content}` : `${heading}:`
+    }
     if (plain && formatted[formatted.length - 1] !== plain) {
       formatted.push(plain)
     }

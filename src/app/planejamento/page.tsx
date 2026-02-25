@@ -104,13 +104,26 @@ function buildProfileSignature(form: ProfileFormState, customGoals: string[]) {
 }
 
 function splitSentencesForReadability(text: string) {
-  return text
+  const rawParts = text
     .replace(/\s+/g, ' ')
     .trim()
-    .split(/(?<=[.!?])\s+(?=[^\s])/g)
+    // Só quebra quando a próxima sentença começa com letra/número.
+    // Isso evita separar emoji sozinho como "parágrafo órfão".
+    .split(/(?<=[.!?])\s+(?=[\p{L}\p{N}])/gu)
     .map((sentence) => sentence.trim())
     .filter(Boolean)
-    .join('\n\n')
+
+  const mergedParts: string[] = []
+  for (const part of rawParts) {
+    const isEmojiOnly = /^[\p{Extended_Pictographic}\uFE0F\s]+$/u.test(part)
+    if (isEmojiOnly && mergedParts.length > 0) {
+      mergedParts[mergedParts.length - 1] = `${mergedParts[mergedParts.length - 1]} ${part}`.trim()
+      continue
+    }
+    mergedParts.push(part)
+  }
+
+  return mergedParts.join('\n\n')
 }
 
 function formatReadableBlock(text: string) {
