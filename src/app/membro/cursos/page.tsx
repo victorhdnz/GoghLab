@@ -12,7 +12,6 @@ import {
 } from 'lucide-react'
 import { LumaSpin } from '@/components/ui/luma-spin'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import { CourseBentoGrid } from '@/components/ui/bento-grid'
 import { Modal } from '@/components/ui/Modal'
 import { 
@@ -44,7 +43,6 @@ interface Lesson {
 
 export default function CoursesPage() {
   const { user, hasActiveSubscription, subscription, isPro, loading: authLoading } = useAuth()
-  const router = useRouter()
   const [courses, setCourses] = useState<Course[]>([])
   const [loading, setLoading] = useState(true)
   const [planHasCoursesProduct, setPlanHasCoursesProduct] = useState<boolean | null>(null)
@@ -54,13 +52,6 @@ export default function CoursesPage() {
   // Acesso aos cursos: plano tem produto "cursos-edicao" OU legado (isPro)
   const hasCourseAccess =
     planHasCoursesProduct === true || (planHasCoursesProduct !== false && isPro && hasActiveSubscription)
-
-  useEffect(() => {
-    if (authLoading) return
-    if (!hasActiveSubscription) {
-      router.replace('/precos')
-    }
-  }, [authLoading, hasActiveSubscription, router])
 
   useEffect(() => {
     const checkPlanProducts = async () => {
@@ -85,8 +76,6 @@ export default function CoursesPage() {
 
   useEffect(() => {
     const fetchCourses = async () => {
-      if (!user) return
-
       try {
         // Primeiro, buscar apenas os cursos para verificar se há algum
         const { data: coursesData, error: coursesError } = await (supabase as any)
@@ -135,7 +124,7 @@ export default function CoursesPage() {
     fetchCourses()
   }, [user])
 
-  if (authLoading || !hasActiveSubscription || loading) {
+  if (authLoading || loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
@@ -167,7 +156,7 @@ export default function CoursesPage() {
         >
           <p className="text-amber-800">
             {!hasActiveSubscription
-              ? <>Você precisa de uma assinatura ativa para acessar os cursos. <Link href="/precos" className="font-medium underline">Ver planos</Link></>
+              ? <>Você precisa assinar o plano Gogh Pro para acessar os cursos. <Link href="/precos" className="font-medium underline">Assinar Gogh Pro</Link></>
               : <>Os cursos são exclusivos para o plano Pro. <Link href="/precos" className="font-medium underline">Faça upgrade agora</Link></>
             }
           </p>
@@ -182,16 +171,18 @@ export default function CoursesPage() {
               <div className="text-center p-4 sm:p-6 md:p-8">
                 <BookOpen className="w-16 h-16 text-gogh-grayDark mx-auto mb-4 opacity-50" />
                 <h3 className="text-xl font-bold text-gogh-black mb-2">
-                  Cursos Exclusivos do Plano Pro
+                  {!hasActiveSubscription ? 'Assine o Gogh Pro para acessar' : 'Cursos Exclusivos do Plano Pro'}
                 </h3>
                 <p className="text-gogh-grayDark mb-6 max-w-md mx-auto">
-                  Faça upgrade para o plano Pro e tenha acesso completo a todos os nossos cursos de Canva e CapCut.
+                  {!hasActiveSubscription
+                    ? 'Esta área está disponível para visualização, mas o acesso aos cursos é exclusivo do plano Gogh Pro.'
+                    : 'Faça upgrade para o plano Pro e tenha acesso completo a todos os nossos cursos de Canva e CapCut.'}
                 </p>
                 <Link
                   href="/precos"
                   className="inline-flex items-center gap-2 px-6 py-3 bg-gogh-yellow text-gogh-black font-medium rounded-xl hover:bg-gogh-yellow/90 transition-colors"
                 >
-                  Fazer Upgrade
+                  {!hasActiveSubscription ? 'Assinar Gogh Pro' : 'Fazer Upgrade'}
                 </Link>
               </div>
             </div>

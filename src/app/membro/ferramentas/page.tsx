@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useRef } from 'react'
-import { usePathname, useRouter } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { createClient } from '@/lib/supabase/client'
 import { motion } from 'framer-motion'
@@ -66,7 +66,6 @@ interface SupportTicket {
 
 export default function ToolsPage() {
   const pathname = usePathname()
-  const router = useRouter()
   const isPublicRoute = pathname === '/ferramentas'
   const { user, subscription, hasActiveSubscription, isPro, loading: authLoading } = useAuth()
   const [toolAccess, setToolAccess] = useState<ToolAccess[]>([])
@@ -90,13 +89,6 @@ export default function ToolsPage() {
   const isAccessLinkUrl = (s: string) => /^https?:\/\//i.test(s?.trim() ?? '')
 
   const supabase = createClient()
-
-  useEffect(() => {
-    if (authLoading) return
-    if (!hasActiveSubscription) {
-      router.replace('/precos')
-    }
-  }, [authLoading, hasActiveSubscription, router])
 
   // Lista de ferramentas para exibir em modo público (sem login) ou quando não tem assinatura
   useEffect(() => {
@@ -608,7 +600,7 @@ export default function ToolsPage() {
     }
   ]
 
-  if (authLoading || !hasActiveSubscription || (loading && user)) {
+  if (authLoading || (loading && user)) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
@@ -621,133 +613,108 @@ export default function ToolsPage() {
 
   // Modo público: ver ferramentas sem login; ao tentar usar, pedir login ou assinatura
   const displayToolsForPreview = publicTools.length > 0 ? publicTools : []
-  if (!user) {
-    return (
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 space-y-6 sm:space-y-8">
-        <div>
-          <h1 className="text-2xl lg:text-3xl font-bold text-gogh-black mb-2">Ferramentas</h1>
-          <p className="text-gogh-grayDark">
-            Ferramentas incluídas nos planos. Faça login e assine para solicitar acesso e usar.
-          </p>
-        </div>
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-gradient-to-r from-gogh-yellow/20 to-amber-100 rounded-xl p-5 border border-gogh-yellow/30"
-        >
-          <p className="text-sm text-gogh-grayDark">
-            Você está vendo o catálogo de ferramentas. Para solicitar acesso e usar, <strong>assine um plano</strong>.
-          </p>
-        </motion.div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-          {displayToolsForPreview.map((t) => (
-            <motion.div
-              key={t.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="rounded-xl"
-            >
-              <GlowingShadow className="rounded-xl">
-                <div className="bg-white rounded-xl border border-gogh-grayLight shadow-sm overflow-hidden p-6">
-                  <div className="flex items-center gap-4 mb-3">
-                    {t.icon_url ? (
-                      <img src={t.icon_url} alt="" className="w-14 h-14 rounded-xl object-contain" />
-                    ) : (
-                      <div className="w-14 h-14 bg-gogh-yellow/20 rounded-xl flex items-center justify-center">
-                        <Wrench className="w-7 h-7 text-gogh-grayDark" />
-                      </div>
-                    )}
-                    <h3 className="text-xl font-bold text-gogh-black">{t.name}</h3>
-                  </div>
-                  <p className="text-gogh-grayDark text-sm mb-4">{t.description || 'Ferramenta incluída no plano.'}</p>
-                  <Link
-                    href="/precos"
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-gogh-yellow text-gogh-black font-medium rounded-lg hover:bg-gogh-yellow/90 transition-colors text-sm"
-                  >
-                    Ver planos para solicitar acesso
-                    <ExternalLink className="w-3 h-3" />
-                  </Link>
-                </div>
-              </GlowingShadow>
-            </motion.div>
-          ))}
-        </div>
-        {displayToolsForPreview.length === 0 && (
-          <p className="text-center text-gogh-grayDark">Nenhuma ferramenta configurada no momento.</p>
-        )}
+  const renderProSubscriptionRequired = (isLoggedUser: boolean) => (
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 space-y-6 sm:space-y-8">
+      <div>
+        <h1 className="text-2xl lg:text-3xl font-bold text-gogh-black mb-2">Ferramentas Pro</h1>
+        <p className="text-gogh-grayDark">
+          Acesse as melhores ferramentas de criação incluídas na assinatura Gogh Pro.
+        </p>
       </div>
-    )
+
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200 rounded-xl p-6"
+      >
+        <p className="text-amber-800">
+          {isLoggedUser
+            ? <>Para solicitar e usar as ferramentas, assine o plano Gogh Pro. <Link href="/precos" className="font-medium underline">Assinar Gogh Pro</Link></>
+            : <>Você precisa assinar o plano Gogh Pro para acessar esta área. <Link href="/precos" className="font-medium underline">Assinar Gogh Pro</Link></>}
+        </p>
+      </motion.div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 relative">
+        <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-10 rounded-xl flex items-center justify-center">
+          <div className="text-center p-4 sm:p-6 md:p-8">
+            <Wrench className="w-16 h-16 text-gogh-grayDark mx-auto mb-4 opacity-50" />
+            <h3 className="text-xl font-bold text-gogh-black mb-2">Ferramentas Exclusivas do Plano Pro</h3>
+            <p className="text-gogh-grayDark mb-6 max-w-md">
+              Assine o plano Gogh Pro para ter acesso completo às ferramentas Canva Pro e CapCut Pro.
+            </p>
+            <Link
+              href="/precos"
+              className="inline-flex items-center gap-2 px-6 py-3 bg-gogh-yellow text-gogh-black font-medium rounded-xl hover:bg-gogh-yellow/90 transition-colors"
+            >
+              Assinar Gogh Pro
+            </Link>
+          </div>
+        </div>
+
+        {displayToolsForPreview.length > 0
+          ? displayToolsForPreview.map((t, index) => (
+              <motion.div
+                key={t.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.1 }}
+                className="bg-white rounded-xl border border-gogh-grayLight shadow-sm overflow-hidden p-6 blur-sm pointer-events-none opacity-60"
+              >
+                <div className="flex items-center gap-4 mb-3">
+                  {t.icon_url ? (
+                    <img src={t.icon_url} alt="" className="w-14 h-14 rounded-xl object-contain" />
+                  ) : (
+                    <div className="w-14 h-14 bg-gogh-yellow/20 rounded-xl flex items-center justify-center">
+                      <Wrench className="w-7 h-7 text-gogh-grayDark" />
+                    </div>
+                  )}
+                  <h3 className="text-xl font-bold text-gogh-black">{t.name}</h3>
+                </div>
+                <p className="text-gogh-grayDark text-sm">{t.description || 'Ferramenta incluída no plano.'}</p>
+              </motion.div>
+            ))
+          : tools.map((tool, index) => (
+              <motion.div
+                key={tool.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.1 }}
+                className="bg-white rounded-xl border border-gogh-grayLight shadow-sm overflow-hidden blur-sm pointer-events-none opacity-60"
+              >
+                <div className={`bg-gradient-to-r ${tool.color} p-6 text-white`}>
+                  <div className="flex items-center gap-4">
+                    <div className="w-14 h-14 bg-white/20 rounded-xl flex items-center justify-center">
+                      <tool.icon className="w-8 h-8" />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-bold">{tool.name}</h3>
+                    </div>
+                  </div>
+                </div>
+                <div className="p-6">
+                  <p className="text-gogh-grayDark text-sm mb-4">{tool.description}</p>
+                  <ul className="space-y-2">
+                    {tool.features.map((feature, i) => (
+                      <li key={i} className="flex items-center gap-2 text-sm">
+                        <CheckCircle2 className="w-4 h-4 text-gogh-yellow flex-shrink-0" />
+                        <span className="text-gogh-grayDark">{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </motion.div>
+            ))}
+      </div>
+    </div>
+  )
+
+  if (!user) {
+    return renderProSubscriptionRequired(false)
   }
 
   // Logado mas sem assinatura: mostrar visual e redirecionar para planos ao tentar usar
   if (!hasActiveSubscription) {
-    return (
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 space-y-6 sm:space-y-8">
-        <div>
-          <h1 className="text-2xl lg:text-3xl font-bold text-gogh-black mb-2">Ferramentas</h1>
-          <p className="text-gogh-grayDark">
-            Ferramentas incluídas nos planos. Assine um plano para solicitar acesso e usar.
-          </p>
-        </div>
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200 rounded-xl p-6"
-        >
-          <div className="flex items-start gap-4">
-            <AlertCircle className="w-6 h-6 text-amber-600 flex-shrink-0 mt-0.5" />
-            <div>
-              <h3 className="font-semibold text-amber-900 mb-2">Assinatura necessária para usar</h3>
-              <p className="text-amber-800 mb-4">
-                Você já está logado. Para solicitar acesso e usar as ferramentas, assine um plano.
-              </p>
-              <Link
-                href="/precos"
-                className="inline-flex items-center gap-2 px-4 py-2 bg-gogh-yellow text-gogh-black font-medium rounded-lg hover:bg-gogh-yellow/80 transition-colors"
-              >
-                Ver planos e assinar
-              </Link>
-            </div>
-          </div>
-        </motion.div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-          {displayToolsForPreview.map((t) => (
-            <motion.div
-              key={t.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="rounded-xl"
-            >
-              <GlowingShadow className="rounded-xl">
-                <div className="bg-white rounded-xl border border-gogh-grayLight shadow-sm overflow-hidden p-6">
-                  <div className="flex items-center gap-4 mb-3">
-                    {t.icon_url ? (
-                      <img src={t.icon_url} alt="" className="w-14 h-14 rounded-xl object-contain" />
-                    ) : (
-                      <div className="w-14 h-14 bg-gogh-yellow/20 rounded-xl flex items-center justify-center">
-                        <Wrench className="w-7 h-7 text-gogh-grayDark" />
-                      </div>
-                    )}
-                    <h3 className="text-xl font-bold text-gogh-black">{t.name}</h3>
-                  </div>
-                  <p className="text-gogh-grayDark text-sm mb-4">{t.description || 'Ferramenta incluída no plano.'}</p>
-                  <Link
-                    href="/precos"
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-gogh-yellow text-gogh-black font-medium rounded-lg hover:bg-gogh-yellow/90 transition-colors text-sm"
-                  >
-                    Assinar para usar
-                    <ExternalLink className="w-3 h-3" />
-                  </Link>
-                </div>
-              </GlowingShadow>
-            </motion.div>
-          ))}
-        </div>
-        {displayToolsForPreview.length === 0 && (
-          <p className="text-center text-gogh-grayDark">Nenhuma ferramenta configurada no momento.</p>
-        )}
-      </div>
-    )
+    return renderProSubscriptionRequired(true)
   }
 
   // Acesso às ferramentas: plano tem produtos do tipo ferramenta OU legado (apenas Pro)
