@@ -59,7 +59,6 @@ export default function CursosPage() {
   // Form states
   const [courseForm, setCourseForm] = useState({
     title: '',
-    description: '',
     thumbnail_url: '',
   })
   
@@ -156,7 +155,7 @@ export default function CursosPage() {
       // Preparar dados do curso
       const courseData: any = {
         title: courseForm.title.trim(),
-        description: courseForm.description?.trim() || null,
+        description: null,
         thumbnail_url: courseForm.thumbnail_url?.trim() || null,
         slug: slug,
         course_type: inferCourseType(courseForm.title.trim()),
@@ -182,7 +181,7 @@ export default function CursosPage() {
 
       toast.success('Curso criado com sucesso!')
       setShowCourseForm(false)
-      setCourseForm({ title: '', description: '', thumbnail_url: '' })
+      setCourseForm({ title: '', thumbnail_url: '' })
       await loadCourses()
     } catch (error: any) {
       console.error('Erro ao criar curso:', error)
@@ -198,7 +197,7 @@ export default function CursosPage() {
         .from('courses')
         .update({
           title: courseForm.title.trim(),
-          description: courseForm.description?.trim() || null,
+          description: null,
           thumbnail_url: courseForm.thumbnail_url?.trim() || null,
           course_type: inferCourseType(courseForm.title.trim()),
           is_published: true,
@@ -210,7 +209,7 @@ export default function CursosPage() {
       toast.success('Curso atualizado com sucesso!')
       setEditingCourse(null)
       setShowCourseForm(false)
-      setCourseForm({ title: '', description: '', thumbnail_url: '' })
+      setCourseForm({ title: '', thumbnail_url: '' })
       await loadCourses()
     } catch (error: any) {
       console.error('Erro ao atualizar curso:', error)
@@ -368,12 +367,11 @@ export default function CursosPage() {
       setEditingCourse(course)
       setCourseForm({
         title: course.title,
-        description: course.description || '',
         thumbnail_url: course.thumbnail_url || '',
       })
     } else {
       setEditingCourse(null)
-      setCourseForm({ title: '', description: '', thumbnail_url: '' })
+      setCourseForm({ title: '', thumbnail_url: '' })
     }
     setShowCourseForm(true)
   }
@@ -513,7 +511,6 @@ export default function CursosPage() {
             <div className="flex items-center justify-between mb-6">
               <div>
                 <h3 className="text-xl font-bold text-gray-900">{selectedCourse.title}</h3>
-                <p className="text-gray-600 mt-1">{selectedCourse.description}</p>
               </div>
               <button
                 onClick={() => openLessonForm()}
@@ -602,17 +599,6 @@ export default function CursosPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Descrição
-                  </label>
-                  <textarea
-                    value={courseForm.description}
-                    onChange={(e) => setCourseForm({ ...courseForm, description: e.target.value })}
-                    rows={4}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-                <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Imagem do Card (ícone/capa)
                   </label>
@@ -629,7 +615,7 @@ export default function CursosPage() {
                     onClick={() => {
                       setShowCourseForm(false)
                       setEditingCourse(null)
-                      setCourseForm({ title: '', description: '', thumbnail_url: '' })
+                      setCourseForm({ title: '', thumbnail_url: '' })
                     }}
                     className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
                   >
@@ -773,7 +759,6 @@ function CourseCard({
 
       <div className="relative mb-2">
         <h3 className="font-bold text-gray-900">{course.title}</h3>
-        <p className="text-sm text-gray-600 mt-1 line-clamp-2">{course.description}</p>
       </div>
 
       <div className="relative flex items-center justify-between text-sm text-gray-500 mt-3">

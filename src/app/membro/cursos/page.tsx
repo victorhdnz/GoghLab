@@ -229,7 +229,7 @@ function CourseSection({
     return {
       id: course.id,
       title: course.title,
-      description: course.description || 'Curso sem descrição',
+      description: '',
       imageUrl: course.thumbnail_url || null,
       status: `${lessonsCount} aula${lessonsCount !== 1 ? 's' : ''}`,
       cta: 'Abrir curso →',
