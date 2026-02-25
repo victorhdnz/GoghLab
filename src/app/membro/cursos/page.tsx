@@ -175,7 +175,7 @@ export default function CoursesPage() {
                 </h3>
                 <p className="text-gogh-grayDark mb-6 max-w-md mx-auto">
                   {!hasActiveSubscription
-                    ? 'Esta área está disponível para visualização, mas o acesso aos cursos é exclusivo do plano Gogh Pro.'
+                    ? 'Para acessar os cursos é necessário assinar o plano Gogh Pro.'
                     : 'Faça upgrade para o plano Pro e tenha acesso completo a todos os nossos cursos de Canva e CapCut.'}
                 </p>
                 <Link

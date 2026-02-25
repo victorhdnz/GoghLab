@@ -831,26 +831,23 @@ export default function ContentPlanningPage() {
         </div>
       </div>
 
-      <div className="relative">
       {!hasActiveSubscription && (
-        <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-20 rounded-2xl flex items-center justify-center">
-          <div className="text-center p-4 sm:p-6 md:p-8 max-w-md">
-            <CalendarIcon className="w-16 h-16 text-gogh-grayDark mx-auto mb-4 opacity-50" />
-            <h3 className="text-xl font-bold text-gogh-black mb-2">Gogh Agenda IA</h3>
-            <p className="text-gogh-grayDark mb-6">
-              Esta área está disponível para visualização, mas o acesso completo requer uma assinatura ativa.
-            </p>
-            <a
-              href="/precos"
-              className="inline-flex items-center gap-2 px-6 py-3 bg-gogh-yellow text-gogh-black font-medium rounded-xl hover:bg-gogh-yellow/90 transition-colors"
-            >
-              Assinar um plano
-            </a>
-          </div>
+        <div className="bg-white/95 backdrop-blur-sm rounded-2xl border border-gogh-grayLight p-4 sm:p-6 md:p-8 max-w-md mx-auto text-center shadow-sm">
+          <CalendarIcon className="w-16 h-16 text-gogh-grayDark mx-auto mb-4 opacity-50" />
+          <h3 className="text-xl font-bold text-gogh-black mb-2">Gogh Agenda IA</h3>
+          <p className="text-gogh-grayDark mb-6">
+            Para acessar o Gogh Agenda IA é necessário assinar um plano.
+          </p>
+          <a
+            href="/precos"
+            className="inline-flex items-center gap-2 px-6 py-3 bg-gogh-yellow text-gogh-black font-medium rounded-xl hover:bg-gogh-yellow/90 transition-colors"
+          >
+            Assinar um plano
+          </a>
         </div>
       )}
 
-      <div className={!hasActiveSubscription ? 'pointer-events-none select-none blur-sm opacity-60 space-y-5 sm:space-y-8' : 'space-y-5 sm:space-y-8'}>
+      <div className={!hasActiveSubscription ? 'relative pointer-events-none select-none blur-sm opacity-60 space-y-5 sm:space-y-8' : 'space-y-5 sm:space-y-8'}>
       <section className="bg-white rounded-2xl border border-gogh-grayLight p-4 sm:p-6 space-y-4">
         <div className="flex items-center justify-between gap-3">
           <div>

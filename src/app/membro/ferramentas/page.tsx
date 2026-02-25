@@ -638,9 +638,9 @@ export default function ToolsPage() {
         <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-10 rounded-xl flex items-center justify-center">
           <div className="text-center p-4 sm:p-6 md:p-8">
             <Wrench className="w-16 h-16 text-gogh-grayDark mx-auto mb-4 opacity-50" />
-            <h3 className="text-xl font-bold text-gogh-black mb-2">Ferramentas Exclusivas do Plano Pro</h3>
+            <h3 className="text-xl font-bold text-gogh-black mb-2">Ferramentas Premium</h3>
             <p className="text-gogh-grayDark mb-6 max-w-md">
-              Assine o plano Gogh Pro para ter acesso completo às ferramentas Canva Pro e CapCut Pro.
+              Assine o plano Gogh Pro para ter acesso às ferramentas premium incluídas na assinatura.
             </p>
             <Link
               href="/precos"
@@ -752,10 +752,10 @@ export default function ToolsPage() {
             <div className="text-center p-4 sm:p-6 md:p-8">
               <Wrench className="w-16 h-16 text-gogh-grayDark mx-auto mb-4 opacity-50" />
               <h3 className="text-xl font-bold text-gogh-black mb-2">
-                Ferramentas Exclusivas do Plano Pro
+                Ferramentas Premium
               </h3>
               <p className="text-gogh-grayDark mb-6 max-w-md">
-                Faça upgrade para o plano Pro e tenha acesso completo às ferramentas Canva Pro e CapCut Pro.
+                Faça upgrade para o plano Pro e tenha acesso às ferramentas premium incluídas na assinatura.
               </p>
               <Link
                 href="/precos"
