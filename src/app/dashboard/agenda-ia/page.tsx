@@ -23,7 +23,7 @@ type AgendaItem = {
   platform: string | null
   topic: string | null
   status: string
-  meta: unknown
+  meta: { marked_done?: boolean; [key: string]: unknown } | null
 }
 
 export default function AgendaIAPage() {
