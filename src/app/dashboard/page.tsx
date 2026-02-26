@@ -15,6 +15,7 @@ import {
   Wrench,
   BookOpen,
   Settings,
+  CalendarDays,
 } from 'lucide-react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
@@ -68,6 +69,20 @@ function DashboardContent() {
           href: '/dashboard/membros',
           icon: Users,
           color: 'bg-emerald-500',
+        },
+      ],
+    },
+    {
+      title: 'Agenda IA',
+      description: 'Visualize a agenda de conteúdo dos usuários e apague por mês para liberar nova geração',
+      icon: CalendarDays,
+      items: [
+        {
+          title: 'Agenda IA',
+          description: 'Ver agendas dos usuários e apagar agenda por mês (libera botão Gerar agenda)',
+          href: '/dashboard/agenda-ia',
+          icon: CalendarDays,
+          color: 'bg-amber-500',
         },
       ],
     },

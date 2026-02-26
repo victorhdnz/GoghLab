@@ -6,6 +6,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { HoverButton } from "@/components/ui/hover-button";
 import { LumaSpin } from "@/components/ui/luma-spin";
+import { CalendarRange } from "lucide-react";
 
 type PlannerItem = {
   id: string;
@@ -32,6 +33,7 @@ type CalendarWithEventSlotsProps = {
   onCreateForSelectedDate?: () => void;
   onOpenItem: (item: PlannerItem) => void;
   onRegenerateForItem?: (item: PlannerItem) => void;
+  onRescheduleForItem?: (item: PlannerItem) => void;
   regeneratingId?: string | null;
 };
 
@@ -47,6 +49,7 @@ export function CalendarWithEventSlots({
   onCreateForSelectedDate,
   onOpenItem,
   onRegenerateForItem,
+  onRescheduleForItem,
   regeneratingId = null,
 }: CalendarWithEventSlotsProps) {
   const formatDateKey = React.useCallback((date: Date) => {
@@ -82,6 +85,25 @@ export function CalendarWithEventSlots({
     );
   }, [itemsForMonth]);
 
+  const todayKey = React.useMemo(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  }, []);
+
+  const daysOverdue = React.useMemo(() => {
+    return new Set(
+      itemsForMonth
+        .filter((item) => {
+          const key = item.date;
+          if (key >= todayKey) return false;
+          const hasContent = Boolean(item.script || item.caption || item.hashtags || item.status === "generated");
+          if (!hasContent) return false;
+          return item.meta?.marked_done !== true;
+        })
+        .map((item) => item.date)
+    );
+  }, [itemsForMonth, todayKey]);
+
   return (
     <Card className="w-full max-w-[430px] py-4">
       <CardContent className="px-4">
@@ -93,14 +115,20 @@ export function CalendarWithEventSlots({
           onSelect={onSelectDate}
           className="bg-transparent p-0"
           modifiers={{
-            hasContent: (date) => daysWithContent.has(formatDateKey(date)) && !daysAllDone.has(formatDateKey(date)),
+            hasContent: (date) => {
+              const key = formatDateKey(date);
+              return daysWithContent.has(key) && !daysAllDone.has(key) && !daysOverdue.has(key);
+            },
             allDone: (date) => daysAllDone.has(formatDateKey(date)),
+            overdue: (date) => daysOverdue.has(formatDateKey(date)),
           }}
           modifiersClassNames={{
             hasContent:
               "[&>button]:bg-[#F7C948]/35 [&>button]:text-[#0A0A0A] [&>button]:shadow-[inset_0_0_0_1px_rgba(247,201,72,0.75)]",
             allDone:
               "[&>button]:bg-emerald-500/40 [&>button]:text-[#0A0A0A] [&>button]:shadow-[inset_0_0_0_1px_rgba(16,185,129,0.6)]",
+            overdue:
+              "[&>button]:bg-red-500/40 [&>button]:text-[#0A0A0A] [&>button]:shadow-[inset_0_0_0_1px_rgba(239,68,68,0.6)]",
           }}
           required
         />
@@ -166,14 +194,31 @@ export function CalendarWithEventSlots({
                         {item.script || item.caption || item.hashtags ? "Conteúdo gerado" : "Conteúdo pendente"}
                       </div>
                     </button>
-                    <HoverButton
-                      type="button"
-                      className="shrink-0"
-                      onClick={() => onRegenerateForItem?.(item)}
-                      disabled={!canInteract || isRegenerating || regenerateCount >= 2}
-                    >
-                      {isRegenerating ? "Gerando..." : "Gerar novamente"}
-                    </HoverButton>
+                    <div className="flex shrink-0 items-center gap-1">
+                      {onRescheduleForItem ? (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onRescheduleForItem(item);
+                          }}
+                          disabled={!canInteract}
+                          className="p-1.5 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                          title="Realocar para outro dia"
+                          aria-label="Realocar para outro dia"
+                        >
+                          <CalendarRange className="w-4 h-4" />
+                        </button>
+                      ) : null}
+                      <HoverButton
+                        type="button"
+                        className="shrink-0"
+                        onClick={() => onRegenerateForItem?.(item)}
+                        disabled={!canInteract || isRegenerating || regenerateCount >= 2}
+                      >
+                        {isRegenerating ? "Gerando..." : "Gerar novamente"}
+                      </HoverButton>
+                    </div>
                   </div>
                 </div>
               );

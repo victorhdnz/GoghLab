@@ -399,16 +399,17 @@ export async function POST(request: Request) {
             `Objetivo principal detectado: ${primaryGoal || 'não informado'}\n` +
             `Diretriz de CTA obrigatória: ${ctaInstruction}\n\n` +
             'REGRAS OBRIGATORIAS:\n' +
-            '- Cada roteiro precisa ter profundidade para pelo menos 1:00 de video (minimo de 170 palavras).\n' +
+            '- Cada roteiro precisa ter profundidade: suficiente para 1:20 a 1:30 de video (entre 230 e 320 palavras). Desenvolva cada bloco com conteudo de verdade, mas de forma equilibrada — evite blocos curtos demais e tambem blocos gigantes ou repetitivos.\n' +
             scriptStrategy.promptInstruction +
             '- Use emoji APENAS no inicio do titulo de cada bloco. Nao use emoji no final de frases e nem no corpo do texto.\n' +
             '- A legenda deve vir sem hashtags no corpo, com 2 a 3 paragrafos curtos e espaco entre paragrafos.\n' +
-            '- Na legenda, use poucos emojis estrategicos para destaque (sem poluicao visual).\n' +
+            '- Na legenda, inclua pelo menos 1 emoji em ponto estrategico (ex.: destaque para CTA, beneficio ou frase-chave), de acordo com o tema; pode usar mais um ou dois se fizer sentido, mas de forma estrategica, sem poluir.\n' +
             '- Hashtags em uma unica linha, entre 10 e 15, relevantes e sem duplicacao.\n' +
+            '- No texto para anuncio (body): pode incluir 1 emoji estrategico para destaque em ponto importante (beneficio, diferencial ou CTA), de forma que some a frase.\n' +
             '- Para cada item: recommended_time e recommended_time_reason devem ser resultado de analise real: considere o nicho, o publico-alvo (idade e objetivos) e o dia da semana da data daquele item; recomende o melhor horario de postagem (HH:MM) para esse publico naquele dia, com justificativa breve, e varie os horarios entre os itens quando fizer sentido.\n\n' +
             'Retorne SOMENTE JSON valido no formato:\n' +
             '{ "items": [\n' +
-            `  { "date": "YYYY-MM-DD", "topic": "...", "script": "roteiro detalhado (min. 170 palavras) com blocos e quebras de linha na ordem: ${scriptStrategy.steps.join(' -> ')}", "caption": "legenda com emojis estrategicos e paragrafos separados (sem hashtags no texto)", "hashtags": "...", "recommended_time": "HH:MM", "recommended_time_reason": "...", "cover_text_options": ["...", "...", "..."], "ad_copy": { "headline": "...", "body": "...", "cta": "..." } }\n` +
+            `  { "date": "YYYY-MM-DD", "topic": "...", "script": "roteiro desenvolvido (230–320 palavras) com blocos e quebras de linha na ordem: ${scriptStrategy.steps.join(' -> ')}; cada bloco com 2 a 4 frases de desenvolvimento, sem exagerar", "caption": "legenda com pelo menos 1 emoji em ponto estrategico (destaque que faca sentido com o tema) e paragrafos separados (sem hashtags no texto)", "hashtags": "...", "recommended_time": "HH:MM", "recommended_time_reason": "...", "cover_text_options": ["...", "...", "..."], "ad_copy": { "headline": "...", "body": "texto persuasivo; pode 1 emoji estrategico para destaque", "cta": "..." } }\n` +
             ']}\n' +
             `A lista deve conter EXATAMENTE ${selectedDates.length} itens, com uma data unica para cada item, sem repetir tema.`,
         },

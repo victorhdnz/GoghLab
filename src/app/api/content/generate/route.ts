@@ -525,25 +525,26 @@ export async function POST(request: Request) {
           `Diretriz de CTA obrigatória: ${ctaInstruction}\n\n` +
           'REGRAS OBRIGATÓRIAS:\n' +
           '- Nunca repita um tema já utilizado anteriormente pelo cliente.\n' +
-          '- O roteiro precisa ter profundidade para pelo menos 1:00 de vídeo (mínimo de 170 palavras).\n' +
+          '- O roteiro precisa ter profundidade: suficiente para 1:20 a 1:30 de vídeo (entre 230 e 320 palavras). Desenvolva cada bloco com conteúdo de verdade, mas de forma equilibrada — evite blocos curtos demais e também blocos gigantes ou repetitivos.\n' +
           scriptStrategy.promptInstruction +
           '- Use emoji APENAS no início do título de cada bloco. Não use emoji no final de frases e nem no corpo do texto.\n' +
           '- A legenda deve vir sem hashtags no corpo, com 2 a 3 parágrafos curtos e espaçamento entre parágrafos.\n' +
-          '- Na legenda, use poucos emojis estratégicos para destaque (sem poluição visual).\n' +
+          '- Na legenda, inclua pelo menos 1 emoji em ponto estratégico (ex.: destaque para CTA, benefício ou frase-chave), de acordo com o tema; pode usar mais um ou dois se fizer sentido, mas de forma estratégica, sem poluir.\n' +
           '- Hashtags devem vir em uma única linha, entre 10 e 15, relevantes e sem duplicação.\n' +
+          '- No texto para anúncio (body): pode incluir 1 emoji estratégico para destaque em ponto importante (benefício, diferencial ou CTA), de forma que some à frase.\n' +
           '- Para recommended_time: estude o nicho, o público-alvo (idade e objetivos) e o dia da semana da data planejada; recomende o melhor horário de postagem (HH:MM) para esse público naquele dia, com justificativa breve. Varie os horários entre os itens quando fizer sentido para o contexto.\n\n' +
           'Retorne SOMENTE um JSON válido, sem explicações extras, no formato:' +
           '\n{\n' +
           '  "topic": "título/tema do vídeo",\n' +
-          `  "script": "roteiro detalhado (mín. 170 palavras) com quebras de linha entre os blocos na sequência: ${scriptStrategy.steps.join(' -> ')}",\n` +
-          '  "caption": "legenda pronta para postar, com emojis estratégicos e parágrafos separados por linha em branco (SEM hashtags no texto)",\n' +
+          `  "script": "roteiro desenvolvido (230–320 palavras) com quebras de linha entre os blocos na sequência: ${scriptStrategy.steps.join(' -> ')}; cada bloco com 2 a 4 frases de desenvolvimento, sem exagerar",\n` +
+          '  "caption": "legenda pronta para postar, com pelo menos 1 emoji em ponto estratégico (destaque que faça sentido com o tema) e parágrafos separados por linha em branco (SEM hashtags no texto)",\n' +
           '  "hashtags": "#tag1 #tag2 #tag3 ... (entre 10 e 15 hashtags em UMA linha)",\n' +
           '  "recommended_time": "HH:MM",\n' +
           '  "recommended_time_reason": "justificativa curta considerando nicho, público e dia da semana",\n' +
           '  "cover_text_options": ["opcao 1", "opcao 2", "opcao 3"],\n' +
           '  "ad_copy": {\n' +
           '    "headline": "headline curta e impactante",\n' +
-          '    "body": "texto persuasivo médio com foco no objetivo",\n' +
+          '    "body": "texto persuasivo médio com foco no objetivo; pode incluir 1 emoji estratégico para destaque em ponto importante (ex.: benefício, diferencial)",\n' +
           '    "cta": "cta forte e específico"\n' +
           '  }\n' +
           '}\n',
