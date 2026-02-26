@@ -36,13 +36,19 @@ export async function GET() {
     const end2 = formatDate(plus2)
     const end14 = formatDate(plus14)
 
-    const { data: nearItems } = await (supabase
+    const { data: nearItemsRaw } = await (supabase
       .from('content_calendar_items') as any)
-      .select('id, date, topic')
+      .select('id, date, topic, meta')
       .eq('user_id', user.id)
       .gte('date', start)
       .lte('date', end2)
       .order('date', { ascending: true })
+
+    const { data: overdueItemsRaw } = await (supabase
+      .from('content_calendar_items') as any)
+      .select('id, date, meta')
+      .eq('user_id', user.id)
+      .lt('date', start)
 
     const { data: futureItems } = await (supabase
       .from('content_calendar_items') as any)
@@ -54,9 +60,24 @@ export async function GET() {
 
     const notifications: ContentNotification[] = []
 
-    const nearList = Array.isArray(nearItems) ? nearItems : []
-    if (nearList.length > 0) {
-      const grouped = nearList.reduce<Record<string, number>>((acc, item) => {
+    const overdueList = Array.isArray(overdueItemsRaw) ? overdueItemsRaw : []
+    const overdueCount = overdueList.filter((item: any) => item?.meta?.marked_done !== true).length
+    if (overdueCount > 0) {
+      notifications.push({
+        id: 'content-overdue',
+        variant: 'warning',
+        title: 'Conteúdos em atraso',
+        description:
+          overdueCount === 1
+            ? 'Você tem 1 conteúdo planejado que passou da data. Marque como feito na agenda ou grave quando puder.'
+            : `Você tem ${overdueCount} conteúdos planejados que passaram da data. Marque como feito na agenda ou grave quando puder.`,
+      })
+    }
+
+    const nearList = Array.isArray(nearItemsRaw) ? nearItemsRaw : []
+    const nearItems = nearList.filter((item: any) => item?.meta?.marked_done !== true)
+    if (nearItems.length > 0) {
+      const grouped = nearItems.reduce<Record<string, number>>((acc, item) => {
         acc[item.date] = (acc[item.date] || 0) + 1
         return acc
       }, {})

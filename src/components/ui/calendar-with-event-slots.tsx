@@ -64,6 +64,24 @@ export function CalendarWithEventSlots({
     );
   }, [itemsForMonth]);
 
+  const daysAllDone = React.useMemo(() => {
+    const byDate = itemsForMonth.reduce<Record<string, { hasContent: number; markedDone: number }>>((acc, item) => {
+      const date = item.date;
+      if (!acc[date]) acc[date] = { hasContent: 0, markedDone: 0 };
+      const hasContent = Boolean(item.script || item.caption || item.hashtags || item.status === "generated");
+      if (hasContent) {
+        acc[date].hasContent += 1;
+        if (item.meta?.marked_done === true) acc[date].markedDone += 1;
+      }
+      return acc;
+    }, {});
+    return new Set(
+      Object.entries(byDate)
+        .filter(([, v]) => v.hasContent > 0 && v.markedDone === v.hasContent)
+        .map(([date]) => date)
+    );
+  }, [itemsForMonth]);
+
   return (
     <Card className="w-full max-w-[430px] py-4">
       <CardContent className="px-4">
@@ -75,11 +93,14 @@ export function CalendarWithEventSlots({
           onSelect={onSelectDate}
           className="bg-transparent p-0"
           modifiers={{
-            hasContent: (date) => daysWithContent.has(formatDateKey(date)),
+            hasContent: (date) => daysWithContent.has(formatDateKey(date)) && !daysAllDone.has(formatDateKey(date)),
+            allDone: (date) => daysAllDone.has(formatDateKey(date)),
           }}
           modifiersClassNames={{
             hasContent:
               "[&>button]:bg-[#F7C948]/35 [&>button]:text-[#0A0A0A] [&>button]:shadow-[inset_0_0_0_1px_rgba(247,201,72,0.75)]",
+            allDone:
+              "[&>button]:bg-emerald-500/40 [&>button]:text-[#0A0A0A] [&>button]:shadow-[inset_0_0_0_1px_rgba(16,185,129,0.6)]",
           }}
           required
         />

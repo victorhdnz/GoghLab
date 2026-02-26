@@ -530,7 +530,8 @@ export async function POST(request: Request) {
           '- Use emoji APENAS no início do título de cada bloco. Não use emoji no final de frases e nem no corpo do texto.\n' +
           '- A legenda deve vir sem hashtags no corpo, com 2 a 3 parágrafos curtos e espaçamento entre parágrafos.\n' +
           '- Na legenda, use poucos emojis estratégicos para destaque (sem poluição visual).\n' +
-          '- Hashtags devem vir em uma única linha, entre 10 e 15, relevantes e sem duplicação.\n\n' +
+          '- Hashtags devem vir em uma única linha, entre 10 e 15, relevantes e sem duplicação.\n' +
+          '- Para recommended_time: estude o nicho, o público-alvo (idade e objetivos) e o dia da semana da data planejada; recomende o melhor horário de postagem (HH:MM) para esse público naquele dia, com justificativa breve. Varie os horários entre os itens quando fizer sentido para o contexto.\n\n' +
           'Retorne SOMENTE um JSON válido, sem explicações extras, no formato:' +
           '\n{\n' +
           '  "topic": "título/tema do vídeo",\n' +
@@ -538,7 +539,7 @@ export async function POST(request: Request) {
           '  "caption": "legenda pronta para postar, com emojis estratégicos e parágrafos separados por linha em branco (SEM hashtags no texto)",\n' +
           '  "hashtags": "#tag1 #tag2 #tag3 ... (entre 10 e 15 hashtags em UMA linha)",\n' +
           '  "recommended_time": "HH:MM",\n' +
-          '  "recommended_time_reason": "justificativa curta baseada na faixa etária",\n' +
+          '  "recommended_time_reason": "justificativa curta considerando nicho, público e dia da semana",\n' +
           '  "cover_text_options": ["opcao 1", "opcao 2", "opcao 3"],\n' +
           '  "ad_copy": {\n' +
           '    "headline": "headline curta e impactante",\n' +

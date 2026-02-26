@@ -404,7 +404,8 @@ export async function POST(request: Request) {
             '- Use emoji APENAS no inicio do titulo de cada bloco. Nao use emoji no final de frases e nem no corpo do texto.\n' +
             '- A legenda deve vir sem hashtags no corpo, com 2 a 3 paragrafos curtos e espaco entre paragrafos.\n' +
             '- Na legenda, use poucos emojis estrategicos para destaque (sem poluicao visual).\n' +
-            '- Hashtags em uma unica linha, entre 10 e 15, relevantes e sem duplicacao.\n\n' +
+            '- Hashtags em uma unica linha, entre 10 e 15, relevantes e sem duplicacao.\n' +
+            '- Para cada item: recommended_time e recommended_time_reason devem ser resultado de analise real: considere o nicho, o publico-alvo (idade e objetivos) e o dia da semana da data daquele item; recomende o melhor horario de postagem (HH:MM) para esse publico naquele dia, com justificativa breve, e varie os horarios entre os itens quando fizer sentido.\n\n' +
             'Retorne SOMENTE JSON valido no formato:\n' +
             '{ "items": [\n' +
             `  { "date": "YYYY-MM-DD", "topic": "...", "script": "roteiro detalhado (min. 170 palavras) com blocos e quebras de linha na ordem: ${scriptStrategy.steps.join(' -> ')}", "caption": "legenda com emojis estrategicos e paragrafos separados (sem hashtags no texto)", "hashtags": "...", "recommended_time": "HH:MM", "recommended_time_reason": "...", "cover_text_options": ["...", "...", "..."], "ad_copy": { "headline": "...", "body": "...", "cta": "..." } }\n` +
