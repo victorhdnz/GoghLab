@@ -89,7 +89,7 @@ export function Banner({
           {icon && <div className="flex-shrink-0">{icon}</div>}
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center">
-              <p className="truncate font-semibold">{title}</p>
+              <p className="font-semibold break-words">{title}</p>
             </div>
             {description && <p className="text-xs opacity-80">{description}</p>}
           </div>
