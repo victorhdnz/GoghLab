@@ -476,32 +476,36 @@ export default function AccountPage() {
                     <p className="text-gogh-grayDark mb-6">
                       Você está aproveitando todos os recursos do seu plano.
                     </p>
-                    <button
-                      onClick={handleManageSubscription}
-                      data-tour="manage-subscription"
-                      disabled={openingPortal}
-                      className="inline-flex items-center justify-center gap-2 w-[200px] min-h-[40px] px-4 py-2.5 text-sm font-medium rounded-xl bg-gogh-black text-white hover:bg-gogh-black/90 transition-colors disabled:opacity-50 shrink-0"
-                    >
-                      {openingPortal ? (
-                        <>
-                          <LumaSpin size="sm" />
-                          Abrindo...
-                        </>
-                      ) : (
-                        <>
-                          Gerenciar Assinatura
-                          <ExternalLink className="w-4 h-4" />
-                        </>
-                      )}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => openTour()}
-                      className="mt-3 lg:ml-6 lg:mt-0 inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gogh-grayDark hover:text-gogh-black border border-gogh-grayLight rounded-xl hover:bg-gogh-grayLight/50 transition-colors"
-                    >
-                      <Compass className="w-4 h-4" />
-                      Ver tour da plataforma
-                    </button>
+                    <div className="flex flex-wrap items-center justify-center gap-3">
+                      <button
+                        onClick={handleManageSubscription}
+                        data-tour="manage-subscription"
+                        disabled={openingPortal}
+                        className="inline-flex items-center justify-center gap-2 h-10 w-[200px] px-4 text-sm font-medium rounded-xl bg-gogh-black text-white hover:bg-gogh-black/90 transition-colors disabled:opacity-50 shrink-0"
+                      >
+                        {openingPortal ? (
+                          <>
+                            <span className="inline-flex h-4 w-4 shrink-0 items-center justify-center overflow-hidden">
+                              <LumaSpin size="sm" />
+                            </span>
+                            Abrindo...
+                          </>
+                        ) : (
+                          <>
+                            Gerenciar Assinatura
+                            <ExternalLink className="w-4 h-4 shrink-0" />
+                          </>
+                        )}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => openTour()}
+                        className="inline-flex items-center justify-center gap-2 h-10 px-4 text-sm font-medium rounded-xl text-gogh-grayDark hover:text-gogh-black border border-gogh-grayLight hover:bg-gogh-grayLight/50 transition-colors shrink-0"
+                      >
+                        <Compass className="w-4 h-4 shrink-0" />
+                        Ver tour da plataforma
+                      </button>
+                    </div>
                   </>
                 ) : hasServiceSubscriptions ? (
                   <>
@@ -512,32 +516,36 @@ export default function AccountPage() {
                     <p className="text-gogh-grayDark mb-6">
                       Você tem serviços personalizados contratados. Gerencie sua assinatura para cancelar ou alterar.
                     </p>
-                    <button
-                      onClick={handleManageSubscription}
-                      data-tour="manage-subscription"
-                      disabled={openingPortal}
-                      className="inline-flex items-center justify-center gap-2 w-[200px] min-h-[40px] px-4 py-2.5 text-sm font-medium rounded-xl bg-gogh-black text-white hover:bg-gogh-black/90 transition-colors disabled:opacity-50 shrink-0"
-                    >
-                      {openingPortal ? (
-                        <>
-                          <LumaSpin size="sm" />
-                          Abrindo...
-                        </>
-                      ) : (
-                        <>
-                          Gerenciar Assinatura
-                          <ExternalLink className="w-4 h-4" />
-                        </>
-                      )}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => openTour()}
-                      className="mt-3 lg:ml-6 lg:mt-0 inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gogh-grayDark hover:text-gogh-black border border-gogh-grayLight rounded-xl hover:bg-gogh-grayLight/50 transition-colors"
-                    >
-                      <Compass className="w-4 h-4" />
-                      Ver tour da plataforma
-                    </button>
+                    <div className="flex flex-wrap items-center justify-center gap-3">
+                      <button
+                        onClick={handleManageSubscription}
+                        data-tour="manage-subscription"
+                        disabled={openingPortal}
+                        className="inline-flex items-center justify-center gap-2 h-10 w-[200px] px-4 text-sm font-medium rounded-xl bg-gogh-black text-white hover:bg-gogh-black/90 transition-colors disabled:opacity-50 shrink-0"
+                      >
+                        {openingPortal ? (
+                          <>
+                            <span className="inline-flex h-4 w-4 shrink-0 items-center justify-center overflow-hidden">
+                              <LumaSpin size="sm" />
+                            </span>
+                            Abrindo...
+                          </>
+                        ) : (
+                          <>
+                            Gerenciar Assinatura
+                            <ExternalLink className="w-4 h-4 shrink-0" />
+                          </>
+                        )}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => openTour()}
+                        className="inline-flex items-center justify-center gap-2 h-10 px-4 text-sm font-medium rounded-xl text-gogh-grayDark hover:text-gogh-black border border-gogh-grayLight hover:bg-gogh-grayLight/50 transition-colors shrink-0"
+                      >
+                        <Compass className="w-4 h-4 shrink-0" />
+                        Ver tour da plataforma
+                      </button>
+                    </div>
                   </>
                 ) : (
                   <>
