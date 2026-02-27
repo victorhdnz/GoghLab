@@ -147,7 +147,7 @@ export function PricingSection({
   }
 
   return (
-    <section id="pricing-section" className="pt-3 pb-10 md:pt-8 md:pb-14 px-3 sm:px-4 bg-[#F5F1E8] overflow-visible">
+    <section id="pricing-section" className="pt-2 pb-10 md:pt-6 md:pb-14 px-3 sm:px-4 bg-[#F5F1E8] overflow-visible">
       <FadeInElement>
         <div className="max-w-5xl mx-auto overflow-visible">
         <PricingComponent

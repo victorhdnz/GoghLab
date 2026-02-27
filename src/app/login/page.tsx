@@ -134,7 +134,7 @@ export default function LoginPage() {
         {/* Login Card */}
         <div className="bg-white rounded-2xl shadow-xl border border-gogh-grayLight overflow-hidden">
           {/* Header */}
-          <div className="bg-gradient-to-r from-gogh-black via-gogh-yellow/30 to-gogh-black p-8 text-center">
+          <div className="bg-[#F5F1E8] p-8 text-center">
             {siteLogo ? (
               <div className="w-20 h-20 mx-auto mb-4 relative">
                 <Image
@@ -149,11 +149,11 @@ export default function LoginPage() {
                 <Sparkles className="w-8 h-8 text-gogh-black" />
               </div>
             )}
-            <h1 className="text-2xl font-bold text-white mb-2">
+            <h1 className="text-2xl font-bold text-gogh-black mb-2">
               Bem-vindo à {siteName}
             </h1>
-            <p className="text-white/70 text-sm">
-              Acesse sua área de membros
+            <p className="text-gogh-grayDark text-sm">
+              Crie sua conta na plataforma
             </p>
           </div>
 

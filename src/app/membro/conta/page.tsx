@@ -18,7 +18,6 @@ import {
   Palette,
   Scissors,
   Sparkles,
-  RefreshCw,
   Wrench,
   ChevronDown,
   ChevronUp,
@@ -454,25 +453,15 @@ export default function AccountPage() {
 
         {activeTab === 'plan' && (
           <div className="space-y-6">
-            <div id="usage" className="bg-white rounded-2xl border border-gogh-grayLight p-6 lg:p-8 space-y-6 scroll-mt-6">
-              <div className="flex items-center justify-between mb-6">
+            <div id="usage" className="bg-white rounded-2xl border border-gogh-grayLight pt-4 px-6 pb-6 lg:pt-6 lg:px-8 lg:pb-8 space-y-6 scroll-mt-6">
+              <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
                   <CreditCard className="w-5 h-5 text-gogh-grayDark" />
                   <h2 className="text-xl font-bold text-gogh-black">Plano Atual</h2>
                 </div>
-                <button
-                  onClick={() => {
-                    refreshSubscription()
-                    toast.success('Plano atualizado!')
-                  }}
-                  className="p-2 text-gogh-grayDark hover:text-gogh-black hover:bg-gogh-grayLight rounded-lg transition-colors"
-                  title="Atualizar informações do plano"
-                >
-                  <RefreshCw className="w-4 h-4" />
-                </button>
               </div>
 
-              <div className="text-center py-6">
+              <div className="text-center pt-2 pb-6">
                 {hasActiveSubscription && subscription ? (
                   <>
                     <div className={`
@@ -491,7 +480,7 @@ export default function AccountPage() {
                       onClick={handleManageSubscription}
                       data-tour="manage-subscription"
                       disabled={openingPortal}
-                      className="inline-flex items-center gap-2 px-6 py-3 bg-gogh-black text-white font-medium rounded-xl hover:bg-gogh-black/90 transition-colors disabled:opacity-50"
+                      className="inline-flex items-center justify-center gap-2 min-w-[220px] px-6 py-3 bg-gogh-black text-white font-medium rounded-xl hover:bg-gogh-black/90 transition-colors disabled:opacity-50"
                     >
                       {openingPortal ? (
                         <>
@@ -527,7 +516,7 @@ export default function AccountPage() {
                       onClick={handleManageSubscription}
                       data-tour="manage-subscription"
                       disabled={openingPortal}
-                      className="inline-flex items-center gap-2 px-6 py-3 bg-gogh-black text-white font-medium rounded-xl hover:bg-gogh-black/90 transition-colors disabled:opacity-50"
+                      className="inline-flex items-center justify-center gap-2 min-w-[220px] px-6 py-3 bg-gogh-black text-white font-medium rounded-xl hover:bg-gogh-black/90 transition-colors disabled:opacity-50"
                     >
                       {openingPortal ? (
                         <>
