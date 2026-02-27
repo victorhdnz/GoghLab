@@ -453,7 +453,7 @@ export default function AccountPage() {
 
         {activeTab === 'plan' && (
           <div className="space-y-6">
-            <div id="usage" className="bg-white rounded-2xl border border-gogh-grayLight pt-4 px-6 pb-6 lg:pt-6 lg:px-8 lg:pb-8 space-y-6 scroll-mt-6">
+            <div id="usage" className="bg-white rounded-2xl border border-gogh-grayLight pt-4 px-6 pb-10 lg:pt-6 lg:px-8 lg:pb-12 space-y-6 scroll-mt-6">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
                   <CreditCard className="w-5 h-5 text-gogh-grayDark" />
@@ -480,7 +480,7 @@ export default function AccountPage() {
                       onClick={handleManageSubscription}
                       data-tour="manage-subscription"
                       disabled={openingPortal}
-                      className="inline-flex items-center justify-center gap-2 min-w-[220px] px-6 py-3 bg-gogh-black text-white font-medium rounded-xl hover:bg-gogh-black/90 transition-colors disabled:opacity-50"
+                      className="inline-flex items-center justify-center gap-2 w-[220px] min-h-[48px] px-6 py-3 bg-gogh-black text-white font-medium rounded-xl hover:bg-gogh-black/90 transition-colors disabled:opacity-50 shrink-0"
                     >
                       {openingPortal ? (
                         <>
@@ -516,7 +516,7 @@ export default function AccountPage() {
                       onClick={handleManageSubscription}
                       data-tour="manage-subscription"
                       disabled={openingPortal}
-                      className="inline-flex items-center justify-center gap-2 min-w-[220px] px-6 py-3 bg-gogh-black text-white font-medium rounded-xl hover:bg-gogh-black/90 transition-colors disabled:opacity-50"
+                      className="inline-flex items-center justify-center gap-2 w-[220px] min-h-[48px] px-6 py-3 bg-gogh-black text-white font-medium rounded-xl hover:bg-gogh-black/90 transition-colors disabled:opacity-50 shrink-0"
                     >
                       {openingPortal ? (
                         <>
