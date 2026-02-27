@@ -51,6 +51,8 @@ export function PostPurchaseOnboardingTour({
   useEffect(() => {
     if (!open || !step) return
 
+    const isMobile = typeof window !== 'undefined' && window.innerWidth < 1024
+
     const updateRect = () => {
       const el = document.querySelector(step.selector) as HTMLElement | null
       if (!el) {
@@ -58,7 +60,15 @@ export function PostPurchaseOnboardingTour({
         return
       }
 
-      el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' })
+      // No mobile, se o alvo estiver na metade inferior (ex.: nav inferior), manter no fim da viewport
+      const r = el.getBoundingClientRect()
+      const vh = typeof window !== 'undefined' ? window.innerHeight : 768
+      const targetInBottomHalf = r.top > vh * 0.5
+      if (isMobile && targetInBottomHalf) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'end', inline: 'nearest' })
+      } else {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' })
+      }
       const rect = el.getBoundingClientRect()
       setTargetRect(rect)
     }
@@ -80,19 +90,25 @@ export function PostPurchaseOnboardingTour({
 
   const vw = typeof window !== 'undefined' ? window.innerWidth : 1024
   const vh = typeof window !== 'undefined' ? window.innerHeight : 768
+  const isMobile = vw < 1024
   const cardWidth = Math.min(360, vw - 24)
   const rect = targetRect
 
   const targetCenterX = rect ? rect.left + rect.width / 2 : vw / 2
-  const targetCenterY = rect ? rect.top + rect.height / 2 : vh / 2
+  const targetInBottomArea = rect ? rect.top > vh * 0.55 : false
   const hasSpaceBelow = rect ? rect.bottom + 220 < vh : true
+  // No mobile, quando o alvo é a nav inferior, fixar o card acima do alvo para não "subir" demais
+  const preferCardAbove = isMobile && targetInBottomArea
   const cardTop = rect
-    ? hasSpaceBelow
-      ? Math.min(vh - 180, rect.bottom + 14)
-      : Math.max(12, rect.top - 170)
+    ? preferCardAbove
+      ? Math.max(12, rect.top - 186)
+      : hasSpaceBelow
+        ? Math.min(vh - 180, rect.bottom + 14)
+        : Math.max(12, rect.top - 170)
     : Math.max(12, vh / 2 - 80)
   const cardLeft = Math.max(12, Math.min(vw - cardWidth - 12, targetCenterX - cardWidth / 2))
   const arrowLeft = Math.max(20, Math.min(cardWidth - 20, targetCenterX - cardLeft))
+  const hasSpaceBelowForArrow = rect ? cardTop > rect.bottom : true
 
   const isLast = currentStep === availableSteps.length - 1
 
@@ -141,7 +157,7 @@ export function PostPurchaseOnboardingTour({
       >
         <div
           className={`absolute h-3 w-3 rotate-45 bg-white border-[#F7C948]/40 ${
-            hasSpaceBelow ? '-top-1.5 border-l border-t' : '-bottom-1.5 border-r border-b'
+            hasSpaceBelowForArrow ? '-top-1.5 border-l border-t' : '-bottom-1.5 border-r border-b'
           }`}
           style={{ left: arrowLeft - 6 }}
         />

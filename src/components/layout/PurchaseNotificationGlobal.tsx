@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { usePathname, useRouter } from 'next/navigation'
 import { ArrowRight, Rocket } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Banner } from '@/components/ui/banner'
@@ -10,6 +9,7 @@ import { useAuth } from '@/contexts/AuthContext'
 
 const PURCHASE_PENDING_KEY = 'gogh_purchase_notification_pending'
 const PURCHASE_DISMISSED_KEY = 'gogh_purchase_notification_dismissed'
+const PURCHASE_DISMISSED_KEY_LOCAL = 'gogh_purchase_notification_dismissed_local'
 
 interface PendingData {
   planName?: string
@@ -17,20 +17,18 @@ interface PendingData {
   manualOrFirstAccess?: boolean
 }
 
-const TOUR_OPEN_AFTER_NAV_KEY = 'gogh_open_tour_after_nav'
-
 export function PurchaseNotificationGlobal() {
   const [pending, setPending] = useState<PendingData | null>(null)
   const [dismissed, setDismissed] = useState(true)
-  const pathname = usePathname()
-  const router = useRouter()
   const { openTour } = useOnboardingTour()
   const { loading: authLoading, isAuthenticated, hasActiveSubscription } = useAuth()
 
   useEffect(() => {
     if (typeof window === 'undefined') return
     const raw = sessionStorage.getItem(PURCHASE_PENDING_KEY)
-    const alreadyDismissed = sessionStorage.getItem(PURCHASE_DISMISSED_KEY) === '1'
+    const alreadyDismissed =
+      sessionStorage.getItem(PURCHASE_DISMISSED_KEY) === '1' ||
+      localStorage.getItem(PURCHASE_DISMISSED_KEY_LOCAL) === '1'
     if (raw && !alreadyDismissed) {
       try {
         const data = JSON.parse(raw) as PendingData
@@ -48,7 +46,9 @@ export function PurchaseNotificationGlobal() {
   useEffect(() => {
     if (typeof window === 'undefined' || authLoading || !isAuthenticated || !hasActiveSubscription) return
     const raw = sessionStorage.getItem(PURCHASE_PENDING_KEY)
-    const alreadyDismissed = sessionStorage.getItem(PURCHASE_DISMISSED_KEY) === '1'
+    const alreadyDismissed =
+      sessionStorage.getItem(PURCHASE_DISMISSED_KEY) === '1' ||
+      localStorage.getItem(PURCHASE_DISMISSED_KEY_LOCAL) === '1'
     if (raw || alreadyDismissed) return
     sessionStorage.setItem(PURCHASE_PENDING_KEY, JSON.stringify({ manualOrFirstAccess: true }))
     setPending({ manualOrFirstAccess: true })
@@ -59,30 +59,15 @@ export function PurchaseNotificationGlobal() {
     if (typeof window === 'undefined') return
     sessionStorage.removeItem(PURCHASE_PENDING_KEY)
     sessionStorage.setItem(PURCHASE_DISMISSED_KEY, '1')
-    sessionStorage.setItem('gogh_purchase_notification_dismissed', '1')
+    localStorage.setItem(PURCHASE_DISMISSED_KEY_LOCAL, '1')
     setPending(null)
     setDismissed(true)
   }
 
   const handleStartTour = () => {
     dismiss()
-    const onConta = pathname === '/conta' || pathname?.startsWith('/conta/')
-    if (onConta) {
-      openTour()
-    } else {
-      sessionStorage.setItem(TOUR_OPEN_AFTER_NAV_KEY, '1')
-      router.push('/conta')
-    }
+    openTour()
   }
-
-  useEffect(() => {
-    if (typeof window === 'undefined' || pathname !== '/conta') return
-    if (sessionStorage.getItem(TOUR_OPEN_AFTER_NAV_KEY) === '1') {
-      sessionStorage.removeItem(TOUR_OPEN_AFTER_NAV_KEY)
-      const t = setTimeout(() => openTour(), 600)
-      return () => clearTimeout(t)
-    }
-  }, [pathname, openTour])
 
   if (!pending || dismissed) return null
 
