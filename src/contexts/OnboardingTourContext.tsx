@@ -7,21 +7,23 @@ const TOUR_DISMISSED_LOCAL_KEY = 'gogh_purchase_notification_dismissed_local'
 
 type TourStep = { selector: string; title: string; description: string }
 
-// Textos unificados (baseados no mobile) para todos os dispositivos
+// Textos unificados: mesmo início "Este ícone leva" e ordem igual à sequência visual dos ícones
+// Desktop: Início → Criar → Produto → Ver planos → Conta
 const unifiedStepsDesktop: TourStep[] = [
   { selector: '[data-tour="nav-home-desktop"]', title: 'Início', description: 'Este ícone leva para a página inicial.' },
-  { selector: '[data-tour="nav-create-desktop"]', title: 'Criar (Agenda IA)', description: 'Toque aqui para abrir o planejador e criar estruturas completas de vídeo com IA (roteiros, legendas, hashtags).' },
-  { selector: '[data-tour="nav-product-desktop"]', title: 'Produto', description: 'Aqui você abre o menu com Ferramentas e Cursos.' },
-  { selector: '[data-tour="nav-plans-desktop"]', title: 'Planos e assinatura', description: 'Aqui você consulta os planos e faz upgrade quando quiser.' },
-  { selector: '[data-tour="nav-account-desktop"]', title: 'Sua conta', description: 'Nesta área você gerencia perfil, assinatura e recursos ativos.' },
+  { selector: '[data-tour="nav-create-desktop"]', title: 'Criar (Agenda IA)', description: 'Este ícone leva ao planejador para criar estruturas de conteúdo completas com IA.' },
+  { selector: '[data-tour="nav-product-desktop"]', title: 'Produto', description: 'Este ícone leva ao menu com Ferramentas e Cursos.' },
+  { selector: '[data-tour="nav-plans-desktop"]', title: 'Planos e assinatura', description: 'Este ícone leva à página de planos e upgrade.' },
+  { selector: '[data-tour="nav-account-desktop"]', title: 'Sua conta', description: 'Este ícone leva à sua conta (perfil, assinatura e recursos).' },
 ]
 
+// Mobile: ordem da barra inferior — Início → Produto → Criar → Planos → Conta
 const unifiedStepsMobile: TourStep[] = [
   { selector: '[data-tour="nav-home-mobile"]', title: 'Início', description: 'Este ícone leva para a página inicial.' },
-  { selector: '[data-tour="nav-create-mobile"]', title: 'Criar (Agenda IA)', description: 'Toque aqui para abrir o planejador e criar estruturas completas de vídeo com IA (roteiros, legendas, hashtags).' },
-  { selector: '[data-tour="nav-product-mobile"]', title: 'Produto', description: 'Aqui você abre o menu com Ferramentas e Cursos.' },
-  { selector: '[data-tour="nav-plans-mobile"]', title: 'Planos e assinatura', description: 'Aqui você consulta os planos e faz upgrade quando quiser.' },
-  { selector: '[data-tour="nav-account-mobile"]', title: 'Sua conta', description: 'Nesta área você gerencia perfil, assinatura e recursos ativos.' },
+  { selector: '[data-tour="nav-product-mobile"]', title: 'Produto', description: 'Este ícone leva ao menu com Ferramentas e Cursos.' },
+  { selector: '[data-tour="nav-create-mobile"]', title: 'Criar (Agenda IA)', description: 'Este ícone leva ao planejador para criar estruturas de conteúdo completas com IA.' },
+  { selector: '[data-tour="nav-plans-mobile"]', title: 'Planos e assinatura', description: 'Este ícone leva à página de planos e upgrade.' },
+  { selector: '[data-tour="nav-account-mobile"]', title: 'Sua conta', description: 'Este ícone leva à sua conta (perfil, assinatura e recursos).' },
 ]
 
 type OnboardingTourContextValue = {
