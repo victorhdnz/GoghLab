@@ -602,8 +602,12 @@ export default function ContentPlanningPage() {
   const currentMonthNumber = currentMonth.getMonth()
   const currentMonthKey = `${currentMonth.getFullYear()}-${String(currentMonth.getMonth() + 1).padStart(2, '0')}`
   const hasAutoPlanGeneratedItemInMonth = useMemo(
-    () => items.some((item) => Boolean(item.meta?.auto_generated)),
-    [items]
+    () =>
+      items.some(
+        (item) =>
+          Boolean(item.meta?.auto_generated) && item.meta?.auto_plan_month === currentMonthKey
+      ),
+    [items, currentMonthKey]
   )
   const hasAutoPlanUsedThisMonth =
     profile?.extra_preferences?.auto_plan_last_month === currentMonthKey || hasAutoPlanGeneratedItemInMonth

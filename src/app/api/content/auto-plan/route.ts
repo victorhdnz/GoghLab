@@ -298,10 +298,12 @@ export async function POST(request: Request) {
       .eq('user_id', user.id)
       .not('topic', 'is', null)
 
+    // Só considera "já gerou agenda este mês" se existir item com auto_generated E auto_plan_month deste mês
+    // (itens realocados de outro mês têm auto_generated mas não auto_plan_month === monthKey)
     const { data: existingAutoPlanItem } = await (supabase.from('content_calendar_items') as any)
       .select('id')
       .eq('user_id', user.id)
-      .contains('meta', { auto_generated: true })
+      .contains('meta', { auto_generated: true, auto_plan_month: monthKey })
       .gte('date', `${year}-${String(monthIndex + 1).padStart(2, '0')}-01`)
       .lte(
         'date',
@@ -481,6 +483,7 @@ export async function POST(request: Request) {
           cover_text_options: coverTextOptions,
           ad_copy: adCopy,
           auto_generated: true,
+          auto_plan_month: monthKey,
           regenerate_count: 0,
           script_strategy_key: scriptStrategy.key,
           script_strategy_label: scriptStrategy.label,
