@@ -22,8 +22,10 @@ import {
   Wrench,
   ChevronDown,
   ChevronUp,
-  LogOut
+  LogOut,
+  Compass
 } from 'lucide-react'
+import { useOnboardingTour } from '@/contexts/OnboardingTourContext'
 
 type TabType = 'profile' | 'plan'
 
@@ -37,6 +39,7 @@ export default function AccountPage() {
   const pathname = usePathname()
   const router = useRouter()
   const { user, profile, subscription, hasActiveSubscription, isPro, refreshSubscription, signOut } = useAuth()
+  const { openTour } = useOnboardingTour()
   const [activeTab, setActiveTab] = useState<TabType>('profile')
 
   // Redirecionar /membro/conta → /conta (uma única interface de conta)
@@ -493,6 +496,14 @@ export default function AccountPage() {
                         </>
                       )}
                     </button>
+                    <button
+                      type="button"
+                      onClick={() => openTour()}
+                      className="mt-3 inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gogh-grayDark hover:text-gogh-black border border-gogh-grayLight rounded-xl hover:bg-gogh-grayLight/50 transition-colors"
+                    >
+                      <Compass className="w-4 h-4" />
+                      Ver tour da plataforma
+                    </button>
                   </>
                 ) : hasServiceSubscriptions ? (
                   <>
@@ -520,6 +531,14 @@ export default function AccountPage() {
                           <ExternalLink className="w-4 h-4" />
                         </>
                       )}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => openTour()}
+                      className="mt-3 inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gogh-grayDark hover:text-gogh-black border border-gogh-grayLight rounded-xl hover:bg-gogh-grayLight/50 transition-colors"
+                    >
+                      <Compass className="w-4 h-4" />
+                      Ver tour da plataforma
                     </button>
                   </>
                 ) : (
