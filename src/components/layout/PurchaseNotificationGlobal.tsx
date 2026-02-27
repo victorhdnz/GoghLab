@@ -11,6 +11,14 @@ const PURCHASE_PENDING_KEY = 'gogh_purchase_notification_pending'
 const PURCHASE_DISMISSED_KEY = 'gogh_purchase_notification_dismissed'
 const PURCHASE_DISMISSED_KEY_LOCAL = 'gogh_purchase_notification_dismissed_local'
 
+function getAlreadyDismissed(): boolean {
+  if (typeof window === 'undefined') return true
+  return (
+    sessionStorage.getItem(PURCHASE_DISMISSED_KEY) === '1' ||
+    localStorage.getItem(PURCHASE_DISMISSED_KEY_LOCAL) === '1'
+  )
+}
+
 interface PendingData {
   planName?: string
   isServiceSubscription?: boolean
@@ -23,12 +31,16 @@ export function PurchaseNotificationGlobal() {
   const { openTour } = useOnboardingTour()
   const { loading: authLoading, isAuthenticated, hasActiveSubscription } = useAuth()
 
+  // Inicializar "dismissed" com o valor do localStorage para que, ao voltar a logar, não mostre o banner de novo
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    setDismissed(getAlreadyDismissed())
+  }, [])
+
   useEffect(() => {
     if (typeof window === 'undefined') return
     const raw = sessionStorage.getItem(PURCHASE_PENDING_KEY)
-    const alreadyDismissed =
-      sessionStorage.getItem(PURCHASE_DISMISSED_KEY) === '1' ||
-      localStorage.getItem(PURCHASE_DISMISSED_KEY_LOCAL) === '1'
+    const alreadyDismissed = getAlreadyDismissed()
     if (raw && !alreadyDismissed) {
       try {
         const data = JSON.parse(raw) as PendingData
@@ -39,17 +51,19 @@ export function PurchaseNotificationGlobal() {
       }
     } else {
       setPending(null)
-      setDismissed(true)
+      if (alreadyDismissed) setDismissed(true)
     }
   }, [])
 
   useEffect(() => {
     if (typeof window === 'undefined' || authLoading || !isAuthenticated || !hasActiveSubscription) return
+    if (getAlreadyDismissed()) {
+      setPending(null)
+      setDismissed(true)
+      return
+    }
     const raw = sessionStorage.getItem(PURCHASE_PENDING_KEY)
-    const alreadyDismissed =
-      sessionStorage.getItem(PURCHASE_DISMISSED_KEY) === '1' ||
-      localStorage.getItem(PURCHASE_DISMISSED_KEY_LOCAL) === '1'
-    if (raw || alreadyDismissed) return
+    if (raw) return
     sessionStorage.setItem(PURCHASE_PENDING_KEY, JSON.stringify({ manualOrFirstAccess: true }))
     setPending({ manualOrFirstAccess: true })
     setDismissed(false)
