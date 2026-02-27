@@ -86,25 +86,28 @@ export function PurchaseNotificationGlobal() {
 
   if (!pending || dismissed) return null
 
+  const shortTitle = pending.manualOrFirstAccess ? 'Acesso liberado!' : 'Compra confirmada!'
+  const shortDescription = pending.planName
+    ? 'Plano ativo. Inicie o tour e veja cada área.'
+    : 'Inicie o tour e veja onde fica cada área.'
+
   return (
-    <div className="fixed top-4 right-3 sm:right-4 z-[120] w-[min(calc(100vw-1.5rem),320px)] sm:w-[380px] md:w-[420px] pointer-events-auto">
+    <div className="fixed top-3 left-3 right-3 sm:left-auto sm:right-4 sm:top-4 z-[120] w-auto max-w-[min(100vw-1.5rem,300px)] sm:max-w-[340px] md:max-w-[380px] pointer-events-auto">
       <Banner
         show
         variant="gradient"
-        title={pending.manualOrFirstAccess ? 'Acesso liberado!' : 'Compra confirmada! Seu acesso foi liberado.'}
-        description={`${
-          pending.planName ? `Plano ${pending.planName} ativo. ` : pending.manualOrFirstAccess ? 'Seu acesso à plataforma está ativo. ' : ''
-        }Quer uma visão rápida da plataforma? Inicie o tour guiado e veja onde fica cada área.`}
+        title={shortTitle}
+        description={shortDescription}
         showShade
         closable
         onHide={dismiss}
-        icon={<Rocket className="h-4 w-4 text-[#0A0A0A]" />}
-        className="border-[#F7C948]/50 bg-white/95 backdrop-blur-md"
+        icon={<Rocket className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-[#0A0A0A] shrink-0" />}
+        className="border-[#F7C948]/50 bg-white/95 backdrop-blur-md text-xs sm:text-sm py-2 px-3 sm:py-2.5 sm:px-4"
         action={
           <Button
             size="sm"
             onClick={handleStartTour}
-            className="inline-flex items-center gap-1 rounded-md bg-black/10 px-3 py-1.5 text-sm font-medium text-[#0A0A0A] transition-colors hover:bg-black/20"
+            className="inline-flex items-center gap-0.5 rounded-md bg-black/10 px-2 py-1 text-xs font-medium text-[#0A0A0A] transition-colors hover:bg-black/20 sm:px-3 sm:py-1.5 sm:text-sm shrink-0"
             variant="ghost"
           >
             Começar tour

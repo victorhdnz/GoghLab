@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { usePathname, useRouter } from 'next/navigation'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { createClient } from '@/lib/supabase/client'
 import { motion } from 'framer-motion'
@@ -38,9 +38,18 @@ interface PlanFeatureItem {
 export default function AccountPage() {
   const pathname = usePathname()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { user, profile, subscription, hasActiveSubscription, isPro, refreshSubscription, signOut } = useAuth()
   const { openTour } = useOnboardingTour()
-  const [activeTab, setActiveTab] = useState<TabType>('profile')
+  const tabFromUrl = searchParams.get('tab')
+  const [activeTab, setActiveTab] = useState<TabType>(tabFromUrl === 'plan' ? 'plan' : 'profile')
+
+  // Manter aba em sync com ?tab=plan quando a URL mudar
+  useEffect(() => {
+    if (searchParams.get('tab') === 'plan') {
+      setActiveTab('plan')
+    }
+  }, [searchParams])
 
   // Redirecionar /membro/conta → /conta (uma única interface de conta)
   useEffect(() => {
