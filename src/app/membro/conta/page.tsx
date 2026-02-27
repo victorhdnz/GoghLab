@@ -508,7 +508,7 @@ export default function AccountPage() {
                     <button
                       type="button"
                       onClick={() => openTour()}
-                      className="mt-3 inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gogh-grayDark hover:text-gogh-black border border-gogh-grayLight rounded-xl hover:bg-gogh-grayLight/50 transition-colors"
+                      className="mt-3 lg:ml-6 lg:mt-0 inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gogh-grayDark hover:text-gogh-black border border-gogh-grayLight rounded-xl hover:bg-gogh-grayLight/50 transition-colors"
                     >
                       <Compass className="w-4 h-4" />
                       Ver tour da plataforma
@@ -544,7 +544,7 @@ export default function AccountPage() {
                     <button
                       type="button"
                       onClick={() => openTour()}
-                      className="mt-3 inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gogh-grayDark hover:text-gogh-black border border-gogh-grayLight rounded-xl hover:bg-gogh-grayLight/50 transition-colors"
+                      className="mt-3 lg:ml-6 lg:mt-0 inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gogh-grayDark hover:text-gogh-black border border-gogh-grayLight rounded-xl hover:bg-gogh-grayLight/50 transition-colors"
                     >
                       <Compass className="w-4 h-4" />
                       Ver tour da plataforma
