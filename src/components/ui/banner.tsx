@@ -87,10 +87,8 @@ export function Banner({
       <div className="flex items-center justify-between gap-4">
         <div className="flex min-w-0 flex-1 items-center gap-3">
           {icon && <div className="flex-shrink-0">{icon}</div>}
-          <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center">
-              <p className="font-semibold break-words">{title}</p>
-            </div>
+          <div className="min-w-0 flex-1 space-y-0.5">
+            <p className="font-semibold break-words leading-tight">{title}</p>
             {description && <p className="text-xs opacity-80">{description}</p>}
           </div>
         </div>

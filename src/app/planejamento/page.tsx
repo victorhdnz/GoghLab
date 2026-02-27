@@ -1038,15 +1038,15 @@ export default function ContentPlanningPage() {
                       placeholder="Ex.: Gogh Lab"
                     />
                   </div>
-                  <div className="flex flex-col">
+                  <div className="flex flex-col md:col-span-2">
                     <label className="block text-sm font-medium text-gogh-grayDark mb-1">Nicho principal (detalhe bem para a IA)</label>
                     <p className="text-xs text-gogh-grayDark mb-1.5">Área de atuação e contexto do negócio; quanto mais específico, mais a IA gera tudo (temas, roteiros, legendas e horários) de acordo com isso.</p>
-                    <input
-                      type="text"
+                    <textarea
                       value={profileForm.niche}
                       onChange={(e) => { markSectionModified('identificacao'); setProfileForm((f) => ({ ...f, niche: e.target.value })) }}
                       placeholder="Ex.: Empresa de marketing digital com site de vendas; público empreendedores 25–45 anos."
-                      className={`w-full px-3 py-2 border rounded-lg text-sm ${getFieldBorderClass('identificacao')}`}
+                      rows={5}
+                      className={`w-full px-3 py-2 border rounded-lg text-sm resize-none min-h-[100px] max-h-[280px] overflow-y-auto ${getFieldBorderClass('identificacao')}`}
                     />
                   </div>
                 </div>
