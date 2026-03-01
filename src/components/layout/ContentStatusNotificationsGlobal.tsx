@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/contexts/AuthContext'
+import { useTourBannerVisible } from '@/contexts/TourBannerVisibleContext'
+import { useOnboardingTour } from '@/contexts/OnboardingTourContext'
 import CustomAlert from '@/components/ui/custom-alert'
 
 type CalendarItem = {
@@ -27,11 +29,14 @@ export function ContentStatusNotificationsGlobal() {
   const pathname = usePathname()
   const router = useRouter()
   const { isAuthenticated, hasActiveSubscription } = useAuth()
+  const { isTourBannerVisible } = useTourBannerVisible() ?? {}
+  const { isTourOpen } = useOnboardingTour() ?? {}
   const [items, setItems] = useState<CalendarItem[]>([])
   const [notice, setNotice] = useState<Notice | null>(null)
 
   const isDashboard = pathname.startsWith('/dashboard')
-  const shouldRun = isAuthenticated && hasActiveSubscription && !isDashboard
+  const tourOrBannerActive = Boolean(isTourBannerVisible || isTourOpen)
+  const shouldRun = isAuthenticated && hasActiveSubscription && !isDashboard && !tourOrBannerActive
 
   useEffect(() => {
     if (!shouldRun) return

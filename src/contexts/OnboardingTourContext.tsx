@@ -29,6 +29,7 @@ const unifiedStepsMobile: TourStep[] = [
 type OnboardingTourContextValue = {
   openTour: (onFinishExtra?: () => void) => void
   closeTour: () => void
+  isTourOpen: boolean
 }
 
 const OnboardingTourContext = createContext<OnboardingTourContextValue | null>(null)
@@ -66,7 +67,7 @@ export function OnboardingTourProvider({ children }: { children: React.ReactNode
     setTourOpen(true)
   }, [])
 
-  const value = useMemo(() => ({ openTour, closeTour }), [openTour, closeTour])
+  const value = useMemo(() => ({ openTour, closeTour, isTourOpen: tourOpen }), [openTour, closeTour, tourOpen])
 
   return (
     <OnboardingTourContext.Provider value={value}>

@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Banner } from '@/components/ui/banner'
 import { useOnboardingTour } from '@/contexts/OnboardingTourContext'
 import { useAuth } from '@/contexts/AuthContext'
+import { useTourBannerVisible } from '@/contexts/TourBannerVisibleContext'
 
 const PURCHASE_PENDING_KEY = 'gogh_purchase_notification_pending'
 const PURCHASE_DISMISSED_KEY = 'gogh_purchase_notification_dismissed'
@@ -30,6 +31,7 @@ export function PurchaseNotificationGlobal() {
   const [dismissed, setDismissed] = useState(true)
   const { openTour } = useOnboardingTour()
   const { loading: authLoading, isAuthenticated, hasActiveSubscription } = useAuth()
+  const { setTourBannerVisible } = useTourBannerVisible() ?? {}
 
   // Inicializar "dismissed" com o valor do localStorage para que, ao voltar a logar, não mostre o banner de novo
   useEffect(() => {
@@ -76,12 +78,18 @@ export function PurchaseNotificationGlobal() {
     localStorage.setItem(PURCHASE_DISMISSED_KEY_LOCAL, '1')
     setPending(null)
     setDismissed(true)
+    setTourBannerVisible?.(false)
   }
 
   const handleStartTour = () => {
     dismiss()
     openTour()
   }
+
+  const isBannerVisible = Boolean(pending && !dismissed)
+  useEffect(() => {
+    setTourBannerVisible?.(isBannerVisible)
+  }, [isBannerVisible, setTourBannerVisible])
 
   if (!pending || dismissed) return null
 

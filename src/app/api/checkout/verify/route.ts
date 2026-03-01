@@ -25,6 +25,7 @@ export async function GET(request: Request) {
 
     return NextResponse.json({
       status: session.status,
+      payment_status: session.payment_status,
       paymentStatus: session.payment_status,
       planId: session.metadata?.planId,
       planName: session.metadata?.planName,
@@ -32,6 +33,7 @@ export async function GET(request: Request) {
       customerEmail: session.customer_email,
       amountTotal: session.amount_total, // Valor total em centavos
       isServiceSubscription: !!isServiceSubscription,
+      session_id: session.id, // Para event_id do Meta Pixel (deduplicação)
     })
   } catch (error: any) {
     console.error('Erro ao verificar sessão:', error)

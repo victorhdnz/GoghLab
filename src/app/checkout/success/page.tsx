@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation'
 import { LumaSpin } from '@/components/ui/luma-spin'
 
 const PURCHASE_NOTIFICATION_DISMISSED_KEY = 'gogh_purchase_notification_dismissed'
+const META_PURCHASE_SENT_KEY = 'gogh_meta_purchase_sent'
 
 export default function CheckoutSuccessPage() {
   const searchParams = useSearchParams()
@@ -12,6 +13,7 @@ export default function CheckoutSuccessPage() {
   const sessionId = searchParams.get('session_id')
   const [loading, setLoading] = useState(true)
   const hasRedirectedRef = useRef(false)
+  const purchaseFiredRef = useRef(false)
 
   useEffect(() => {
     if (hasRedirectedRef.current) return
@@ -24,7 +26,6 @@ export default function CheckoutSuccessPage() {
       .then((res) => res.json())
       .then((data) => {
         if (hasRedirectedRef.current) return
-        hasRedirectedRef.current = true
 
         const alreadyDismissed = typeof window !== 'undefined' && sessionStorage.getItem(PURCHASE_NOTIFICATION_DISMISSED_KEY) === '1'
 
@@ -38,15 +39,33 @@ export default function CheckoutSuccessPage() {
           )
         }
 
-        if (data && typeof window !== 'undefined' && (window as any).fbq) {
-          const price = data.amountTotal ? data.amountTotal / 100 : 0
-          ;(window as any).fbq('track', 'Purchase', {
-            value: price,
-            currency: 'BRL',
-            content_name: data.planName || 'Assinatura',
-          })
+        // Meta Pixel Purchase: apenas quando pagamento confirmado e uma vez por sessão (evitar duplicados)
+        const paymentConfirmed = data?.payment_status === 'paid' || data?.paymentStatus === 'paid'
+        if (
+          paymentConfirmed &&
+          data &&
+          typeof window !== 'undefined' &&
+          (window as any).fbq &&
+          !purchaseFiredRef.current
+        ) {
+          const sentKey = `${META_PURCHASE_SENT_KEY}_${sessionId}`
+          if (!sessionStorage.getItem(sentKey)) {
+            purchaseFiredRef.current = true
+            sessionStorage.setItem(sentKey, '1')
+            const value = data.amountTotal != null ? Number(data.amountTotal) / 100 : 0
+            const eventId = data.session_id || sessionId
+            ;(window as any).fbq('track', 'Purchase', {
+              value,
+              currency: 'BRL',
+              content_name: data.planName || 'Assinatura',
+              content_ids: data.planId ? [data.planId] : undefined,
+              content_type: 'product',
+              event_id: eventId,
+            })
+          }
         }
 
+        hasRedirectedRef.current = true
         setLoading(false)
         router.replace('/conta?tab=plan')
       })

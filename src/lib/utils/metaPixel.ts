@@ -54,12 +54,23 @@ export const MetaPixelEvents = {
     })
   },
   
-  // Purchase (compra/assinatura)
-  purchase: (value: number, currency: string = 'BRL', planName?: string) => {
+  /**
+   * Purchase (compra/assinatura) - padrão Meta:
+   * value, currency (BRL), content_name, content_ids?, event_id? (deduplicação CAPI)
+   */
+  purchase: (
+    value: number,
+    currency: string = 'BRL',
+    planName?: string,
+    options?: { content_ids?: string[]; event_id?: string }
+  ) => {
     trackMetaPixelEvent('Purchase', {
       value,
       currency,
       content_name: planName,
+      content_type: options?.content_ids?.length ? 'product' : undefined,
+      content_ids: options?.content_ids,
+      event_id: options?.event_id,
     })
   },
   
