@@ -350,10 +350,11 @@ export async function POST(request: Request) {
       .map((it) => (it.topic || '').toString().trim())
       .filter((topic: string) => Boolean(topic))
 
-    const today = new Date()
-    const isCurrentMonth = today.getFullYear() === year && today.getMonth() === monthIndex
-    const startDay = isCurrentMonth ? today.getDate() : 1
+    // Sempre considerar o mês inteiro: quem assina no meio do mês ainda recebe
+    // conteúdo para todos os dias da recorrência (incluindo dias já passados),
+    // para não perder dias e ficar com poucos itens no primeiro mês.
     const endDay = daysInMonth(year, monthIndex)
+    const startDay = 1
 
     const candidateDates: string[] = []
     for (let day = startDay; day <= endDay; day += 1) {
