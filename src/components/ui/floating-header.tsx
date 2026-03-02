@@ -13,6 +13,8 @@ import {
   User,
   Package,
   ChevronDown,
+  LayoutDashboard,
+  BarChart3,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -105,12 +107,20 @@ function SpotlightNavItem({
   )
 }
 
-// ——— Menu structure: desktop (Início, Criar, Produto dropdown) e mobile (accordion Produto)
+// ——— Menu structure: Início, Criar (dropdown: Gogh Agenda + Gogh Analytics), Produto (dropdown)
 type SubItem = { title: string; description?: string; url: string; icon: React.ElementType }
 const menuWithDropdowns: Array<
   { title: string; url: string; highlight?: boolean; items?: SubItem[] }> = [
   { title: 'Início', url: '/' },
-  { title: 'Criar', url: '/planejamento', highlight: true },
+  {
+    title: 'Criar',
+    url: '/planejamento',
+    highlight: true,
+    items: [
+      { title: 'Gogh Agenda', description: 'Planejamento e agenda de conteúdo com IA', url: '/planejamento', icon: Calendar },
+      { title: 'Gogh Analytics', description: 'Análise de anúncios e desempenho', url: '/analytics', icon: BarChart3 },
+    ],
+  },
   {
     title: 'Produto',
     url: '/ferramentas',
@@ -133,6 +143,7 @@ export function FloatingHeader({ initialSiteLogo = null, initialSiteName }: Floa
   const [siteLogo, setSiteLogo] = useState<string | null>(initialSiteLogo ?? null)
   const [mobileActiveIndex, setMobileActiveIndex] = useState(0)
   const [produtoDropdownOpen, setProdutoDropdownOpen] = useState(false)
+  const [criarDropdownOpen, setCriarDropdownOpen] = useState(false)
   const navRef = useRef<HTMLElement>(null)
   const itemRefs = useRef<(HTMLElement | null)[]>([])
   const [indicatorStyle, setIndicatorStyle] = useState<{ left: number; width: number } | null>(null)
@@ -147,6 +158,8 @@ export function FloatingHeader({ initialSiteLogo = null, initialSiteName }: Floa
       pathname?.startsWith('/criar/') ||
       pathname === '/planejamento' ||
       pathname?.startsWith('/planejamento/') ||
+      pathname === '/analytics' ||
+      pathname?.startsWith('/analytics/') ||
       pathname === '/membro/planejamento' ||
       pathname?.startsWith('/membro/planejamento/')
     ) setMobileActiveIndex(2)
@@ -254,14 +267,18 @@ export function FloatingHeader({ initialSiteLogo = null, initialSiteName }: Floa
             <NavigationMenuList className="gap-1 bg-transparent">
               {menuWithDropdowns.map((item) => {
                 if (item.items?.length) {
+                  const isCriar = item.title === 'Criar'
+                  const isOpen = isCriar ? criarDropdownOpen : produtoDropdownOpen
+                  const setOpen = isCriar ? setCriarDropdownOpen : setProdutoDropdownOpen
                   return (
                     <div key={item.title} className="flex items-center">
-                      <DropdownMenu open={produtoDropdownOpen} onOpenChange={setProdutoDropdownOpen}>
+                      <DropdownMenu open={isOpen} onOpenChange={setOpen}>
                         <DropdownMenuTrigger
-                          data-tour="nav-product-desktop"
+                          data-tour={isCriar ? 'nav-create-desktop' : 'nav-product-desktop'}
                           className={cn(
                             'group inline-flex h-9 w-max items-center justify-center rounded-md px-4 py-2 text-sm font-medium transition-colors',
-                            'bg-transparent text-white/90 hover:bg-white/10 hover:text-white data-[state=open]:bg-white/10 outline-none'
+                            'bg-transparent text-white/90 hover:bg-white/10 hover:text-white data-[state=open]:bg-white/10 outline-none',
+                            item.highlight && 'bg-primary text-primary-foreground hover:bg-primary/90'
                           )}
                         >
                           {item.title}
@@ -272,11 +289,11 @@ export function FloatingHeader({ initialSiteLogo = null, initialSiteName }: Floa
                             {item.items.map((sub) => {
                               const SubIcon = sub.icon
                               return (
-                                <li key={sub.url}>
+                                <li key={sub.url + sub.title}>
                                   <Link
                                     href={getProtectedHref(sub.url)}
                                     className="flex select-none gap-4 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-muted hover:text-accent-foreground text-foreground"
-                                    onClick={() => setProdutoDropdownOpen(false)}
+                                    onClick={() => setOpen(false)}
                                   >
                                     {SubIcon && <SubIcon className="size-5 shrink-0 text-muted-foreground" />}
                                     <div>
@@ -300,13 +317,7 @@ export function FloatingHeader({ initialSiteLogo = null, initialSiteName }: Floa
                     <NavigationMenuLink asChild>
                       <Link
                         href={getProtectedHref(item.url)}
-                        data-tour={
-                          item.title === 'Início'
-                            ? 'nav-home-desktop'
-                            : item.title === 'Criar'
-                              ? 'nav-create-desktop'
-                              : undefined
-                        }
+                        data-tour={item.title === 'Início' ? 'nav-home-desktop' : undefined}
                         className={cn(
                           'inline-flex h-9 w-max items-center justify-center rounded-md px-4 py-2 text-sm font-medium transition-colors hover:bg-white/10',
                           item.highlight ? 'bg-primary text-primary-foreground hover:bg-primary/90' : 'text-white/90 hover:text-white'
@@ -340,12 +351,13 @@ export function FloatingHeader({ initialSiteLogo = null, initialSiteName }: Floa
     </header>
   )
 
-  // ——— Mobile: barra inferior com ícone Produto que abre pop-up (Ferramentas + Cursos)
+  // ——— Mobile: barra inferior — Produto e Criar abrem menu (Ferramentas/Cursos e Gogh Agenda/Analytics)
   const produtoItem = menuWithDropdowns.find((m) => m.title === 'Produto' && m.items?.length)
+  const criarItem = menuWithDropdowns.find((m) => m.title === 'Criar' && m.items?.length)
   const mobileNavItems = [
     { index: 0, icon: Home, label: 'Início', href: '/', dataTour: 'nav-home-mobile' },
-    { index: 1, icon: Package, label: 'Produto', openDropdown: true, dataTour: 'nav-product-mobile' },
-    { index: 2, icon: Calendar, label: 'Criar', href: getProtectedHref('/planejamento'), dataTour: 'nav-create-mobile' },
+    { index: 1, icon: Package, label: 'Produto', openDropdown: true, dropdownItems: produtoItem?.items, dataTour: 'nav-product-mobile' },
+    { index: 2, icon: LayoutDashboard, label: 'Criar', openDropdown: true, dropdownItems: criarItem?.items, dataTour: 'nav-create-mobile' },
     { index: 3, icon: CreditCard, label: 'Planos', href: '/precos', dataTour: 'nav-plans-mobile' },
     { index: 4, icon: User, label: isAuthenticated ? 'Conta' : 'Entrar', href: isAuthenticated ? '/conta' : '/login', dataTour: 'nav-account-mobile' },
   ]
@@ -368,10 +380,11 @@ export function FloatingHeader({ initialSiteLogo = null, initialSiteName }: Floa
           />
         )}
         {mobileNavItems.map((item) => {
-          if (item.openDropdown && produtoItem?.items) {
+          const dropdownItems = 'dropdownItems' in item ? item.dropdownItems : null
+          if (item.openDropdown && dropdownItems?.length) {
             const isActive = mobileActiveIndex === item.index
-            const distance = Math.abs(mobileActiveIndex - item.index)
-            const spotlightOpacity = isActive ? 1 : Math.max(0, 1 - distance * 0.6)
+            const spotlightOpacity = isActive ? 1 : Math.max(0, 1 - Math.abs(mobileActiveIndex - item.index) * 0.6)
+            const NavIcon = item.index === 1 ? Package : LayoutDashboard
             return (
               <DropdownMenu key={item.label}>
                 <DropdownMenuTrigger asChild>
@@ -390,7 +403,7 @@ export function FloatingHeader({ initialSiteLogo = null, initialSiteName }: Floa
                         transitionDelay: isActive ? '0.1s' : '0s',
                       }}
                     />
-                    <Package
+                    <NavIcon
                       className={cn(
                         'w-6 h-6 transition-colors duration-200 shrink-0',
                         isActive ? 'text-white' : 'text-gray-500'
@@ -405,10 +418,10 @@ export function FloatingHeader({ initialSiteLogo = null, initialSiteName }: Floa
                   sideOffset={12}
                   className="w-56 rounded-xl border border-white/10 bg-black/95 backdrop-blur-sm py-1"
                 >
-                  {produtoItem.items.map((sub) => {
+                  {dropdownItems.map((sub) => {
                     const SubIcon = sub.icon
                     return (
-                      <DropdownMenuItem key={sub.url} asChild>
+                      <DropdownMenuItem key={sub.url + sub.title} asChild>
                         <Link
                           href={getProtectedHref(sub.url)}
                           className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-white/90 no-underline outline-none transition-colors hover:bg-white/10 hover:text-white focus:bg-white/10 focus:text-white"
