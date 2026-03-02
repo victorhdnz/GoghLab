@@ -97,11 +97,12 @@ export function PostPurchaseOnboardingTour({
   const targetCenterX = rect ? rect.left + rect.width / 2 : vw / 2
   const targetInBottomArea = rect ? rect.top > vh * 0.55 : false
   const hasSpaceBelow = rect ? rect.bottom + 220 < vh : true
-  // No mobile, quando o alvo é a nav inferior, fixar o card acima do alvo para não "subir" demais
+  // No mobile, quando o alvo é a nav inferior, fixar o card acima do alvo para não tampar o ícone
   const preferCardAbove = isMobile && targetInBottomArea
+  const cardHeightEstimate = 200
   const cardTop = rect
     ? preferCardAbove
-      ? Math.max(12, rect.top - 186)
+      ? Math.max(12, rect.top - cardHeightEstimate)
       : hasSpaceBelow
         ? Math.min(vh - 180, rect.bottom + 14)
         : Math.max(12, rect.top - 170)
