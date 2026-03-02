@@ -601,6 +601,11 @@ export default function ContentPlanningPage() {
 
   const currentMonthNumber = currentMonth.getMonth()
   const currentMonthKey = `${currentMonth.getFullYear()}-${String(currentMonth.getMonth() + 1).padStart(2, '0')}`
+  const realCurrentMonthKey = useMemo(() => {
+    const d = new Date()
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+  }, [])
+  const isViewedMonthCurrent = currentMonthKey === realCurrentMonthKey
   const hasAutoPlanGeneratedItemInMonth = useMemo(
     () =>
       items.some(
@@ -611,6 +616,7 @@ export default function ContentPlanningPage() {
   )
   const hasAutoPlanUsedThisMonth =
     profile?.extra_preferences?.auto_plan_last_month === currentMonthKey || hasAutoPlanGeneratedItemInMonth
+  const canPressGenerateAgenda = isViewedMonthCurrent && !hasAutoPlanUsedThisMonth
 
   const getRecommendedTime = (item: CalendarItem) => {
     const rec = item.meta?.recommended_time
@@ -802,6 +808,7 @@ export default function ContentPlanningPage() {
       })
       const data = await res.json()
       if (!res.ok) {
+        setConfirmAutoPlanModalOpen(false)
         if (data?.code === 'AUTO_PLAN_ALREADY_USED') {
           setProfile((prev) =>
             prev
@@ -815,9 +822,16 @@ export default function ContentPlanningPage() {
               : prev
           )
         }
-        toast.error(data?.code === 'AUTO_PLAN_ALREADY_USED' ? (data.error || 'Erro ao gerar agenda automática') : ERRO_GERACAO_MENSAGEM)
+        const msg =
+          data?.code === 'AUTO_PLAN_ALREADY_USED'
+            ? (data.error || 'Erro ao gerar agenda automática')
+            : data?.code === 'AUTO_PLAN_ONLY_CURRENT_MONTH'
+              ? (data.error || 'Só é permitido gerar agenda para o mês atual.')
+              : ERRO_GERACAO_MENSAGEM
+        toast.error(msg)
         return
       }
+      setConfirmAutoPlanModalOpen(false)
       const createdItems: CalendarItem[] = Array.isArray(data.items) ? data.items : []
       setItems((prev) => {
         const map = new Map(prev.map((it) => [it.id, it]))
@@ -1374,13 +1388,18 @@ export default function ContentPlanningPage() {
               if (hasAutoPlanUsedThisMonth || !profile || autoPlanning) return
               setConfirmAutoPlanModalOpen(true)
             }}
-            disabled={autoPlanning || !profile || hasAutoPlanUsedThisMonth}
+            disabled={autoPlanning || !profile || !canPressGenerateAgenda}
             className="h-10 px-4"
           >
             {autoPlanning ? (
               <>
                 <LumaSpin size="sm" />
                 Gerando agenda...
+              </>
+            ) : !isViewedMonthCurrent ? (
+              <>
+                <Sparkles className="w-4 h-4" />
+                Disponível apenas para o mês atual
               </>
             ) : hasAutoPlanUsedThisMonth ? (
               <>

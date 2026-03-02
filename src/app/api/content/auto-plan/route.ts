@@ -252,6 +252,20 @@ export async function POST(request: Request) {
     const monthIndex = base.getMonth()
     const monthKey = `${year}-${String(monthIndex + 1).padStart(2, '0')}`
 
+    // Só permitir gerar agenda para o mês atual (evita gerar vários meses e cancelar)
+    const now = new Date()
+    const isRequestedCurrentMonth =
+      year === now.getFullYear() && monthIndex === now.getMonth()
+    if (!isRequestedCurrentMonth) {
+      return NextResponse.json(
+        {
+          error: 'Só é permitido gerar agenda para o mês atual.',
+          code: 'AUTO_PLAN_ONLY_CURRENT_MONTH',
+        },
+        { status: 400 }
+      )
+    }
+
     const { data: profile, error: profileError } = (await (supabase
       .from('content_profiles') as any)
       .select('*')
