@@ -1,78 +1,24 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase/client'
 import { motion } from 'framer-motion'
 import {
   BarChart3,
   Lock,
-  RefreshCw,
-  Eye,
-  Users,
-  MousePointer,
   ChevronDown,
   ChevronRight,
-  Filter,
-  LayoutDashboard,
-  MousePointerClick,
-  Table2,
-  UserCheck,
   DollarSign,
-  TrendingUp,
   Megaphone,
   Plus,
   Trash2,
-  Calendar,
-  CheckCircle2,
   AlertCircle,
 } from 'lucide-react'
 import { LumaSpin } from '@/components/ui/luma-spin'
 import toast from 'react-hot-toast'
 
-interface AnalyticsSummary {
-  totalViews: number
-  totalClicks: number
-  totalConversions: number
-  uniqueVisitors: number
-  averageScrollDepth: number
-  bounceRate: number
-  clickRate: number
-  conversionRate: number
-}
-
-interface DailyStats {
-  date: string
-  views: number
-  clicks: number
-  visitors: number
-  avgScroll: number
-}
-
-interface PagePerformance {
-  pageId: string | null
-  pageSlug: string | null
-  pageName: string
-  pageType: string
-  views: number
-  clicks: number
-  visitors: number
-  avgScroll: number
-  bounceRate: number
-}
-
-interface SessionData {
-  sessionId: string
-  pageName: string
-  startTime: string
-  duration: number
-  scrollDepth: number
-  clicks: number
-  pageViews: number
-}
-
-type AnalyticsAccordionId = 'campanhas' | 'filtros' | 'status' | 'resumo' | 'roi' | 'cliques' | 'performance' | 'sessoes'
+type AnalyticsAccordionId = 'campanhas' | 'status' | 'roi'
 
 interface AnalyticsCampaign {
   id: string
@@ -87,21 +33,9 @@ interface AnalyticsCampaign {
   updated_at: string
 }
 
-const FUNCTIONAL_ELEMENTS = [
-  'service-link',
-  'related-service-link',
-  'comparison-cta',
-  'contact-button',
-  'whatsapp-button',
-  'email-button',
-  'instagram-button',
-  'cta-contact',
-]
-
 export default function AnalyticsPage() {
   const { isAuthenticated, loading: authLoading, hasActiveSubscription, isPro } = useAuth()
   const hasAccess = isAuthenticated && isPro
-  const supabase = createClient()
 
   const [accordionOpen, setAccordionOpen] = useState<AnalyticsAccordionId | null>('campanhas')
   const [campaigns, setCampaigns] = useState<AnalyticsCampaign[]>([])
@@ -109,305 +43,10 @@ export default function AnalyticsPage() {
   const [campaignsLoading, setCampaignsLoading] = useState(false)
   const [newCampaignName, setNewCampaignName] = useState('')
   const [newCampaignStartDate, setNewCampaignStartDate] = useState(() => new Date().toISOString().split('T')[0])
-  const [pageType, setPageType] = useState<'all' | 'homepage' | 'service' | 'product'>('all')
-  const [selectedPageId, setSelectedPageId] = useState<string | null>(null)
-  const [pages, setPages] = useState<any[]>([])
-  const [analytics, setAnalytics] = useState<any[]>([])
-  const [summary, setSummary] = useState<AnalyticsSummary | null>(null)
-  const [dailyStats, setDailyStats] = useState<DailyStats[]>([])
-  const [pagePerformance, setPagePerformance] = useState<PagePerformance[]>([])
-  const [sessions, setSessions] = useState<SessionData[]>([])
-  const [clickDetails, setClickDetails] = useState<Array<{ element: string; text: string; pageName: string; count: number }>>([])
-  const [loading, setLoading] = useState(true)
-  const [dateRange, setDateRange] = useState<'7d' | '30d' | '90d' | 'all' | 'custom'>('30d')
-  const [customStartDate, setCustomStartDate] = useState<string>('')
-  const [customEndDate, setCustomEndDate] = useState<string>('')
-  // ROI opcional: ativar para ver lucro e CPA break-even
   const [roiEnabled, setRoiEnabled] = useState(false)
   const [valorVenda, setValorVenda] = useState<string>('')
   const [custoVenda, setCustoVenda] = useState<string>('')
   const [custoPorAquisição, setCustoPorAquisição] = useState<string>('')
-
-  const getDateFilter = (range: string) => {
-    const now = new Date()
-    let startDate = new Date()
-    switch (range) {
-      case '7d':
-        startDate.setDate(now.getDate() - 7)
-        break
-      case '30d':
-        startDate.setDate(now.getDate() - 30)
-        break
-      case '90d':
-        startDate.setDate(now.getDate() - 90)
-        break
-      case 'custom':
-        startDate = customStartDate ? new Date(customStartDate) : new Date(0)
-        break
-      default:
-        startDate = new Date(0)
-    }
-    const endDate = range === 'custom' && customEndDate ? new Date(customEndDate) : now
-    return { startDate: startDate.toISOString(), endDate: endDate.toISOString() }
-  }
-
-  const loadPages = async () => {
-    try {
-      const { data: services } = await (supabase as any)
-        .from('services')
-        .select('id, slug, name')
-        .eq('is_active', true)
-        .order('created_at', { ascending: false })
-      const allPages = (services || []).map((s: { id: string; slug: string; name: string }) => ({
-        id: s.id,
-        slug: s.slug,
-        name: s.name,
-        type: 'service' as const,
-        title: s.name,
-      }))
-      setPages(allPages)
-    } catch (e) {
-      console.error('Erro ao carregar páginas:', e)
-    }
-  }
-
-  const loadAnalytics = async () => {
-    if (!hasAccess) return
-    try {
-      setLoading(true)
-      const { startDate, endDate } = getDateFilter(dateRange)
-      let query = (supabase as any).from('page_analytics').select('*', { count: 'exact' })
-      if (dateRange !== 'all') {
-        query = query.gte('created_at', startDate).lte('created_at', endDate)
-      }
-      if (pageType !== 'all') query = query.eq('page_type', pageType)
-      if (selectedPageId && pageType === 'service') query = query.eq('page_id', selectedPageId)
-      const { data, error } = await query.order('created_at', { ascending: false })
-      if (error) throw error
-      setAnalytics(data || [])
-      if (data?.length) {
-        calculateSummary(data)
-        calculateDailyStats(data)
-        calculatePagePerformance(data)
-        calculateSessions(data)
-        calculateClickDetails(data)
-      } else {
-        setSummary(null)
-        setDailyStats([])
-        setPagePerformance([])
-        setSessions([])
-        setClickDetails([])
-      }
-    } catch (err: any) {
-      toast.error(err?.message || 'Erro ao carregar dados')
-      setAnalytics([])
-      setSummary(null)
-      setDailyStats([])
-      setPagePerformance([])
-      setSessions([])
-      setClickDetails([])
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const calculateSummary = (data: any[]) => {
-    const views = data.filter((a) => a.event_type === 'page_view')
-    const clicks = data.filter((a) => a.event_type === 'click' && FUNCTIONAL_ELEMENTS.includes(a.event_data?.element || ''))
-    const conversions = data.filter((a) => a.event_type === 'conversion')
-    const scrolls = data.filter((a) => a.event_type === 'scroll')
-    const totalViews = views.length
-    const totalClicks = clicks.length
-    const totalConversions = conversions.length
-    const uniqueVisitors = new Set(views.map((v) => v.session_id)).size
-    const avgScrollDepth = scrolls.length
-      ? scrolls.reduce((sum, s) => sum + (s.event_data?.scroll_depth || 0), 0) / scrolls.length
-      : 0
-    const sessionsSet = new Set(data.map((a) => a.session_id))
-    const bouncedSessions = Array.from(sessionsSet).filter((sessionId) => {
-      const sessionEvents = data.filter((a) => a.session_id === sessionId)
-      const hasScroll = sessionEvents.some((e) => e.event_type === 'scroll' && (e.event_data?.scroll_depth || 0) > 25)
-      return !hasScroll
-    }).length
-    const bounceRate = sessionsSet.size > 0 ? (bouncedSessions / sessionsSet.size) * 100 : 0
-    const clickRate = totalViews > 0 ? (totalClicks / totalViews) * 100 : 0
-    const conversionRate = uniqueVisitors > 0 ? (totalConversions / uniqueVisitors) * 100 : 0
-    setSummary({
-      totalViews,
-      totalClicks,
-      totalConversions,
-      uniqueVisitors,
-      averageScrollDepth: Math.round(avgScrollDepth),
-      bounceRate: Math.round(bounceRate * 10) / 10,
-      clickRate: Math.round(clickRate * 10) / 10,
-      conversionRate: Math.round(conversionRate * 10) / 10,
-    })
-  }
-
-  const calculateDailyStats = (data: any[]) => {
-    const dailyMap = new Map<string, { views: number; clicks: number; visitors: Set<string>; scrolls: number[] }>()
-    data.forEach((event) => {
-      const date = new Date(event.created_at).toISOString().split('T')[0]
-      if (!dailyMap.has(date)) dailyMap.set(date, { views: 0, clicks: 0, visitors: new Set(), scrolls: [] })
-      const day = dailyMap.get(date)!
-      if (event.event_type === 'page_view') {
-        day.views++
-        day.visitors.add(event.session_id)
-      } else if (event.event_type === 'click') day.clicks++
-      else if (event.event_type === 'scroll') day.scrolls.push(event.event_data?.scroll_depth || 0)
-    })
-    const stats: DailyStats[] = Array.from(dailyMap.entries())
-      .map(([date, d]) => ({
-        date,
-        views: d.views,
-        clicks: d.clicks,
-        visitors: d.visitors.size,
-        avgScroll: d.scrolls.length ? Math.round(d.scrolls.reduce((a, b) => a + b, 0) / d.scrolls.length) : 0,
-      }))
-      .sort((a, b) => a.date.localeCompare(b.date))
-    setDailyStats(stats)
-  }
-
-  const calculatePagePerformance = (data: any[]) => {
-    const pageMap = new Map<
-      string,
-      {
-        pageId: string | null
-        pageSlug: string | null
-        pageName: string
-        pageType: string
-        views: number
-        clicks: number
-        visitors: Set<string>
-        scrolls: number[]
-        sessionScrolls: Map<string, number[]>
-      }
-    >()
-    data.forEach((event) => {
-      const key =
-        event.page_type === 'homepage'
-          ? 'homepage'
-          : event.page_id || event.page_slug || 'unknown'
-      if (!pageMap.has(key)) {
-        pageMap.set(key, {
-          pageId: event.page_id,
-          pageSlug: event.page_slug,
-          pageName: event.page_type === 'homepage' ? 'Homepage' : event.page_slug || 'Página',
-          pageType: event.page_type,
-          views: 0,
-          clicks: 0,
-          visitors: new Set(),
-          scrolls: [],
-          sessionScrolls: new Map(),
-        })
-      }
-      const page = pageMap.get(key)!
-      if (event.event_type === 'page_view') {
-        page.views++
-        page.visitors.add(event.session_id)
-      } else if (event.event_type === 'click' && FUNCTIONAL_ELEMENTS.includes(event.event_data?.element || '')) {
-        page.clicks++
-      } else if (event.event_type === 'scroll') {
-        const depth = event.event_data?.scroll_depth || 0
-        page.scrolls.push(depth)
-        if (!page.sessionScrolls.has(event.session_id)) page.sessionScrolls.set(event.session_id, [])
-        page.sessionScrolls.get(event.session_id)!.push(depth)
-      }
-    })
-    const performance: PagePerformance[] = Array.from(pageMap.entries())
-      .map(([, d]) => {
-        let pageName = d.pageName
-        if (d.pageType === 'service') {
-          const service = pages.find((p) => (d.pageId && p.id === d.pageId) || (d.pageSlug && p.slug === d.pageSlug))
-          if (service) pageName = service.name
-        }
-        const sessionsList = Array.from(d.visitors)
-        let bounced = 0
-        sessionsList.forEach((sid) => {
-          const scrolls = d.sessionScrolls.get(sid) || []
-          const maxScroll = scrolls.length ? Math.max(...scrolls) : 0
-          if (maxScroll <= 25) bounced++
-        })
-        return {
-          pageId: d.pageId,
-          pageSlug: d.pageSlug,
-          pageName,
-          pageType: d.pageType,
-          views: d.views,
-          clicks: d.clicks,
-          visitors: d.visitors.size,
-          avgScroll: d.scrolls.length ? Math.round(d.scrolls.reduce((a, b) => a + b, 0) / d.scrolls.length) : 0,
-          bounceRate: sessionsList.length ? Math.round((bounced / sessionsList.length) * 100 * 10) / 10 : 0,
-        }
-      })
-      .sort((a, b) => b.views - a.views)
-    setPagePerformance(performance)
-  }
-
-  const calculateSessions = (data: any[]) => {
-    const sessionMap = new Map<
-      string,
-      { pageType: string; pageId: string | null; pageSlug: string | null; startTime: string; events: any[] }
-    >()
-    data.forEach((event) => {
-      if (!sessionMap.has(event.session_id)) {
-        sessionMap.set(event.session_id, {
-          pageType: event.page_type,
-          pageId: event.page_id,
-          pageSlug: event.page_slug,
-          startTime: event.created_at,
-          events: [],
-        })
-      }
-      sessionMap.get(event.session_id)!.events.push(event)
-    })
-    const sessionsData: SessionData[] = Array.from(sessionMap.entries())
-      .map(([sessionId, sd]) => {
-        const views = sd.events.filter((e) => e.event_type === 'page_view')
-        const clicks = sd.events.filter((e) => e.event_type === 'click' && FUNCTIONAL_ELEMENTS.includes(e.event_data?.element || ''))
-        const scrolls = sd.events.filter((e) => e.event_type === 'scroll')
-        const maxScroll = scrolls.length ? Math.max(...scrolls.map((s: any) => s.event_data?.scroll_depth || 0)) : 0
-        let pageName = 'Homepage'
-        if (sd.pageType === 'service') {
-          const service = pages.find((p) => (sd.pageId && p.id === sd.pageId) || (sd.pageSlug && p.slug === sd.pageSlug))
-          pageName = service?.name || sd.pageSlug || 'Serviço'
-        }
-        return {
-          sessionId,
-          pageName,
-          startTime: sd.startTime,
-          duration: 0,
-          scrollDepth: maxScroll,
-          clicks: clicks.length,
-          pageViews: views.length,
-        }
-      })
-      .sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime())
-      .slice(0, 100)
-    setSessions(sessionsData)
-  }
-
-  const calculateClickDetails = (data: any[]) => {
-    const clickMap = new Map<string, { element: string; text: string; pageName: string; count: number }>()
-    const clickEvents = data.filter((e) => e.event_type === 'click' && FUNCTIONAL_ELEMENTS.includes(e.event_data?.element || ''))
-    clickEvents.forEach((event) => {
-      const element = event.event_data?.element || 'unknown'
-      const text = (event.event_data?.text || '').replace(/\.?Ver detalhes/gi, '').trim() || element
-      let pageName = 'Homepage'
-      if (event.page_type === 'service') {
-        const service = pages.find((p) => (event.page_id && p.id === event.page_id) || (event.page_slug && p.slug === event.page_slug))
-        pageName = service?.name || event.page_slug || 'Serviço'
-      }
-      const key = `${event.page_type}_${event.page_id || event.page_slug || 'hp'}_${element}_${event.event_data?.url || text}`
-      if (!clickMap.has(key)) clickMap.set(key, { element, text, pageName, count: 0 })
-      clickMap.get(key)!.count++
-    })
-    setClickDetails(
-      Array.from(clickMap.values())
-        .sort((a, b) => b.count - a.count)
-        .slice(0, 50)
-    )
-  }
 
   const loadCampaigns = async () => {
     if (!hasAccess) return
@@ -428,10 +67,6 @@ export default function AnalyticsPage() {
   const selectedCampaign = selectedCampaignId ? campaigns.find((c) => c.id === selectedCampaignId) : null
 
   useEffect(() => {
-    loadPages()
-  }, [])
-
-  useEffect(() => {
     if (hasAccess) loadCampaigns()
   }, [hasAccess])
 
@@ -445,12 +80,6 @@ export default function AnalyticsPage() {
       setCustoPorAquisição(c.custo_por_aquisicao != null ? String(c.custo_por_aquisicao) : '')
     }
   }, [selectedCampaignId, campaigns])
-
-  useEffect(() => {
-    if (hasAccess && (pages.length > 0 || pageType === 'homepage' || pageType === 'all')) {
-      loadAnalytics()
-    }
-  }, [hasAccess, pageType, selectedPageId, dateRange, customStartDate, customEndDate, pages.length])
 
   if (authLoading) {
     return (
@@ -542,32 +171,6 @@ export default function AnalyticsPage() {
       toast.error(e?.message || 'Erro ao salvar')
     }
   }
-
-  // Recomendações automáticas com base em índices (benchmarks de referência)
-  const statusRecommendations = useMemo(() => {
-    const recs: { type: 'success' | 'warning' | 'info'; text: string }[] = []
-    if (!summary) return recs
-    if (summary.bounceRate > 55) {
-      recs.push({ type: 'warning', text: 'Bounce rate alto (>55%). Considere trocar criativo, headline ou público para melhorar retenção.' })
-    } else if (summary.bounceRate < 40) {
-      recs.push({ type: 'success', text: 'Bounce rate saudável (<40%). Mantenha o criativo e monitore.' })
-    }
-    if (summary.clickRate > 0 && summary.clickRate < 1) {
-      recs.push({ type: 'warning', text: 'Taxa de cliques baixa. Teste novos CTAs ou posicionamento dos botões.' })
-    } else if (summary.clickRate >= 3) {
-      recs.push({ type: 'success', text: 'Taxa de cliques boa (≥3%). Pode considerar aumentar investimento nessa página.' })
-    }
-    if (summary.uniqueVisitors >= 10 && summary.totalConversions === 0) {
-      recs.push({ type: 'info', text: 'Há visitantes mas nenhuma conversão. Revise a oferta ou o formulário de contato.' })
-    }
-    if (summary.averageScrollDepth < 30) {
-      recs.push({ type: 'warning', text: 'Scroll médio baixo. Conteúdo pode não estar engajando; teste abertura mais forte.' })
-    }
-    if (recs.length === 0 && summary.totalViews > 0) {
-      recs.push({ type: 'info', text: 'Métricas dentro da média. Continue coletando dados e compare com os próximos períodos.' })
-    }
-    return recs
-  }, [summary])
 
   const accordionCard = (
     id: AnalyticsAccordionId,
@@ -752,175 +355,14 @@ export default function AnalyticsPage() {
                 )}
 
                 {accordionCard(
-                  'filtros',
-                  'Filtros',
-                  'Tipo de página, período e atualizar',
-                  <Filter className="w-4 h-4 text-gogh-grayDark" />,
-                  <div className="pt-3 space-y-4">
-                    <div className="flex flex-wrap items-end gap-4">
-                      <div className="flex-1 min-w-[180px]">
-                        <label className="block text-sm font-medium text-gogh-grayDark mb-1">Tipo de página</label>
-                        <select
-                          value={pageType}
-                          onChange={(e) => {
-                            setPageType(e.target.value as any)
-                            setSelectedPageId(null)
-                          }}
-                          className="w-full border border-gogh-grayLight rounded-lg px-3 py-2 text-sm"
-                        >
-                          <option value="all">Todas</option>
-                          <option value="homepage">Homepage</option>
-                          <option value="service">Serviços</option>
-                        </select>
-                      </div>
-                      {(pageType === 'service' || pageType === 'homepage') && (
-                        <div className="flex-1 min-w-[180px]">
-                          <label className="block text-sm font-medium text-gogh-grayDark mb-1">Página</label>
-                          <select
-                            value={selectedPageId || ''}
-                            onChange={(e) => setSelectedPageId(e.target.value || null)}
-                            className="w-full border border-gogh-grayLight rounded-lg px-3 py-2 text-sm"
-                          >
-                            <option value="">Todas</option>
-                            {pageType === 'service' &&
-                              pages.map((p) => (
-                                <option key={p.id} value={p.id}>
-                                  {p.name}
-                                </option>
-                              ))}
-                          </select>
-                        </div>
-                      )}
-                      <div className="flex-1 min-w-[140px]">
-                        <label className="block text-sm font-medium text-gogh-grayDark mb-1">Período</label>
-                        <select
-                          value={dateRange}
-                          onChange={(e) => setDateRange(e.target.value as any)}
-                          className="w-full border border-gogh-grayLight rounded-lg px-3 py-2 text-sm"
-                        >
-                          <option value="7d">Últimos 7 dias</option>
-                          <option value="30d">Últimos 30 dias</option>
-                          <option value="90d">Últimos 90 dias</option>
-                          <option value="all">Todo o período</option>
-                          <option value="custom">Personalizado</option>
-                        </select>
-                      </div>
-                      {dateRange === 'custom' && (
-                        <>
-                          <div className="min-w-[140px]">
-                            <label className="block text-sm font-medium text-gogh-grayDark mb-1">Início</label>
-                            <input
-                              type="date"
-                              value={customStartDate}
-                              onChange={(e) => setCustomStartDate(e.target.value)}
-                              className="w-full border border-gogh-grayLight rounded-lg px-3 py-2 text-sm"
-                            />
-                          </div>
-                          <div className="min-w-[140px]">
-                            <label className="block text-sm font-medium text-gogh-grayDark mb-1">Fim</label>
-                            <input
-                              type="date"
-                              value={customEndDate}
-                              onChange={(e) => setCustomEndDate(e.target.value)}
-                              className="w-full border border-gogh-grayLight rounded-lg px-3 py-2 text-sm"
-                            />
-                          </div>
-                        </>
-                      )}
-                      <button
-                        type="button"
-                        onClick={() => loadAnalytics()}
-                        disabled={loading}
-                        className="inline-flex items-center gap-2 px-4 py-2 bg-gogh-black text-white rounded-lg hover:bg-gogh-black/90 disabled:opacity-50 text-sm font-medium"
-                      >
-                        {loading ? <LumaSpin size="sm" /> : <RefreshCw className="w-4 h-4" />}
-                        Atualizar
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {accordionCard(
                   'status',
                   'Status e decisões',
-                  statusRecommendations.length ? `${statusRecommendations.length} recomendação(ões)` : 'Tomadas de decisão com base nos índices',
+                  'Tomadas de decisão da campanha de anúncios',
                   <AlertCircle className="w-4 h-4 text-gogh-grayDark" />,
                   <div className="pt-3 space-y-3">
-                    {loading ? (
-                      <div className="flex justify-center py-4"><LumaSpin size="sm" /></div>
-                    ) : statusRecommendations.length === 0 ? (
-                      <p className="text-sm text-gogh-grayDark py-2">Atualize os dados nos Filtros para ver recomendações automáticas com base em bounce rate, taxa de cliques e conversão.</p>
-                    ) : (
-                      <ul className="space-y-2">
-                        {statusRecommendations.map((r, i) => (
-                          <li
-                            key={i}
-                            className={`flex items-start gap-2 rounded-lg p-3 text-sm ${
-                              r.type === 'success' ? 'bg-green-50 border border-green-200 text-green-800' :
-                              r.type === 'warning' ? 'bg-amber-50 border border-amber-200 text-amber-800' :
-                              'bg-blue-50 border border-blue-200 text-blue-800'
-                            }`}
-                          >
-                            {r.type === 'success' ? <CheckCircle2 className="w-5 h-5 shrink-0 mt-0.5" /> : <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />}
-                            <span>{r.text}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                    <p className="text-xs text-gogh-grayDark">Baseado em índices de referência: bounce &lt;40% saudável, &gt;55% alto; taxa de cliques ≥3% boa; scroll médio e conversões.</p>
-                  </div>
-                )}
-
-                {accordionCard(
-                  'resumo',
-                  'Resumo',
-                  summary ? `${summary.totalViews} visualizações · ${summary.uniqueVisitors} visitantes` : null,
-                  <LayoutDashboard className="w-4 h-4 text-gogh-grayDark" />,
-                  <div className="pt-3">
-                    {loading ? (
-                      <div className="flex justify-center py-6">
-                        <LumaSpin size="sm" />
-                      </div>
-                    ) : summary ? (
-                      <>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-                          <div className="bg-gogh-grayLight/50 rounded-lg p-4">
-                            <Eye className="w-6 h-6 text-blue-500 mb-2" />
-                            <p className="text-xl font-bold text-gogh-black">{summary.totalViews.toLocaleString()}</p>
-                            <p className="text-xs text-gogh-grayDark">Visualizações</p>
-                          </div>
-                          <div className="bg-gogh-grayLight/50 rounded-lg p-4">
-                            <MousePointer className="w-6 h-6 text-green-500 mb-2" />
-                            <p className="text-xl font-bold text-gogh-black">{summary.totalClicks.toLocaleString()}</p>
-                            <p className="text-xs text-gogh-grayDark">Cliques</p>
-                          </div>
-                          <div className="bg-gogh-grayLight/50 rounded-lg p-4">
-                            <TrendingUp className="w-6 h-6 text-amber-500 mb-2" />
-                            <p className="text-xl font-bold text-gogh-black">{summary.totalConversions.toLocaleString()}</p>
-                            <p className="text-xs text-gogh-grayDark">Conversões</p>
-                          </div>
-                          <div className="bg-gogh-grayLight/50 rounded-lg p-4">
-                            <Users className="w-6 h-6 text-purple-500 mb-2" />
-                            <p className="text-xl font-bold text-gogh-black">{summary.uniqueVisitors.toLocaleString()}</p>
-                            <p className="text-xs text-gogh-grayDark">Visitantes</p>
-                          </div>
-                          <div className="bg-gogh-grayLight/50 rounded-lg p-4">
-                            <BarChart3 className="w-6 h-6 text-indigo-500 mb-2" />
-                            <p className="text-xl font-bold text-gogh-black">{summary.averageScrollDepth}%</p>
-                            <p className="text-xs text-gogh-grayDark">Scroll médio</p>
-                          </div>
-                          <div className="bg-gogh-grayLight/50 rounded-lg p-4">
-                            <p className="text-xl font-bold text-gogh-black">{summary.bounceRate}%</p>
-                            <p className="text-xs text-gogh-grayDark">Bounce rate</p>
-                          </div>
-                        </div>
-                        <p className="mt-3 text-sm text-gogh-grayDark">
-                          Taxa de cliques: {summary.clickRate}% · Taxa de conversão: {summary.conversionRate}%
-                        </p>
-                      </>
-                    ) : (
-                      <p className="text-sm text-gogh-grayDark py-2">Nenhum dado no período. Ajuste os filtros ou aguarde novos acessos.</p>
-                    )}
+                    <p className="text-sm text-gogh-grayDark">
+                      Use esta área para acompanhar as decisões da sua campanha de tráfego pago. Preencha valor da venda e custos na seção <strong>Custos e receita (ROI)</strong> para calcular o CPA break-even e saber se está no lucro. Em breve: recomendações automáticas com base nos resultados dos anúncios (ex.: trocar criativo, aumentar investimento ou manter).
+                    </p>
                   </div>
                 )}
 
@@ -1025,115 +467,6 @@ export default function AnalyticsPage() {
                           </button>
                         )}
                       </>
-                    )}
-                  </div>
-                )}
-
-                {accordionCard(
-                  'cliques',
-                  'Cliques por elemento',
-                  clickDetails.length ? `${clickDetails.length} elementos` : null,
-                  <MousePointerClick className="w-4 h-4 text-gogh-grayDark" />,
-                  <div className="pt-3 overflow-x-auto">
-                    {clickDetails.length === 0 ? (
-                      <p className="text-sm text-gogh-grayDark py-2">Nenhum clique registrado no período.</p>
-                    ) : (
-                      <table className="w-full text-sm">
-                        <thead>
-                          <tr className="border-b border-gogh-grayLight">
-                            <th className="text-left py-2 font-medium text-gogh-grayDark">Página</th>
-                            <th className="text-left py-2 font-medium text-gogh-grayDark">Elemento</th>
-                            <th className="text-left py-2 font-medium text-gogh-grayDark">Texto</th>
-                            <th className="text-right py-2 font-medium text-gogh-grayDark">Cliques</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {clickDetails.map((d, i) => (
-                            <tr key={i} className="border-b border-gogh-grayLight/50">
-                              <td className="py-2 text-gogh-black">{d.pageName}</td>
-                              <td className="py-2">
-                                <span className="px-2 py-0.5 bg-blue-100 text-blue-800 rounded text-xs">{d.element}</span>
-                              </td>
-                              <td className="py-2 text-gogh-grayDark">{d.text || '-'}</td>
-                              <td className="py-2 text-right font-medium">{d.count}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    )}
-                  </div>
-                )}
-
-                {accordionCard(
-                  'performance',
-                  'Performance por página',
-                  pagePerformance.length ? `${pagePerformance.length} páginas` : null,
-                  <Table2 className="w-4 h-4 text-gogh-grayDark" />,
-                  <div className="pt-3 overflow-x-auto">
-                    {pagePerformance.length === 0 ? (
-                      <p className="text-sm text-gogh-grayDark py-2">Nenhum dado por página no período.</p>
-                    ) : (
-                      <table className="w-full text-sm">
-                        <thead>
-                          <tr className="border-b border-gogh-grayLight">
-                            <th className="text-left py-2 font-medium text-gogh-grayDark">Página</th>
-                            <th className="text-left py-2 font-medium text-gogh-grayDark">Tipo</th>
-                            <th className="text-right py-2 font-medium text-gogh-grayDark">Views</th>
-                            <th className="text-right py-2 font-medium text-gogh-grayDark">Visit.</th>
-                            <th className="text-right py-2 font-medium text-gogh-grayDark">Cliques</th>
-                            <th className="text-right py-2 font-medium text-gogh-grayDark">Scroll</th>
-                            <th className="text-right py-2 font-medium text-gogh-grayDark">Bounce</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {pagePerformance.map((p, i) => (
-                            <tr key={i} className="border-b border-gogh-grayLight/50">
-                              <td className="py-2 font-medium text-gogh-black">{p.pageName}</td>
-                              <td className="py-2 text-gogh-grayDark">{p.pageType === 'homepage' ? 'Homepage' : 'Serviço'}</td>
-                              <td className="py-2 text-right">{p.views}</td>
-                              <td className="py-2 text-right">{p.visitors}</td>
-                              <td className="py-2 text-right">{p.clicks}</td>
-                              <td className="py-2 text-right">{p.avgScroll}%</td>
-                              <td className="py-2 text-right">{p.bounceRate}%</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    )}
-                  </div>
-                )}
-
-                {accordionCard(
-                  'sessoes',
-                  'Acessos individuais (sessões)',
-                  sessions.length ? `${sessions.length} sessões` : null,
-                  <UserCheck className="w-4 h-4 text-gogh-grayDark" />,
-                  <div className="pt-3 overflow-x-auto">
-                    {sessions.length === 0 ? (
-                      <p className="text-sm text-gogh-grayDark py-2">Nenhuma sessão no período.</p>
-                    ) : (
-                      <table className="w-full text-sm">
-                        <thead>
-                          <tr className="border-b border-gogh-grayLight">
-                            <th className="text-left py-2 font-medium text-gogh-grayDark">Página</th>
-                            <th className="text-left py-2 font-medium text-gogh-grayDark">Início</th>
-                            <th className="text-right py-2 font-medium text-gogh-grayDark">Scroll</th>
-                            <th className="text-right py-2 font-medium text-gogh-grayDark">Cliques</th>
-                            <th className="text-right py-2 font-medium text-gogh-grayDark">Views</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {sessions.slice(0, 50).map((s) => (
-                            <tr key={s.sessionId} className="border-b border-gogh-grayLight/50">
-                              <td className="py-2 font-medium text-gogh-black">{s.pageName}</td>
-                              <td className="py-2 text-gogh-grayDark">{new Date(s.startTime).toLocaleString('pt-BR')}</td>
-                              <td className="py-2 text-right">{s.scrollDepth}%</td>
-                              <td className="py-2 text-right">{s.clicks}</td>
-                              <td className="py-2 text-right">{s.pageViews}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
                     )}
                   </div>
                 )}
