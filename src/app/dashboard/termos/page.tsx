@@ -27,13 +27,12 @@ interface TermSection {
   level: number // 1, 2 ou 3 (para #, ##, ###)
 }
 
-// Chaves dos termos que a plataforma utiliza (Gogh Lab — plataforma digital, sem e-commerce)
+// Chaves dos termos que a plataforma utiliza (termos-servicos removido: não é mais oferecido)
 const ALLOWED_TERM_KEYS = [
   'politica-privacidade',
   'termos-uso',
   'termos-login-google',
   'termos-assinatura-planos',
-  'termos-servicos',
 ]
 
 const TERMS_CONFIG = [
@@ -551,55 +550,6 @@ Para questões relacionadas a assinaturas, pagamentos ou estes termos, entre em 
 - **E-mail**: contato.goghlab@gmail.com
 - **WhatsApp**: [número configurado na plataforma]
 - **Portal de Gerenciamento**: Acesse sua área de membros para gerenciar sua assinatura
-
-**Última atualização**: Janeiro de 2026`,
-  },
-  {
-    key: 'termos-servicos',
-    title: 'Termos de Serviços Personalizados',
-    icon: 'file-text',
-    defaultContent: `# Termos de Serviços Personalizados
-
-## 1. Escopo dos Serviços
-
-Os serviços personalizados incluem, quando contratados, atividades como: marketing (tráfego pago), criação de sites completos, criação de conteúdo (roteiro, produção e pós-produção) e gestão de redes sociais. A descrição detalhada de cada serviço contratado será apresentada no momento da compra.
-
-## 2. Seleção e Personalização
-
-Os serviços podem ser combinados e personalizados conforme sua escolha. O valor total será calculado com base nos serviços selecionados e no ciclo de cobrança escolhido (mensal ou anual).
-
-## 3. Prazos e Entregas
-
-Prazos de início, cronograma de execução e entregas específicas serão definidos após a confirmação do pagamento e alinhamento inicial com o usuário. Alterações de escopo podem impactar prazos e custos.
-
-## 4. Responsabilidades do Usuário
-
-Para a execução dos serviços, o usuário se compromete a fornecer informações, acessos e materiais necessários em tempo hábil. A falta de informações pode gerar atrasos no cronograma.
-
-## 5. Cancelamento e Reembolso
-
-Serviços personalizados são iniciados após a confirmação do pagamento e do alinhamento inicial. Regras de cancelamento e reembolso seguem as condições previstas nos Termos de Assinatura e Planos e na legislação aplicável.
-
-## 6. Comunicação e Aprovação
-
-As aprovações de materiais, campanhas e conteúdos serão feitas pelos canais oficiais da plataforma. Caso não haja retorno em tempo razoável, o cronograma poderá ser ajustado.
-
-## 7. Limitação de Responsabilidade
-
-O Gogh Lab não garante resultados específicos (como volume de vendas ou crescimento de audiência), pois dependem de múltiplos fatores externos.
-
-## 8. Alterações
-
-O Gogh Lab pode atualizar estes termos mediante aviso prévio. A continuidade do uso ou contratação implica concordância com as alterações.
-
-## Quantidades e Escopo Mensal (Serviços com limite)
-
-Para garantir qualidade e previsibilidade, os seguintes serviços possuem quantidade mensal definida, válida tanto para cobrança mensal quanto anual:
-
-- **Criação de conteúdo completa:** até 10 (dez) conteúdos por mês (posts, reels, artes ou mix conforme combinado).
-- **Gestão de redes sociais:** até 12 (doze) publicações por mês no total nas redes gerenciadas.
-
-Alterações de escopo ou quantidades acima podem ser tratadas sob demanda, mediante alinhamento prévio e eventual ajuste de valor.
 
 **Última atualização**: Janeiro de 2026`,
   },

@@ -37,13 +37,12 @@ export default function TermosPage() {
   const [selectedTerm, setSelectedTerm] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   
-  // Termos que devem ser mantidos (os novos e importantes)
+  // Termos que devem ser mantidos (termos-servicos removido: não é mais oferecido no site)
   const allowedTerms = [
     'termos-login-google',
     'termos-assinatura-planos',
     'termos-uso',
     'politica-privacidade',
-    'termos-servicos'
   ]
 
   const handleTermSelect = (termKey: string) => {

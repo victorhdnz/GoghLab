@@ -25,7 +25,6 @@ export function PricingSection({
   featureCategories = [],
 }: PricingSectionProps) {
   const [billingCycle, setBillingCycle] = useState<BillingCycle>('annually')
-  const hasServicePlan = plans?.some(plan => plan.planType === 'service') ?? false
 
   if (!enabled || !plans) return null
 
@@ -173,19 +172,6 @@ export function PricingSection({
               Termos de Assinatura e Planos
             </Link>
             .
-            {hasServicePlan && (
-              <>
-                {' '}
-                Para serviços personalizados, consulte também os{' '}
-                <Link
-                  href="/termos?termo=termos-servicos"
-                  className="underline hover:text-[#F7C948] font-semibold text-[#0A0A0A]"
-                >
-                  Termos de Serviços Personalizados
-                </Link>
-                .
-              </>
-            )}
           </p>
           <p className="text-center text-xs text-gray-500 mt-3">
             Leia os termos antes de assinar. Dúvidas? Entre em contato.
