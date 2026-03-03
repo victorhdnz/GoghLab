@@ -26,7 +26,7 @@ import { LumaSpin } from '@/components/ui/luma-spin'
 import { ShinyButton } from '@/components/ui/shiny-button'
 import toast from 'react-hot-toast'
 
-type AnalyticsAccordionId = 'campanhas' | 'dados-campanha' | 'roi' | 'plano-otimizacao' | 'status'
+type AnalyticsAccordionId = 'campanhas' | 'roi' | 'status'
 
 interface AnalyticsCampaign {
   id: string
@@ -525,11 +525,8 @@ export default function AnalyticsPage() {
   const isRoiComplete = !roiEnabled || (roiEnabled && (valorVenda ?? '').trim().length > 0)
 
   const getAccordionCardClass = (sectionId: AnalyticsAccordionId): string => {
-    if (sectionId === 'campanhas' || sectionId === 'status' || sectionId === 'plano-otimizacao') return 'bg-white border-gogh-grayLight'
+    if (sectionId === 'campanhas' || sectionId === 'status') return 'bg-white border-gogh-grayLight'
     if (!isProfileDirty) return 'bg-white border-gogh-grayLight'
-    if (sectionId === 'dados-campanha') {
-      return isDadosCampanhaComplete ? 'bg-emerald-50/80 border-emerald-300' : 'bg-red-50/80 border-red-300'
-    }
     if (sectionId === 'roi') {
       return isRoiComplete ? 'bg-emerald-50/80 border-emerald-300' : 'bg-red-50/80 border-red-300'
     }
@@ -539,7 +536,6 @@ export default function AnalyticsPage() {
   const getFieldBorderClass = (sectionId: AnalyticsAccordionId): string => {
     if (!isProfileDirty) return 'border-gogh-grayLight'
     if (sectionId === 'roi') return isRoiComplete ? 'border-emerald-400 focus:ring-emerald-200' : 'border-red-300 focus:ring-red-200'
-    if (sectionId === 'dados-campanha') return isDadosCampanhaComplete ? 'border-emerald-400 focus:ring-emerald-200' : 'border-red-300 focus:ring-red-200'
     return 'border-gogh-grayLight'
   }
 
@@ -686,7 +682,7 @@ export default function AnalyticsPage() {
   const handleSaveProfile = async () => {
     if (!selectedCampaignId) return
     if (creatives.length === 0 && missingDados.length > 0) {
-      toast.error(`Preencha todos os campos de Dados da campanha: ${requiredDadosFields.filter((f) => !f.value?.trim()).map((f) => f.label).join(', ')}`)
+      toast.error(`Preencha os dados da campanha: ${requiredDadosFields.filter((f) => !f.value?.trim()).map((f) => f.label).join(', ')}`)
       return
     }
     setSavingDados(true)
@@ -987,6 +983,81 @@ export default function AnalyticsPage() {
                         )}
                       </div>
                     )}
+                    {selectedCampaignId && (
+                      <div className="border-t border-gogh-grayLight pt-4 mt-4">
+                        <p className="text-xs font-semibold text-gogh-black mb-2 flex items-center gap-1.5">
+                          <ClipboardList className="w-3.5 h-3.5" />
+                          Dados e métricas
+                        </p>
+                        {creatives.length > 0 ? (
+                          (impressoesNum > 0 || cliquesNum > 0 || comprasNum > 0 || valorInvestidoNum > 0) ? (
+                            <div className="rounded-lg border border-gogh-grayLight bg-gogh-beige/40 p-3">
+                              <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-1 text-xs">
+                                {alcanceNum > 0 && impressoesNum > 0 && <div><span className="text-gogh-grayDark">Frequência</span> <span className="font-medium">{metricasCampanha.freq.toFixed(2)}</span></div>}
+                                {impressoesNum > 0 && <div><span className="text-gogh-grayDark">CTR</span> <span className="font-medium">{metricasCampanha.ctrPct.toFixed(2)}%</span></div>}
+                                {cliquesNum > 0 && <div><span className="text-gogh-grayDark">Conversão</span> <span className="font-medium">{metricasCampanha.taxaConvPct.toFixed(2)}%</span></div>}
+                                {cliquesNum > 0 && valorInvestidoNum > 0 && <div><span className="text-gogh-grayDark">CPC</span> <span className="font-medium">R$ {metricasCampanha.cpc.toFixed(2)}</span></div>}
+                                {comprasNum > 0 && <div><span className="text-gogh-grayDark">CPA</span> <span className="font-medium">R$ {metricasCampanha.cpaCalculado.toFixed(2)}</span></div>}
+                                {valorInvestidoNum > 0 && valorFaturadoNum > 0 && <div><span className="text-gogh-grayDark">ROAS</span> <span className="font-medium">{metricasCampanha.roas.toFixed(2)}x</span></div>}
+                              </div>
+                            </div>
+                          ) : (
+                            <p className="text-xs text-gogh-grayDark">Preencha os criativos acima para ver os totais.</p>
+                          )
+                        ) : (
+                          <>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                              <div><label className="block text-xs text-gogh-grayDark">Alcance</label><input type="number" min="0" value={alcance} onChange={(e) => setAlcance(e.target.value)} placeholder="0" className={`w-full border rounded-lg px-2 py-1.5 text-sm ${isDadosCampanhaComplete ? 'border-emerald-400' : 'border-red-300'}`} /></div>
+                              <div><label className="block text-xs text-gogh-grayDark">Impressões</label><input type="number" min="0" value={impressoes} onChange={(e) => setImpressoes(e.target.value)} placeholder="0" className={`w-full border rounded-lg px-2 py-1.5 text-sm ${isDadosCampanhaComplete ? 'border-emerald-400' : 'border-red-300'}`} /></div>
+                              <div><label className="block text-xs text-gogh-grayDark">Cliques</label><input type="number" min="0" value={cliquesLink} onChange={(e) => setCliquesLink(e.target.value)} placeholder="0" className={`w-full border rounded-lg px-2 py-1.5 text-sm ${isDadosCampanhaComplete ? 'border-emerald-400' : 'border-red-300'}`} /></div>
+                              <div><label className="block text-xs text-gogh-grayDark">Investido (R$)</label><input type="number" min="0" step="0.01" value={valorInvestido} onChange={(e) => setValorInvestido(e.target.value)} placeholder="0" className={`w-full border rounded-lg px-2 py-1.5 text-sm ${isDadosCampanhaComplete ? 'border-emerald-400' : 'border-red-300'}`} /></div>
+                              <div><label className="block text-xs text-gogh-grayDark">Compras</label><input type="number" min="0" value={compras} onChange={(e) => setCompras(e.target.value)} placeholder="0" className={`w-full border rounded-lg px-2 py-1.5 text-sm ${isDadosCampanhaComplete ? 'border-emerald-400' : 'border-red-300'}`} /></div>
+                              <div><label className="block text-xs text-gogh-grayDark">Faturado (R$)</label><input type="number" min="0" step="0.01" value={valorTotalFaturado} onChange={(e) => setValorTotalFaturado(e.target.value)} placeholder="0" className={`w-full border rounded-lg px-2 py-1.5 text-sm ${isDadosCampanhaComplete ? 'border-emerald-400' : 'border-red-300'}`} /></div>
+                            </div>
+                            {(impressoesNum > 0 || cliquesNum > 0 || valorInvestidoNum > 0) && (
+                              <div className="mt-2 rounded-lg border border-gogh-grayLight bg-gogh-beige/40 p-2 grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-1 text-xs">
+                                {alcanceNum > 0 && impressoesNum > 0 && <div><span className="text-gogh-grayDark">Freq.</span> {metricasCampanha.freq.toFixed(2)}</div>}
+                                {impressoesNum > 0 && <div><span className="text-gogh-grayDark">CTR</span> {metricasCampanha.ctrPct.toFixed(2)}%</div>}
+                                {cliquesNum > 0 && <div><span className="text-gogh-grayDark">Conv.</span> {metricasCampanha.taxaConvPct.toFixed(2)}%</div>}
+                                {comprasNum > 0 && <div><span className="text-gogh-grayDark">CPA</span> R$ {metricasCampanha.cpaCalculado.toFixed(2)}</div>}
+                                {valorInvestidoNum > 0 && valorFaturadoNum > 0 && <div><span className="text-gogh-grayDark">ROAS</span> {metricasCampanha.roas.toFixed(2)}x</div>}
+                              </div>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    )}
+                    {selectedCampaignId && selectedCampaign?.start_date && planoOtimizacao.daysSinceStart != null && (
+                      <div className="border-t border-gogh-grayLight pt-4 mt-4">
+                        <p className="text-xs font-semibold text-gogh-black mb-2 flex items-center gap-1.5">
+                          <Calendar className="w-3.5 h-3.5" />
+                          Plano de otimização · Dia {planoOtimizacao.daysSinceStart}
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {[
+                            { days: '1–5', phase: 'aprendizado', label: 'Aprendizado', action: 'Não mexer' },
+                            { days: '7', phase: 'analise-7', label: '1ª análise', action: 'Atualizar dados' },
+                            { days: '10–14', phase: 'novos-criativos', label: 'Novos criativos', action: '+1 ou 2' },
+                            { days: '18+', phase: 'avaliacao', label: 'Contínuo', action: '4–5 ativos' },
+                          ].map((step) => {
+                            const isCurrent = planoOtimizacao.phase === step.phase
+                            return (
+                              <div
+                                key={step.phase}
+                                className={`rounded-lg px-3 py-2 text-xs border ${isCurrent ? 'bg-gogh-yellow/20 border-gogh-yellow' : 'bg-gogh-grayLight/30 border-gogh-grayLight'}`}
+                              >
+                                <span className="font-medium text-gogh-black">Dia {step.days}</span>
+                                <span className="text-gogh-grayDark"> · {step.label}</span>
+                                {isCurrent && <span className="block mt-0.5 text-gogh-grayDark">{step.action}</span>}
+                              </div>
+                            )
+                          })}
+                        </div>
+                        {planoOtimizacao.isPaused && (
+                          <p className="text-xs text-amber-700 mt-2">Campanha pausada.</p>
+                        )}
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -1114,140 +1185,6 @@ export default function AnalyticsPage() {
                 )}
 
                 {accordionCard(
-                  'dados-campanha',
-                  'Dados da campanha',
-                  selectedCampaign ? `Métricas e índices da campanha "${selectedCampaign.name}"` : 'Selecione uma campanha para preencher',
-                  <ClipboardList className="w-4 h-4 text-gogh-grayDark" />,
-                  <div className="pt-3 space-y-4">
-                    {!selectedCampaignId ? (
-                      <p className="text-sm text-gogh-grayDark py-2">Selecione uma campanha na seção Campanhas para preencher os dados de anúncio. O sistema calculará automaticamente frequência, CTR, conversão, CPC, CPA e ROAS.</p>
-                    ) : creatives.length > 0 ? (
-                      <>
-                        <p className="text-sm text-gogh-grayDark mb-3">
-                          Totais da campanha (soma dos criativos). Para criar ou editar criativos, abra <strong>Campanhas</strong> e use o bloco <strong>Criativos desta campanha</strong>.
-                        </p>
-                        {(impressoesNum > 0 || cliquesNum > 0 || comprasNum > 0 || valorInvestidoNum > 0) && (
-                          <div className="rounded-xl border border-gogh-grayLight bg-gogh-beige/50 p-4 space-y-2">
-                            <p className="text-sm font-semibold text-gogh-black flex items-center gap-2">
-                              <TrendingUp className="w-4 h-4 text-gogh-yellow" />
-                              Totais da campanha (soma dos criativos)
-                            </p>
-                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-sm">
-                              {alcanceNum > 0 && impressoesNum > 0 && (
-                                <div><span className="text-gogh-grayDark">Frequência</span><br /><span className="font-medium">{metricasCampanha.freq.toFixed(2)}</span></div>
-                              )}
-                              {impressoesNum > 0 && <div><span className="text-gogh-grayDark">CTR</span><br /><span className="font-medium">{metricasCampanha.ctrPct.toFixed(2)}%</span></div>}
-                              {cliquesNum > 0 && <div><span className="text-gogh-grayDark">Taxa de conversão</span><br /><span className="font-medium">{metricasCampanha.taxaConvPct.toFixed(2)}%</span></div>}
-                              {cliquesNum > 0 && valorInvestidoNum > 0 && <div><span className="text-gogh-grayDark">CPC (R$)</span><br /><span className="font-medium">{metricasCampanha.cpc.toFixed(2)}</span></div>}
-                              {comprasNum > 0 && <div><span className="text-gogh-grayDark">CPA (R$)</span><br /><span className="font-medium">{metricasCampanha.cpaCalculado.toFixed(2)}</span></div>}
-                              {valorInvestidoNum > 0 && valorFaturadoNum > 0 && <div><span className="text-gogh-grayDark">ROAS</span><br /><span className="font-medium">{metricasCampanha.roas.toFixed(2)}x</span></div>}
-                            </div>
-                            {comprasNum > 0 && <p className="text-xs text-gogh-grayDark mt-2">CPA = valor investido ÷ compras.</p>}
-                          </div>
-                        )}
-                      </>
-                    ) : (
-                      <>
-                        <p className="text-sm text-gogh-grayDark mb-2">
-                          Preencha os dados da campanha abaixo (um único bloco) ou use a seção <strong>Criativos (vídeos / conjuntos de anúncios)</strong> para acompanhar cada anúncio separadamente (como no Meta Ads).
-                        </p>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                          <div>
-                            <label className="block text-sm font-medium text-gogh-grayDark mb-1">Alcance (pessoas)</label>
-                            <input type="number" min="0" value={alcance} onChange={(e) => setAlcance(e.target.value)} placeholder="Ex: 50000" className={`w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 ${getFieldBorderClass('dados-campanha')}`} />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gogh-grayDark mb-1">Impressões</label>
-                            <input type="number" min="0" value={impressoes} onChange={(e) => setImpressoes(e.target.value)} placeholder="Ex: 120000" className={`w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 ${getFieldBorderClass('dados-campanha')}`} />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gogh-grayDark mb-1">Cliques no link</label>
-                            <input type="number" min="0" value={cliquesLink} onChange={(e) => setCliquesLink(e.target.value)} placeholder="Ex: 2400" className={`w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 ${getFieldBorderClass('dados-campanha')}`} />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gogh-grayDark mb-1">Valor investido (R$)</label>
-                            <input type="number" min="0" step="0.01" value={valorInvestido} onChange={(e) => setValorInvestido(e.target.value)} placeholder="Ex: 1500" className={`w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 ${getFieldBorderClass('dados-campanha')}`} />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gogh-grayDark mb-1">Compras / conversões</label>
-                            <input type="number" min="0" value={compras} onChange={(e) => setCompras(e.target.value)} placeholder="Ex: 45" className={`w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 ${getFieldBorderClass('dados-campanha')}`} />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gogh-grayDark mb-1">Valor total faturado (R$)</label>
-                            <input type="number" min="0" step="0.01" value={valorTotalFaturado} onChange={(e) => setValorTotalFaturado(e.target.value)} placeholder="Ex: 4365" className={`w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 ${getFieldBorderClass('dados-campanha')}`} />
-                          </div>
-                        </div>
-                        <p className="text-xs text-gogh-grayDark mt-2">
-                          Quer métricas por vídeo/anúncio? Abra a seção <strong>Criativos</strong> acima e adicione cada criativo.
-                        </p>
-                        {(impressoesNum > 0 || cliquesNum > 0 || comprasNum > 0 || valorInvestidoNum > 0) && (
-                          <div className="rounded-xl border border-gogh-grayLight bg-gogh-beige/50 p-4 space-y-2">
-                            <p className="text-sm font-semibold text-gogh-black flex items-center gap-2">
-                              <TrendingUp className="w-4 h-4 text-gogh-yellow" />
-                              Métricas calculadas automaticamente
-                            </p>
-                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-sm">
-                              {alcanceNum > 0 && impressoesNum > 0 && (
-                                <div><span className="text-gogh-grayDark">Frequência</span><br /><span className="font-medium">{metricasCampanha.freq.toFixed(2)}</span></div>
-                              )}
-                              {impressoesNum > 0 && <div><span className="text-gogh-grayDark">CTR</span><br /><span className="font-medium">{metricasCampanha.ctrPct.toFixed(2)}%</span></div>}
-                              {cliquesNum > 0 && <div><span className="text-gogh-grayDark">Taxa de conversão</span><br /><span className="font-medium">{metricasCampanha.taxaConvPct.toFixed(2)}%</span></div>}
-                              {cliquesNum > 0 && valorInvestidoNum > 0 && <div><span className="text-gogh-grayDark">CPC (R$)</span><br /><span className="font-medium">{metricasCampanha.cpc.toFixed(2)}</span></div>}
-                              {comprasNum > 0 && <div><span className="text-gogh-grayDark">CPA (R$)</span><br /><span className="font-medium">{metricasCampanha.cpaCalculado.toFixed(2)}</span></div>}
-                              {valorInvestidoNum > 0 && valorFaturadoNum > 0 && <div><span className="text-gogh-grayDark">ROAS</span><br /><span className="font-medium">{metricasCampanha.roas.toFixed(2)}x</span></div>}
-                            </div>
-                            {comprasNum > 0 && (
-                              <p className="text-xs text-gogh-grayDark mt-2">CPA = valor investido ÷ compras.</p>
-                            )}
-                          </div>
-                        )}
-                      </>
-                    )}
-                  </div>
-                )}
-
-                {accordionCard(
-                  'plano-otimizacao',
-                  'Plano de otimização',
-                  planoOtimizacao.daysSinceStart != null
-                    ? `Dia ${planoOtimizacao.daysSinceStart} · ${planoOtimizacao.phaseLabel}`
-                    : 'Guia por dias desde o início da campanha',
-                  <Calendar className="w-4 h-4 text-gogh-grayDark" />,
-                  <div className="pt-3 space-y-4">
-                    <p className="text-sm text-gogh-grayDark">
-                      Estrutura recomendada por fase. Atualize os dados da campanha nos dias indicados para o sistema sugerir as próximas decisões.
-                    </p>
-                    {planoOtimizacao.daysSinceStart == null ? (
-                      <p className="text-sm text-gogh-grayDark bg-gogh-grayLight/50 rounded-lg p-3">
-                        Selecione uma campanha com data de início para ver o guia por dias.
-                      </p>
-                    ) : (
-                      <>
-                        {planoOtimizacao.isPaused && (
-                          <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
-                            Campanha pausada. Ao retomar, siga o plano a partir do dia atual desde o início (ou reinicie mentalmente o ciclo se preferir).
-                          </div>
-                        )}
-                        <p className="text-sm font-medium text-gogh-black">
-                          {planoOtimizacao.phaseLabel}
-                          {planoOtimizacao.daysSinceStart != null && (
-                            <span className="text-gogh-grayDark font-normal"> — Dia {planoOtimizacao.daysSinceStart} desde o início</span>
-                          )}
-                        </p>
-                        <ul className="list-disc list-inside space-y-1.5 text-sm text-gogh-grayDark">
-                          {planoOtimizacao.phaseSteps.map((step, i) => (
-                            <li key={i}>{step}</li>
-                          ))}
-                        </ul>
-                        <div className="rounded-lg border border-gogh-grayLight bg-gogh-beige/30 p-3 text-xs text-gogh-grayDark">
-                          <strong>Modelo contínuo:</strong> Nunca deixar menos de 3 criativos ativos; ideal 4–5. Sempre substituir os fracos por novos.
-                        </div>
-                      </>
-                    )}
-                  </div>
-                )}
-
-                {accordionCard(
                   'status',
                   'Status e decisões',
                   statusAlerts.length > 0 ? `Score ${score} · ${statusGeral}` : 'Diagnóstico automático e recomendações',
@@ -1293,7 +1230,7 @@ export default function AnalyticsPage() {
                     </div>
                     {statusAlerts.length === 0 ? (
                       <p className="text-sm text-gogh-grayDark bg-gogh-grayLight/50 rounded-lg p-3">
-                        Preencha <strong>Dados da campanha</strong> (alcance, impressões, cliques, investido, compras) e <strong>Planejamento de valores</strong> para ver o diagnóstico e as recomendações.
+                        Preencha os dados da campanha (alcance, impressões, cliques, investido, compras) na seção <strong>Campanhas</strong> e o <strong>Planejamento de valores</strong> para ver o diagnóstico.
                       </p>
                     ) : (
                       <div>
@@ -1376,7 +1313,7 @@ export default function AnalyticsPage() {
                 </div>
                 {selectedCampaignId && !isDadosCampanhaComplete && isProfileDirty && (
                   <p className="text-xs text-red-600 mt-2">
-                    Preencha todos os campos de Dados da campanha para salvar.
+                    Preencha todos os dados da campanha (na seção Campanhas) para salvar.
                   </p>
                 )}
                 </div>
