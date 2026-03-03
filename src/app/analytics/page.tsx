@@ -214,15 +214,16 @@ export default function AnalyticsPage() {
     const { freq, ctrPct, taxaConvPct, cpaCalculado } = metricasCampanha
     const cpaUsado = comprasNum > 0 ? cpaCalculado : 0
     if (alcanceNum > 0 && impressoesNum > 0) {
+      const freqStr = freq.toFixed(2).replace('.', ',')
       if (freq >= FREQ_CRITICO) {
         scoreFreq = 0
-        alerts.push({ type: 'danger', text: 'Frequência crítica (≥4). Possível saturação. Avaliar novo criativo.' })
+        alerts.push({ type: 'danger', text: `Frequência em ${freqStr} (≥4). Possível saturação. Avaliar novo criativo.` })
       } else if (freq > FREQ_SATURACAO) {
         scoreFreq = 5
-        alerts.push({ type: 'warning', text: 'Possível saturação (frequência >3). Avaliar novo criativo.' })
+        alerts.push({ type: 'warning', text: `Frequência em ${freqStr} (>3). Possível saturação. Avaliar novo criativo.` })
       } else if (freq > FREQ_ATENCAO.max) {
         scoreFreq = 10
-        alerts.push({ type: 'warning', text: 'Frequência em atenção (2,5–3). Acompanhar desempenho.' })
+        alerts.push({ type: 'warning', text: `Frequência em ${freqStr} (entre 2,5 e 3). Acompanhar desempenho.` })
       } else if (freq >= FREQ_SAUDAVEL.min && freq <= FREQ_SAUDAVEL.max) {
         scoreFreq = 20
       }
@@ -230,30 +231,33 @@ export default function AnalyticsPage() {
       scoreFreq = 20
     }
     if (impressoesNum > 0 && cliquesNum >= 0) {
+      const ctrStr = ctrPct.toFixed(2).replace('.', ',')
       if (ctrPct >= CTR_BOM) scoreCtr = 20
       else if (ctrPct >= CTR_MEDIO) {
         scoreCtr = 12
-        alerts.push({ type: 'warning', text: 'CTR médio (1–1,5%). Considere testar novo criativo.' })
+        alerts.push({ type: 'warning', text: `CTR em ${ctrStr}% (entre 1% e 1,5%). Considere testar novo criativo.` })
       } else if (ctrPct > 0) {
         scoreCtr = 5
-        alerts.push({ type: 'warning', text: 'Criativo com baixo desempenho (CTR <1%). Recomenda-se testar novo criativo.' })
+        alerts.push({ type: 'warning', text: `CTR em ${ctrStr}% (<1%). Recomenda-se testar novo criativo.` })
       }
     }
     if (cliquesNum > 0 && comprasNum >= 0) {
+      const convStr = taxaConvPct.toFixed(2).replace('.', ',')
       if (taxaConvPct >= CONV_FORTE) scoreConv = 20
       else if (taxaConvPct >= CONV_MEDIO) scoreConv = 12
       else if (taxaConvPct > 0) {
         scoreConv = 5
-        alerts.push({ type: 'warning', text: 'Conversão baixa (<1,5%). Revisar página de destino ou oferta.' })
+        alerts.push({ type: 'warning', text: `Taxa de conversão em ${convStr}% (<1,5%). Revisar página de destino ou oferta.` })
       }
     }
     if (roiEnabled && valorNum > 0) {
+      const lucroStr = `R$ ${lucroBruto.toFixed(2).replace('.', ',')}`
       if (lucroBruto <= 0) {
         scoreLucro = 0
-        alerts.push({ type: 'danger', text: 'Operação com prejuízo. Ajuste preço ou custo variável.' })
+        alerts.push({ type: 'danger', text: `Lucro por venda: ${lucroStr} (prejuízo). Ajuste preço ou custo variável.` })
       } else if (metaLucroNum > 0 && lucroBruto >= metaLucroNum) {
         scoreLucro = 20
-        alerts.push({ type: 'success', text: 'Operação lucrativa e dentro da meta. Margem saudável.' })
+        alerts.push({ type: 'success', text: `Lucro por venda: ${lucroStr}. Operação dentro da meta. Margem saudável.` })
       } else if (lucroBruto > 0) {
         scoreLucro = 15
       }
@@ -262,7 +266,7 @@ export default function AnalyticsPage() {
         const limiteStr = `R$ ${custoMaxAceitavel.toFixed(2).replace('.', ',')}`
         if (cpaUsado > lucroBruto) {
           scoreCpa = 0
-          alerts.push({ type: 'danger', text: 'CPA acima do lucro por venda. Você está no prejuízo por aquisição. Não escale.' })
+          alerts.push({ type: 'danger', text: `CPA (${cpaStr}) acima do lucro por venda (${lucroStr}). Prejuízo por aquisição. Não escale.` })
         } else if (cpaUsado > custoMaxAceitavel) {
           scoreCpa = 0
           alerts.push({ type: 'danger', text: `CPA (${cpaStr}) ultrapassou o limite (${limiteStr}). Margem comprometida. Não escalar.` })
@@ -271,7 +275,7 @@ export default function AnalyticsPage() {
           alerts.push({ type: 'warning', text: `CPA (${cpaStr}) no limite (${limiteStr}). Margem comprometida. Não escalar.` })
         } else if (cpaUsado < custoMaxAceitavel * 0.8) {
           scoreCpa = 20
-          alerts.push({ type: 'success', text: 'Campanha eficiente. CPA abaixo do limite. Escala recomendada.' })
+          alerts.push({ type: 'success', text: `CPA (${cpaStr}) abaixo do limite (${limiteStr}). Escala recomendada.` })
         } else {
           scoreCpa = 15
         }
@@ -285,16 +289,16 @@ export default function AnalyticsPage() {
     else if (scoreFinal >= 40) statusGeral = 'alerta'
     else statusGeral = 'crítica'
     if (statusGeral === 'saudável' && alerts.length === 0 && roiEnabled && valorNum > 0 && cpaUsado > 0 && cpaUsado < lucroBruto) {
-      alerts.push({ type: 'success', text: 'Campanha saudável. Pode escalar orçamento com segurança (até ~20%).' })
+      alerts.push({ type: 'success', text: `Campanha saudável (score ${scoreFinal}). Pode escalar orçamento com segurança (até ~20%).` })
     }
     if (statusGeral === 'estável') {
-      alerts.push({ type: 'warning', text: 'Campanha estável. Otimize criativo ou público antes de escalar.' })
+      alerts.push({ type: 'warning', text: `Campanha estável (score ${scoreFinal}). Otimize criativo ou público antes de escalar.` })
     }
     if (statusGeral === 'alerta') {
-      alerts.push({ type: 'warning', text: 'Campanha em alerta. Ajuste criativo ou público antes de aumentar investimento.' })
+      alerts.push({ type: 'warning', text: `Campanha em alerta (score ${scoreFinal}). Ajuste criativo ou público antes de aumentar investimento.` })
     }
     if (statusGeral === 'crítica') {
-      alerts.push({ type: 'danger', text: 'Campanha crítica. Revisar estratégia antes de continuar.' })
+      alerts.push({ type: 'danger', text: `Campanha crítica (score ${scoreFinal}). Revisar estratégia antes de continuar.` })
     }
     return { score: scoreFinal, statusGeral, statusAlerts: alerts, hasDataForDiagnosis: true }
   }, [
