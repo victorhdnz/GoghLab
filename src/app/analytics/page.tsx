@@ -26,7 +26,7 @@ import { LumaSpin } from '@/components/ui/luma-spin'
 import { ShinyButton } from '@/components/ui/shiny-button'
 import toast from 'react-hot-toast'
 
-type AnalyticsAccordionId = 'campanhas' | 'criativos' | 'dados-campanha' | 'roi' | 'plano-otimizacao' | 'status'
+type AnalyticsAccordionId = 'campanhas' | 'dados-campanha' | 'roi' | 'plano-otimizacao' | 'status'
 
 interface AnalyticsCampaign {
   id: string
@@ -107,6 +107,7 @@ export default function AnalyticsPage() {
   const [creativesLoading, setCreativesLoading] = useState(false)
   const [savingCreativeId, setSavingCreativeId] = useState<string | null>(null)
   const [addingCreative, setAddingCreative] = useState(false)
+  const [creativosSubOpen, setCreativosSubOpen] = useState(false)
 
   const buildCampaignSignature = () =>
     JSON.stringify({
@@ -207,6 +208,7 @@ export default function AnalyticsPage() {
       setCreatives([])
       return
     }
+    setCreativosSubOpen(true)
     loadCreatives(selectedCampaignId)
   }, [selectedCampaignId, hasAccess])
 
@@ -523,7 +525,7 @@ export default function AnalyticsPage() {
   const isRoiComplete = !roiEnabled || (roiEnabled && (valorVenda ?? '').trim().length > 0)
 
   const getAccordionCardClass = (sectionId: AnalyticsAccordionId): string => {
-    if (sectionId === 'campanhas' || sectionId === 'criativos' || sectionId === 'status' || sectionId === 'plano-otimizacao') return 'bg-white border-gogh-grayLight'
+    if (sectionId === 'campanhas' || sectionId === 'status' || sectionId === 'plano-otimizacao') return 'bg-white border-gogh-grayLight'
     if (!isProfileDirty) return 'bg-white border-gogh-grayLight'
     if (sectionId === 'dados-campanha') {
       return isDadosCampanhaComplete ? 'bg-emerald-50/80 border-emerald-300' : 'bg-red-50/80 border-red-300'
@@ -918,6 +920,73 @@ export default function AnalyticsPage() {
                         ))}
                       </ul>
                     )}
+                    {selectedCampaignId && (
+                      <div className="border-t border-gogh-grayLight pt-4 mt-4">
+                        <button
+                          type="button"
+                          onClick={() => setCreativosSubOpen((o) => !o)}
+                          className="w-full flex items-center justify-between gap-2 py-2 px-0 text-left"
+                        >
+                          <span className="text-sm font-semibold text-gogh-black flex items-center gap-2">
+                            <ImageIcon className="w-4 h-4 text-gogh-grayDark" />
+                            Criativos desta campanha
+                            {creatives.length > 0 && (
+                              <span className="text-xs font-normal text-gogh-grayDark">({creatives.length})</span>
+                            )}
+                          </span>
+                          {creativosSubOpen ? <ChevronDown className="w-4 h-4 shrink-0" /> : <ChevronRight className="w-4 h-4 shrink-0" />}
+                        </button>
+                        {creativosSubOpen && (
+                          <div className="pt-3 space-y-3">
+                            {creativesLoading ? (
+                              <div className="flex justify-center py-4"><LumaSpin size="sm" /></div>
+                            ) : creatives.length === 0 ? (
+                              <div className="rounded-lg border border-dashed border-gogh-grayLight bg-gogh-beige/20 p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                                <p className="text-xs text-gogh-grayDark">Adicione cada vídeo ou anúncio e preencha as métricas. Os totais alimentam Dados da campanha e o Status.</p>
+                                <button
+                                  type="button"
+                                  onClick={handleAddCreative}
+                                  disabled={addingCreative}
+                                  className="shrink-0 inline-flex items-center gap-2 px-3 py-2 bg-gogh-yellow text-gogh-black rounded-lg text-sm font-medium hover:bg-gogh-yellow/90"
+                                >
+                                  <Plus className="w-4 h-4" />
+                                  {addingCreative ? '...' : 'Adicionar criativo'}
+                                </button>
+                              </div>
+                            ) : (
+                              <>
+                                {creatives.map((cr) => (
+                                  <div key={cr.id} className="rounded-lg border border-gogh-grayLight bg-white p-3 space-y-2">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                      <input
+                                        type="text"
+                                        value={cr.name}
+                                        onChange={(e) => setCreatives((prev) => prev.map((c) => (c.id === cr.id ? { ...c, name: e.target.value } : c)))}
+                                        placeholder="Nome do criativo"
+                                        className="flex-1 min-w-[120px] border border-gogh-grayLight rounded-lg px-2 py-1.5 text-sm"
+                                      />
+                                      <button type="button" onClick={() => handleUpdateCreative(creatives.find((c) => c.id === cr.id) ?? cr)} disabled={savingCreativeId === cr.id} className="px-2 py-1 text-xs bg-gogh-yellow text-gogh-black rounded-lg font-medium disabled:opacity-70">Salvar</button>
+                                      <button type="button" onClick={() => handleDeleteCreative(cr.id)} className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg" aria-label="Excluir"><Trash2 className="w-4 h-4" /></button>
+                                    </div>
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                      <div><label className="block text-xs text-gogh-grayDark">Alcance</label><input type="number" min="0" value={cr.alcance ?? ''} onChange={(e) => setCreatives((prev) => prev.map((c) => (c.id === cr.id ? { ...c, alcance: e.target.value ? Number(e.target.value) : null } : c)))} className="w-full border rounded px-2 py-1 text-sm" /></div>
+                                      <div><label className="block text-xs text-gogh-grayDark">Impressões</label><input type="number" min="0" value={cr.impressoes ?? ''} onChange={(e) => setCreatives((prev) => prev.map((c) => (c.id === cr.id ? { ...c, impressoes: e.target.value ? Number(e.target.value) : null } : c)))} className="w-full border rounded px-2 py-1 text-sm" /></div>
+                                      <div><label className="block text-xs text-gogh-grayDark">Cliques</label><input type="number" min="0" value={cr.cliques_link ?? ''} onChange={(e) => setCreatives((prev) => prev.map((c) => (c.id === cr.id ? { ...c, cliques_link: e.target.value ? Number(e.target.value) : null } : c)))} className="w-full border rounded px-2 py-1 text-sm" /></div>
+                                      <div><label className="block text-xs text-gogh-grayDark">Investido (R$)</label><input type="number" min="0" step="0.01" value={cr.valor_investido ?? ''} onChange={(e) => setCreatives((prev) => prev.map((c) => (c.id === cr.id ? { ...c, valor_investido: e.target.value ? Number(e.target.value) : null } : c)))} className="w-full border rounded px-2 py-1 text-sm" /></div>
+                                      <div><label className="block text-xs text-gogh-grayDark">Compras</label><input type="number" min="0" value={cr.compras ?? ''} onChange={(e) => setCreatives((prev) => prev.map((c) => (c.id === cr.id ? { ...c, compras: e.target.value ? Number(e.target.value) : null } : c)))} className="w-full border rounded px-2 py-1 text-sm" /></div>
+                                      <div><label className="block text-xs text-gogh-grayDark">Faturado (R$)</label><input type="number" min="0" step="0.01" value={cr.valor_total_faturado ?? ''} onChange={(e) => setCreatives((prev) => prev.map((c) => (c.id === cr.id ? { ...c, valor_total_faturado: e.target.value ? Number(e.target.value) : null } : c)))} className="w-full border rounded px-2 py-1 text-sm" /></div>
+                                    </div>
+                                  </div>
+                                ))}
+                                <button type="button" onClick={handleAddCreative} disabled={addingCreative} className="inline-flex items-center gap-1.5 px-3 py-2 border border-dashed border-gogh-grayLight rounded-lg text-xs font-medium text-gogh-grayDark hover:bg-gogh-grayLight/30">
+                                  <Plus className="w-3.5 h-3.5" />{addingCreative ? '...' : 'Adicionar criativo'}
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -1045,113 +1114,6 @@ export default function AnalyticsPage() {
                 )}
 
                 {accordionCard(
-                  'criativos',
-                  'Criativos (vídeos / conjuntos de anúncios)',
-                  selectedCampaignId
-                    ? creatives.length > 0
-                      ? `${creatives.length} criativo(s) · Métricas por anúncio`
-                      : 'Adicione os criativos da campanha (como no Meta Ads)'
-                    : 'Selecione uma campanha para gerenciar criativos',
-                  <ImageIcon className="w-4 h-4 text-gogh-grayDark" />,
-                  <div className="pt-3 space-y-4">
-                    {!selectedCampaignId ? (
-                      <p className="text-sm text-gogh-grayDark py-2">
-                        Selecione uma campanha na seção <strong>Campanhas</strong> para criar e editar os criativos (vídeos, imagens ou conjuntos de anúncios) dessa campanha. Cada criativo tem seus próprios dados; os totais alimentam o Status e as decisões.
-                      </p>
-                    ) : creativesLoading ? (
-                      <div className="flex justify-center py-6"><LumaSpin size="sm" /></div>
-                    ) : creatives.length === 0 ? (
-                      <div className="rounded-xl border border-dashed border-gogh-grayLight bg-gogh-beige/30 p-6 text-center">
-                        <p className="text-sm text-gogh-grayDark mb-4">
-                          Nenhum criativo ainda. Adicione os criativos desta campanha (cada vídeo ou anúncio) e preencha alcance, impressões, cliques, investido, compras e faturado. O sistema usará a soma para o Status e dirá qual criativo trocar ou escalar.
-                        </p>
-                        <button
-                          type="button"
-                          onClick={handleAddCreative}
-                          disabled={addingCreative}
-                          className="inline-flex items-center gap-2 px-4 py-2.5 bg-gogh-yellow text-gogh-black rounded-xl font-medium text-sm hover:bg-gogh-yellow/90 transition-colors"
-                        >
-                          <Plus className="w-4 h-4" />
-                          {addingCreative ? 'Adicionando...' : 'Adicionar primeiro criativo'}
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="space-y-4">
-                        <p className="text-sm text-gogh-grayDark">
-                          Liste abaixo cada criativo (vídeo/anúncio) da campanha e preencha os dados. Os totais vão para <strong>Dados da campanha</strong> e o <strong>Status</strong> indica qual criativo trocar ou manter.
-                        </p>
-                        {creatives.map((cr) => (
-                          <div key={cr.id} className="rounded-xl border border-gogh-grayLight bg-gogh-beige/30 p-4 space-y-3">
-                            <div className="flex items-center justify-between gap-2 flex-wrap">
-                              <input
-                                type="text"
-                                value={cr.name}
-                                onChange={(e) => setCreatives((prev) => prev.map((c) => (c.id === cr.id ? { ...c, name: e.target.value } : c)))}
-                                placeholder="Nome do criativo (ex.: Vídeo 1, Anúncio carrossel)"
-                                className="flex-1 min-w-[180px] border border-gogh-grayLight rounded-lg px-3 py-2 text-sm font-medium"
-                              />
-                              <div className="flex items-center gap-2">
-                                <button
-                                  type="button"
-                                  onClick={() => handleUpdateCreative(creatives.find((c) => c.id === cr.id) ?? cr)}
-                                  disabled={savingCreativeId === cr.id}
-                                  className="px-3 py-1.5 text-sm bg-gogh-yellow text-gogh-black rounded-lg hover:bg-gogh-yellow/90 font-medium disabled:opacity-70"
-                                >
-                                  {savingCreativeId === cr.id ? 'Salvando...' : 'Salvar'}
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => handleDeleteCreative(cr.id)}
-                                  className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg"
-                                  aria-label="Excluir criativo"
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </button>
-                              </div>
-                            </div>
-                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                              <div>
-                                <label className="block text-xs font-medium text-gogh-grayDark mb-0.5">Alcance</label>
-                                <input type="number" min="0" value={cr.alcance ?? ''} onChange={(e) => setCreatives((prev) => prev.map((c) => (c.id === cr.id ? { ...c, alcance: e.target.value ? Number(e.target.value) : null } : c)))} placeholder="0" className="w-full border border-gogh-grayLight rounded-lg px-2 py-1.5 text-sm" />
-                              </div>
-                              <div>
-                                <label className="block text-xs font-medium text-gogh-grayDark mb-0.5">Impressões</label>
-                                <input type="number" min="0" value={cr.impressoes ?? ''} onChange={(e) => setCreatives((prev) => prev.map((c) => (c.id === cr.id ? { ...c, impressoes: e.target.value ? Number(e.target.value) : null } : c)))} placeholder="0" className="w-full border border-gogh-grayLight rounded-lg px-2 py-1.5 text-sm" />
-                              </div>
-                              <div>
-                                <label className="block text-xs font-medium text-gogh-grayDark mb-0.5">Cliques</label>
-                                <input type="number" min="0" value={cr.cliques_link ?? ''} onChange={(e) => setCreatives((prev) => prev.map((c) => (c.id === cr.id ? { ...c, cliques_link: e.target.value ? Number(e.target.value) : null } : c)))} placeholder="0" className="w-full border border-gogh-grayLight rounded-lg px-2 py-1.5 text-sm" />
-                              </div>
-                              <div>
-                                <label className="block text-xs font-medium text-gogh-grayDark mb-0.5">Investido (R$)</label>
-                                <input type="number" min="0" step="0.01" value={cr.valor_investido ?? ''} onChange={(e) => setCreatives((prev) => prev.map((c) => (c.id === cr.id ? { ...c, valor_investido: e.target.value ? Number(e.target.value) : null } : c)))} placeholder="0" className="w-full border border-gogh-grayLight rounded-lg px-2 py-1.5 text-sm" />
-                              </div>
-                              <div>
-                                <label className="block text-xs font-medium text-gogh-grayDark mb-0.5">Compras</label>
-                                <input type="number" min="0" value={cr.compras ?? ''} onChange={(e) => setCreatives((prev) => prev.map((c) => (c.id === cr.id ? { ...c, compras: e.target.value ? Number(e.target.value) : null } : c)))} placeholder="0" className="w-full border border-gogh-grayLight rounded-lg px-2 py-1.5 text-sm" />
-                              </div>
-                              <div>
-                                <label className="block text-xs font-medium text-gogh-grayDark mb-0.5">Faturado (R$)</label>
-                                <input type="number" min="0" step="0.01" value={cr.valor_total_faturado ?? ''} onChange={(e) => setCreatives((prev) => prev.map((c) => (c.id === cr.id ? { ...c, valor_total_faturado: e.target.value ? Number(e.target.value) : null } : c)))} placeholder="0" className="w-full border border-gogh-grayLight rounded-lg px-2 py-1.5 text-sm" />
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                        <button
-                          type="button"
-                          onClick={handleAddCreative}
-                          disabled={addingCreative}
-                          className="inline-flex items-center gap-2 px-4 py-2 border border-dashed border-gogh-grayLight rounded-xl text-sm font-medium text-gogh-grayDark hover:bg-gogh-grayLight/30 transition-colors"
-                        >
-                          <Plus className="w-4 h-4" />
-                          {addingCreative ? 'Adicionando...' : 'Adicionar outro criativo'}
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {accordionCard(
                   'dados-campanha',
                   'Dados da campanha',
                   selectedCampaign ? `Métricas e índices da campanha "${selectedCampaign.name}"` : 'Selecione uma campanha para preencher',
@@ -1162,7 +1124,7 @@ export default function AnalyticsPage() {
                     ) : creatives.length > 0 ? (
                       <>
                         <p className="text-sm text-gogh-grayDark mb-3">
-                          Os totais abaixo vêm da soma dos criativos. Para criar, editar ou excluir criativos (vídeos/anúncios), use a seção <strong>Criativos (vídeos / conjuntos de anúncios)</strong> acima.
+                          Totais da campanha (soma dos criativos). Para criar ou editar criativos, abra <strong>Campanhas</strong> e use o bloco <strong>Criativos desta campanha</strong>.
                         </p>
                         {(impressoesNum > 0 || cliquesNum > 0 || comprasNum > 0 || valorInvestidoNum > 0) && (
                           <div className="rounded-xl border border-gogh-grayLight bg-gogh-beige/50 p-4 space-y-2">
