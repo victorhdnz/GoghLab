@@ -144,6 +144,7 @@ export function FloatingHeader({ initialSiteLogo = null, initialSiteName }: Floa
   const [mobileActiveIndex, setMobileActiveIndex] = useState(0)
   const [produtoDropdownOpen, setProdutoDropdownOpen] = useState(false)
   const [criarDropdownOpen, setCriarDropdownOpen] = useState(false)
+  const [mobileDropdownIndex, setMobileDropdownIndex] = useState<number | null>(null)
   const navRef = useRef<HTMLElement>(null)
   const itemRefs = useRef<(HTMLElement | null)[]>([])
   const [indicatorStyle, setIndicatorStyle] = useState<{ left: number; width: number } | null>(null)
@@ -269,10 +270,18 @@ export function FloatingHeader({ initialSiteLogo = null, initialSiteName }: Floa
                 if (item.items?.length) {
                   const isCriar = item.title === 'Criar'
                   const isOpen = isCriar ? criarDropdownOpen : produtoDropdownOpen
-                  const setOpen = isCriar ? setCriarDropdownOpen : setProdutoDropdownOpen
+                  const onOpenChange = (open: boolean) => {
+                    if (isCriar) {
+                      setCriarDropdownOpen(open)
+                      if (open) setProdutoDropdownOpen(false)
+                    } else {
+                      setProdutoDropdownOpen(open)
+                      if (open) setCriarDropdownOpen(false)
+                    }
+                  }
                   return (
                     <div key={item.title} className="flex items-center">
-                      <DropdownMenu open={isOpen} onOpenChange={setOpen}>
+                      <DropdownMenu open={isOpen} onOpenChange={onOpenChange}>
                         <DropdownMenuTrigger
                           data-tour={isCriar ? 'nav-create-desktop' : 'nav-product-desktop'}
                           className={cn(
@@ -293,7 +302,7 @@ export function FloatingHeader({ initialSiteLogo = null, initialSiteName }: Floa
                                   <Link
                                     href={getProtectedHref(sub.url)}
                                     className="flex select-none gap-4 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-muted hover:text-accent-foreground text-foreground"
-                                    onClick={() => setOpen(false)}
+                                    onClick={() => onOpenChange(false)}
                                   >
                                     {SubIcon && <SubIcon className="size-5 shrink-0 text-muted-foreground" />}
                                     <div>
@@ -385,8 +394,12 @@ export function FloatingHeader({ initialSiteLogo = null, initialSiteName }: Floa
             const isActive = mobileActiveIndex === item.index
             const spotlightOpacity = isActive ? 1 : Math.max(0, 1 - Math.abs(mobileActiveIndex - item.index) * 0.6)
             const NavIcon = item.index === 1 ? Package : LayoutDashboard
+            const isOpen = mobileDropdownIndex === item.index
+            const onMobileDropdownOpenChange = (open: boolean) => {
+              setMobileDropdownIndex(open ? item.index : null)
+            }
             return (
-              <DropdownMenu key={item.label}>
+              <DropdownMenu key={item.label} open={isOpen} onOpenChange={onMobileDropdownOpenChange}>
                 <DropdownMenuTrigger asChild>
                   <button
                     ref={(el) => { itemRefs.current[item.index] = el }}
@@ -425,6 +438,7 @@ export function FloatingHeader({ initialSiteLogo = null, initialSiteName }: Floa
                         <Link
                           href={getProtectedHref(sub.url)}
                           className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-white/90 no-underline outline-none transition-colors hover:bg-white/10 hover:text-white focus:bg-white/10 focus:text-white"
+                          onClick={() => setMobileDropdownIndex(null)}
                         >
                           {SubIcon && <SubIcon className="size-5 shrink-0 text-white/70" />}
                           <span>{sub.title}</span>

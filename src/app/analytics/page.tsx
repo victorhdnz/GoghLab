@@ -680,9 +680,9 @@ export default function AnalyticsPage() {
     { key: 'alcance', label: 'Alcance', value: alcance },
     { key: 'impressoes', label: 'Impressões', value: impressoes },
     { key: 'cliques', label: 'Cliques no link', value: cliquesLink },
-    { key: 'valor_investido', label: 'Valor investido', value: valorInvestido },
-    { key: 'compras', label: 'Compras / conversões', value: compras },
-    { key: 'valor_faturado', label: 'Valor total faturado', value: valorTotalFaturado },
+    { key: 'valor_investido', label: 'Valor usado', value: valorInvestido },
+    { key: 'compras', label: 'Compras', value: compras },
+    { key: 'valor_faturado', label: 'Valor de conversão de compras', value: valorTotalFaturado },
   ]
   const missingDados = requiredDadosFields.filter((f) => !f.value?.trim())
   const canSaveProfile = selectedCampaignId && isRoiComplete && (creatives.length > 0 ? isProfileDirty : isProfileDirty && isDadosCampanhaComplete)
@@ -1131,10 +1131,10 @@ export default function AnalyticsPage() {
                                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                                       <div><label className="block text-xs text-gogh-grayDark">Alcance</label><input type="number" min="0" value={cr.alcance ?? ''} onChange={(e) => setCreatives((prev) => prev.map((c) => (c.id === cr.id ? { ...c, alcance: e.target.value ? Number(e.target.value) : null } : c)))} className="w-full border rounded px-2 py-1 text-sm" /></div>
                                       <div><label className="block text-xs text-gogh-grayDark">Impressões</label><input type="number" min="0" value={cr.impressoes ?? ''} onChange={(e) => setCreatives((prev) => prev.map((c) => (c.id === cr.id ? { ...c, impressoes: e.target.value ? Number(e.target.value) : null } : c)))} className="w-full border rounded px-2 py-1 text-sm" /></div>
-                                      <div><label className="block text-xs text-gogh-grayDark">Cliques</label><input type="number" min="0" value={cr.cliques_link ?? ''} onChange={(e) => setCreatives((prev) => prev.map((c) => (c.id === cr.id ? { ...c, cliques_link: e.target.value ? Number(e.target.value) : null } : c)))} className="w-full border rounded px-2 py-1 text-sm" /></div>
-                                      <div><label className="block text-xs text-gogh-grayDark">Investido (R$)</label><input type="number" min="0" step="0.01" value={cr.valor_investido ?? ''} onChange={(e) => setCreatives((prev) => prev.map((c) => (c.id === cr.id ? { ...c, valor_investido: e.target.value ? Number(e.target.value) : null } : c)))} className="w-full border rounded px-2 py-1 text-sm" /></div>
+                                      <div><label className="block text-xs text-gogh-grayDark">Cliques no link</label><input type="number" min="0" value={cr.cliques_link ?? ''} onChange={(e) => setCreatives((prev) => prev.map((c) => (c.id === cr.id ? { ...c, cliques_link: e.target.value ? Number(e.target.value) : null } : c)))} className="w-full border rounded px-2 py-1 text-sm" /></div>
+                                      <div><label className="block text-xs text-gogh-grayDark">Valor usado (R$)</label><input type="number" min="0" step="0.01" value={cr.valor_investido ?? ''} onChange={(e) => setCreatives((prev) => prev.map((c) => (c.id === cr.id ? { ...c, valor_investido: e.target.value ? Number(e.target.value) : null } : c)))} className="w-full border rounded px-2 py-1 text-sm" /></div>
                                       <div><label className="block text-xs text-gogh-grayDark">Compras</label><input type="number" min="0" value={cr.compras ?? ''} onChange={(e) => setCreatives((prev) => prev.map((c) => (c.id === cr.id ? { ...c, compras: e.target.value ? Number(e.target.value) : null } : c)))} className="w-full border rounded px-2 py-1 text-sm" /></div>
-                                      <div><label className="block text-xs text-gogh-grayDark">Faturado (R$)</label><input type="number" min="0" step="0.01" value={cr.valor_total_faturado ?? ''} onChange={(e) => setCreatives((prev) => prev.map((c) => (c.id === cr.id ? { ...c, valor_total_faturado: e.target.value ? Number(e.target.value) : null } : c)))} className="w-full border rounded px-2 py-1 text-sm" /></div>
+                                      <div><label className="block text-xs text-gogh-grayDark">Valor de conversão (R$)</label><input type="number" min="0" step="0.01" value={cr.valor_total_faturado ?? ''} onChange={(e) => setCreatives((prev) => prev.map((c) => (c.id === cr.id ? { ...c, valor_total_faturado: e.target.value ? Number(e.target.value) : null } : c)))} className="w-full border rounded px-2 py-1 text-sm" /></div>
                                     </div>
                                   </div>
                                 ))}
@@ -1161,7 +1161,7 @@ export default function AnalyticsPage() {
                                 {impressoesNum > 0 && <div><span className="text-gogh-grayDark">CTR</span> <span className="font-medium">{metricasCampanha.ctrPct.toFixed(2)}%</span></div>}
                                 {cliquesNum > 0 && <div><span className="text-gogh-grayDark">Conversão</span> <span className="font-medium">{metricasCampanha.taxaConvPct.toFixed(2)}%</span></div>}
                                 {cliquesNum > 0 && valorInvestidoNum > 0 && <div><span className="text-gogh-grayDark">CPC</span> <span className="font-medium">R$ {metricasCampanha.cpc.toFixed(2)}</span></div>}
-                                {comprasNum > 0 && <div><span className="text-gogh-grayDark">CPA</span> <span className="font-medium">R$ {metricasCampanha.cpaCalculado.toFixed(2)}</span></div>}
+                                {comprasNum > 0 && <div><span className="text-gogh-grayDark">Custo por compra</span> <span className="font-medium">R$ {metricasCampanha.cpaCalculado.toFixed(2)}</span></div>}
                                 {valorInvestidoNum > 0 && valorFaturadoNum > 0 && <div><span className="text-gogh-grayDark">ROAS</span> <span className="font-medium">{metricasCampanha.roas.toFixed(2)}x</span></div>}
                               </div>
                             </div>
@@ -1173,17 +1173,17 @@ export default function AnalyticsPage() {
                             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                               <div><label className="block text-xs text-gogh-grayDark">Alcance</label><input type="number" min="0" value={alcance} onChange={(e) => setAlcance(e.target.value)} placeholder="0" className={`w-full border rounded-lg px-2 py-1.5 text-sm ${isDadosCampanhaComplete ? 'border-emerald-400' : 'border-red-300'}`} /></div>
                               <div><label className="block text-xs text-gogh-grayDark">Impressões</label><input type="number" min="0" value={impressoes} onChange={(e) => setImpressoes(e.target.value)} placeholder="0" className={`w-full border rounded-lg px-2 py-1.5 text-sm ${isDadosCampanhaComplete ? 'border-emerald-400' : 'border-red-300'}`} /></div>
-                              <div><label className="block text-xs text-gogh-grayDark">Cliques</label><input type="number" min="0" value={cliquesLink} onChange={(e) => setCliquesLink(e.target.value)} placeholder="0" className={`w-full border rounded-lg px-2 py-1.5 text-sm ${isDadosCampanhaComplete ? 'border-emerald-400' : 'border-red-300'}`} /></div>
-                              <div><label className="block text-xs text-gogh-grayDark">Investido (R$)</label><input type="number" min="0" step="0.01" value={valorInvestido} onChange={(e) => setValorInvestido(e.target.value)} placeholder="0" className={`w-full border rounded-lg px-2 py-1.5 text-sm ${isDadosCampanhaComplete ? 'border-emerald-400' : 'border-red-300'}`} /></div>
+                              <div><label className="block text-xs text-gogh-grayDark">Cliques no link</label><input type="number" min="0" value={cliquesLink} onChange={(e) => setCliquesLink(e.target.value)} placeholder="0" className={`w-full border rounded-lg px-2 py-1.5 text-sm ${isDadosCampanhaComplete ? 'border-emerald-400' : 'border-red-300'}`} /></div>
+                              <div><label className="block text-xs text-gogh-grayDark">Valor usado (R$)</label><input type="number" min="0" step="0.01" value={valorInvestido} onChange={(e) => setValorInvestido(e.target.value)} placeholder="0" className={`w-full border rounded-lg px-2 py-1.5 text-sm ${isDadosCampanhaComplete ? 'border-emerald-400' : 'border-red-300'}`} /></div>
                               <div><label className="block text-xs text-gogh-grayDark">Compras</label><input type="number" min="0" value={compras} onChange={(e) => setCompras(e.target.value)} placeholder="0" className={`w-full border rounded-lg px-2 py-1.5 text-sm ${isDadosCampanhaComplete ? 'border-emerald-400' : 'border-red-300'}`} /></div>
-                              <div><label className="block text-xs text-gogh-grayDark">Faturado (R$)</label><input type="number" min="0" step="0.01" value={valorTotalFaturado} onChange={(e) => setValorTotalFaturado(e.target.value)} placeholder="0" className={`w-full border rounded-lg px-2 py-1.5 text-sm ${isDadosCampanhaComplete ? 'border-emerald-400' : 'border-red-300'}`} /></div>
+                              <div><label className="block text-xs text-gogh-grayDark">Valor de conversão (R$)</label><input type="number" min="0" step="0.01" value={valorTotalFaturado} onChange={(e) => setValorTotalFaturado(e.target.value)} placeholder="0" className={`w-full border rounded-lg px-2 py-1.5 text-sm ${isDadosCampanhaComplete ? 'border-emerald-400' : 'border-red-300'}`} /></div>
                             </div>
                             {(impressoesNum > 0 || cliquesNum > 0 || valorInvestidoNum > 0) && (
                               <div className="mt-2 rounded-lg border border-gogh-grayLight bg-gogh-beige/40 p-2 grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-1 text-xs">
-                                {alcanceNum > 0 && impressoesNum > 0 && <div><span className="text-gogh-grayDark">Freq.</span> {metricasCampanha.freq.toFixed(2)}</div>}
+                                {alcanceNum > 0 && impressoesNum > 0 && <div><span className="text-gogh-grayDark">Frequência</span> {metricasCampanha.freq.toFixed(2)}</div>}
                                 {impressoesNum > 0 && <div><span className="text-gogh-grayDark">CTR</span> {metricasCampanha.ctrPct.toFixed(2)}%</div>}
-                                {cliquesNum > 0 && <div><span className="text-gogh-grayDark">Conv.</span> {metricasCampanha.taxaConvPct.toFixed(2)}%</div>}
-                                {comprasNum > 0 && <div><span className="text-gogh-grayDark">CPA</span> R$ {metricasCampanha.cpaCalculado.toFixed(2)}</div>}
+                                {cliquesNum > 0 && <div><span className="text-gogh-grayDark">Conversão</span> {metricasCampanha.taxaConvPct.toFixed(2)}%</div>}
+                                {comprasNum > 0 && <div><span className="text-gogh-grayDark">Custo por compra</span> R$ {metricasCampanha.cpaCalculado.toFixed(2)}</div>}
                                 {valorInvestidoNum > 0 && valorFaturadoNum > 0 && <div><span className="text-gogh-grayDark">ROAS</span> {metricasCampanha.roas.toFixed(2)}x</div>}
                               </div>
                             )}
@@ -1199,9 +1199,9 @@ export default function AnalyticsPage() {
                         </p>
                         <div className="flex flex-wrap gap-2">
                           {[
-                            { days: '1–5', phase: 'aprendizado', label: 'Aprendizado', action: 'Não mexer no orçamento.', hint: 'Preencha alcance, impressões, cliques, investido, compras e faturado para o sistema acompanhar.' },
-                            { days: '7', phase: 'analise-7', label: '1ª análise', action: 'Atualize os dados no painel.', hint: 'Alcance, impressões, cliques, investido, compras, faturado. O Status vai recomendar: manter, escalar ou trocar criativo.' },
-                            { days: '10–14', phase: 'novos-criativos', label: 'Novos criativos', action: 'Adicione +1 ou 2 criativos.', hint: 'Preencha as métricas de cada um. Compare desempenho no Status.' },
+                            { days: '1–5', phase: 'aprendizado', label: 'Aprendizado', action: 'Não mexer no orçamento.', hint: 'Preencha os dados no painel para o sistema acompanhar.' },
+                            { days: '7', phase: 'analise-7', label: '1ª análise', action: 'Atualize os dados no painel.', hint: 'Preencha os dados. O Status vai recomendar: manter, escalar ou trocar criativo.' },
+                            { days: '10–14', phase: 'novos-criativos', label: 'Novos criativos', action: 'Adicione +1 ou 2 criativos.', hint: 'Preencha os dados de cada um. Compare desempenho no Status.' },
                             { days: '18+', phase: 'avaliacao', label: 'Contínuo (dia 19, 20…)', action: 'Mantenha 4–5 criativos ativos.', hint: 'Preencha os dados periodicamente. Reponha criativos fracos e siga as recomendações do Status.' },
                           ].map((step) => {
                             const isCurrent = planoOtimizacao.phase === step.phase
@@ -1272,7 +1272,7 @@ export default function AnalyticsPage() {
                     </div>
                     {statusAlerts.length === 0 ? (
                       <p className="text-sm text-gogh-grayDark bg-gogh-grayLight/50 rounded-lg p-3">
-                        Preencha os dados da campanha (alcance, impressões, cliques, investido, compras) na seção <strong>Campanhas</strong> e o <strong>Planejamento de valores</strong> para ver o diagnóstico.
+                        Preencha os dados da campanha na seção <strong>Campanhas</strong> e o <strong>Planejamento de valores</strong> para ver o diagnóstico.
                       </p>
                     ) : (
                       <div>
