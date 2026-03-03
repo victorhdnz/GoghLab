@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
@@ -17,6 +17,7 @@ import {
   ClipboardList,
   CheckCircle2,
   AlertTriangle,
+  TrendingUp,
 } from 'lucide-react'
 import { LumaSpin } from '@/components/ui/luma-spin'
 import toast from 'react-hot-toast'
@@ -32,9 +33,26 @@ interface AnalyticsCampaign {
   custo_venda: number | null
   custo_por_aquisicao: number | null
   roi_enabled: boolean
+  alcance?: number | null
+  impressoes?: number | null
+  cliques_link?: number | null
+  valor_investido?: number | null
+  compras?: number | null
+  valor_total_faturado?: number | null
+  meta_lucro_por_venda?: number | null
   created_at: string
   updated_at: string
 }
+
+// Parâmetros de análise (benchmarks para decisão)
+const FREQ_SAUDAVEL = { min: 1.5, max: 2.5 }
+const FREQ_ATENCAO = { min: 2.5, max: 3 }
+const FREQ_SATURACAO = 3
+const FREQ_CRITICO = 4
+const CTR_BOM = 1.5
+const CTR_MEDIO = 1
+const CONV_FORTE = 3
+const CONV_MEDIO = 1.5
 
 export default function AnalyticsPage() {
   const { isAuthenticated, loading: authLoading, hasActiveSubscription, isPro } = useAuth()
@@ -51,6 +69,13 @@ export default function AnalyticsPage() {
   const [valorVenda, setValorVenda] = useState<string>('')
   const [custoVenda, setCustoVenda] = useState<string>('')
   const [custoPorAquisição, setCustoPorAquisição] = useState<string>('')
+  const [metaLucroPorVenda, setMetaLucroPorVenda] = useState<string>('')
+  const [alcance, setAlcance] = useState<string>('')
+  const [impressoes, setImpressoes] = useState<string>('')
+  const [cliquesLink, setCliquesLink] = useState<string>('')
+  const [valorInvestido, setValorInvestido] = useState<string>('')
+  const [compras, setCompras] = useState<string>('')
+  const [valorTotalFaturado, setValorTotalFaturado] = useState<string>('')
 
   const loadCampaigns = async () => {
     if (!hasAccess) return
@@ -82,6 +107,13 @@ export default function AnalyticsPage() {
       setValorVenda(c.valor_venda != null ? String(c.valor_venda) : '')
       setCustoVenda(c.custo_venda != null ? String(c.custo_venda) : '')
       setCustoPorAquisição(c.custo_por_aquisicao != null ? String(c.custo_por_aquisicao) : '')
+      setMetaLucroPorVenda(c.meta_lucro_por_venda != null ? String(c.meta_lucro_por_venda) : '')
+      setAlcance(c.alcance != null ? String(c.alcance) : '')
+      setImpressoes(c.impressoes != null ? String(c.impressoes) : '')
+      setCliquesLink(c.cliques_link != null ? String(c.cliques_link) : '')
+      setValorInvestido(c.valor_investido != null ? String(c.valor_investido) : '')
+      setCompras(c.compras != null ? String(c.compras) : '')
+      setValorTotalFaturado(c.valor_total_faturado != null ? String(c.valor_total_faturado) : '')
     }
   }, [selectedCampaignId, campaigns])
 
@@ -153,6 +185,9 @@ export default function AnalyticsPage() {
     }
   }
 
+  const parseNum = (s: string) => parseFloat(String(s).replace(',', '.')) || 0
+  const toNum = (s: string) => (s.trim() ? parseNum(s) : 0)
+
   const handleSaveRoiToCampaign = async () => {
     if (!selectedCampaignId) return
     try {
@@ -162,8 +197,9 @@ export default function AnalyticsPage() {
         credentials: 'include',
         body: JSON.stringify({
           roi_enabled: roiEnabled,
-          valor_venda: valorVenda ? parseFloat(valorVenda.replace(',', '.')) : null,
-          custo_venda: custoVenda ? parseFloat(custoVenda.replace(',', '.')) : null,
+          valor_venda: valorVenda ? parseNum(valorVenda) : null,
+          custo_venda: custoVenda ? parseNum(custoVenda) : null,
+          meta_lucro_por_venda: metaLucroPorVenda ? parseNum(metaLucroPorVenda) : null,
         }),
       })
       const data = await res.json()
@@ -184,7 +220,13 @@ export default function AnalyticsPage() {
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({
-          custo_por_aquisicao: custoPorAquisição ? parseFloat(custoPorAquisição.replace(',', '.')) : null,
+          alcance: alcance ? parseInt(alcance, 10) : null,
+          impressoes: impressoes ? parseInt(impressoes, 10) : null,
+          cliques_link: cliquesLink ? parseInt(cliquesLink, 10) : null,
+          valor_investido: valorInvestido ? parseNum(valorInvestido) : null,
+          compras: compras ? parseInt(compras, 10) : null,
+          valor_total_faturado: valorTotalFaturado ? parseNum(valorTotalFaturado) : null,
+          custo_por_aquisicao: custoPorAquisição ? parseNum(custoPorAquisição) : null,
         }),
       })
       const data = await res.json()
@@ -198,29 +240,142 @@ export default function AnalyticsPage() {
     }
   }
 
-  const valorNum = parseFloat(valorVenda.replace(',', '.')) || 0
-  const custoNum = parseFloat(custoVenda.replace(',', '.')) || 0
-  const lucroPorVenda = valorNum - custoNum
-  const cpaNum = parseFloat(custoPorAquisição.replace(',', '.')) || 0
-  const statusAlerts: { type: 'success' | 'warning' | 'danger'; text: string }[] = []
-  if (roiEnabled && valorNum > 0) {
-    if (lucroPorVenda <= 0) {
-      statusAlerts.push({
-        type: 'danger',
-        text: 'Seu lucro por venda está zerado ou negativo. Ajuste o valor de venda ou o custo para ter margem saudável.',
-      })
-    } else if (cpaNum > 0 && cpaNum >= lucroPorVenda) {
-      statusAlerts.push({
-        type: 'warning',
-        text: 'Seu CPA está igual ou acima do lucro por venda. Você está no prejuízo ou empatado por aquisição. Reduza o custo por aquisição ou aumente o lucro por venda.',
-      })
-    } else if (cpaNum > 0 && cpaNum < lucroPorVenda) {
-      statusAlerts.push({
-        type: 'success',
-        text: `Seu CPA (R$ ${cpaNum.toFixed(2).replace('.', ',')}) está abaixo do lucro por venda (R$ ${lucroPorVenda.toFixed(2).replace('.', ',')}). Você está no lucro por aquisição.`,
-      })
+  const valorNum = toNum(valorVenda)
+  const custoNum = toNum(custoVenda)
+  const lucroBruto = valorNum - custoNum
+  const metaLucroNum = toNum(metaLucroPorVenda)
+  const cpaNum = toNum(custoPorAquisição)
+  const alcanceNum = toNum(alcance)
+  const impressoesNum = toNum(impressoes)
+  const cliquesNum = toNum(cliquesLink)
+  const valorInvestidoNum = toNum(valorInvestido)
+  const comprasNum = toNum(compras)
+  const valorFaturadoNum = toNum(valorTotalFaturado)
+
+  const custoMaxAceitavel = useMemo(() => {
+    if (lucroBruto <= 0) return 0
+    if (metaLucroNum > 0) return Math.max(0, lucroBruto - metaLucroNum)
+    return lucroBruto
+  }, [lucroBruto, metaLucroNum])
+
+  const metricasCampanha = useMemo(() => {
+    const freq = alcanceNum > 0 ? impressoesNum / alcanceNum : 0
+    const ctrPct = impressoesNum > 0 ? (cliquesNum / impressoesNum) * 100 : 0
+    const taxaConvPct = cliquesNum > 0 ? (comprasNum / cliquesNum) * 100 : 0
+    const cpc = cliquesNum > 0 ? valorInvestidoNum / cliquesNum : 0
+    const cpaCalculado = comprasNum > 0 ? valorInvestidoNum / comprasNum : 0
+    const roas = valorInvestidoNum > 0 ? valorFaturadoNum / valorInvestidoNum : 0
+    return { freq, ctrPct, taxaConvPct, cpc, cpaCalculado, roas }
+  }, [alcanceNum, impressoesNum, cliquesNum, valorInvestidoNum, comprasNum, valorFaturadoNum])
+
+  const { score, statusGeral, statusAlerts } = useMemo(() => {
+    const alerts: { type: 'success' | 'warning' | 'danger'; text: string }[] = []
+    let scoreFreq = 20
+    let scoreCtr = 20
+    let scoreConv = 20
+    let scoreCpa = 20
+    let scoreLucro = 20
+    const { freq, ctrPct, taxaConvPct, cpaCalculado, roas } = metricasCampanha
+    const cpaUsado = comprasNum > 0 ? metricasCampanha.cpaCalculado : cpaNum
+
+    if (alcanceNum > 0 && impressoesNum > 0) {
+      if (freq >= FREQ_CRITICO) {
+        scoreFreq = 0
+        alerts.push({ type: 'danger', text: 'Frequência crítica (≥4). Possível saturação. Avaliar novo criativo.' })
+      } else if (freq > FREQ_SATURACAO) {
+        scoreFreq = 5
+        alerts.push({ type: 'warning', text: 'Possível saturação (frequência >3). Avaliar novo criativo.' })
+      } else if (freq > FREQ_ATENCAO.max) {
+        scoreFreq = 10
+        alerts.push({ type: 'warning', text: 'Frequência em atenção (2,5–3). Acompanhar desempenho.' })
+      } else if (freq >= FREQ_SAUDAVEL.min && freq <= FREQ_SAUDAVEL.max) {
+        scoreFreq = 20
+      }
+    } else {
+      scoreFreq = 20
     }
-  }
+
+    if (impressoesNum > 0 && cliquesNum >= 0) {
+      if (ctrPct >= CTR_BOM) scoreCtr = 20
+      else if (ctrPct >= CTR_MEDIO) {
+        scoreCtr = 12
+        alerts.push({ type: 'warning', text: 'CTR médio (1–1,5%). Considere testar novo criativo.' })
+      } else if (ctrPct > 0) {
+        scoreCtr = 5
+        alerts.push({ type: 'warning', text: 'Criativo com baixo desempenho (CTR <1%). Recomenda-se testar novo criativo.' })
+      }
+    }
+
+    if (cliquesNum > 0 && comprasNum >= 0) {
+      if (taxaConvPct >= CONV_FORTE) scoreConv = 20
+      else if (taxaConvPct >= CONV_MEDIO) scoreConv = 12
+      else if (taxaConvPct > 0) {
+        scoreConv = 5
+        alerts.push({ type: 'warning', text: 'Conversão baixa (<1,5%). Revisar página de destino ou oferta.' })
+      }
+    }
+
+    if (roiEnabled && valorNum > 0) {
+      if (lucroBruto <= 0) {
+        scoreLucro = 0
+        alerts.push({ type: 'danger', text: 'Operação com prejuízo. Ajuste preço ou custo variável.' })
+      } else if (metaLucroNum > 0 && lucroBruto >= metaLucroNum) {
+        scoreLucro = 20
+        alerts.push({ type: 'success', text: 'Operação lucrativa e dentro da meta. Margem saudável.' })
+      } else if (lucroBruto > 0) {
+        scoreLucro = 15
+      }
+
+      if (custoMaxAceitavel > 0 && cpaUsado > 0) {
+        if (cpaUsado > lucroBruto) {
+          scoreCpa = 0
+          alerts.push({ type: 'danger', text: 'CPA acima do lucro por venda. Você está no prejuízo por aquisição. Não escale.' })
+        } else if (cpaUsado >= custoMaxAceitavel) {
+          scoreCpa = 8
+          alerts.push({ type: 'warning', text: 'Margem comprometida. CPA próximo ou acima do limite. Não escalar.' })
+        } else if (cpaUsado < custoMaxAceitavel * 0.8) {
+          scoreCpa = 20
+          alerts.push({ type: 'success', text: 'Campanha eficiente. CPA abaixo do limite. Escala recomendada.' })
+        } else {
+          scoreCpa = 15
+        }
+      }
+    }
+
+    const total = scoreFreq + scoreCtr + scoreConv + scoreCpa + scoreLucro
+    const scoreFinal = Math.min(100, total)
+    let statusGeral: 'saudável' | 'estável' | 'alerta' | 'crítica' = 'saudável'
+    if (scoreFinal >= 80) statusGeral = 'saudável'
+    else if (scoreFinal >= 60) statusGeral = 'estável'
+    else if (scoreFinal >= 40) statusGeral = 'alerta'
+    else statusGeral = 'crítica'
+
+    if (statusGeral === 'saudável' && alerts.length === 0 && roiEnabled && valorNum > 0 && cpaUsado > 0 && cpaUsado < lucroBruto) {
+      alerts.push({ type: 'success', text: 'Campanha saudável. Pode escalar orçamento com segurança (até ~20%).' })
+    }
+    if (statusGeral === 'estável') {
+      alerts.push({ type: 'warning', text: 'Campanha estável. Otimize criativo ou público antes de escalar.' })
+    }
+    if (statusGeral === 'alerta') {
+      alerts.push({ type: 'warning', text: 'Campanha em alerta. Ajuste criativo ou público antes de aumentar investimento.' })
+    }
+    if (statusGeral === 'crítica') {
+      alerts.push({ type: 'danger', text: 'Campanha crítica. Revisar estratégia antes de continuar.' })
+    }
+
+    return { score: scoreFinal, statusGeral, statusAlerts: alerts }
+  }, [
+    metricasCampanha,
+    roiEnabled,
+    valorNum,
+    lucroBruto,
+    custoMaxAceitavel,
+    metaLucroNum,
+    cpaNum,
+    comprasNum,
+  ])
+
+  const lucroPorVenda = lucroBruto
 
   const accordionCard = (
     id: AnalyticsAccordionId,
@@ -407,41 +562,74 @@ export default function AnalyticsPage() {
                 {accordionCard(
                   'dados-campanha',
                   'Dados da campanha',
-                  selectedCampaign ? `CPA e índices da campanha "${selectedCampaign.name}"` : 'Selecione uma campanha para preencher',
+                  selectedCampaign ? `Métricas e índices da campanha "${selectedCampaign.name}"` : 'Selecione uma campanha para preencher',
                   <ClipboardList className="w-4 h-4 text-gogh-grayDark" />,
                   <div className="pt-3 space-y-4">
                     {!selectedCampaignId ? (
-                      <p className="text-sm text-gogh-grayDark py-2">Selecione uma campanha na seção Campanhas para preencher os dados de anúncio (CPA e outros índices).</p>
+                      <p className="text-sm text-gogh-grayDark py-2">Selecione uma campanha na seção Campanhas para preencher os dados de anúncio. O sistema calculará automaticamente frequência, CTR, conversão, CPC, CPA e ROAS.</p>
                     ) : (
                       <>
                         <p className="text-sm text-gogh-grayDark">
-                          Preencha os dados da sua campanha de tráfego pago. O <strong>CPA (custo por aquisição)</strong> é quanto você gasta em anúncios por cada conversão (venda, lead, etc.). Esses dados são usados no Status para avisar se você está no lucro ou no prejuízo.
+                          Preencha os dados da sua campanha de tráfego pago. O sistema calcula automaticamente: <strong>frequência</strong>, <strong>CTR</strong>, <strong>taxa de conversão</strong>, <strong>CPC</strong>, <strong>CPA</strong> e <strong>ROAS</strong>. Esses índices alimentam o Status e as recomendações de decisão.
                         </p>
-                        <div className="space-y-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                           <div>
-                            <label className="block text-sm font-medium text-gogh-grayDark mb-1">CPA médio (R$) — custo por aquisição</label>
-                            <input
-                              type="number"
-                              min="0"
-                              step="0.01"
-                              value={custoPorAquisição}
-                              onChange={(e) => setCustoPorAquisição(e.target.value)}
-                              placeholder="Ex: 45"
-                              className="w-full border border-gogh-grayLight rounded-lg px-3 py-2 text-sm max-w-[200px]"
-                            />
-                            <p className="text-xs text-gogh-grayDark mt-1">Quanto você gasta em anúncios por cada conversão (cliente, lead).</p>
+                            <label className="block text-sm font-medium text-gogh-grayDark mb-1">Alcance (pessoas)</label>
+                            <input type="number" min="0" value={alcance} onChange={(e) => setAlcance(e.target.value)} placeholder="Ex: 50000" className="w-full border border-gogh-grayLight rounded-lg px-3 py-2 text-sm" />
                           </div>
-                          <button
-                            type="button"
-                            onClick={handleSaveDadosCampanha}
-                            disabled={savingDados}
-                            className="inline-flex items-center gap-2 px-4 py-2 bg-gogh-black text-white rounded-lg hover:bg-gogh-black/90 text-sm font-medium disabled:opacity-50"
-                          >
-                            {savingDados ? <LumaSpin size="sm" /> : null}
-                            Salvar na campanha
-                          </button>
+                          <div>
+                            <label className="block text-sm font-medium text-gogh-grayDark mb-1">Impressões</label>
+                            <input type="number" min="0" value={impressoes} onChange={(e) => setImpressoes(e.target.value)} placeholder="Ex: 120000" className="w-full border border-gogh-grayLight rounded-lg px-3 py-2 text-sm" />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gogh-grayDark mb-1">Cliques no link</label>
+                            <input type="number" min="0" value={cliquesLink} onChange={(e) => setCliquesLink(e.target.value)} placeholder="Ex: 2400" className="w-full border border-gogh-grayLight rounded-lg px-3 py-2 text-sm" />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gogh-grayDark mb-1">Valor investido (R$)</label>
+                            <input type="number" min="0" step="0.01" value={valorInvestido} onChange={(e) => setValorInvestido(e.target.value)} placeholder="Ex: 1500" className="w-full border border-gogh-grayLight rounded-lg px-3 py-2 text-sm" />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gogh-grayDark mb-1">Compras / conversões</label>
+                            <input type="number" min="0" value={compras} onChange={(e) => setCompras(e.target.value)} placeholder="Ex: 45" className="w-full border border-gogh-grayLight rounded-lg px-3 py-2 text-sm" />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gogh-grayDark mb-1">Valor total faturado (R$)</label>
+                            <input type="number" min="0" step="0.01" value={valorTotalFaturado} onChange={(e) => setValorTotalFaturado(e.target.value)} placeholder="Ex: 4365" className="w-full border border-gogh-grayLight rounded-lg px-3 py-2 text-sm" />
+                          </div>
                         </div>
-                        <p className="text-xs text-gogh-grayDark border-t border-gogh-grayLight/50 pt-3">Em breve: mais campos (gasto total, impressões, cliques, etc.) para análise completa.</p>
+                        <div>
+                          <label className="block text-sm font-medium text-gogh-grayDark mb-1">CPA médio (R$) — opcional se já preencheu investido e compras</label>
+                          <input type="number" min="0" step="0.01" value={custoPorAquisição} onChange={(e) => setCustoPorAquisição(e.target.value)} placeholder="Ex: 33,33" className="w-full border border-gogh-grayLight rounded-lg px-3 py-2 text-sm max-w-[200px]" />
+                          <p className="text-xs text-gogh-grayDark mt-1">Custo por aquisição. Se preencheu valor investido e compras, o sistema calcula automaticamente.</p>
+                        </div>
+                        {(impressoesNum > 0 || cliquesNum > 0 || comprasNum > 0 || valorInvestidoNum > 0) && (
+                          <div className="rounded-xl border border-gogh-grayLight bg-gogh-beige/50 p-4 space-y-2">
+                            <p className="text-sm font-semibold text-gogh-black flex items-center gap-2">
+                              <TrendingUp className="w-4 h-4 text-gogh-yellow" />
+                              Métricas calculadas automaticamente
+                            </p>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-sm">
+                              {alcanceNum > 0 && impressoesNum > 0 && (
+                                <div><span className="text-gogh-grayDark">Frequência</span><br /><span className="font-medium">{metricasCampanha.freq.toFixed(2)}</span></div>
+                              )}
+                              {impressoesNum > 0 && <div><span className="text-gogh-grayDark">CTR</span><br /><span className="font-medium">{metricasCampanha.ctrPct.toFixed(2)}%</span></div>}
+                              {cliquesNum > 0 && <div><span className="text-gogh-grayDark">Taxa de conversão</span><br /><span className="font-medium">{metricasCampanha.taxaConvPct.toFixed(2)}%</span></div>}
+                              {cliquesNum > 0 && valorInvestidoNum > 0 && <div><span className="text-gogh-grayDark">CPC (R$)</span><br /><span className="font-medium">{metricasCampanha.cpc.toFixed(2)}</span></div>}
+                              {(comprasNum > 0 || cpaNum > 0) && <div><span className="text-gogh-grayDark">CPA (R$)</span><br /><span className="font-medium">{(comprasNum > 0 ? metricasCampanha.cpaCalculado : cpaNum).toFixed(2)}</span></div>}
+                              {valorInvestidoNum > 0 && valorFaturadoNum > 0 && <div><span className="text-gogh-grayDark">ROAS</span><br /><span className="font-medium">{metricasCampanha.roas.toFixed(2)}x</span></div>}
+                            </div>
+                          </div>
+                        )}
+                        <button
+                          type="button"
+                          onClick={handleSaveDadosCampanha}
+                          disabled={savingDados}
+                          className="inline-flex items-center gap-2 px-4 py-2 bg-gogh-black text-white rounded-lg hover:bg-gogh-black/90 text-sm font-medium disabled:opacity-50"
+                        >
+                          {savingDados ? <LumaSpin size="sm" /> : null}
+                          Salvar na campanha
+                        </button>
                       </>
                     )}
                   </div>
@@ -469,7 +657,7 @@ export default function AnalyticsPage() {
                         </p>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           <div>
-                            <label className="block text-sm font-medium text-gogh-grayDark mb-1">Valor da venda (R$)</label>
+                            <label className="block text-sm font-medium text-gogh-grayDark mb-1">Preço do produto/serviço (R$)</label>
                             <input
                               type="number"
                               min="0"
@@ -481,7 +669,7 @@ export default function AnalyticsPage() {
                             />
                           </div>
                           <div>
-                            <label className="block text-sm font-medium text-gogh-grayDark mb-1">Custo por venda (R$)</label>
+                            <label className="block text-sm font-medium text-gogh-grayDark mb-1">Custo variável por venda (R$)</label>
                             <input
                               type="number"
                               min="0"
@@ -491,7 +679,20 @@ export default function AnalyticsPage() {
                               placeholder="0 se não tiver (ex.: serviço sem custo variável)"
                               className="w-full border border-gogh-grayLight rounded-lg px-3 py-2 text-sm"
                             />
-                            <p className="text-xs text-gogh-grayDark mt-0.5">O que você gasta para entregar uma unidade (produto, frete, etc.). Deixe 0 se não tiver.</p>
+                            <p className="text-xs text-gogh-grayDark mt-0.5">O que você gasta para entregar uma unidade (produto, frete, taxa, etc.). Deixe 0 se não tiver.</p>
+                          </div>
+                          <div className="sm:col-span-2">
+                            <label className="block text-sm font-medium text-gogh-grayDark mb-1">Meta de lucro por venda (R$) — opcional</label>
+                            <input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              value={metaLucroPorVenda}
+                              onChange={(e) => setMetaLucroPorVenda(e.target.value)}
+                              placeholder="Ex: 20 — lucro mínimo desejado por venda"
+                              className="w-full border border-gogh-grayLight rounded-lg px-3 py-2 text-sm max-w-[240px]"
+                            />
+                            <p className="text-xs text-gogh-grayDark mt-0.5">Quanto você quer lucrar por venda. O sistema usa isso para calcular o custo máximo aceitável (CPA limite).</p>
                           </div>
                         </div>
                         {valorNum > 0 ? (
@@ -505,7 +706,7 @@ export default function AnalyticsPage() {
                                     : 'bg-amber-50 border-amber-200'
                               }`}
                             >
-                              <p className="text-sm font-medium text-gogh-black mb-1">Resultado: Lucro por venda</p>
+                              <p className="text-sm font-medium text-gogh-black mb-1">Lucro bruto por venda</p>
                               <p className="text-lg font-bold">
                                 {lucroPorVenda > 0 ? (
                                   <span className="text-green-700">R$ {lucroPorVenda.toFixed(2).replace('.', ',')}</span>
@@ -516,16 +717,32 @@ export default function AnalyticsPage() {
                                 )}
                               </p>
                               <p className="text-xs text-gogh-grayDark mt-1">
-                                Valor da venda (R$ {valorNum.toFixed(2).replace('.', ',')}) − Custo por venda (R$ {custoNum.toFixed(2).replace('.', ',')})
+                                Preço (R$ {valorNum.toFixed(2).replace('.', ',')}) − Custo variável (R$ {custoNum.toFixed(2).replace('.', ',')})
                               </p>
+                              {valorNum > 0 && lucroPorVenda > 0 && (
+                                <p className="text-xs text-gogh-grayDark mt-2">
+                                  Margem: {((lucroPorVenda / valorNum) * 100).toFixed(1).replace('.', ',')}%
+                                </p>
+                              )}
+                              {custoMaxAceitavel > 0 && (
+                                <div className="mt-3 pt-3 border-t border-gogh-grayLight/50">
+                                  <p className="text-sm font-medium text-gogh-black">Custo máximo aceitável (CPA)</p>
+                                  <p className="text-base font-bold text-gogh-grayDark">R$ {custoMaxAceitavel.toFixed(2).replace('.', ',')}</p>
+                                  <p className="text-xs text-gogh-grayDark mt-0.5">
+                                    {metaLucroNum > 0
+                                      ? `Máximo que você pode gastar por aquisição e ainda manter a meta de lucro (R$ ${metaLucroNum.toFixed(2).replace('.', ',')}).`
+                                      : 'Máximo que você pode gastar por aquisição sem prejuízo (ponto de equilíbrio).'}
+                                  </p>
+                                </div>
+                              )}
                               {lucroPorVenda > 0 && (
                                 <p className="text-xs font-medium text-green-700 mt-2 flex items-center gap-1">
-                                  <CheckCircle2 className="w-4 h-4" /> Margem positiva — você pode gastar até R$ {lucroPorVenda.toFixed(2).replace('.', ',')} por aquisição (CPA) sem prejuízo.
+                                  <CheckCircle2 className="w-4 h-4" /> Mantenha o CPA da campanha abaixo de R$ {custoMaxAceitavel.toFixed(2).replace('.', ',')} para operar com margem.
                                 </p>
                               )}
                               {lucroPorVenda <= 0 && valorNum > 0 && (
                                 <p className="text-xs font-medium text-amber-700 mt-2 flex items-center gap-1">
-                                  <AlertTriangle className="w-4 h-4" /> Ajuste o valor ou o custo para ter lucro por venda.
+                                  <AlertTriangle className="w-4 h-4" /> Ajuste o preço ou o custo variável para ter lucro por venda.
                                 </p>
                               )}
                             </div>
@@ -552,38 +769,76 @@ export default function AnalyticsPage() {
                 {accordionCard(
                   'status',
                   'Status e decisões',
-                  statusAlerts.length > 0 ? `${statusAlerts.length} aviso(s)` : 'Notificações sobre lucro e campanha',
+                  statusAlerts.length > 0 ? `Score ${score} · ${statusGeral}` : 'Diagnóstico automático e recomendações',
                   <AlertCircle className="w-4 h-4 text-gogh-grayDark" />,
-                  <div className="pt-3 space-y-3">
+                  <div className="pt-3 space-y-4">
                     <p className="text-sm text-gogh-grayDark">
-                      Aqui aparecem avisos com base no que você preencheu em <strong>Custos e receita (ROI)</strong> e em <strong>Dados da campanha</strong> (CPA). Quando o lucro por venda estiver zerado ou no prejuízo, ou quando o CPA estiver igual ou acima do lucro, você será notificado para tomar decisão.
+                      O sistema analisa os dados da campanha e da estrutura financeira e retorna um <strong>score (0–100)</strong> e recomendações objetivas. Você não precisa interpretar números — siga as ações sugeridas.
                     </p>
+                    <div className="flex flex-wrap items-center gap-3">
+                      <div
+                        className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 font-bold text-lg ${
+                          statusGeral === 'saudável'
+                            ? 'bg-green-100 text-green-800'
+                            : statusGeral === 'estável'
+                              ? 'bg-blue-100 text-blue-800'
+                              : statusGeral === 'alerta'
+                                ? 'bg-amber-100 text-amber-800'
+                                : 'bg-red-100 text-red-800'
+                        }`}
+                      >
+                        <span className="text-2xl tabular-nums">{score}</span>
+                        <span>/ 100</span>
+                      </div>
+                      <div className="text-sm">
+                        <span className="text-gogh-grayDark">Status: </span>
+                        <span
+                          className={`font-semibold ${
+                            statusGeral === 'saudável'
+                              ? 'text-green-700'
+                              : statusGeral === 'estável'
+                                ? 'text-blue-700'
+                                : statusGeral === 'alerta'
+                                  ? 'text-amber-700'
+                                  : 'text-red-700'
+                          }`}
+                        >
+                          {statusGeral === 'saudável' && 'Campanha saudável — Escalar'}
+                          {statusGeral === 'estável' && 'Estável — Otimizar'}
+                          {statusGeral === 'alerta' && 'Em alerta — Ajustar criativo ou público'}
+                          {statusGeral === 'crítica' && 'Crítica — Revisar estratégia'}
+                        </span>
+                      </div>
+                    </div>
                     {statusAlerts.length === 0 ? (
                       <p className="text-sm text-gogh-grayDark bg-gogh-grayLight/50 rounded-lg p-3">
-                        Preencha valor da venda e custo (seção ROI) e CPA (seção Dados da campanha) para ver as notificações de decisão.
+                        Preencha <strong>Dados da campanha</strong> (alcance, impressões, cliques, investido, compras) e <strong>Custos e receita (ROI)</strong> para ver o diagnóstico e as recomendações.
                       </p>
                     ) : (
-                      <ul className="space-y-2">
-                        {statusAlerts.map((a, i) => (
-                          <li
-                            key={i}
-                            className={`flex items-start gap-2 rounded-lg p-3 text-sm ${
-                              a.type === 'success'
-                                ? 'bg-green-50 border border-green-200 text-green-800'
-                                : a.type === 'warning'
-                                  ? 'bg-amber-50 border border-amber-200 text-amber-800'
-                                  : 'bg-red-50 border border-red-200 text-red-800'
-                            }`}
-                          >
-                            {a.type === 'success' ? (
-                              <CheckCircle2 className="w-5 h-5 shrink-0 mt-0.5" />
-                            ) : (
-                              <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" />
-                            )}
-                            <span>{a.text}</span>
-                          </li>
-                        ))}
-                      </ul>
+                      <div>
+                        <p className="text-sm font-medium text-gogh-black mb-2">Recomendações:</p>
+                        <ul className="space-y-2">
+                          {statusAlerts.map((a, i) => (
+                            <li
+                              key={i}
+                              className={`flex items-start gap-2 rounded-lg p-3 text-sm ${
+                                a.type === 'success'
+                                  ? 'bg-green-50 border border-green-200 text-green-800'
+                                  : a.type === 'warning'
+                                    ? 'bg-amber-50 border border-amber-200 text-amber-800'
+                                    : 'bg-red-50 border border-red-200 text-red-800'
+                              }`}
+                            >
+                              {a.type === 'success' ? (
+                                <CheckCircle2 className="w-5 h-5 shrink-0 mt-0.5" />
+                              ) : (
+                                <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" />
+                              )}
+                              <span>{a.text}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
                     )}
                   </div>
                 )}

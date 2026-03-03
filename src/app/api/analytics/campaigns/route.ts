@@ -38,7 +38,7 @@ export async function POST(request: Request) {
     if (!name) return NextResponse.json({ error: 'name é obrigatório' }, { status: 400 })
 
     const startDate = typeof body.start_date === 'string' ? body.start_date : new Date().toISOString().split('T')[0]
-    const payload = {
+    const payload: Record<string, unknown> = {
       user_id: user.id,
       name,
       start_date: startDate,
@@ -48,6 +48,13 @@ export async function POST(request: Request) {
       custo_por_aquisicao: body.custo_por_aquisicao != null ? Number(body.custo_por_aquisicao) : null,
       roi_enabled: Boolean(body.roi_enabled),
     }
+    if (body.alcance != null) payload.alcance = Number(body.alcance)
+    if (body.impressoes != null) payload.impressoes = Number(body.impressoes)
+    if (body.cliques_link != null) payload.cliques_link = Number(body.cliques_link)
+    if (body.valor_investido != null) payload.valor_investido = Number(body.valor_investido)
+    if (body.compras != null) payload.compras = Number(body.compras)
+    if (body.valor_total_faturado != null) payload.valor_total_faturado = Number(body.valor_total_faturado)
+    if (body.meta_lucro_por_venda != null) payload.meta_lucro_por_venda = Number(body.meta_lucro_por_venda)
 
     const { data, error } = await (supabase as any).from('analytics_campaigns').insert(payload).select('*').single()
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })

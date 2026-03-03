@@ -23,6 +23,13 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     if (body.custo_venda != null) updates.custo_venda = Number(body.custo_venda)
     if (body.custo_por_aquisicao != null) updates.custo_por_aquisicao = Number(body.custo_por_aquisicao)
     if (typeof body.roi_enabled === 'boolean') updates.roi_enabled = body.roi_enabled
+    if (body.alcance != null) updates.alcance = Number(body.alcance)
+    if (body.impressoes != null) updates.impressoes = Number(body.impressoes)
+    if (body.cliques_link != null) updates.cliques_link = Number(body.cliques_link)
+    if (body.valor_investido != null) updates.valor_investido = Number(body.valor_investido)
+    if (body.compras != null) updates.compras = Number(body.compras)
+    if (body.valor_total_faturado != null) updates.valor_total_faturado = Number(body.valor_total_faturado)
+    if (body.meta_lucro_por_venda != null) updates.meta_lucro_por_venda = Number(body.meta_lucro_por_venda)
 
     if (Object.keys(updates).length === 0) {
       return NextResponse.json({ error: 'Nenhum campo para atualizar' }, { status: 400 })
