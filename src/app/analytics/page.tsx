@@ -58,17 +58,24 @@ export default function AnalyticsPage() {
   const { isAuthenticated, loading: authLoading, hasActiveSubscription, isPro } = useAuth()
   const hasAccess = isAuthenticated && isPro
 
-  const [accordionOpen, setAccordionOpen] = useState<AnalyticsAccordionId | null>('campanhas')
+  const [mounted, setMounted] = useState(false)
+  const [accordionOpen, setAccordionOpen] = useState<AnalyticsAccordionId | null>('roi')
   const [savingDados, setSavingDados] = useState(false)
   const [campaigns, setCampaigns] = useState<AnalyticsCampaign[]>([])
-  const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(null)
+  const [selectedCampaignId, setSelectedCampaignIdState] = useState<string | null>(null)
+  const setSelectedCampaignId = (id: string | null) => {
+    setSelectedCampaignIdState(id)
+    if (typeof window !== 'undefined') {
+      if (id) window.localStorage.setItem('analytics_selected_campaign_id', id)
+      else window.localStorage.removeItem('analytics_selected_campaign_id')
+    }
+  }
   const [campaignsLoading, setCampaignsLoading] = useState(false)
   const [newCampaignName, setNewCampaignName] = useState('')
   const [newCampaignStartDate, setNewCampaignStartDate] = useState(() => new Date().toISOString().split('T')[0])
   const [roiEnabled, setRoiEnabled] = useState(false)
   const [valorVenda, setValorVenda] = useState<string>('')
   const [custoVenda, setCustoVenda] = useState<string>('')
-  const [custoPorAquisição, setCustoPorAquisição] = useState<string>('')
   const [metaLucroPorVenda, setMetaLucroPorVenda] = useState<string>('')
   const [alcance, setAlcance] = useState<string>('')
   const [impressoes, setImpressoes] = useState<string>('')
@@ -96,8 +103,19 @@ export default function AnalyticsPage() {
   const selectedCampaign = selectedCampaignId ? campaigns.find((c) => c.id === selectedCampaignId) : null
 
   useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  useEffect(() => {
     if (hasAccess) loadCampaigns()
   }, [hasAccess])
+
+  useEffect(() => {
+    if (!campaigns.length || selectedCampaignId !== null) return
+    const stored = typeof window !== 'undefined' ? window.localStorage.getItem('analytics_selected_campaign_id') : null
+    if (!stored || !campaigns.some((c) => c.id === stored)) return
+    setSelectedCampaignId(stored)
+  }, [campaigns, selectedCampaignId])
 
   useEffect(() => {
     if (!selectedCampaignId || !campaigns.length) return
@@ -106,7 +124,6 @@ export default function AnalyticsPage() {
       setRoiEnabled(c.roi_enabled)
       setValorVenda(c.valor_venda != null ? String(c.valor_venda) : '')
       setCustoVenda(c.custo_venda != null ? String(c.custo_venda) : '')
-      setCustoPorAquisição(c.custo_por_aquisicao != null ? String(c.custo_por_aquisicao) : '')
       setMetaLucroPorVenda(c.meta_lucro_por_venda != null ? String(c.meta_lucro_por_venda) : '')
       setAlcance(c.alcance != null ? String(c.alcance) : '')
       setImpressoes(c.impressoes != null ? String(c.impressoes) : '')
@@ -117,13 +134,146 @@ export default function AnalyticsPage() {
     }
   }, [selectedCampaignId, campaigns])
 
-  if (authLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-gogh-beige via-white to-gogh-beige flex items-center justify-center p-4">
-        <LumaSpin size="lg" className="text-gogh-grayDark" />
-      </div>
-    )
-  }
+  const parseNum = (s: string) => parseFloat(String(s).replace(',', '.')) || 0
+  const toNum = (s: string) => (s.trim() ? parseNum(s) : 0)
+  const valorNum = toNum(valorVenda)
+  const custoNum = toNum(custoVenda)
+  const lucroBruto = valorNum - custoNum
+  const metaLucroNum = toNum(metaLucroPorVenda)
+  const alcanceNum = toNum(alcance)
+  const impressoesNum = toNum(impressoes)
+  const cliquesNum = toNum(cliquesLink)
+  const valorInvestidoNum = toNum(valorInvestido)
+  const comprasNum = toNum(compras)
+  const valorFaturadoNum = toNum(valorTotalFaturado)
+  const custoMaxAceitavel = useMemo(() => {
+    if (lucroBruto <= 0) return 0
+    if (metaLucroNum > 0) return Math.max(0, lucroBruto - metaLucroNum)
+    return lucroBruto
+  }, [lucroBruto, metaLucroNum])
+  const metricasCampanha = useMemo(() => {
+    const freq = alcanceNum > 0 ? impressoesNum / alcanceNum : 0
+    const ctrPct = impressoesNum > 0 ? (cliquesNum / impressoesNum) * 100 : 0
+    const taxaConvPct = cliquesNum > 0 ? (comprasNum / cliquesNum) * 100 : 0
+    const cpc = cliquesNum > 0 ? valorInvestidoNum / cliquesNum : 0
+    const cpaCalculado = comprasNum > 0 ? valorInvestidoNum / comprasNum : 0
+    const roas = valorInvestidoNum > 0 ? valorFaturadoNum / valorInvestidoNum : 0
+    return { freq, ctrPct, taxaConvPct, cpc, cpaCalculado, roas }
+  }, [alcanceNum, impressoesNum, cliquesNum, valorInvestidoNum, comprasNum, valorFaturadoNum])
+  const { score, statusGeral, statusAlerts, hasDataForDiagnosis } = useMemo(() => {
+    const hasData =
+      impressoesNum > 0 ||
+      valorInvestidoNum > 0 ||
+      comprasNum > 0 ||
+      (roiEnabled && valorNum > 0)
+    if (!hasData) {
+      return {
+        score: 0,
+        statusGeral: 'sem_dados' as const,
+        statusAlerts: [] as { type: 'success' | 'warning' | 'danger'; text: string }[],
+        hasDataForDiagnosis: false,
+      }
+    }
+    const alerts: { type: 'success' | 'warning' | 'danger'; text: string }[] = []
+    let scoreFreq = 20
+    let scoreCtr = 20
+    let scoreConv = 20
+    let scoreCpa = 20
+    let scoreLucro = 20
+    const { freq, ctrPct, taxaConvPct, cpaCalculado } = metricasCampanha
+    const cpaUsado = comprasNum > 0 ? cpaCalculado : 0
+    if (alcanceNum > 0 && impressoesNum > 0) {
+      if (freq >= FREQ_CRITICO) {
+        scoreFreq = 0
+        alerts.push({ type: 'danger', text: 'Frequência crítica (≥4). Possível saturação. Avaliar novo criativo.' })
+      } else if (freq > FREQ_SATURACAO) {
+        scoreFreq = 5
+        alerts.push({ type: 'warning', text: 'Possível saturação (frequência >3). Avaliar novo criativo.' })
+      } else if (freq > FREQ_ATENCAO.max) {
+        scoreFreq = 10
+        alerts.push({ type: 'warning', text: 'Frequência em atenção (2,5–3). Acompanhar desempenho.' })
+      } else if (freq >= FREQ_SAUDAVEL.min && freq <= FREQ_SAUDAVEL.max) {
+        scoreFreq = 20
+      }
+    } else {
+      scoreFreq = 20
+    }
+    if (impressoesNum > 0 && cliquesNum >= 0) {
+      if (ctrPct >= CTR_BOM) scoreCtr = 20
+      else if (ctrPct >= CTR_MEDIO) {
+        scoreCtr = 12
+        alerts.push({ type: 'warning', text: 'CTR médio (1–1,5%). Considere testar novo criativo.' })
+      } else if (ctrPct > 0) {
+        scoreCtr = 5
+        alerts.push({ type: 'warning', text: 'Criativo com baixo desempenho (CTR <1%). Recomenda-se testar novo criativo.' })
+      }
+    }
+    if (cliquesNum > 0 && comprasNum >= 0) {
+      if (taxaConvPct >= CONV_FORTE) scoreConv = 20
+      else if (taxaConvPct >= CONV_MEDIO) scoreConv = 12
+      else if (taxaConvPct > 0) {
+        scoreConv = 5
+        alerts.push({ type: 'warning', text: 'Conversão baixa (<1,5%). Revisar página de destino ou oferta.' })
+      }
+    }
+    if (roiEnabled && valorNum > 0) {
+      if (lucroBruto <= 0) {
+        scoreLucro = 0
+        alerts.push({ type: 'danger', text: 'Operação com prejuízo. Ajuste preço ou custo variável.' })
+      } else if (metaLucroNum > 0 && lucroBruto >= metaLucroNum) {
+        scoreLucro = 20
+        alerts.push({ type: 'success', text: 'Operação lucrativa e dentro da meta. Margem saudável.' })
+      } else if (lucroBruto > 0) {
+        scoreLucro = 15
+      }
+      if (custoMaxAceitavel > 0 && cpaUsado > 0) {
+        if (cpaUsado > lucroBruto) {
+          scoreCpa = 0
+          alerts.push({ type: 'danger', text: 'CPA acima do lucro por venda. Você está no prejuízo por aquisição. Não escale.' })
+        } else if (cpaUsado >= custoMaxAceitavel) {
+          scoreCpa = 8
+          alerts.push({ type: 'warning', text: 'Margem comprometida. CPA próximo ou acima do limite. Não escalar.' })
+        } else if (cpaUsado < custoMaxAceitavel * 0.8) {
+          scoreCpa = 20
+          alerts.push({ type: 'success', text: 'Campanha eficiente. CPA abaixo do limite. Escala recomendada.' })
+        } else {
+          scoreCpa = 15
+        }
+      }
+    }
+    const total = scoreFreq + scoreCtr + scoreConv + scoreCpa + scoreLucro
+    const scoreFinal = Math.min(100, total)
+    let statusGeral: 'saudável' | 'estável' | 'alerta' | 'crítica' = 'saudável'
+    if (scoreFinal >= 80) statusGeral = 'saudável'
+    else if (scoreFinal >= 60) statusGeral = 'estável'
+    else if (scoreFinal >= 40) statusGeral = 'alerta'
+    else statusGeral = 'crítica'
+    if (statusGeral === 'saudável' && alerts.length === 0 && roiEnabled && valorNum > 0 && cpaUsado > 0 && cpaUsado < lucroBruto) {
+      alerts.push({ type: 'success', text: 'Campanha saudável. Pode escalar orçamento com segurança (até ~20%).' })
+    }
+    if (statusGeral === 'estável') {
+      alerts.push({ type: 'warning', text: 'Campanha estável. Otimize criativo ou público antes de escalar.' })
+    }
+    if (statusGeral === 'alerta') {
+      alerts.push({ type: 'warning', text: 'Campanha em alerta. Ajuste criativo ou público antes de aumentar investimento.' })
+    }
+    if (statusGeral === 'crítica') {
+      alerts.push({ type: 'danger', text: 'Campanha crítica. Revisar estratégia antes de continuar.' })
+    }
+    return { score: scoreFinal, statusGeral, statusAlerts: alerts, hasDataForDiagnosis: true }
+  }, [
+    metricasCampanha,
+    roiEnabled,
+    valorNum,
+    lucroBruto,
+    custoMaxAceitavel,
+    metaLucroNum,
+    comprasNum,
+    alcanceNum,
+    impressoesNum,
+    cliquesNum,
+  ])
+  const lucroPorVenda = lucroBruto
 
   const toggleAccordion = (id: AnalyticsAccordionId) => {
     setAccordionOpen((prev) => (prev === id ? null : id))
@@ -185,9 +335,6 @@ export default function AnalyticsPage() {
     }
   }
 
-  const parseNum = (s: string) => parseFloat(String(s).replace(',', '.')) || 0
-  const toNum = (s: string) => (s.trim() ? parseNum(s) : 0)
-
   const handleSaveRoiToCampaign = async () => {
     if (!selectedCampaignId) return
     try {
@@ -211,8 +358,24 @@ export default function AnalyticsPage() {
     }
   }
 
+  const cpaCalculadoDisplay = comprasNum > 0 ? metricasCampanha.cpaCalculado : null
+  const requiredDadosFields = [
+    { key: 'alcance', label: 'Alcance', value: alcance },
+    { key: 'impressoes', label: 'Impressões', value: impressoes },
+    { key: 'cliques', label: 'Cliques no link', value: cliquesLink },
+    { key: 'valor_investido', label: 'Valor investido', value: valorInvestido },
+    { key: 'compras', label: 'Compras / conversões', value: compras },
+    { key: 'valor_faturado', label: 'Valor total faturado', value: valorTotalFaturado },
+  ]
+  const missingDados = requiredDadosFields.filter((f) => !f.value?.trim())
+  const canSaveDados = selectedCampaignId && missingDados.length === 0
+
   const handleSaveDadosCampanha = async () => {
     if (!selectedCampaignId) return
+    if (missingDados.length > 0) {
+      toast.error(`Preencha todos os campos: ${missingDados.map((f) => f.label).join(', ')}`)
+      return
+    }
     setSavingDados(true)
     try {
       const res = await fetch(`/api/analytics/campaigns/${selectedCampaignId}`, {
@@ -226,7 +389,7 @@ export default function AnalyticsPage() {
           valor_investido: valorInvestido ? parseNum(valorInvestido) : null,
           compras: compras ? parseInt(compras, 10) : null,
           valor_total_faturado: valorTotalFaturado ? parseNum(valorTotalFaturado) : null,
-          custo_por_aquisicao: custoPorAquisição ? parseNum(custoPorAquisição) : null,
+          custo_por_aquisicao: comprasNum > 0 ? metricasCampanha.cpaCalculado : null,
         }),
       })
       const data = await res.json()
@@ -239,143 +402,6 @@ export default function AnalyticsPage() {
       setSavingDados(false)
     }
   }
-
-  const valorNum = toNum(valorVenda)
-  const custoNum = toNum(custoVenda)
-  const lucroBruto = valorNum - custoNum
-  const metaLucroNum = toNum(metaLucroPorVenda)
-  const cpaNum = toNum(custoPorAquisição)
-  const alcanceNum = toNum(alcance)
-  const impressoesNum = toNum(impressoes)
-  const cliquesNum = toNum(cliquesLink)
-  const valorInvestidoNum = toNum(valorInvestido)
-  const comprasNum = toNum(compras)
-  const valorFaturadoNum = toNum(valorTotalFaturado)
-
-  const custoMaxAceitavel = useMemo(() => {
-    if (lucroBruto <= 0) return 0
-    if (metaLucroNum > 0) return Math.max(0, lucroBruto - metaLucroNum)
-    return lucroBruto
-  }, [lucroBruto, metaLucroNum])
-
-  const metricasCampanha = useMemo(() => {
-    const freq = alcanceNum > 0 ? impressoesNum / alcanceNum : 0
-    const ctrPct = impressoesNum > 0 ? (cliquesNum / impressoesNum) * 100 : 0
-    const taxaConvPct = cliquesNum > 0 ? (comprasNum / cliquesNum) * 100 : 0
-    const cpc = cliquesNum > 0 ? valorInvestidoNum / cliquesNum : 0
-    const cpaCalculado = comprasNum > 0 ? valorInvestidoNum / comprasNum : 0
-    const roas = valorInvestidoNum > 0 ? valorFaturadoNum / valorInvestidoNum : 0
-    return { freq, ctrPct, taxaConvPct, cpc, cpaCalculado, roas }
-  }, [alcanceNum, impressoesNum, cliquesNum, valorInvestidoNum, comprasNum, valorFaturadoNum])
-
-  const { score, statusGeral, statusAlerts } = useMemo(() => {
-    const alerts: { type: 'success' | 'warning' | 'danger'; text: string }[] = []
-    let scoreFreq = 20
-    let scoreCtr = 20
-    let scoreConv = 20
-    let scoreCpa = 20
-    let scoreLucro = 20
-    const { freq, ctrPct, taxaConvPct, cpaCalculado, roas } = metricasCampanha
-    const cpaUsado = comprasNum > 0 ? metricasCampanha.cpaCalculado : cpaNum
-
-    if (alcanceNum > 0 && impressoesNum > 0) {
-      if (freq >= FREQ_CRITICO) {
-        scoreFreq = 0
-        alerts.push({ type: 'danger', text: 'Frequência crítica (≥4). Possível saturação. Avaliar novo criativo.' })
-      } else if (freq > FREQ_SATURACAO) {
-        scoreFreq = 5
-        alerts.push({ type: 'warning', text: 'Possível saturação (frequência >3). Avaliar novo criativo.' })
-      } else if (freq > FREQ_ATENCAO.max) {
-        scoreFreq = 10
-        alerts.push({ type: 'warning', text: 'Frequência em atenção (2,5–3). Acompanhar desempenho.' })
-      } else if (freq >= FREQ_SAUDAVEL.min && freq <= FREQ_SAUDAVEL.max) {
-        scoreFreq = 20
-      }
-    } else {
-      scoreFreq = 20
-    }
-
-    if (impressoesNum > 0 && cliquesNum >= 0) {
-      if (ctrPct >= CTR_BOM) scoreCtr = 20
-      else if (ctrPct >= CTR_MEDIO) {
-        scoreCtr = 12
-        alerts.push({ type: 'warning', text: 'CTR médio (1–1,5%). Considere testar novo criativo.' })
-      } else if (ctrPct > 0) {
-        scoreCtr = 5
-        alerts.push({ type: 'warning', text: 'Criativo com baixo desempenho (CTR <1%). Recomenda-se testar novo criativo.' })
-      }
-    }
-
-    if (cliquesNum > 0 && comprasNum >= 0) {
-      if (taxaConvPct >= CONV_FORTE) scoreConv = 20
-      else if (taxaConvPct >= CONV_MEDIO) scoreConv = 12
-      else if (taxaConvPct > 0) {
-        scoreConv = 5
-        alerts.push({ type: 'warning', text: 'Conversão baixa (<1,5%). Revisar página de destino ou oferta.' })
-      }
-    }
-
-    if (roiEnabled && valorNum > 0) {
-      if (lucroBruto <= 0) {
-        scoreLucro = 0
-        alerts.push({ type: 'danger', text: 'Operação com prejuízo. Ajuste preço ou custo variável.' })
-      } else if (metaLucroNum > 0 && lucroBruto >= metaLucroNum) {
-        scoreLucro = 20
-        alerts.push({ type: 'success', text: 'Operação lucrativa e dentro da meta. Margem saudável.' })
-      } else if (lucroBruto > 0) {
-        scoreLucro = 15
-      }
-
-      if (custoMaxAceitavel > 0 && cpaUsado > 0) {
-        if (cpaUsado > lucroBruto) {
-          scoreCpa = 0
-          alerts.push({ type: 'danger', text: 'CPA acima do lucro por venda. Você está no prejuízo por aquisição. Não escale.' })
-        } else if (cpaUsado >= custoMaxAceitavel) {
-          scoreCpa = 8
-          alerts.push({ type: 'warning', text: 'Margem comprometida. CPA próximo ou acima do limite. Não escalar.' })
-        } else if (cpaUsado < custoMaxAceitavel * 0.8) {
-          scoreCpa = 20
-          alerts.push({ type: 'success', text: 'Campanha eficiente. CPA abaixo do limite. Escala recomendada.' })
-        } else {
-          scoreCpa = 15
-        }
-      }
-    }
-
-    const total = scoreFreq + scoreCtr + scoreConv + scoreCpa + scoreLucro
-    const scoreFinal = Math.min(100, total)
-    let statusGeral: 'saudável' | 'estável' | 'alerta' | 'crítica' = 'saudável'
-    if (scoreFinal >= 80) statusGeral = 'saudável'
-    else if (scoreFinal >= 60) statusGeral = 'estável'
-    else if (scoreFinal >= 40) statusGeral = 'alerta'
-    else statusGeral = 'crítica'
-
-    if (statusGeral === 'saudável' && alerts.length === 0 && roiEnabled && valorNum > 0 && cpaUsado > 0 && cpaUsado < lucroBruto) {
-      alerts.push({ type: 'success', text: 'Campanha saudável. Pode escalar orçamento com segurança (até ~20%).' })
-    }
-    if (statusGeral === 'estável') {
-      alerts.push({ type: 'warning', text: 'Campanha estável. Otimize criativo ou público antes de escalar.' })
-    }
-    if (statusGeral === 'alerta') {
-      alerts.push({ type: 'warning', text: 'Campanha em alerta. Ajuste criativo ou público antes de aumentar investimento.' })
-    }
-    if (statusGeral === 'crítica') {
-      alerts.push({ type: 'danger', text: 'Campanha crítica. Revisar estratégia antes de continuar.' })
-    }
-
-    return { score: scoreFinal, statusGeral, statusAlerts: alerts }
-  }, [
-    metricasCampanha,
-    roiEnabled,
-    valorNum,
-    lucroBruto,
-    custoMaxAceitavel,
-    metaLucroNum,
-    cpaNum,
-    comprasNum,
-  ])
-
-  const lucroPorVenda = lucroBruto
 
   const accordionCard = (
     id: AnalyticsAccordionId,
@@ -410,13 +436,20 @@ export default function AnalyticsPage() {
   )
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gogh-beige via-white to-gogh-beige pt-24 pb-12 px-4">
-      <div className="container mx-auto max-w-5xl space-y-6">
-        <div className="flex items-center gap-3">
-          <BarChart3 className="w-10 h-10 text-gogh-yellow" />
+    <div className="min-h-screen bg-gradient-to-br from-gogh-beige via-white to-gogh-beige pb-12 px-4 pt-2 sm:pt-6 md:pt-12">
+      {authLoading ? (
+        <div className="flex min-h-[60vh] items-center justify-center p-4">
+          <LumaSpin size="lg" className="text-gogh-grayDark" />
+        </div>
+      ) : (
+      <div className="container mx-auto max-w-5xl space-y-5 sm:space-y-8">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gogh-black">Gogh Analytics</h1>
-            <p className="text-sm text-gogh-grayDark">Análise de anúncios e desempenho</p>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gogh-black flex items-center gap-2">
+              <BarChart3 className="w-6 h-6 text-gogh-yellow" />
+              Gogh Analytics
+            </h1>
+            <p className="text-sm text-gogh-grayDark mt-0.5">Análise de anúncios e desempenho</p>
           </div>
         </div>
 
@@ -473,168 +506,18 @@ export default function AnalyticsPage() {
                 </p>
               </div>
             )}
-            {hasAccess && (
-              <div className="space-y-2">
-                {accordionCard(
-                  'campanhas',
-                  'Campanhas',
-                  selectedCampaign ? `${selectedCampaign.name} · Início ${selectedCampaign.start_date}` : 'Crie, ative ou pause campanhas',
-                  <Megaphone className="w-4 h-4 text-gogh-grayDark" />,
-                  <div className="pt-3 space-y-4">
-                    <div className="flex flex-wrap gap-3 items-end">
-                      <div className="flex-1 min-w-[160px]">
-                        <label className="block text-sm font-medium text-gogh-grayDark mb-1">Nova campanha</label>
-                        <input
-                          type="text"
-                          value={newCampaignName}
-                          onChange={(e) => setNewCampaignName(e.target.value)}
-                          placeholder="Nome da campanha"
-                          className="w-full border border-gogh-grayLight rounded-lg px-3 py-2 text-sm"
-                        />
-                      </div>
-                      <div className="min-w-[140px]">
-                        <label className="block text-sm font-medium text-gogh-grayDark mb-1">Início</label>
-                        <input
-                          type="date"
-                          value={newCampaignStartDate}
-                          onChange={(e) => setNewCampaignStartDate(e.target.value)}
-                          className="w-full border border-gogh-grayLight rounded-lg px-3 py-2 text-sm"
-                        />
-                      </div>
-                      <button
-                        type="button"
-                        onClick={handleCreateCampaign}
-                        disabled={campaignsLoading}
-                        className="inline-flex items-center gap-2 px-4 py-2 bg-gogh-yellow text-gogh-black rounded-lg hover:bg-gogh-yellow/90 font-medium text-sm"
-                      >
-                        <Plus className="w-4 h-4" />
-                        Criar
-                      </button>
-                    </div>
-                    {campaignsLoading ? (
-                      <div className="flex justify-center py-4"><LumaSpin size="sm" /></div>
-                    ) : campaigns.length === 0 ? (
-                      <p className="text-sm text-gogh-grayDark py-2">Nenhuma campanha. Crie uma para organizar métricas e decisões por campanha.</p>
-                    ) : (
-                      <ul className="space-y-2">
-                        {campaigns.map((c) => (
-                          <li
-                            key={c.id}
-                            className={`flex items-center justify-between gap-2 rounded-lg border p-3 transition-colors ${
-                              selectedCampaignId === c.id ? 'border-gogh-yellow bg-gogh-yellow/10' : 'border-gogh-grayLight bg-white'
-                            }`}
-                          >
-                            <button
-                              type="button"
-                              onClick={() => setSelectedCampaignId(c.id)}
-                              className="flex-1 text-left min-w-0"
-                            >
-                              <span className="font-medium text-gogh-black block truncate">{c.name}</span>
-                              <span className="text-xs text-gogh-grayDark">
-                                Início: {c.start_date} · {c.is_active ? 'Ativa' : 'Pausada'}
-                              </span>
-                            </button>
-                            <div className="flex items-center gap-1 shrink-0">
-                              <button
-                                type="button"
-                                onClick={() => handleToggleCampaignActive(c)}
-                                title={c.is_active ? 'Pausar' : 'Ativar'}
-                                className="p-2 rounded-lg text-gogh-grayDark hover:bg-gogh-grayLight"
-                              >
-                                {c.is_active ? <span className="text-xs font-medium text-amber-600">Pausar</span> : <span className="text-xs font-medium text-green-600">Ativar</span>}
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => handleDeleteCampaign(c.id)}
-                                title="Excluir"
-                                className="p-2 rounded-lg text-red-600 hover:bg-red-50"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            </div>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </div>
-                )}
-
-                {accordionCard(
-                  'dados-campanha',
-                  'Dados da campanha',
-                  selectedCampaign ? `Métricas e índices da campanha "${selectedCampaign.name}"` : 'Selecione uma campanha para preencher',
-                  <ClipboardList className="w-4 h-4 text-gogh-grayDark" />,
-                  <div className="pt-3 space-y-4">
-                    {!selectedCampaignId ? (
-                      <p className="text-sm text-gogh-grayDark py-2">Selecione uma campanha na seção Campanhas para preencher os dados de anúncio. O sistema calculará automaticamente frequência, CTR, conversão, CPC, CPA e ROAS.</p>
-                    ) : (
-                      <>
-                        <p className="text-sm text-gogh-grayDark">
-                          Preencha os dados da sua campanha de tráfego pago. O sistema calcula automaticamente: <strong>frequência</strong>, <strong>CTR</strong>, <strong>taxa de conversão</strong>, <strong>CPC</strong>, <strong>CPA</strong> e <strong>ROAS</strong>. Esses índices alimentam o Status e as recomendações de decisão.
-                        </p>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                          <div>
-                            <label className="block text-sm font-medium text-gogh-grayDark mb-1">Alcance (pessoas)</label>
-                            <input type="number" min="0" value={alcance} onChange={(e) => setAlcance(e.target.value)} placeholder="Ex: 50000" className="w-full border border-gogh-grayLight rounded-lg px-3 py-2 text-sm" />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gogh-grayDark mb-1">Impressões</label>
-                            <input type="number" min="0" value={impressoes} onChange={(e) => setImpressoes(e.target.value)} placeholder="Ex: 120000" className="w-full border border-gogh-grayLight rounded-lg px-3 py-2 text-sm" />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gogh-grayDark mb-1">Cliques no link</label>
-                            <input type="number" min="0" value={cliquesLink} onChange={(e) => setCliquesLink(e.target.value)} placeholder="Ex: 2400" className="w-full border border-gogh-grayLight rounded-lg px-3 py-2 text-sm" />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gogh-grayDark mb-1">Valor investido (R$)</label>
-                            <input type="number" min="0" step="0.01" value={valorInvestido} onChange={(e) => setValorInvestido(e.target.value)} placeholder="Ex: 1500" className="w-full border border-gogh-grayLight rounded-lg px-3 py-2 text-sm" />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gogh-grayDark mb-1">Compras / conversões</label>
-                            <input type="number" min="0" value={compras} onChange={(e) => setCompras(e.target.value)} placeholder="Ex: 45" className="w-full border border-gogh-grayLight rounded-lg px-3 py-2 text-sm" />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gogh-grayDark mb-1">Valor total faturado (R$)</label>
-                            <input type="number" min="0" step="0.01" value={valorTotalFaturado} onChange={(e) => setValorTotalFaturado(e.target.value)} placeholder="Ex: 4365" className="w-full border border-gogh-grayLight rounded-lg px-3 py-2 text-sm" />
-                          </div>
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gogh-grayDark mb-1">CPA médio (R$) — opcional se já preencheu investido e compras</label>
-                          <input type="number" min="0" step="0.01" value={custoPorAquisição} onChange={(e) => setCustoPorAquisição(e.target.value)} placeholder="Ex: 33,33" className="w-full border border-gogh-grayLight rounded-lg px-3 py-2 text-sm max-w-[200px]" />
-                          <p className="text-xs text-gogh-grayDark mt-1">Custo por aquisição. Se preencheu valor investido e compras, o sistema calcula automaticamente.</p>
-                        </div>
-                        {(impressoesNum > 0 || cliquesNum > 0 || comprasNum > 0 || valorInvestidoNum > 0) && (
-                          <div className="rounded-xl border border-gogh-grayLight bg-gogh-beige/50 p-4 space-y-2">
-                            <p className="text-sm font-semibold text-gogh-black flex items-center gap-2">
-                              <TrendingUp className="w-4 h-4 text-gogh-yellow" />
-                              Métricas calculadas automaticamente
-                            </p>
-                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-sm">
-                              {alcanceNum > 0 && impressoesNum > 0 && (
-                                <div><span className="text-gogh-grayDark">Frequência</span><br /><span className="font-medium">{metricasCampanha.freq.toFixed(2)}</span></div>
-                              )}
-                              {impressoesNum > 0 && <div><span className="text-gogh-grayDark">CTR</span><br /><span className="font-medium">{metricasCampanha.ctrPct.toFixed(2)}%</span></div>}
-                              {cliquesNum > 0 && <div><span className="text-gogh-grayDark">Taxa de conversão</span><br /><span className="font-medium">{metricasCampanha.taxaConvPct.toFixed(2)}%</span></div>}
-                              {cliquesNum > 0 && valorInvestidoNum > 0 && <div><span className="text-gogh-grayDark">CPC (R$)</span><br /><span className="font-medium">{metricasCampanha.cpc.toFixed(2)}</span></div>}
-                              {(comprasNum > 0 || cpaNum > 0) && <div><span className="text-gogh-grayDark">CPA (R$)</span><br /><span className="font-medium">{(comprasNum > 0 ? metricasCampanha.cpaCalculado : cpaNum).toFixed(2)}</span></div>}
-                              {valorInvestidoNum > 0 && valorFaturadoNum > 0 && <div><span className="text-gogh-grayDark">ROAS</span><br /><span className="font-medium">{metricasCampanha.roas.toFixed(2)}x</span></div>}
-                            </div>
-                          </div>
-                        )}
-                        <button
-                          type="button"
-                          onClick={handleSaveDadosCampanha}
-                          disabled={savingDados}
-                          className="inline-flex items-center gap-2 px-4 py-2 bg-gogh-black text-white rounded-lg hover:bg-gogh-black/90 text-sm font-medium disabled:opacity-50"
-                        >
-                          {savingDados ? <LumaSpin size="sm" /> : null}
-                          Salvar na campanha
-                        </button>
-                      </>
-                    )}
-                  </div>
-                )}
-
+            {hasAccess && !mounted && (
+              <div className="flex justify-center py-12">
+                <LumaSpin size="default" className="text-gogh-grayDark" />
+              </div>
+            )}
+            {hasAccess && mounted && (
+              <section className="bg-white rounded-2xl border border-gogh-grayLight p-4 sm:p-6">
+                <div className="mb-4">
+                  <h2 className="text-base sm:text-lg font-semibold text-gogh-black">Painel de campanhas</h2>
+                  <p className="text-xs text-gogh-grayDark mt-0.5">Preencha os dados das campanhas e acompanhe métricas, custos e recomendações.</p>
+                </div>
+                <div className="space-y-2">
                 {accordionCard(
                   'roi',
                   'Custos e receita (ROI)',
@@ -747,13 +630,18 @@ export default function AnalyticsPage() {
                               )}
                             </div>
                             {selectedCampaignId && (
-                              <button
-                                type="button"
-                                onClick={handleSaveRoiToCampaign}
-                                className="inline-flex items-center gap-2 px-4 py-2 bg-gogh-black text-white rounded-lg hover:bg-gogh-black/90 text-sm font-medium"
-                              >
-                                Salvar na campanha
-                              </button>
+                              <>
+                                <p className="text-xs text-gogh-grayDark">
+                                  Clique em &quot;Salvar na campanha&quot; para que o checkbox e os valores fiquem salvos ao sair da página.
+                                </p>
+                                <button
+                                  type="button"
+                                  onClick={handleSaveRoiToCampaign}
+                                  className="inline-flex items-center gap-2 px-4 py-2 bg-gogh-black text-white rounded-xl hover:bg-gogh-black/90 text-sm font-medium transition-colors"
+                                >
+                                  Salvar na campanha
+                                </button>
+                              </>
                             )}
                           </div>
                         ) : (
@@ -761,6 +649,178 @@ export default function AnalyticsPage() {
                             Preencha o valor da venda para ver o lucro por venda (e o máximo que pode gastar por aquisição sem prejuízo).
                           </p>
                         )}
+                      </>
+                    )}
+                  </div>
+                )}
+
+                {accordionCard(
+                  'campanhas',
+                  'Campanhas',
+                  selectedCampaign ? `${selectedCampaign.name} · Início ${selectedCampaign.start_date}` : 'Crie, ative ou pause campanhas',
+                  <Megaphone className="w-4 h-4 text-gogh-grayDark" />,
+                  <div className="pt-3 space-y-4">
+                    <div className="flex flex-wrap gap-3 items-end">
+                      <div className="flex-1 min-w-[160px]">
+                        <label className="block text-sm font-medium text-gogh-grayDark mb-1">Nova campanha</label>
+                        <input
+                          type="text"
+                          value={newCampaignName}
+                          onChange={(e) => setNewCampaignName(e.target.value)}
+                          placeholder="Nome da campanha"
+                          className="w-full border border-gogh-grayLight rounded-lg px-3 py-2 text-sm"
+                        />
+                      </div>
+                      <div className="min-w-[140px]">
+                        <label className="block text-sm font-medium text-gogh-grayDark mb-1">Início</label>
+                        <input
+                          type="date"
+                          value={newCampaignStartDate}
+                          onChange={(e) => setNewCampaignStartDate(e.target.value)}
+                          className="w-full border border-gogh-grayLight rounded-lg px-3 py-2 text-sm"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleCreateCampaign}
+                        disabled={campaignsLoading}
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-gogh-yellow text-gogh-black rounded-xl hover:bg-gogh-yellow/90 font-medium text-sm transition-colors"
+                      >
+                        <Plus className="w-4 h-4" />
+                        Criar
+                      </button>
+                    </div>
+                    {campaignsLoading ? (
+                      <div className="flex justify-center py-4"><LumaSpin size="sm" /></div>
+                    ) : campaigns.length === 0 ? (
+                      <p className="text-sm text-gogh-grayDark py-2">Nenhuma campanha. Crie uma para organizar métricas e decisões por campanha.</p>
+                    ) : (
+                      <ul className="space-y-2">
+                        {campaigns.map((c) => (
+                          <li
+                            key={c.id}
+                            className={`flex items-center justify-between gap-2 rounded-lg border p-3 transition-colors ${
+                              selectedCampaignId === c.id ? 'border-gogh-yellow bg-gogh-yellow/10' : 'border-gogh-grayLight bg-white'
+                            }`}
+                          >
+                            <button
+                              type="button"
+                              onClick={() => setSelectedCampaignId(c.id)}
+                              className="flex-1 text-left min-w-0"
+                            >
+                              <span className="font-medium text-gogh-black block truncate">{c.name}</span>
+                              <span className="text-xs text-gogh-grayDark">
+                                Início: {c.start_date} · {c.is_active ? 'Ativa' : 'Pausada'}
+                              </span>
+                            </button>
+                            <div className="flex items-center gap-1 shrink-0">
+                              <button
+                                type="button"
+                                onClick={() => handleToggleCampaignActive(c)}
+                                title={c.is_active ? 'Pausar' : 'Ativar'}
+                                className="p-2 rounded-lg text-gogh-grayDark hover:bg-gogh-grayLight"
+                              >
+                                {c.is_active ? <span className="text-xs font-medium text-amber-600">Pausar</span> : <span className="text-xs font-medium text-green-600">Ativar</span>}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteCampaign(c.id)}
+                                title="Excluir"
+                                className="p-2 rounded-lg text-red-600 hover:bg-red-50"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                )}
+
+                {accordionCard(
+                  'dados-campanha',
+                  'Dados da campanha',
+                  selectedCampaign ? `Métricas e índices da campanha "${selectedCampaign.name}"` : 'Selecione uma campanha para preencher',
+                  <ClipboardList className="w-4 h-4 text-gogh-grayDark" />,
+                  <div className="pt-3 space-y-4">
+                    {!selectedCampaignId ? (
+                      <p className="text-sm text-gogh-grayDark py-2">Selecione uma campanha na seção Campanhas para preencher os dados de anúncio. O sistema calculará automaticamente frequência, CTR, conversão, CPC, CPA e ROAS.</p>
+                    ) : (
+                      <>
+                        <p className="text-sm text-gogh-grayDark">
+                          Preencha os dados da campanha abaixo. O sistema usa essas informações para o Status e as recomendações.
+                        </p>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-sm font-medium text-gogh-grayDark mb-1">Alcance (pessoas)</label>
+                            <input type="number" min="0" value={alcance} onChange={(e) => setAlcance(e.target.value)} placeholder="Ex: 50000" className="w-full border border-gogh-grayLight rounded-lg px-3 py-2 text-sm" />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gogh-grayDark mb-1">Impressões</label>
+                            <input type="number" min="0" value={impressoes} onChange={(e) => setImpressoes(e.target.value)} placeholder="Ex: 120000" className="w-full border border-gogh-grayLight rounded-lg px-3 py-2 text-sm" />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gogh-grayDark mb-1">Cliques no link</label>
+                            <input type="number" min="0" value={cliquesLink} onChange={(e) => setCliquesLink(e.target.value)} placeholder="Ex: 2400" className="w-full border border-gogh-grayLight rounded-lg px-3 py-2 text-sm" />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gogh-grayDark mb-1">Valor investido (R$)</label>
+                            <input type="number" min="0" step="0.01" value={valorInvestido} onChange={(e) => setValorInvestido(e.target.value)} placeholder="Ex: 1500" className="w-full border border-gogh-grayLight rounded-lg px-3 py-2 text-sm" />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gogh-grayDark mb-1">Compras / conversões</label>
+                            <input type="number" min="0" value={compras} onChange={(e) => setCompras(e.target.value)} placeholder="Ex: 45" className="w-full border border-gogh-grayLight rounded-lg px-3 py-2 text-sm" />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gogh-grayDark mb-1">Valor total faturado (R$)</label>
+                            <input type="number" min="0" step="0.01" value={valorTotalFaturado} onChange={(e) => setValorTotalFaturado(e.target.value)} placeholder="Ex: 4365" className="w-full border border-gogh-grayLight rounded-lg px-3 py-2 text-sm" />
+                          </div>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-gogh-grayDark mb-1">CPA (R$) — calculado automaticamente</p>
+                          <p className="text-base font-semibold text-gogh-black bg-gogh-grayLight/30 rounded-lg px-3 py-2 inline-block min-w-[120px]">
+                            {cpaCalculadoDisplay != null
+                              ? `R$ ${cpaCalculadoDisplay.toFixed(2).replace('.', ',')}`
+                              : '—'}
+                          </p>
+                          <p className="text-xs text-gogh-grayDark mt-1">
+                            {comprasNum > 0
+                              ? 'Valor investido ÷ compras. Este CPA é usado no Status e nas recomendações (margem, prejuízo, escala).'
+                              : 'Preencha valor investido e compras para o sistema calcular o CPA e avaliar a campanha.'}
+                          </p>
+                        </div>
+                        {(impressoesNum > 0 || cliquesNum > 0 || comprasNum > 0 || valorInvestidoNum > 0) && (
+                          <div className="rounded-xl border border-gogh-grayLight bg-gogh-beige/50 p-4 space-y-2">
+                            <p className="text-sm font-semibold text-gogh-black flex items-center gap-2">
+                              <TrendingUp className="w-4 h-4 text-gogh-yellow" />
+                              Métricas calculadas automaticamente
+                            </p>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-sm">
+                              {alcanceNum > 0 && impressoesNum > 0 && (
+                                <div><span className="text-gogh-grayDark">Frequência</span><br /><span className="font-medium">{metricasCampanha.freq.toFixed(2)}</span></div>
+                              )}
+                              {impressoesNum > 0 && <div><span className="text-gogh-grayDark">CTR</span><br /><span className="font-medium">{metricasCampanha.ctrPct.toFixed(2)}%</span></div>}
+                              {cliquesNum > 0 && <div><span className="text-gogh-grayDark">Taxa de conversão</span><br /><span className="font-medium">{metricasCampanha.taxaConvPct.toFixed(2)}%</span></div>}
+                              {cliquesNum > 0 && valorInvestidoNum > 0 && <div><span className="text-gogh-grayDark">CPC (R$)</span><br /><span className="font-medium">{metricasCampanha.cpc.toFixed(2)}</span></div>}
+                              {comprasNum > 0 && <div><span className="text-gogh-grayDark">CPA (R$)</span><br /><span className="font-medium">{metricasCampanha.cpaCalculado.toFixed(2)}</span></div>}
+                              {valorInvestidoNum > 0 && valorFaturadoNum > 0 && <div><span className="text-gogh-grayDark">ROAS</span><br /><span className="font-medium">{metricasCampanha.roas.toFixed(2)}x</span></div>}
+                            </div>
+                          </div>
+                        )}
+                        <button
+                          type="button"
+                          onClick={handleSaveDadosCampanha}
+                          disabled={savingDados}
+                          className="inline-flex items-center justify-center gap-2 min-w-[180px] h-10 px-4 py-2 bg-gogh-black text-white rounded-xl hover:bg-gogh-black/90 text-sm font-medium disabled:opacity-50 shrink-0 transition-colors"
+                        >
+                          {savingDados ? (
+                            <span className="inline-flex h-4 w-4 shrink-0 items-center justify-center overflow-hidden">
+                              <LumaSpin size="sm" />
+                            </span>
+                          ) : null}
+                          Salvar na campanha
+                        </button>
                       </>
                     )}
                   </div>
@@ -842,11 +902,13 @@ export default function AnalyticsPage() {
                     )}
                   </div>
                 )}
-              </div>
+                </div>
+              </section>
             )}
           </div>
         </div>
       </div>
+      )}
     </div>
   )
 }
