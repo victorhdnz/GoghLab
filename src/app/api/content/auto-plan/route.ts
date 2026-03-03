@@ -21,7 +21,6 @@ type ProfileRow = {
     fixed_structure_caption?: string
     fixed_structure_ad_copy?: string
     fixed_structure_cover?: string
-    fixed_structure_topic?: string
   } | null
 }
 
@@ -392,8 +391,7 @@ export async function POST(request: Request) {
     const fixedCaption = (prefs.fixed_structure_caption || '').trim()
     const fixedAdCopy = (prefs.fixed_structure_ad_copy || '').trim()
     const fixedCover = (prefs.fixed_structure_cover || '').trim()
-    const fixedTopic = (prefs.fixed_structure_topic || '').trim()
-    const hasFixedStructures = fixedScript || fixedCaption || fixedAdCopy || fixedCover || fixedTopic
+    const hasFixedStructures = fixedScript || fixedCaption || fixedAdCopy || fixedCover
     const fixedStructuresBlock = hasFixedStructures
       ? [
           'Elementos fixos que o cliente quer repetir (incluir quando fizer sentido, mantendo formato):',
@@ -401,7 +399,6 @@ export async function POST(request: Request) {
           fixedCaption ? `- Legenda do video:\n${fixedCaption}` : null,
           fixedAdCopy ? `- Legenda do anuncio (ad copy):\n${fixedAdCopy}` : null,
           fixedCover ? `- Texto de capa:\n${fixedCover}` : null,
-          fixedTopic ? `- Tema/titulo:\n${fixedTopic}` : null,
         ]
           .filter(Boolean)
           .join('\n\n')
@@ -443,7 +440,7 @@ export async function POST(request: Request) {
             `Diretriz de CTA obrigatória: ${ctaInstruction}\n\n` +
             'REGRAS OBRIGATORIAS:\n' +
             (hasFixedStructures
-              ? '- Use os elementos fixos indicados no perfil em cada tipo de conteudo correspondente: o que esta em "Roteiro" no script, o que esta em "Legenda do video" na caption, o que esta em "Legenda do anuncio" no ad_copy (headline/body/cta), o que esta em "Texto de capa" nas cover_text_options, e o que esta em "Tema/titulo" para influenciar o topic. Mantenha o formato (emojis e texto) quando incluir.\n'
+              ? '- Use os elementos fixos indicados no perfil em cada tipo de conteudo correspondente: o que esta em "Roteiro" no script, o que esta em "Legenda do video" na caption, o que esta em "Legenda do anuncio" no ad_copy (headline/body/cta), o que esta em "Texto de capa" nas cover_text_options. Mantenha o formato (emojis e texto) quando incluir. Nao use tema ou titulo fixo — cada video deve ter tema proprio.\n'
               : '') +
             '- Cada roteiro precisa ter profundidade: suficiente para 1:20 a 1:30 de video (entre 230 e 320 palavras). Desenvolva cada bloco com conteudo de verdade, mas de forma equilibrada — evite blocos curtos demais e tambem blocos gigantes ou repetitivos.\n' +
             scriptStrategy.promptInstruction +

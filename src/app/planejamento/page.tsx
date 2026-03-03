@@ -109,7 +109,6 @@ type FixedStructures = {
   caption: string
   ad_copy: string
   cover: string
-  topic: string
 }
 
 const EMPTY_FIXED_STRUCTURES: FixedStructures = {
@@ -117,7 +116,6 @@ const EMPTY_FIXED_STRUCTURES: FixedStructures = {
   caption: '',
   ad_copy: '',
   cover: '',
-  topic: '',
 }
 
 function buildProfileSignature(form: ProfileFormState, customGoals: string[], fixedStructures: FixedStructures) {
@@ -136,7 +134,6 @@ function buildProfileSignature(form: ProfileFormState, customGoals: string[], fi
     fixed_structure_caption: (fixedStructures.caption || '').trim(),
     fixed_structure_ad_copy: (fixedStructures.ad_copy || '').trim(),
     fixed_structure_cover: (fixedStructures.cover || '').trim(),
-    fixed_structure_topic: (fixedStructures.topic || '').trim(),
   })
 }
 
@@ -388,7 +385,6 @@ export default function ContentPlanningPage() {
             caption: typeof data.profile.extra_preferences?.fixed_structure_caption === 'string' ? data.profile.extra_preferences.fixed_structure_caption : '',
             ad_copy: typeof data.profile.extra_preferences?.fixed_structure_ad_copy === 'string' ? data.profile.extra_preferences.fixed_structure_ad_copy : '',
             cover: typeof data.profile.extra_preferences?.fixed_structure_cover === 'string' ? data.profile.extra_preferences.fixed_structure_cover : '',
-            topic: typeof data.profile.extra_preferences?.fixed_structure_topic === 'string' ? data.profile.extra_preferences.fixed_structure_topic : '',
           })
           const loadedCustomGoals = Array.isArray(data.profile.extra_preferences?.custom_goals)
             ? data.profile.extra_preferences.custom_goals
@@ -436,7 +432,6 @@ export default function ContentPlanningPage() {
                 caption: typeof data.profile.extra_preferences?.fixed_structure_caption === 'string' ? data.profile.extra_preferences.fixed_structure_caption : '',
                 ad_copy: typeof data.profile.extra_preferences?.fixed_structure_ad_copy === 'string' ? data.profile.extra_preferences.fixed_structure_ad_copy : '',
                 cover: typeof data.profile.extra_preferences?.fixed_structure_cover === 'string' ? data.profile.extra_preferences.fixed_structure_cover : '',
-                topic: typeof data.profile.extra_preferences?.fixed_structure_topic === 'string' ? data.profile.extra_preferences.fixed_structure_topic : '',
               }
             )
           )
@@ -537,7 +532,6 @@ export default function ContentPlanningPage() {
             fixed_structure_caption: fixedStructures.caption.trim() || undefined,
             fixed_structure_ad_copy: fixedStructures.ad_copy.trim() || undefined,
             fixed_structure_cover: fixedStructures.cover.trim() || undefined,
-            fixed_structure_topic: fixedStructures.topic.trim() || undefined,
           },
         }),
       })
@@ -1400,7 +1394,7 @@ export default function ContentPlanningPage() {
                   <textarea
                     value={fixedStructures.script}
                     onChange={(e) => { markSectionModified('estrutura-fixa'); setFixedStructures((s) => ({ ...s, script: e.target.value })) }}
-                    placeholder="Ex.: 🏆 Ferramentas premium&#10;🏆 Cursos&#10;(trechos que devem aparecer no roteiro quando fizer sentido)"
+                    placeholder="Ex.: Eu gostaria que sempre tivesse um CTA pedindo para comprar no meu site. Ou trechos que devem aparecer no roteiro quando fizer sentido (ex.: 🏆 Ferramentas premium, 🏆 Cursos)."
                     rows={3}
                     className={`w-full px-3 py-2 border rounded-lg text-sm resize-none min-h-[80px] max-h-[180px] overflow-y-auto ${getFieldBorderClass('estrutura-fixa')}`}
                   />
@@ -1410,7 +1404,7 @@ export default function ContentPlanningPage() {
                   <textarea
                     value={fixedStructures.caption}
                     onChange={(e) => { markSectionModified('estrutura-fixa'); setFixedStructures((s) => ({ ...s, caption: e.target.value })) }}
-                    placeholder="Ex.: texto ou emojis que devem aparecer na legenda de cada vídeo"
+                    placeholder="Ex.: Quero que a legenda sempre mostre em tópicos com emoji o que a minha empresa fornece (ex.: 🏆 Ferramentas premium, 🏆 Cursos), para a pessoa ter um resumo visual."
                     rows={3}
                     className={`w-full px-3 py-2 border rounded-lg text-sm resize-none min-h-[80px] max-h-[180px] overflow-y-auto ${getFieldBorderClass('estrutura-fixa')}`}
                   />
@@ -1420,7 +1414,7 @@ export default function ContentPlanningPage() {
                   <textarea
                     value={fixedStructures.ad_copy}
                     onChange={(e) => { markSectionModified('estrutura-fixa'); setFixedStructures((s) => ({ ...s, ad_copy: e.target.value })) }}
-                    placeholder="Ex.: frase ou CTA que deve aparecer no texto do anúncio"
+                    placeholder="Ex.: Sempre incluir os tópicos do que a empresa fornece, para a pessoa ver um resumo (ex.: 🏆 Ferramentas · 🏆 Cursos). Ou uma frase/CTA fixa para o texto do anúncio."
                     rows={2}
                     className={`w-full px-3 py-2 border rounded-lg text-sm resize-none min-h-[60px] max-h-[140px] overflow-y-auto ${getFieldBorderClass('estrutura-fixa')}`}
                   />
@@ -1430,17 +1424,7 @@ export default function ContentPlanningPage() {
                   <textarea
                     value={fixedStructures.cover}
                     onChange={(e) => { markSectionModified('estrutura-fixa'); setFixedStructures((s) => ({ ...s, cover: e.target.value })) }}
-                    placeholder="Ex.: estilo ou palavras-chave para as opções de texto de capa"
-                    rows={2}
-                    className={`w-full px-3 py-2 border rounded-lg text-sm resize-none min-h-[60px] max-h-[140px] overflow-y-auto ${getFieldBorderClass('estrutura-fixa')}`}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gogh-grayDark mb-1">Tema / título</label>
-                  <textarea
-                    value={fixedStructures.topic}
-                    onChange={(e) => { markSectionModified('estrutura-fixa'); setFixedStructures((s) => ({ ...s, topic: e.target.value })) }}
-                    placeholder="Ex.: diretrizes ou palavras que devem influenciar o tema/título de cada vídeo"
+                    placeholder="Ex.: Início fixo ou estilo para as opções de texto de capa (ex.: sempre começar com uma frase específica, ou palavras-chave que devem aparecer)."
                     rows={2}
                     className={`w-full px-3 py-2 border rounded-lg text-sm resize-none min-h-[60px] max-h-[140px] overflow-y-auto ${getFieldBorderClass('estrutura-fixa')}`}
                   />

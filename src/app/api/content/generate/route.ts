@@ -487,13 +487,11 @@ export async function POST(request: Request) {
     const fixedCaption = String(prefs.fixed_structure_caption ?? '').trim()
     const fixedAdCopy = String(prefs.fixed_structure_ad_copy ?? '').trim()
     const fixedCover = String(prefs.fixed_structure_cover ?? '').trim()
-    const fixedTopic = String(prefs.fixed_structure_topic ?? '').trim()
     const fixedParts: string[] = []
     if (fixedScript) fixedParts.push(`Roteiro (script):\n${fixedScript}`)
     if (fixedCaption) fixedParts.push(`Legenda do vídeo:\n${fixedCaption}`)
     if (fixedAdCopy) fixedParts.push(`Legenda do anúncio:\n${fixedAdCopy}`)
     if (fixedCover) fixedParts.push(`Texto de capa:\n${fixedCover}`)
-    if (fixedTopic) fixedParts.push(`Tema/título:\n${fixedTopic}`)
     const fixedStructuresBlock = fixedParts.length
       ? `Elementos fixos a incluir quando fizer sentido:\n\n${fixedParts.join('\n\n')}`
       : null

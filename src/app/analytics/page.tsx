@@ -513,7 +513,6 @@ export default function AnalyticsPage() {
     }
   }
 
-  const cpaCalculadoDisplay = comprasNum > 0 ? metricasCampanha.cpaCalculado : null
   const requiredDadosFields = [
     { key: 'alcance', label: 'Alcance', value: alcance },
     { key: 'impressoes', label: 'Impressões', value: impressoes },
@@ -925,22 +924,6 @@ export default function AnalyticsPage() {
                             <input type="number" min="0" step="0.01" value={valorTotalFaturado} onChange={(e) => setValorTotalFaturado(e.target.value)} placeholder="Ex: 4365" className={`w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 ${getFieldBorderClass('dados-campanha')}`} />
                           </div>
                         </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gogh-grayDark mb-1">CPA (R$) — calculado automaticamente</label>
-                          <div
-                            className="w-full max-w-[200px] border border-gogh-grayLight rounded-lg px-3 py-2 text-sm font-medium text-gogh-black bg-gogh-grayLight/50 cursor-default select-none"
-                            aria-readonly
-                          >
-                            {cpaCalculadoDisplay != null
-                              ? `R$ ${cpaCalculadoDisplay.toFixed(2).replace('.', ',')}`
-                              : '—'}
-                          </div>
-                          <p className="text-xs text-gogh-grayDark mt-1">
-                            {comprasNum > 0
-                              ? 'Valor investido ÷ compras.'
-                              : 'Preencha valor investido e compras para o sistema calcular o CPA.'}
-                          </p>
-                        </div>
                         {(impressoesNum > 0 || cliquesNum > 0 || comprasNum > 0 || valorInvestidoNum > 0) && (
                           <div className="rounded-xl border border-gogh-grayLight bg-gogh-beige/50 p-4 space-y-2">
                             <p className="text-sm font-semibold text-gogh-black flex items-center gap-2">
@@ -957,6 +940,9 @@ export default function AnalyticsPage() {
                               {comprasNum > 0 && <div><span className="text-gogh-grayDark">CPA (R$)</span><br /><span className="font-medium">{metricasCampanha.cpaCalculado.toFixed(2)}</span></div>}
                               {valorInvestidoNum > 0 && valorFaturadoNum > 0 && <div><span className="text-gogh-grayDark">ROAS</span><br /><span className="font-medium">{metricasCampanha.roas.toFixed(2)}x</span></div>}
                             </div>
+                            {comprasNum > 0 && (
+                              <p className="text-xs text-gogh-grayDark mt-2">CPA = valor investido ÷ compras.</p>
+                            )}
                           </div>
                         )}
                       </>
