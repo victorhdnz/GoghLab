@@ -74,7 +74,19 @@ interface BudgetPhase {
 const BUDGET_PHASES_STORAGE_KEY = 'gogh_analytics_budget_phases'
 const BUDGET_TYPE_STORAGE_KEY = 'gogh_analytics_budget_type' // CBO = campanha (por dia na campanha); ABO = conjunto (por conjunto)
 const AUTO_DIAS_RECOMMENDATION_KEY = 'gogh_analytics_auto_dias'
+const FILLED_DATES_STORAGE_KEY = 'gogh_analytics_dias_preenchidos' // por campanha: { [campaignId]: string[] } (YYYY-MM-DD)
 type BudgetTypeMeta = 'cbo' | 'abo'
+
+function dateToKey(d: Date): string {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
+function isActionDay(dayNum: number): boolean {
+  return dayNum === 7 || (dayNum >= 10 && dayNum <= 14) || dayNum >= 18
+}
 
 // Parâmetros de análise (benchmarks para decisão)
 const FREQ_SAUDAVEL = { min: 1.5, max: 2.5 }
@@ -171,6 +183,7 @@ export default function AnalyticsPage() {
   })
   const [campaignCalendarMonth, setCampaignCalendarMonth] = useState<Date>(() => new Date())
   const [campaignCalendarSelectedDate, setCampaignCalendarSelectedDate] = useState<Date | undefined>(undefined)
+  const [filledDatesSet, setFilledDatesSet] = useState<Set<string>>(new Set())
 
   const buildCampaignSignature = () =>
     JSON.stringify({
@@ -316,6 +329,37 @@ export default function AnalyticsPage() {
       setCampaignCalendarSelectedDate(undefined)
     }
   }, [selectedCampaignId, campaigns])
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !selectedCampaignId) {
+      setFilledDatesSet(new Set())
+      return
+    }
+    try {
+      const raw = localStorage.getItem(FILLED_DATES_STORAGE_KEY)
+      const map = raw ? (JSON.parse(raw) as Record<string, string[]>) : {}
+      const list = Array.isArray(map[selectedCampaignId]) ? map[selectedCampaignId] : []
+      setFilledDatesSet(new Set(list))
+    } catch {
+      setFilledDatesSet(new Set())
+    }
+  }, [selectedCampaignId])
+
+  const toggleFilledDate = (date: Date) => {
+    if (!selectedCampaignId) return
+    const key = dateToKey(date)
+    const next = new Set(filledDatesSet)
+    if (next.has(key)) next.delete(key)
+    else next.add(key)
+    setFilledDatesSet(next)
+    try {
+      const raw = localStorage.getItem(FILLED_DATES_STORAGE_KEY)
+      const map = raw ? (JSON.parse(raw) as Record<string, string[]>) : {}
+      map[selectedCampaignId] = Array.from(next)
+      localStorage.setItem(FILLED_DATES_STORAGE_KEY, JSON.stringify(map))
+    } catch {}
+    toast.success(next.has(key) ? 'Dia marcado como preenchido' : 'Desmarcado')
+  }
 
   const persistBudgetPhases = (campaignId: string, phases: BudgetPhase[]) => {
     try {
@@ -1561,10 +1605,10 @@ export default function AnalyticsPage() {
                               return Math.floor((d.getTime() - s.getTime()) / (24 * 60 * 60 * 1000)) + 1
                             }
                             const getMilestoneText = (dayNum: number): string => {
-                              if (dayNum >= 1 && dayNum <= 5) return 'Aprendizado — Não mexer no orçamento. Preencha os dados no painel para o sistema acompanhar.'
-                              if (dayNum === 7) return '1ª análise — Atualize os dados no painel. O Status vai recomendar: manter, escalar ou trocar criativo.'
-                              if (dayNum >= 10 && dayNum <= 14) return `Novos criativos — Adicione +1 ou 2 criativos (meta: ${strategyTier.minCreatives}–${strategyTier.maxCreatives} ativos). Preencha os dados de cada um.`
-                              if (dayNum >= 18) return `Contínuo — Mantenha ${strategyTier.minCreatives}–${strategyTier.maxCreatives} criativos ativos. Preencha os dados periodicamente e siga as recomendações do Status.`
+                              if (dayNum >= 1 && dayNum <= 5) return 'Aprendizado: não altere orçamento; preencha os dados no painel.'
+                              if (dayNum === 7) return '1ª análise: atualize os dados no painel para o Status recomendar próximo passo.'
+                              if (dayNum >= 10 && dayNum <= 14) return `Novos criativos: adicione +1 ou 2 (meta ${strategyTier.minCreatives}–${strategyTier.maxCreatives} ativos) e preencha os dados.`
+                              if (dayNum >= 18) return `Contínuo: mantenha ${strategyTier.minCreatives}–${strategyTier.maxCreatives} criativos ativos; preencha dados e siga o Status.`
                               return ''
                             }
                             const getPhaseForDay = (dayNum: number): number => {
@@ -1578,7 +1622,7 @@ export default function AnalyticsPage() {
                             }
                             return (
                               <div className="mb-4">
-                                <p className="text-[11px] font-medium text-gogh-black mb-2">Calendário da campanha (igual ao da Agenda): passe os meses e clique em um dia para ver a ação do plano nesse dia.</p>
+                                <p className="text-[11px] font-medium text-gogh-black mb-2">Amarelo = dia de campanha. Verde = dia para atualizar dados. Verde escuro = preenchido.</p>
                                 <Card className="w-full max-w-[430px] py-4 border border-gogh-grayLight">
                                   <CardContent className="px-4">
                                     <DayPickerCalendar
@@ -1596,6 +1640,25 @@ export default function AnalyticsPage() {
                                         e.setHours(0, 0, 0, 0)
                                         return d < s || d >= e
                                       }}
+                                      modifiers={{
+                                        inCampaign: (date) => {
+                                          const n = getDayNum(date)
+                                          return n != null && !isActionDay(n)
+                                        },
+                                        actionDay: (date) => {
+                                          const n = getDayNum(date)
+                                          return n != null && isActionDay(n) && !filledDatesSet.has(dateToKey(date))
+                                        },
+                                        actionDayFilled: (date) => {
+                                          const n = getDayNum(date)
+                                          return n != null && isActionDay(n) && filledDatesSet.has(dateToKey(date))
+                                        },
+                                      }}
+                                      modifiersClassNames={{
+                                        inCampaign: '[&>button]:bg-gogh-yellow/35 [&>button]:text-gogh-black [&>button]:shadow-[inset_0_0_0_1px_rgba(247,201,72,0.5)]',
+                                        actionDay: '[&>button]:bg-emerald-500/50 [&>button]:text-gogh-black [&>button]:shadow-[inset_0_0_0_1px_rgba(16,185,129,0.6)]',
+                                        actionDayFilled: '[&>button]:bg-emerald-700/50 [&>button]:text-white [&>button]:shadow-[inset_0_0_0_1px_rgba(4,120,87,0.8)]',
+                                      }}
                                       className="bg-transparent p-0"
                                     />
                                   </CardContent>
@@ -1606,20 +1669,31 @@ export default function AnalyticsPage() {
                                         : 'Selecione um dia'}
                                     </div>
                                     {campaignCalendarSelectedDate && getDayNum(campaignCalendarSelectedDate) != null && (
-                                      <div className="rounded-md bg-gogh-beige/40 border border-gogh-grayLight p-3 text-xs text-gogh-grayDark w-full">
-                                        <p className="font-medium text-gogh-black mb-0.5">Dia {getDayNum(campaignCalendarSelectedDate)} da campanha</p>
-                                        {getMilestoneText(getDayNum(campaignCalendarSelectedDate)!) && (
-                                          <p className="mt-1">{getMilestoneText(getDayNum(campaignCalendarSelectedDate)!)}</p>
+                                      <>
+                                        <div className="rounded-md bg-gogh-beige/40 border border-gogh-grayLight p-2.5 text-xs text-gogh-grayDark w-full">
+                                          <p className="font-medium text-gogh-black">Dia {getDayNum(campaignCalendarSelectedDate)} da campanha</p>
+                                          {getMilestoneText(getDayNum(campaignCalendarSelectedDate)!) && (
+                                            <p className="mt-0.5">{getMilestoneText(getDayNum(campaignCalendarSelectedDate)!)}</p>
+                                          )}
+                                          {budgetPhases.length > 0 && (
+                                            <p className="mt-0.5 text-gogh-grayDark">
+                                              Fase {getPhaseForDay(getDayNum(campaignCalendarSelectedDate)!) + 1}
+                                              {budgetPhases[getPhaseForDay(getDayNum(campaignCalendarSelectedDate)!)] && (
+                                                <> · R$ {budgetPhases[getPhaseForDay(getDayNum(campaignCalendarSelectedDate)!)].valor.toFixed(2).replace('.', ',')} em {budgetPhases[getPhaseForDay(getDayNum(campaignCalendarSelectedDate)!)].dias} dias</>
+                                              )}
+                                            </p>
+                                          )}
+                                        </div>
+                                        {isActionDay(getDayNum(campaignCalendarSelectedDate)!) && (
+                                          <button
+                                            type="button"
+                                            onClick={() => campaignCalendarSelectedDate && toggleFilledDate(campaignCalendarSelectedDate)}
+                                            className={`text-xs font-medium px-3 py-1.5 rounded-lg border transition-colors ${filledDatesSet.has(dateToKey(campaignCalendarSelectedDate)) ? 'bg-emerald-100 border-emerald-300 text-emerald-800' : 'bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100'}`}
+                                          >
+                                            {filledDatesSet.has(dateToKey(campaignCalendarSelectedDate)) ? '✓ Preenchido · Clique para desmarcar' : 'Marcar como preenchido'}
+                                          </button>
                                         )}
-                                        {budgetPhases.length > 0 && (
-                                          <p className="mt-1 text-gogh-grayDark">
-                                            Fase {getPhaseForDay(getDayNum(campaignCalendarSelectedDate)!) + 1} de orçamento
-                                            {budgetPhases[getPhaseForDay(getDayNum(campaignCalendarSelectedDate)!)] && (
-                                              <> · R$ {budgetPhases[getPhaseForDay(getDayNum(campaignCalendarSelectedDate)!)].valor.toFixed(2).replace('.', ',')} em {budgetPhases[getPhaseForDay(getDayNum(campaignCalendarSelectedDate)!)].dias} dias</>
-                                            )}
-                                          </p>
-                                        )}
-                                      </div>
+                                      </>
                                     )}
                                   </CardFooter>
                                 </Card>
@@ -1627,9 +1701,7 @@ export default function AnalyticsPage() {
                             )
                           })()}
                           <div className="rounded-lg border border-gogh-grayLight bg-white p-3 space-y-3">
-                            <p className="text-xs font-medium text-gogh-black">
-                              {budgetPhases.length === 0 ? 'Primeira fase de investimento' : 'Próxima reposição'}
-                            </p>
+                            <p className="text-xs font-medium text-gogh-black">Fases</p>
                             <label className="flex items-center gap-2 cursor-pointer">
                               <input
                                 type="checkbox"
