@@ -77,7 +77,7 @@ export default function AnalyticsPage() {
   const hasAccess = isAuthenticated && isPro
 
   const [mounted, setMounted] = useState(false)
-  const [accordionOpen, setAccordionOpen] = useState<AnalyticsAccordionId | null>('campanhas')
+  const [accordionOpen, setAccordionOpen] = useState<AnalyticsAccordionId | null>('roi')
   const [savingDados, setSavingDados] = useState(false)
   const [campaigns, setCampaigns] = useState<AnalyticsCampaign[]>([])
   const [selectedCampaignId, setSelectedCampaignIdState] = useState<string | null>(null)
@@ -102,10 +102,10 @@ export default function AnalyticsPage() {
   const [compras, setCompras] = useState<string>('')
   const [valorTotalFaturado, setValorTotalFaturado] = useState<string>('')
   const [savedCampaignSignature, setSavedCampaignSignature] = useState<string>('')
+  const [savedCreativesSignature, setSavedCreativesSignature] = useState<string>('')
   const [expandedRecommendationIndex, setExpandedRecommendationIndex] = useState<number | null>(null)
   const [creatives, setCreatives] = useState<AnalyticsCreative[]>([])
   const [creativesLoading, setCreativesLoading] = useState(false)
-  const [savingCreativeId, setSavingCreativeId] = useState<string | null>(null)
   const [addingCreative, setAddingCreative] = useState(false)
   const [creativosSubOpen, setCreativosSubOpen] = useState(false)
 
@@ -139,6 +139,20 @@ export default function AnalyticsPage() {
     }
   }
 
+  const buildCreativesSignature = (list: AnalyticsCreative[]) =>
+    JSON.stringify(
+      list.map((c) => ({
+        id: c.id,
+        name: (c.name ?? '').trim(),
+        alcance: c.alcance ?? '',
+        impressoes: c.impressoes ?? '',
+        cliques_link: c.cliques_link ?? '',
+        valor_investido: c.valor_investido ?? '',
+        compras: c.compras ?? '',
+        valor_total_faturado: c.valor_total_faturado ?? '',
+      }))
+    )
+
   const loadCreatives = async (campaignId: string) => {
     if (!hasAccess) return
     try {
@@ -146,10 +160,13 @@ export default function AnalyticsPage() {
       const res = await fetch(`/api/analytics/campaigns/${campaignId}/creatives`, { credentials: 'include' })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Erro ao carregar criativos')
-      setCreatives(data.creatives || [])
+      const list = data.creatives || []
+      setCreatives(list)
+      setSavedCreativesSignature(buildCreativesSignature(list))
     } catch (e: any) {
       toast.error(e?.message || 'Erro ao carregar criativos')
       setCreatives([])
+      setSavedCreativesSignature('')
     } finally {
       setCreativesLoading(false)
     }
@@ -206,6 +223,7 @@ export default function AnalyticsPage() {
   useEffect(() => {
     if (!selectedCampaignId || !hasAccess) {
       setCreatives([])
+      setSavedCreativesSignature('')
       return
     }
     setCreativosSubOpen(true)
@@ -515,17 +533,36 @@ export default function AnalyticsPage() {
     compras,
     valorTotalFaturado,
   ])
-  const isProfileDirty =
+  const currentCreativesSignature = useMemo(() => buildCreativesSignature(creatives), [creatives])
+  const isCampaignSigDirty = !!selectedCampaignId && savedCampaignSignature.length > 0 && currentCampaignSignature !== savedCampaignSignature
+  const isCreativesDirty =
     !!selectedCampaignId &&
-    savedCampaignSignature.length > 0 &&
-    currentCampaignSignature !== savedCampaignSignature
+    creatives.length > 0 &&
+    savedCreativesSignature.length > 0 &&
+    currentCreativesSignature !== savedCreativesSignature
+  const isProfileDirty = isCampaignSigDirty || isCreativesDirty
   const isDadosCampanhaComplete =
     !!selectedCampaignId &&
-    (creatives.length > 0 || [alcance, impressoes, cliquesLink, valorInvestido, compras, valorTotalFaturado].every((s) => (s ?? '').trim().length > 0))
+    (creatives.length > 0
+      ? creatives.every(
+          (c) =>
+            (c.name ?? '').trim().length > 0 &&
+            [c.alcance, c.impressoes, c.cliques_link, c.valor_investido, c.compras, c.valor_total_faturado].every(
+              (v) => v != null && v !== ''
+            )
+        )
+      : [alcance, impressoes, cliquesLink, valorInvestido, compras, valorTotalFaturado].every((s) => (s ?? '').trim().length > 0))
   const isRoiComplete = !roiEnabled || (roiEnabled && (valorVenda ?? '').trim().length > 0)
 
   const getAccordionCardClass = (sectionId: AnalyticsAccordionId): string => {
-    if (sectionId === 'campanhas' || sectionId === 'status') return 'bg-white border-gogh-grayLight'
+    if (sectionId === 'status') return 'bg-white border-gogh-grayLight'
+    if (sectionId === 'campanhas') {
+      const campanhasDirty = isProfileDirty
+      const campanhasIncomplete = selectedCampaignId && !isDadosCampanhaComplete
+      if (campanhasDirty || campanhasIncomplete)
+        return isDadosCampanhaComplete ? 'bg-emerald-50/80 border-emerald-300' : 'bg-red-50/80 border-red-300'
+      return 'bg-white border-gogh-grayLight'
+    }
     if (!isProfileDirty) return 'bg-white border-gogh-grayLight'
     if (sectionId === 'roi') {
       return isRoiComplete ? 'bg-emerald-50/80 border-emerald-300' : 'bg-red-50/80 border-red-300'
@@ -621,35 +658,6 @@ export default function AnalyticsPage() {
     }
   }
 
-  const handleUpdateCreative = async (creative: AnalyticsCreative) => {
-    if (!selectedCampaignId) return
-    setSavingCreativeId(creative.id)
-    try {
-      const res = await fetch(`/api/analytics/campaigns/${selectedCampaignId}/creatives/${creative.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
-          name: creative.name,
-          alcance: creative.alcance != null ? creative.alcance : null,
-          impressoes: creative.impressoes != null ? creative.impressoes : null,
-          cliques_link: creative.cliques_link != null ? creative.cliques_link : null,
-          valor_investido: creative.valor_investido != null ? creative.valor_investido : null,
-          compras: creative.compras != null ? creative.compras : null,
-          valor_total_faturado: creative.valor_total_faturado != null ? creative.valor_total_faturado : null,
-        }),
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Erro ao salvar')
-      setCreatives((prev) => prev.map((c) => (c.id === creative.id ? data.creative : c)))
-      toast.success('Criativo atualizado')
-    } catch (e: any) {
-      toast.error(e?.message || 'Erro ao salvar criativo')
-    } finally {
-      setSavingCreativeId(null)
-    }
-  }
-
   const handleDeleteCreative = async (creativeId: string) => {
     if (!selectedCampaignId || !confirm('Excluir este criativo? Os dados dele serão apagados.')) return
     try {
@@ -685,6 +693,17 @@ export default function AnalyticsPage() {
       toast.error(`Preencha os dados da campanha: ${requiredDadosFields.filter((f) => !f.value?.trim()).map((f) => f.label).join(', ')}`)
       return
     }
+    if (creatives.length > 0) {
+      const incomplete = creatives.find(
+        (c) =>
+          !(c.name ?? '').trim() ||
+          [c.alcance, c.impressoes, c.cliques_link, c.valor_investido, c.compras, c.valor_total_faturado].some((v) => v == null || v === '')
+      )
+      if (incomplete) {
+        toast.error('Preencha nome e todas as métricas de cada criativo antes de salvar.')
+        return
+      }
+    }
     setSavingDados(true)
     try {
       const body: Record<string, unknown> = {
@@ -712,6 +731,29 @@ export default function AnalyticsPage() {
       if (!res.ok) throw new Error(data.error || 'Erro ao salvar')
       setCampaigns((prev) => prev.map((c) => (c.id === selectedCampaignId ? { ...c, ...data.campaign } : c)))
       setSavedCampaignSignature(currentCampaignSignature)
+
+      if (creatives.length > 0) {
+        for (const cr of creatives) {
+          const crRes = await fetch(`/api/analytics/campaigns/${selectedCampaignId}/creatives/${cr.id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({
+              name: (cr.name ?? '').trim() || null,
+              alcance: cr.alcance != null ? Number(cr.alcance) : null,
+              impressoes: cr.impressoes != null ? Number(cr.impressoes) : null,
+              cliques_link: cr.cliques_link != null ? Number(cr.cliques_link) : null,
+              valor_investido: cr.valor_investido != null ? Number(cr.valor_investido) : null,
+              compras: cr.compras != null ? Number(cr.compras) : null,
+              valor_total_faturado: cr.valor_total_faturado != null ? Number(cr.valor_total_faturado) : null,
+            }),
+          })
+          const crData = await crRes.json()
+          if (!crRes.ok) throw new Error(crData.error || 'Erro ao salvar criativo')
+        }
+        setSavedCreativesSignature(currentCreativesSignature)
+      }
+
       toast.success('Alterações salvas na campanha')
     } catch (e: any) {
       toast.error(e?.message || 'Erro ao salvar')
@@ -835,6 +877,129 @@ export default function AnalyticsPage() {
                   <p className="text-xs text-gogh-grayDark mt-0.5">Preencha os dados das campanhas e acompanhe métricas, custos e recomendações.</p>
                 </div>
                 <div className="space-y-2">
+                {accordionCard(
+                  'roi',
+                  'Planejamento de valores',
+                  null,
+                  <DollarSign className="w-4 h-4 text-gogh-grayDark" />,
+                  <div className="pt-3 space-y-4">
+                    <p className="text-sm text-gogh-grayDark">
+                      Não são dados do Meta. Configure o <strong>valor da venda</strong> e o <strong>custo por venda</strong> do seu negócio para o sistema refletir lucro e recomendações no Status.
+                    </p>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={roiEnabled}
+                        onChange={(e) => setRoiEnabled(e.target.checked)}
+                        className="rounded border-gogh-grayLight"
+                      />
+                      <span className="text-sm font-medium text-gogh-grayDark">Usar planejamento de valores no status (valor da venda, custo, lucro)</span>
+                    </label>
+                    {roiEnabled && (
+                      <>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gogh-grayDark mb-1">Preço do produto/serviço (R$)</label>
+                            <input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              value={valorVenda}
+                              onChange={(e) => setValorVenda(e.target.value)}
+                              placeholder="Ex: 97"
+                              className={`w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 ${getFieldBorderClass('roi')}`}
+                            />
+                            <p className="text-xs text-gogh-grayDark mt-0.5">Preço que você cobra pelo produto ou serviço.</p>
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gogh-grayDark mb-1">Custo variável por venda (R$)</label>
+                            <input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              value={custoVenda}
+                              onChange={(e) => setCustoVenda(e.target.value)}
+                              placeholder="0 se não tiver (ex.: serviço sem custo variável)"
+                              className={`w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 ${getFieldBorderClass('roi')}`}
+                            />
+                            <p className="text-xs text-gogh-grayDark mt-0.5">O que você gasta para entregar uma unidade (produto, frete, taxa, etc.). Deixe 0 se não tiver.</p>
+                          </div>
+                          <div className="sm:col-span-2">
+                            <label className="block text-sm font-medium text-gogh-grayDark mb-1">Meta de lucro por venda (R$) — opcional</label>
+                            <input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              value={metaLucroPorVenda}
+                              onChange={(e) => setMetaLucroPorVenda(e.target.value)}
+                              placeholder="Ex: 20 — lucro mínimo desejado por venda"
+                              className={`w-full border rounded-lg px-3 py-2 text-sm max-w-[240px] focus:ring-2 ${getFieldBorderClass('roi')}`}
+                            />
+                            <p className="text-xs text-gogh-grayDark mt-0.5">Quanto você quer lucrar por venda. O sistema usa isso para calcular o custo máximo aceitável (CPA limite).</p>
+                          </div>
+                        </div>
+                        {valorNum > 0 ? (
+                          <div className="space-y-3">
+                            <div
+                              className={`rounded-xl border-2 p-4 ${
+                                lucroPorVenda > 0
+                                  ? 'bg-green-50 border-green-200'
+                                  : lucroPorVenda < 0
+                                    ? 'bg-red-50 border-red-200'
+                                    : 'bg-amber-50 border-amber-200'
+                              }`}
+                            >
+                              <p className="text-sm font-medium text-gogh-black mb-1">Lucro bruto por venda</p>
+                              <p className="text-lg font-bold">
+                                {lucroPorVenda > 0 ? (
+                                  <span className="text-green-700">R$ {lucroPorVenda.toFixed(2).replace('.', ',')}</span>
+                                ) : lucroPorVenda < 0 ? (
+                                  <span className="text-red-700">R$ {lucroPorVenda.toFixed(2).replace('.', ',')}</span>
+                                ) : (
+                                  <span className="text-amber-700">R$ 0,00</span>
+                                )}
+                              </p>
+                              <p className="text-xs text-gogh-grayDark mt-1">
+                                Preço (R$ {valorNum.toFixed(2).replace('.', ',')}) − Custo variável (R$ {custoNum.toFixed(2).replace('.', ',')})
+                              </p>
+                              {valorNum > 0 && lucroPorVenda > 0 && (
+                                <p className="text-xs text-gogh-grayDark mt-2">
+                                  Margem: {((lucroPorVenda / valorNum) * 100).toFixed(1).replace('.', ',')}%
+                                </p>
+                              )}
+                              {custoMaxAceitavel > 0 && (
+                                <div className="mt-3 pt-3 border-t border-gogh-grayLight/50">
+                                  <p className="text-sm font-medium text-gogh-black">Custo máximo aceitável (CPA)</p>
+                                  <p className="text-base font-bold text-gogh-grayDark">R$ {custoMaxAceitavel.toFixed(2).replace('.', ',')}</p>
+                                  <p className="text-xs text-gogh-grayDark mt-0.5">
+                                    {metaLucroNum > 0
+                                      ? `Máximo que você pode gastar por aquisição e ainda manter a meta de lucro (R$ ${metaLucroNum.toFixed(2).replace('.', ',')}).`
+                                      : 'Máximo que você pode gastar por aquisição sem prejuízo (ponto de equilíbrio).'}
+                                  </p>
+                                </div>
+                              )}
+                              {lucroPorVenda > 0 && (
+                                <p className="text-xs font-medium text-green-700 mt-2 flex items-center gap-1">
+                                  <CheckCircle2 className="w-4 h-4" /> Mantenha o CPA da campanha abaixo de R$ {custoMaxAceitavel.toFixed(2).replace('.', ',')} para operar com margem.
+                                </p>
+                              )}
+                              {lucroPorVenda <= 0 && valorNum > 0 && (
+                                <p className="text-xs font-medium text-amber-700 mt-2 flex items-center gap-1">
+                                  <AlertTriangle className="w-4 h-4" /> Ajuste o preço ou o custo variável para ter lucro por venda.
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        ) : (
+                          <p className="text-sm text-gogh-grayDark bg-gogh-grayLight/50 rounded-lg p-3">
+                            Preencha o valor da venda para ver o lucro por venda (e o máximo que pode gastar por aquisição sem prejuízo).
+                          </p>
+                        )}
+                      </>
+                    )}
+                  </div>
+                )}
+
                 {accordionCard(
                   'campanhas',
                   'Campanhas',
@@ -961,7 +1126,6 @@ export default function AnalyticsPage() {
                                         placeholder="Nome do criativo"
                                         className="flex-1 min-w-[120px] border border-gogh-grayLight rounded-lg px-2 py-1.5 text-sm"
                                       />
-                                      <button type="button" onClick={() => handleUpdateCreative(creatives.find((c) => c.id === cr.id) ?? cr)} disabled={savingCreativeId === cr.id} className="px-2 py-1 text-xs bg-gogh-yellow text-gogh-black rounded-lg font-medium disabled:opacity-70">Salvar</button>
                                       <button type="button" onClick={() => handleDeleteCreative(cr.id)} className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg" aria-label="Excluir"><Trash2 className="w-4 h-4" /></button>
                                     </div>
                                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
@@ -1035,10 +1199,10 @@ export default function AnalyticsPage() {
                         </p>
                         <div className="flex flex-wrap gap-2">
                           {[
-                            { days: '1–5', phase: 'aprendizado', label: 'Aprendizado', action: 'Não mexer' },
-                            { days: '7', phase: 'analise-7', label: '1ª análise', action: 'Atualizar dados' },
-                            { days: '10–14', phase: 'novos-criativos', label: 'Novos criativos', action: '+1 ou 2' },
-                            { days: '18+', phase: 'avaliacao', label: 'Contínuo', action: '4–5 ativos' },
+                            { days: '1–5', phase: 'aprendizado', label: 'Aprendizado', action: 'Não mexer no orçamento.', hint: 'Preencha alcance, impressões, cliques, investido, compras e faturado para o sistema acompanhar.' },
+                            { days: '7', phase: 'analise-7', label: '1ª análise', action: 'Atualize os dados no painel.', hint: 'Alcance, impressões, cliques, investido, compras, faturado. O Status vai recomendar: manter, escalar ou trocar criativo.' },
+                            { days: '10–14', phase: 'novos-criativos', label: 'Novos criativos', action: 'Adicione +1 ou 2 criativos.', hint: 'Preencha as métricas de cada um. Compare desempenho no Status.' },
+                            { days: '18+', phase: 'avaliacao', label: 'Contínuo (dia 19, 20…)', action: 'Mantenha 4–5 criativos ativos.', hint: 'Preencha os dados periodicamente. Reponha criativos fracos e siga as recomendações do Status.' },
                           ].map((step) => {
                             const isCurrent = planoOtimizacao.phase === step.phase
                             return (
@@ -1049,6 +1213,7 @@ export default function AnalyticsPage() {
                                 <span className="font-medium text-gogh-black">Dia {step.days}</span>
                                 <span className="text-gogh-grayDark"> · {step.label}</span>
                                 {isCurrent && <span className="block mt-0.5 text-gogh-grayDark">{step.action}</span>}
+                                {isCurrent && step.hint && <span className="block mt-1 text-gogh-grayDark/90 text-[11px]">{step.hint}</span>}
                               </div>
                             )
                           })}
@@ -1057,129 +1222,6 @@ export default function AnalyticsPage() {
                           <p className="text-xs text-amber-700 mt-2">Campanha pausada.</p>
                         )}
                       </div>
-                    )}
-                  </div>
-                )}
-
-                {accordionCard(
-                  'roi',
-                  'Planejamento de valores',
-                  null,
-                  <DollarSign className="w-4 h-4 text-gogh-grayDark" />,
-                  <div className="pt-3 space-y-4">
-                    <p className="text-sm text-gogh-grayDark">
-                      Não são dados do Meta. Configure o <strong>valor da venda</strong> e o <strong>custo por venda</strong> do seu negócio para o sistema refletir lucro e recomendações no Status.
-                    </p>
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={roiEnabled}
-                        onChange={(e) => setRoiEnabled(e.target.checked)}
-                        className="rounded border-gogh-grayLight"
-                      />
-                      <span className="text-sm font-medium text-gogh-grayDark">Usar planejamento de valores no status (valor da venda, custo, lucro)</span>
-                    </label>
-                    {roiEnabled && (
-                      <>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                          <div>
-                            <label className="block text-sm font-medium text-gogh-grayDark mb-1">Preço do produto/serviço (R$)</label>
-                            <input
-                              type="number"
-                              min="0"
-                              step="0.01"
-                              value={valorVenda}
-                              onChange={(e) => setValorVenda(e.target.value)}
-                              placeholder="Ex: 97"
-                              className={`w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 ${getFieldBorderClass('roi')}`}
-                            />
-                            <p className="text-xs text-gogh-grayDark mt-0.5">Preço que você cobra pelo produto ou serviço.</p>
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gogh-grayDark mb-1">Custo variável por venda (R$)</label>
-                            <input
-                              type="number"
-                              min="0"
-                              step="0.01"
-                              value={custoVenda}
-                              onChange={(e) => setCustoVenda(e.target.value)}
-                              placeholder="0 se não tiver (ex.: serviço sem custo variável)"
-                              className={`w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 ${getFieldBorderClass('roi')}`}
-                            />
-                            <p className="text-xs text-gogh-grayDark mt-0.5">O que você gasta para entregar uma unidade (produto, frete, taxa, etc.). Deixe 0 se não tiver.</p>
-                          </div>
-                          <div className="sm:col-span-2">
-                            <label className="block text-sm font-medium text-gogh-grayDark mb-1">Meta de lucro por venda (R$) — opcional</label>
-                            <input
-                              type="number"
-                              min="0"
-                              step="0.01"
-                              value={metaLucroPorVenda}
-                              onChange={(e) => setMetaLucroPorVenda(e.target.value)}
-                              placeholder="Ex: 20 — lucro mínimo desejado por venda"
-                              className={`w-full border rounded-lg px-3 py-2 text-sm max-w-[240px] focus:ring-2 ${getFieldBorderClass('roi')}`}
-                            />
-                            <p className="text-xs text-gogh-grayDark mt-0.5">Quanto você quer lucrar por venda. O sistema usa isso para calcular o custo máximo aceitável (CPA limite).</p>
-                          </div>
-                        </div>
-                        {valorNum > 0 ? (
-                          <div className="space-y-3">
-                            <div
-                              className={`rounded-xl border-2 p-4 ${
-                                lucroPorVenda > 0
-                                  ? 'bg-green-50 border-green-200'
-                                  : lucroPorVenda < 0
-                                    ? 'bg-red-50 border-red-200'
-                                    : 'bg-amber-50 border-amber-200'
-                              }`}
-                            >
-                              <p className="text-sm font-medium text-gogh-black mb-1">Lucro bruto por venda</p>
-                              <p className="text-lg font-bold">
-                                {lucroPorVenda > 0 ? (
-                                  <span className="text-green-700">R$ {lucroPorVenda.toFixed(2).replace('.', ',')}</span>
-                                ) : lucroPorVenda < 0 ? (
-                                  <span className="text-red-700">R$ {lucroPorVenda.toFixed(2).replace('.', ',')}</span>
-                                ) : (
-                                  <span className="text-amber-700">R$ 0,00</span>
-                                )}
-                              </p>
-                              <p className="text-xs text-gogh-grayDark mt-1">
-                                Preço (R$ {valorNum.toFixed(2).replace('.', ',')}) − Custo variável (R$ {custoNum.toFixed(2).replace('.', ',')})
-                              </p>
-                              {valorNum > 0 && lucroPorVenda > 0 && (
-                                <p className="text-xs text-gogh-grayDark mt-2">
-                                  Margem: {((lucroPorVenda / valorNum) * 100).toFixed(1).replace('.', ',')}%
-                                </p>
-                              )}
-                              {custoMaxAceitavel > 0 && (
-                                <div className="mt-3 pt-3 border-t border-gogh-grayLight/50">
-                                  <p className="text-sm font-medium text-gogh-black">Custo máximo aceitável (CPA)</p>
-                                  <p className="text-base font-bold text-gogh-grayDark">R$ {custoMaxAceitavel.toFixed(2).replace('.', ',')}</p>
-                                  <p className="text-xs text-gogh-grayDark mt-0.5">
-                                    {metaLucroNum > 0
-                                      ? `Máximo que você pode gastar por aquisição e ainda manter a meta de lucro (R$ ${metaLucroNum.toFixed(2).replace('.', ',')}).`
-                                      : 'Máximo que você pode gastar por aquisição sem prejuízo (ponto de equilíbrio).'}
-                                  </p>
-                                </div>
-                              )}
-                              {lucroPorVenda > 0 && (
-                                <p className="text-xs font-medium text-green-700 mt-2 flex items-center gap-1">
-                                  <CheckCircle2 className="w-4 h-4" /> Mantenha o CPA da campanha abaixo de R$ {custoMaxAceitavel.toFixed(2).replace('.', ',')} para operar com margem.
-                                </p>
-                              )}
-                              {lucroPorVenda <= 0 && valorNum > 0 && (
-                                <p className="text-xs font-medium text-amber-700 mt-2 flex items-center gap-1">
-                                  <AlertTriangle className="w-4 h-4" /> Ajuste o preço ou o custo variável para ter lucro por venda.
-                                </p>
-                              )}
-                            </div>
-                          </div>
-                        ) : (
-                          <p className="text-sm text-gogh-grayDark bg-gogh-grayLight/50 rounded-lg p-3">
-                            Preencha o valor da venda para ver o lucro por venda (e o máximo que pode gastar por aquisição sem prejuízo).
-                          </p>
-                        )}
-                      </>
                     )}
                   </div>
                 )}
