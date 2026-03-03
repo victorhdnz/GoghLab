@@ -1500,36 +1500,6 @@ export default function AnalyticsPage() {
                             Meta de criativos: <strong>{strategyTier.minCreatives} a {strategyTier.maxCreatives} ativos</strong>
                           </p>
                         </div>
-                        <div>
-                          <p className="text-xs font-semibold text-gogh-black mb-2 flex items-center gap-1.5">
-                            <CalendarIcon className="w-3.5 h-3.5" />
-                            Plano de otimização · Dia {planoOtimizacao.daysSinceStart}
-                          </p>
-                          <div className="flex flex-wrap gap-2">
-                            {[
-                              { days: '1–5', phase: 'aprendizado', label: 'Aprendizado', action: 'Não mexer no orçamento.', hint: 'Preencha os dados no painel para o sistema acompanhar.' },
-                              { days: '7', phase: 'analise-7', label: '1ª análise', action: 'Atualize os dados no painel.', hint: 'Preencha os dados. O Status vai recomendar: manter, escalar ou trocar criativo.' },
-                              { days: '10–14', phase: 'novos-criativos', label: 'Novos criativos', action: `Adicione +1 ou 2 criativos (meta: ${strategyTier.minCreatives}–${strategyTier.maxCreatives} ativos).`, hint: 'Preencha os dados de cada um. Compare desempenho no Status.' },
-                              { days: '18+', phase: 'avaliacao', label: 'Contínuo (dia 19, 20…)', action: `Mantenha ${strategyTier.minCreatives}–${strategyTier.maxCreatives} criativos ativos.`, hint: 'Preencha os dados periodicamente. Reponha criativos fracos e siga as recomendações do Status.' },
-                            ].map((step) => {
-                              const isCurrent = planoOtimizacao.phase === step.phase
-                              return (
-                                <div
-                                  key={step.phase}
-                                  className={`rounded-lg px-3 py-2 text-xs border ${isCurrent ? 'bg-gogh-yellow/20 border-gogh-yellow' : 'bg-gogh-grayLight/30 border-gogh-grayLight'}`}
-                                >
-                                  <span className="font-medium text-gogh-black">Dia {step.days}</span>
-                                  <span className="text-gogh-grayDark"> · {step.label}</span>
-                                  {isCurrent && <span className="block mt-0.5 text-gogh-grayDark">{step.action}</span>}
-                                  {isCurrent && step.hint && <span className="block mt-1 text-gogh-grayDark/90 text-[11px]">{step.hint}</span>}
-                                </div>
-                              )
-                            })}
-                          </div>
-                          {planoOtimizacao.isPaused && (
-                            <p className="text-xs text-amber-700 mt-2">Campanha pausada.</p>
-                          )}
-                        </div>
 
                         <div className="border-t border-gogh-grayLight pt-4 mt-4">
                           <p className="text-xs font-semibold text-gogh-black mb-1 flex items-center gap-1.5">
@@ -1699,9 +1669,9 @@ export default function AnalyticsPage() {
                             }
                             return (
                               <div className="mb-4 flex flex-col items-center">
-                                <p className="text-[10px] text-gogh-grayDark mb-2 text-center">Amarelo = campanha · Verde = atualizar dados · Verde escuro = preenchido</p>
-                                <Card className="w-full max-w-[430px] py-4 border border-gogh-grayLight shadow-sm">
-                                  <CardContent className="px-4">
+                                <p className="text-[10px] text-gogh-grayDark mb-1.5 text-center">Amarelo = campanha · Verde = atualizar · Verde claro = preenchido</p>
+                                <Card className="w-full max-w-[380px] py-3 border border-gogh-grayLight shadow-sm">
+                                  <CardContent className="px-3">
                                     <DayPickerCalendar
                                       mode="single"
                                       month={campaignCalendarMonth}
@@ -1736,28 +1706,35 @@ export default function AnalyticsPage() {
                                         actionDay: '[&>button]:bg-emerald-500/50 [&>button]:text-gogh-black [&>button]:shadow-[inset_0_0_0_1px_rgba(16,185,129,0.6)]',
                                         actionDayFilled: '[&>button]:bg-emerald-400/70 [&>button]:text-white [&>button]:shadow-[inset_0_0_0_1px_rgba(52,211,153,0.9)]',
                                       }}
+                                      classNames={{
+                                        day_button: '!size-7',
+                                        day: '!size-7 !px-0',
+                                        weekday: '!size-7 !p-0 !text-[10px]',
+                                        month_caption: '!mb-0.5',
+                                        caption_label: '!text-xs',
+                                      }}
                                       className="bg-transparent p-0"
                                     />
                                   </CardContent>
-                                  <CardFooter className="flex flex-col items-stretch gap-2 border-t border-gogh-grayLight px-4 !pt-4 pb-4">
-                                    <div className="text-sm font-medium text-gogh-black">
+                                  <CardFooter className="flex flex-col items-stretch gap-1.5 border-t border-gogh-grayLight px-3 !pt-3 pb-3">
+                                    <div className="text-xs font-medium text-gogh-black">
                                       {campaignCalendarSelectedDate
-                                        ? campaignCalendarSelectedDate.toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' })
+                                        ? campaignCalendarSelectedDate.toLocaleDateString('pt-BR', { day: 'numeric', month: 'short', year: 'numeric' })
                                         : 'Selecione um dia'}
                                     </div>
                                     {campaignCalendarSelectedDate && getDayNum(campaignCalendarSelectedDate) != null && (
                                       <>
-                                        <div className="rounded-md bg-gogh-beige/30 border border-gogh-grayLight/80 p-2 text-[11px] text-gogh-grayDark w-full">
-                                          <p className="font-medium text-gogh-black">Dia {getDayNum(campaignCalendarSelectedDate)} da campanha{budgetPhases.length > 0 ? ` · Fase ${getPhaseForDay(getDayNum(campaignCalendarSelectedDate)!) + 1}` : ''}</p>
+                                        <div className="rounded-md bg-gogh-beige/30 border border-gogh-grayLight/80 p-1.5 text-[11px] text-gogh-grayDark w-full">
+                                          <p className="font-medium text-gogh-black text-[11px]">Dia {getDayNum(campaignCalendarSelectedDate)} da campanha{budgetPhases.length > 0 ? ` · Fase ${getPhaseForDay(getDayNum(campaignCalendarSelectedDate)!) + 1}` : ''}</p>
                                           {getMilestoneShort(getDayNum(campaignCalendarSelectedDate)!) && (
-                                            <p className="mt-0.5 leading-snug">{getMilestoneShort(getDayNum(campaignCalendarSelectedDate)!)}</p>
+                                            <p className="mt-0.5 leading-snug text-[11px]">{getMilestoneShort(getDayNum(campaignCalendarSelectedDate)!)}</p>
                                           )}
                                         </div>
                                         {isActionDay(getDayNum(campaignCalendarSelectedDate)!) && (
                                           <button
                                             type="button"
                                             onClick={() => campaignCalendarSelectedDate && toggleFilledDate(campaignCalendarSelectedDate)}
-                                            className={`text-[11px] font-medium px-2 py-1 rounded-md border transition-colors ${filledDatesSet.has(dateToKey(campaignCalendarSelectedDate)) ? 'bg-emerald-100 border-emerald-300 text-emerald-800' : 'bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100'}`}
+                                            className={`text-[10px] font-medium px-1.5 py-0.5 rounded border transition-colors ${filledDatesSet.has(dateToKey(campaignCalendarSelectedDate)) ? 'bg-emerald-100 border-emerald-300 text-emerald-800' : 'bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100'}`}
                                           >
                                             {filledDatesSet.has(dateToKey(campaignCalendarSelectedDate)) ? '✓ Preenchido' : 'Marcar como preenchido'}
                                           </button>

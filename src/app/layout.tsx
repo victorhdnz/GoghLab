@@ -5,7 +5,9 @@ import { PageTransition } from '@/components/layout/PageTransition'
 import { ConditionalLayout } from '@/components/layout/ConditionalLayout'
 import { ScrollEnabler } from '@/components/layout/ScrollEnabler'
 import { PurchaseNotificationGlobal } from '@/components/layout/PurchaseNotificationGlobal'
+import { GlobalNotificationSlotProvider } from '@/contexts/GlobalNotificationSlotContext'
 import { ContentStatusNotificationsGlobal } from '@/components/layout/ContentStatusNotificationsGlobal'
+import { AnalyticsNotificationGlobal } from '@/components/layout/AnalyticsNotificationGlobal'
 import { Toaster } from 'react-hot-toast'
 import { getSiteUrl } from '@/lib/utils/siteUrl'
 import { createServerClient } from '@/lib/supabase/server'
@@ -308,7 +310,10 @@ export default async function RootLayout({
           <NotFoundProvider>
             <ConditionalLayout initialSiteLogo={siteLogo ?? undefined} initialSiteName={siteName ?? undefined}>
               <PurchaseNotificationGlobal />
-              <ContentStatusNotificationsGlobal />
+              <GlobalNotificationSlotProvider>
+                <ContentStatusNotificationsGlobal />
+                <AnalyticsNotificationGlobal />
+              </GlobalNotificationSlotProvider>
               <PageTransition>
                 <main className="relative">
                   {children}

@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { useAuth } from '@/contexts/AuthContext'
 import { useTourBannerVisible } from '@/contexts/TourBannerVisibleContext'
 import { useOnboardingTour } from '@/contexts/OnboardingTourContext'
+import { useGlobalNotificationSlot } from '@/contexts/GlobalNotificationSlotContext'
 import CustomAlert from '@/components/ui/custom-alert'
 
 type CalendarItem = {
@@ -31,6 +32,7 @@ export function ContentStatusNotificationsGlobal() {
   const { isAuthenticated, hasActiveSubscription } = useAuth()
   const { isTourBannerVisible } = useTourBannerVisible() ?? {}
   const { isTourOpen } = useOnboardingTour() ?? {}
+  const slotContext = useGlobalNotificationSlot()
   const [items, setItems] = useState<CalendarItem[]>([])
   const [notice, setNotice] = useState<Notice | null>(null)
 
@@ -107,7 +109,13 @@ export function ContentStatusNotificationsGlobal() {
     else setNotice(null)
   }, [nextNotice])
 
-  if (!notice || !shouldRun) return null
+  useEffect(() => {
+    if (notice && shouldRun && slotContext) slotContext.claimSlot('agenda')
+  }, [notice, shouldRun, slotContext])
+
+  const canShow = notice && shouldRun && (!slotContext || slotContext.slot === 'agenda')
+
+  if (!canShow || !notice) return null
 
   return (
     <div className="fixed top-16 right-3 sm:right-4 z-[110] w-[min(calc(100vw-1.5rem),320px)] sm:w-[340px] pointer-events-none">
@@ -121,6 +129,7 @@ export function ContentStatusNotificationsGlobal() {
           onClose={() => {
             localStorage.setItem(`content_notice_dismissed:${notice.id}`, '1')
             setNotice(null)
+            slotContext?.releaseSlot()
           }}
           action={
             <Button
@@ -131,6 +140,7 @@ export function ContentStatusNotificationsGlobal() {
                 router.push('/planejamento')
                 localStorage.setItem(`content_notice_dismissed:${notice.id}`, '1')
                 setNotice(null)
+                slotContext?.releaseSlot()
               }}
             >
               Ir para agenda
