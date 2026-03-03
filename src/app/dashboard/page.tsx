@@ -16,7 +16,6 @@ import {
   BookOpen,
   Settings,
   CalendarDays,
-  TrendingUp,
 } from 'lucide-react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
@@ -56,20 +55,6 @@ function DashboardContent() {
           href: '/dashboard/pricing',
           icon: Sparkles,
           color: 'bg-yellow-500',
-        },
-      ],
-    },
-    {
-      title: 'Tráfego pago',
-      description: 'Painel inteligente de análise de campanhas e decisões',
-      icon: TrendingUp,
-      items: [
-        {
-          title: 'Painel de Campanhas',
-          description: 'Análise de anúncios, diagnóstico automático, simulador e LTV',
-          href: '/dashboard/campanhas',
-          icon: TrendingUp,
-          color: 'bg-blue-500',
         },
       ],
     },

@@ -21,6 +21,7 @@ import {
   RefreshCw,
   Calendar as CalendarIcon,
   ImageIcon,
+  Target,
 } from 'lucide-react'
 import { Calendar as DayPickerCalendar } from '@/components/ui/calendar'
 import { Card, CardContent, CardFooter } from '@/components/ui/card'
@@ -28,7 +29,7 @@ import { LumaSpin } from '@/components/ui/luma-spin'
 import { ShinyButton } from '@/components/ui/shiny-button'
 import toast from 'react-hot-toast'
 
-type AnalyticsAccordionId = 'campanhas' | 'roi' | 'status' | 'estrategia'
+type AnalyticsAccordionId = 'inicio' | 'campanhas' | 'roi' | 'status' | 'estrategia'
 
 interface AnalyticsCampaign {
   id: string
@@ -75,6 +76,7 @@ const BUDGET_PHASES_STORAGE_KEY = 'gogh_analytics_budget_phases'
 const BUDGET_TYPE_STORAGE_KEY = 'gogh_analytics_budget_type' // CBO = campanha (por dia na campanha); ABO = conjunto (por conjunto)
 const AUTO_DIAS_RECOMMENDATION_KEY = 'gogh_analytics_auto_dias'
 const FILLED_DATES_STORAGE_KEY = 'gogh_analytics_dias_preenchidos' // por campanha: { [campaignId]: string[] } (YYYY-MM-DD)
+const HAS_EXISTING_ADS_KEY = 'gogh_analytics_has_existing_ads' // true = já tem anúncio/campanha, false = criar do zero, null = não respondeu
 type BudgetTypeMeta = 'cbo' | 'abo'
 
 function dateToKey(d: Date): string {
@@ -136,10 +138,7 @@ export default function AnalyticsPage() {
   const hasAccess = isAuthenticated && isPro
 
   const [mounted, setMounted] = useState(false)
-  const [accordionOpen, setAccordionOpen] = useState<AnalyticsAccordionId | null>(() => {
-    if (typeof window === 'undefined') return 'roi'
-    return localStorage.getItem('gogh_analytics_ja_salvou') ? null : 'roi'
-  })
+  const [accordionOpen, setAccordionOpen] = useState<AnalyticsAccordionId | null>(null)
   const [savingDados, setSavingDados] = useState(false)
   const [campaigns, setCampaigns] = useState<AnalyticsCampaign[]>([])
   const [selectedCampaignId, setSelectedCampaignIdState] = useState<string | null>(null)
@@ -184,6 +183,13 @@ export default function AnalyticsPage() {
   const [campaignCalendarMonth, setCampaignCalendarMonth] = useState<Date>(() => new Date())
   const [campaignCalendarSelectedDate, setCampaignCalendarSelectedDate] = useState<Date | undefined>(undefined)
   const [filledDatesSet, setFilledDatesSet] = useState<Set<string>>(new Set())
+  const [hasExistingAds, setHasExistingAds] = useState<boolean | null>(() => {
+    if (typeof window === 'undefined') return null
+    const v = localStorage.getItem(HAS_EXISTING_ADS_KEY)
+    if (v === '1') return true
+    if (v === '0') return false
+    return null
+  })
 
   const buildCampaignSignature = () =>
     JSON.stringify({
@@ -394,6 +400,15 @@ export default function AnalyticsPage() {
   useEffect(() => {
     if (typeof window !== 'undefined') localStorage.setItem(BUDGET_TYPE_STORAGE_KEY, budgetTypeMeta)
   }, [budgetTypeMeta])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    if (hasExistingAds === null) {
+      localStorage.removeItem(HAS_EXISTING_ADS_KEY)
+    } else {
+      localStorage.setItem(HAS_EXISTING_ADS_KEY, hasExistingAds ? '1' : '0')
+    }
+  }, [hasExistingAds])
 
   const parseNum = (s: string) => parseFloat(String(s).replace(',', '.')) || 0
   const toNum = (s: string) => (s.trim() ? parseNum(s) : 0)
@@ -845,7 +860,7 @@ export default function AnalyticsPage() {
   const isRoiComplete = !roiEnabled || (roiEnabled && (valorVenda ?? '').trim().length > 0)
 
   const getAccordionCardClass = (sectionId: AnalyticsAccordionId): string => {
-    if (sectionId === 'status' || sectionId === 'estrategia') return 'bg-white border-gogh-grayLight'
+    if (sectionId === 'inicio' || sectionId === 'status' || sectionId === 'estrategia') return 'bg-white border-gogh-grayLight'
     if (sectionId === 'campanhas') {
       const campanhasDirty = isProfileDirty
       const campanhasIncomplete = selectedCampaignId && !isDadosCampanhaComplete
@@ -1155,6 +1170,159 @@ export default function AnalyticsPage() {
                 </div>
                 <div className="space-y-2">
                 {accordionCard(
+                  'inicio',
+                  'Como você está?',
+                  hasExistingAds === true ? 'Já tenho anúncio ou campanha' : hasExistingAds === false ? 'Vou criar do zero' : 'Defina para personalizar o fluxo',
+                  <Target className="w-4 h-4 text-gogh-grayDark" />,
+                  <div className="pt-3 space-y-4">
+                    <p className="text-sm text-gogh-grayDark">
+                      Assim o painel se adapta: quem já tem anúncio/campanha rodando continua com gestão e análise; quem ainda não tem nada criado segue do planejamento até a criação.
+                    </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setHasExistingAds(true)}
+                        className={`rounded-xl border-2 p-4 text-left transition-colors ${hasExistingAds === true ? 'border-gogh-yellow bg-gogh-yellow/10' : 'border-gogh-grayLight hover:border-gogh-grayLight/80 bg-white'}`}
+                      >
+                        <span className="block font-medium text-gogh-black">Já tenho anúncio ou campanha rodando</span>
+                        <span className="block text-xs text-gogh-grayDark mt-0.5">Quero continuar com gestão e análise dos dados.</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setHasExistingAds(false)}
+                        className={`rounded-xl border-2 p-4 text-left transition-colors ${hasExistingAds === false ? 'border-gogh-yellow bg-gogh-yellow/10' : 'border-gogh-grayLight hover:border-gogh-grayLight/80 bg-white'}`}
+                      >
+                        <span className="block font-medium text-gogh-black">Ainda não tenho nada criado</span>
+                        <span className="block text-xs text-gogh-grayDark mt-0.5">Preciso criar estratégia, campanhas e anúncios do zero.</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {accordionCard(
+                  'roi',
+                  'Planejamento de valores',
+                  null,
+                  <DollarSign className="w-4 h-4 text-gogh-grayDark" />,
+                  <div className="pt-3 space-y-4">
+                    <p className="text-sm text-gogh-grayDark">
+                      Não são dados do Meta. Configure o <strong>valor da venda</strong> e o <strong>custo por venda</strong> do seu negócio para o sistema refletir lucro e recomendações no Status.
+                    </p>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={roiEnabled}
+                        onChange={(e) => setRoiEnabled(e.target.checked)}
+                        className="rounded border-gogh-grayLight"
+                      />
+                      <span className="text-sm font-medium text-gogh-grayDark">Usar planejamento de valores no status (valor da venda, custo, lucro)</span>
+                    </label>
+                    {roiEnabled && (
+                      <>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gogh-grayDark mb-1">Preço do produto/serviço (R$)</label>
+                            <input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              value={valorVenda}
+                              onChange={(e) => setValorVenda(e.target.value)}
+                              placeholder="Ex: 97"
+                              className={`w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 ${getFieldBorderClass('roi')}`}
+                            />
+                            <p className="text-xs text-gogh-grayDark mt-0.5">Preço que você cobra pelo produto ou serviço.</p>
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gogh-grayDark mb-1">Custo variável por venda (R$)</label>
+                            <input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              value={custoVenda}
+                              onChange={(e) => setCustoVenda(e.target.value)}
+                              placeholder="0 se não tiver (ex.: serviço sem custo variável)"
+                              className={`w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 ${getFieldBorderClass('roi')}`}
+                            />
+                            <p className="text-xs text-gogh-grayDark mt-0.5">O que você gasta para entregar uma unidade (produto, frete, taxa, etc.). Deixe 0 se não tiver.</p>
+                          </div>
+                          <div className="sm:col-span-2">
+                            <label className="block text-sm font-medium text-gogh-grayDark mb-1">Meta de lucro por venda (R$) — opcional</label>
+                            <input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              value={metaLucroPorVenda}
+                              onChange={(e) => setMetaLucroPorVenda(e.target.value)}
+                              placeholder="Ex: 20 — lucro mínimo desejado por venda"
+                              className={`w-full border rounded-lg px-3 py-2 text-sm max-w-[240px] focus:ring-2 ${getFieldBorderClass('roi')}`}
+                            />
+                            <p className="text-xs text-gogh-grayDark mt-0.5">Quanto você quer lucrar por venda. O sistema usa isso para calcular o custo máximo aceitável (CPA limite).</p>
+                          </div>
+                        </div>
+                        {valorNum > 0 ? (
+                          <div className="space-y-3">
+                            <div
+                              className={`rounded-xl border-2 p-4 ${
+                                lucroPorVenda > 0
+                                  ? 'bg-green-50 border-green-200'
+                                  : lucroPorVenda < 0
+                                    ? 'bg-red-50 border-red-200'
+                                    : 'bg-amber-50 border-amber-200'
+                              }`}
+                            >
+                              <p className="text-sm font-medium text-gogh-black mb-1">Lucro bruto por venda</p>
+                              <p className="text-lg font-bold">
+                                {lucroPorVenda > 0 ? (
+                                  <span className="text-green-700">R$ {lucroPorVenda.toFixed(2).replace('.', ',')}</span>
+                                ) : lucroPorVenda < 0 ? (
+                                  <span className="text-red-700">R$ {lucroPorVenda.toFixed(2).replace('.', ',')}</span>
+                                ) : (
+                                  <span className="text-amber-700">R$ 0,00</span>
+                                )}
+                              </p>
+                              <p className="text-xs text-gogh-grayDark mt-1">
+                                Preço (R$ {valorNum.toFixed(2).replace('.', ',')}) − Custo variável (R$ {custoNum.toFixed(2).replace('.', ',')})
+                              </p>
+                              {valorNum > 0 && lucroPorVenda > 0 && (
+                                <p className="text-xs text-gogh-grayDark mt-2">
+                                  Margem: {((lucroPorVenda / valorNum) * 100).toFixed(1).replace('.', ',')}%
+                                </p>
+                              )}
+                              {custoMaxAceitavel > 0 && (
+                                <div className="mt-3 pt-3 border-t border-gogh-grayLight/50">
+                                  <p className="text-sm font-medium text-gogh-black">Custo máximo aceitável (CPA)</p>
+                                  <p className="text-base font-bold text-gogh-grayDark">R$ {custoMaxAceitavel.toFixed(2).replace('.', ',')}</p>
+                                  <p className="text-xs text-gogh-grayDark mt-0.5">
+                                    {metaLucroNum > 0
+                                      ? `Máximo que você pode gastar por aquisição e ainda manter a meta de lucro (R$ ${metaLucroNum.toFixed(2).replace('.', ',')}).`
+                                      : 'Máximo que você pode gastar por aquisição sem prejuízo (ponto de equilíbrio).'}
+                                  </p>
+                                </div>
+                              )}
+                              {lucroPorVenda > 0 && (
+                                <p className="text-xs font-medium text-green-700 mt-2 flex items-center gap-1">
+                                  <CheckCircle2 className="w-4 h-4" /> Mantenha o CPA da campanha abaixo de R$ {custoMaxAceitavel.toFixed(2).replace('.', ',')} para operar com margem.
+                                </p>
+                              )}
+                              {lucroPorVenda <= 0 && valorNum > 0 && (
+                                <p className="text-xs font-medium text-amber-700 mt-2 flex items-center gap-1">
+                                  <AlertTriangle className="w-4 h-4" /> Ajuste o preço ou o custo variável para ter lucro por venda.
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        ) : (
+                          <p className="text-sm text-gogh-grayDark bg-gogh-grayLight/50 rounded-lg p-3">
+                            Preencha o valor da venda para ver o lucro por venda (e o máximo que pode gastar por aquisição sem prejuízo).
+                          </p>
+                        )}
+                      </>
+                    )}
+                  </div>
+                )}
+
+                {accordionCard(
                   'campanhas',
                   'Campanhas',
                   selectedCampaign ? `${selectedCampaign.name} · Início ${selectedCampaign.start_date}` : 'Crie, ative ou pause campanhas',
@@ -1333,129 +1501,6 @@ export default function AnalyticsPage() {
                 )}
 
                 {accordionCard(
-                  'roi',
-                  'Planejamento de valores',
-                  null,
-                  <DollarSign className="w-4 h-4 text-gogh-grayDark" />,
-                  <div className="pt-3 space-y-4">
-                    <p className="text-sm text-gogh-grayDark">
-                      Não são dados do Meta. Configure o <strong>valor da venda</strong> e o <strong>custo por venda</strong> do seu negócio para o sistema refletir lucro e recomendações no Status.
-                    </p>
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={roiEnabled}
-                        onChange={(e) => setRoiEnabled(e.target.checked)}
-                        className="rounded border-gogh-grayLight"
-                      />
-                      <span className="text-sm font-medium text-gogh-grayDark">Usar planejamento de valores no status (valor da venda, custo, lucro)</span>
-                    </label>
-                    {roiEnabled && (
-                      <>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                          <div>
-                            <label className="block text-sm font-medium text-gogh-grayDark mb-1">Preço do produto/serviço (R$)</label>
-                            <input
-                              type="number"
-                              min="0"
-                              step="0.01"
-                              value={valorVenda}
-                              onChange={(e) => setValorVenda(e.target.value)}
-                              placeholder="Ex: 97"
-                              className={`w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 ${getFieldBorderClass('roi')}`}
-                            />
-                            <p className="text-xs text-gogh-grayDark mt-0.5">Preço que você cobra pelo produto ou serviço.</p>
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gogh-grayDark mb-1">Custo variável por venda (R$)</label>
-                            <input
-                              type="number"
-                              min="0"
-                              step="0.01"
-                              value={custoVenda}
-                              onChange={(e) => setCustoVenda(e.target.value)}
-                              placeholder="0 se não tiver (ex.: serviço sem custo variável)"
-                              className={`w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 ${getFieldBorderClass('roi')}`}
-                            />
-                            <p className="text-xs text-gogh-grayDark mt-0.5">O que você gasta para entregar uma unidade (produto, frete, taxa, etc.). Deixe 0 se não tiver.</p>
-                          </div>
-                          <div className="sm:col-span-2">
-                            <label className="block text-sm font-medium text-gogh-grayDark mb-1">Meta de lucro por venda (R$) — opcional</label>
-                            <input
-                              type="number"
-                              min="0"
-                              step="0.01"
-                              value={metaLucroPorVenda}
-                              onChange={(e) => setMetaLucroPorVenda(e.target.value)}
-                              placeholder="Ex: 20 — lucro mínimo desejado por venda"
-                              className={`w-full border rounded-lg px-3 py-2 text-sm max-w-[240px] focus:ring-2 ${getFieldBorderClass('roi')}`}
-                            />
-                            <p className="text-xs text-gogh-grayDark mt-0.5">Quanto você quer lucrar por venda. O sistema usa isso para calcular o custo máximo aceitável (CPA limite).</p>
-                          </div>
-                        </div>
-                        {valorNum > 0 ? (
-                          <div className="space-y-3">
-                            <div
-                              className={`rounded-xl border-2 p-4 ${
-                                lucroPorVenda > 0
-                                  ? 'bg-green-50 border-green-200'
-                                  : lucroPorVenda < 0
-                                    ? 'bg-red-50 border-red-200'
-                                    : 'bg-amber-50 border-amber-200'
-                              }`}
-                            >
-                              <p className="text-sm font-medium text-gogh-black mb-1">Lucro bruto por venda</p>
-                              <p className="text-lg font-bold">
-                                {lucroPorVenda > 0 ? (
-                                  <span className="text-green-700">R$ {lucroPorVenda.toFixed(2).replace('.', ',')}</span>
-                                ) : lucroPorVenda < 0 ? (
-                                  <span className="text-red-700">R$ {lucroPorVenda.toFixed(2).replace('.', ',')}</span>
-                                ) : (
-                                  <span className="text-amber-700">R$ 0,00</span>
-                                )}
-                              </p>
-                              <p className="text-xs text-gogh-grayDark mt-1">
-                                Preço (R$ {valorNum.toFixed(2).replace('.', ',')}) − Custo variável (R$ {custoNum.toFixed(2).replace('.', ',')})
-                              </p>
-                              {valorNum > 0 && lucroPorVenda > 0 && (
-                                <p className="text-xs text-gogh-grayDark mt-2">
-                                  Margem: {((lucroPorVenda / valorNum) * 100).toFixed(1).replace('.', ',')}%
-                                </p>
-                              )}
-                              {custoMaxAceitavel > 0 && (
-                                <div className="mt-3 pt-3 border-t border-gogh-grayLight/50">
-                                  <p className="text-sm font-medium text-gogh-black">Custo máximo aceitável (CPA)</p>
-                                  <p className="text-base font-bold text-gogh-grayDark">R$ {custoMaxAceitavel.toFixed(2).replace('.', ',')}</p>
-                                  <p className="text-xs text-gogh-grayDark mt-0.5">
-                                    {metaLucroNum > 0
-                                      ? `Máximo que você pode gastar por aquisição e ainda manter a meta de lucro (R$ ${metaLucroNum.toFixed(2).replace('.', ',')}).`
-                                      : 'Máximo que você pode gastar por aquisição sem prejuízo (ponto de equilíbrio).'}
-                                  </p>
-                                </div>
-                              )}
-                              {lucroPorVenda > 0 && (
-                                <p className="text-xs font-medium text-green-700 mt-2 flex items-center gap-1">
-                                  <CheckCircle2 className="w-4 h-4" /> Mantenha o CPA da campanha abaixo de R$ {custoMaxAceitavel.toFixed(2).replace('.', ',')} para operar com margem.
-                                </p>
-                              )}
-                              {lucroPorVenda <= 0 && valorNum > 0 && (
-                                <p className="text-xs font-medium text-amber-700 mt-2 flex items-center gap-1">
-                                  <AlertTriangle className="w-4 h-4" /> Ajuste o preço ou o custo variável para ter lucro por venda.
-                                </p>
-                              )}
-                            </div>
-                          </div>
-                        ) : (
-                          <p className="text-sm text-gogh-grayDark bg-gogh-grayLight/50 rounded-lg p-3">
-                            Preencha o valor da venda para ver o lucro por venda (e o máximo que pode gastar por aquisição sem prejuízo).
-                          </p>
-                        )}
-                      </>
-                    )}
-                  </div>
-                )}
-
-                {accordionCard(
                   'estrategia',
                   'Estratégia e planejamento de investimento',
                   selectedCampaignId && planoOtimizacao.daysSinceStart != null ? `Nível ${strategyTier.label} · Dia ${planoOtimizacao.daysSinceStart}` : 'Nível de investimento, meta de criativos e plano de otimização',
@@ -1588,7 +1633,10 @@ export default function AnalyticsPage() {
                                   value={newPhaseDias}
                                   onChange={(e) => setNewPhaseDias(e.target.value)}
                                   placeholder="Ex: 18"
-                                  className="w-20 border border-gogh-grayLight rounded-lg px-2 py-1 text-xs"
+                                  disabled={useAutoDiasRecommendation}
+                                  readOnly={useAutoDiasRecommendation}
+                                  title={useAutoDiasRecommendation ? 'Preenchido automaticamente pelo nível; desmarque a opção acima para editar.' : undefined}
+                                  className={`w-20 border border-gogh-grayLight rounded-lg px-2 py-1 text-xs ${useAutoDiasRecommendation ? 'bg-gogh-grayLight/50 cursor-not-allowed' : ''}`}
                                 />
                               </div>
                               {(() => {
@@ -1638,7 +1686,7 @@ export default function AnalyticsPage() {
                             start.setHours(0, 0, 0, 0)
                             const totalDias = budgetPhases.length > 0
                               ? Math.min(budgetPhases.reduce((s, p) => s + p.dias, 0), 60)
-                              : 35
+                              : 0
                             const endDate = new Date(start)
                             endDate.setDate(endDate.getDate() + totalDias)
                             const getDayNum = (date: Date): number | null => {
