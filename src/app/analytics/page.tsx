@@ -19,9 +19,11 @@ import {
   AlertTriangle,
   TrendingUp,
   RefreshCw,
-  Calendar,
+  Calendar as CalendarIcon,
   ImageIcon,
 } from 'lucide-react'
+import { Calendar as DayPickerCalendar } from '@/components/ui/calendar'
+import { Card, CardContent, CardFooter } from '@/components/ui/card'
 import { LumaSpin } from '@/components/ui/luma-spin'
 import { ShinyButton } from '@/components/ui/shiny-button'
 import toast from 'react-hot-toast'
@@ -167,6 +169,8 @@ export default function AnalyticsPage() {
     if (typeof window === 'undefined') return false
     return localStorage.getItem(AUTO_DIAS_RECOMMENDATION_KEY) === '1'
   })
+  const [campaignCalendarMonth, setCampaignCalendarMonth] = useState<Date>(() => new Date())
+  const [campaignCalendarSelectedDate, setCampaignCalendarSelectedDate] = useState<Date | undefined>(undefined)
 
   const buildCampaignSignature = () =>
     JSON.stringify({
@@ -304,6 +308,15 @@ export default function AnalyticsPage() {
     }
   }, [selectedCampaignId])
 
+  useEffect(() => {
+    const camp = selectedCampaignId ? campaigns.find((c) => c.id === selectedCampaignId) : null
+    if (camp?.start_date) {
+      const start = new Date(camp.start_date + 'T12:00:00')
+      setCampaignCalendarMonth(new Date(start.getFullYear(), start.getMonth(), 1))
+      setCampaignCalendarSelectedDate(undefined)
+    }
+  }, [selectedCampaignId, campaigns])
+
   const persistBudgetPhases = (campaignId: string, phases: BudgetPhase[]) => {
     try {
       const raw = typeof window !== 'undefined' ? localStorage.getItem(BUDGET_PHASES_STORAGE_KEY) : null
@@ -436,6 +449,17 @@ export default function AnalyticsPage() {
     const dias = Math.max(1, Math.round(v / suggestedDailyForPlanning))
     setNewPhaseDias(String(dias))
   }, [useAutoDiasRecommendation, newPhaseValor, selectedCampaignId, suggestedDailyForPlanning])
+
+  useEffect(() => {
+    if (!selectedCampaign?.start_date) {
+      setCampaignCalendarSelectedDate(undefined)
+      return
+    }
+    const start = new Date(selectedCampaign.start_date + 'T12:00:00')
+    start.setHours(0, 0, 0, 0)
+    setCampaignCalendarMonth(new Date(start.getFullYear(), start.getMonth(), 1))
+    setCampaignCalendarSelectedDate((prev) => (prev ? prev : start))
+  }, [selectedCampaign?.start_date])
 
   const { score, statusGeral, statusAlerts, hasDataForDiagnosis } = useMemo(() => {
     // Só considera que há dados quando existir pelo menos uma métrica dos criativos/campanha
@@ -1434,7 +1458,7 @@ export default function AnalyticsPage() {
                         </div>
                         <div>
                           <p className="text-xs font-semibold text-gogh-black mb-2 flex items-center gap-1.5">
-                            <Calendar className="w-3.5 h-3.5" />
+                            <CalendarIcon className="w-3.5 h-3.5" />
                             Plano de otimização · Dia {planoOtimizacao.daysSinceStart}
                           </p>
                           <div className="flex flex-wrap gap-2">
@@ -1524,66 +1548,81 @@ export default function AnalyticsPage() {
                             const totalDias = budgetPhases.length > 0
                               ? Math.min(budgetPhases.reduce((s, p) => s + p.dias, 0), 60)
                               : 35
-                            const phaseColors = ['bg-gogh-yellow/50', 'bg-amber-400/50', 'bg-orange-400/50', 'bg-amber-600/50']
-                            const getMilestone = (dayNum: number): string | null => {
-                              if (dayNum >= 1 && dayNum <= 5) return 'Aprendizado'
-                              if (dayNum === 7) return '1ª análise'
-                              if (dayNum >= 10 && dayNum <= 14) return 'Novos criativos'
-                              if (dayNum >= 18) return 'Contínuo'
-                              return null
+                            const endDate = new Date(start)
+                            endDate.setDate(endDate.getDate() + totalDias)
+                            const getDayNum = (date: Date): number | null => {
+                              const d = new Date(date)
+                              d.setHours(0, 0, 0, 0)
+                              const s = new Date(start)
+                              s.setHours(0, 0, 0, 0)
+                              const e = new Date(endDate)
+                              e.setHours(0, 0, 0, 0)
+                              if (d < s || d >= e) return null
+                              return Math.floor((d.getTime() - s.getTime()) / (24 * 60 * 60 * 1000)) + 1
                             }
-                            const days: { dayNum: number; date: Date; phaseIndex: number; milestone: string | null }[] = []
-                            let dayOffset = 0
-                            for (let i = 0; i < totalDias; i++) {
-                              const d = new Date(start)
-                              d.setDate(d.getDate() + i)
-                              let phaseIndex = 0
-                              if (budgetPhases.length > 0) {
-                                let acc = 0
-                                for (let p = 0; p < budgetPhases.length; p++) {
-                                  acc += budgetPhases[p].dias
-                                  if (i + 1 <= acc) { phaseIndex = p; break }
-                                }
+                            const getMilestoneText = (dayNum: number): string => {
+                              if (dayNum >= 1 && dayNum <= 5) return 'Aprendizado — Não mexer no orçamento. Preencha os dados no painel para o sistema acompanhar.'
+                              if (dayNum === 7) return '1ª análise — Atualize os dados no painel. O Status vai recomendar: manter, escalar ou trocar criativo.'
+                              if (dayNum >= 10 && dayNum <= 14) return `Novos criativos — Adicione +1 ou 2 criativos (meta: ${strategyTier.minCreatives}–${strategyTier.maxCreatives} ativos). Preencha os dados de cada um.`
+                              if (dayNum >= 18) return `Contínuo — Mantenha ${strategyTier.minCreatives}–${strategyTier.maxCreatives} criativos ativos. Preencha os dados periodicamente e siga as recomendações do Status.`
+                              return ''
+                            }
+                            const getPhaseForDay = (dayNum: number): number => {
+                              if (budgetPhases.length === 0) return 0
+                              let acc = 0
+                              for (let p = 0; p < budgetPhases.length; p++) {
+                                acc += budgetPhases[p].dias
+                                if (dayNum <= acc) return p
                               }
-                              days.push({ dayNum: i + 1, date: d, phaseIndex, milestone: getMilestone(i + 1) })
+                              return budgetPhases.length - 1
                             }
-                            const byMonth = days.reduce((acc, { date, dayNum, phaseIndex, milestone }) => {
-                              const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
-                              if (!acc[key]) acc[key] = { label: date.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' }), days: [] }
-                              acc[key].days.push({ dayNum, day: date.getDate(), phaseIndex, milestone })
-                              return acc
-                            }, {} as Record<string, { label: string; days: { dayNum: number; day: number; phaseIndex: number; milestone: string | null }[] }>)
-                            const weekDays = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
                             return (
                               <div className="mb-4">
-                                <p className="text-[11px] font-medium text-gogh-black mb-1.5">Calendário da campanha (dias com ação do plano em destaque)</p>
-                                <p className="text-[10px] text-gogh-grayDark mb-2">Cores de fundo = fases de orçamento. Borda colorida = dia com ação: azul = 1ª análise (dia 7), verde = Novos criativos (10–14), âmbar = Contínuo (18+).</p>
-                                <div className="flex flex-wrap gap-4">
-                                  {Object.entries(byMonth).map(([key, { label, days: monthDays }]) => {
-                                    const firstDayDate = monthDays.length > 0 ? (() => { const d = new Date(start); d.setDate(d.getDate() + (monthDays[0].dayNum - 1)); return d; })() : null
-                                    const padStart = firstDayDate ? firstDayDate.getDay() : 0
-                                    return (
-                                      <div key={key} className="rounded-xl border border-gogh-grayLight bg-white p-3 shadow-sm">
-                                        <p className="text-xs font-semibold text-gogh-black mb-2">{label}</p>
-                                        <div className="grid grid-cols-7 gap-0.5 text-[10px] text-gogh-grayDark mb-1">
-                                          {weekDays.map((w) => <div key={w} className="w-7 h-5 flex items-center justify-center font-medium">{w}</div>)}
-                                        </div>
-                                        <div className="grid grid-cols-7 gap-0.5">
-                                          {Array.from({ length: padStart }, (_, i) => <div key={`pad-${i}`} className="w-7 h-7" />)}
-                                          {monthDays.map(({ dayNum, day, phaseIndex, milestone }) => (
-                                            <div
-                                              key={dayNum}
-                                              title={milestone ? `Dia ${dayNum} · ${milestone}` : `Dia ${dayNum} · Fase ${phaseIndex + 1}`}
-                                              className={`w-7 h-7 rounded-md flex items-center justify-center text-[10px] font-medium border ${phaseColors[phaseIndex % phaseColors.length]} ${milestone === '1ª análise' ? 'ring-2 ring-blue-500 ring-inset' : milestone === 'Novos criativos' ? 'ring-2 ring-emerald-500 ring-inset' : milestone === 'Contínuo' ? 'ring-2 ring-amber-600 ring-inset' : milestone === 'Aprendizado' ? 'ring-2 ring-amber-700/80 ring-inset' : 'border-gogh-grayLight/50'}`}
-                                            >
-                                              {day}
-                                            </div>
-                                          ))}
-                                        </div>
+                                <p className="text-[11px] font-medium text-gogh-black mb-2">Calendário da campanha (igual ao da Agenda): passe os meses e clique em um dia para ver a ação do plano nesse dia.</p>
+                                <Card className="w-full max-w-[430px] py-4 border border-gogh-grayLight">
+                                  <CardContent className="px-4">
+                                    <DayPickerCalendar
+                                      mode="single"
+                                      month={campaignCalendarMonth}
+                                      selected={campaignCalendarSelectedDate}
+                                      onMonthChange={(month) => setCampaignCalendarMonth(new Date(month.getFullYear(), month.getMonth(), 1))}
+                                      onSelect={(date) => { if (date) setCampaignCalendarSelectedDate(date) }}
+                                      disabled={(date) => {
+                                        const d = new Date(date)
+                                        d.setHours(0, 0, 0, 0)
+                                        const s = new Date(start)
+                                        s.setHours(0, 0, 0, 0)
+                                        const e = new Date(endDate)
+                                        e.setHours(0, 0, 0, 0)
+                                        return d < s || d >= e
+                                      }}
+                                      className="bg-transparent p-0"
+                                    />
+                                  </CardContent>
+                                  <CardFooter className="flex flex-col items-start gap-2 border-t border-gogh-grayLight px-4 !pt-4">
+                                    <div className="text-sm font-medium text-gogh-black">
+                                      {campaignCalendarSelectedDate
+                                        ? campaignCalendarSelectedDate.toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' })
+                                        : 'Selecione um dia'}
+                                    </div>
+                                    {campaignCalendarSelectedDate && getDayNum(campaignCalendarSelectedDate) != null && (
+                                      <div className="rounded-md bg-gogh-beige/40 border border-gogh-grayLight p-3 text-xs text-gogh-grayDark w-full">
+                                        <p className="font-medium text-gogh-black mb-0.5">Dia {getDayNum(campaignCalendarSelectedDate)} da campanha</p>
+                                        {getMilestoneText(getDayNum(campaignCalendarSelectedDate)!) && (
+                                          <p className="mt-1">{getMilestoneText(getDayNum(campaignCalendarSelectedDate)!)}</p>
+                                        )}
+                                        {budgetPhases.length > 0 && (
+                                          <p className="mt-1 text-gogh-grayDark">
+                                            Fase {getPhaseForDay(getDayNum(campaignCalendarSelectedDate)!) + 1} de orçamento
+                                            {budgetPhases[getPhaseForDay(getDayNum(campaignCalendarSelectedDate)!)] && (
+                                              <> · R$ {budgetPhases[getPhaseForDay(getDayNum(campaignCalendarSelectedDate)!)].valor.toFixed(2).replace('.', ',')} em {budgetPhases[getPhaseForDay(getDayNum(campaignCalendarSelectedDate)!)].dias} dias</>
+                                            )}
+                                          </p>
+                                        )}
                                       </div>
-                                    )
-                                  })}
-                                </div>
+                                    )}
+                                  </CardFooter>
+                                </Card>
                               </div>
                             )
                           })()}
