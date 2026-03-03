@@ -258,12 +258,17 @@ export default function AnalyticsPage() {
         scoreLucro = 15
       }
       if (custoMaxAceitavel > 0 && cpaUsado > 0) {
+        const cpaStr = `R$ ${cpaUsado.toFixed(2).replace('.', ',')}`
+        const limiteStr = `R$ ${custoMaxAceitavel.toFixed(2).replace('.', ',')}`
         if (cpaUsado > lucroBruto) {
           scoreCpa = 0
           alerts.push({ type: 'danger', text: 'CPA acima do lucro por venda. Você está no prejuízo por aquisição. Não escale.' })
-        } else if (cpaUsado >= custoMaxAceitavel) {
+        } else if (cpaUsado > custoMaxAceitavel) {
+          scoreCpa = 0
+          alerts.push({ type: 'danger', text: `CPA (${cpaStr}) ultrapassou o limite (${limiteStr}). Margem comprometida. Não escalar.` })
+        } else if (cpaUsado >= custoMaxAceitavel * 0.98) {
           scoreCpa = 8
-          alerts.push({ type: 'warning', text: 'Margem comprometida. CPA próximo ou acima do limite. Não escalar.' })
+          alerts.push({ type: 'warning', text: `CPA (${cpaStr}) no limite (${limiteStr}). Margem comprometida. Não escalar.` })
         } else if (cpaUsado < custoMaxAceitavel * 0.8) {
           scoreCpa = 20
           alerts.push({ type: 'success', text: 'Campanha eficiente. CPA abaixo do limite. Escala recomendada.' })
@@ -659,7 +664,7 @@ export default function AnalyticsPage() {
                 {accordionCard(
                   'roi',
                   'Planejamento de valores',
-                  roiEnabled ? `Lucro por venda: ${valorNum > 0 ? `R$ ${lucroPorVenda.toFixed(2).replace('.', ',')}` : '—'}` : 'Usar ou não: configure valor da venda e custos para refletir no status',
+                  null,
                   <DollarSign className="w-4 h-4 text-gogh-grayDark" />,
                   <div className="pt-3 space-y-4">
                     <p className="text-sm text-gogh-grayDark">
@@ -819,16 +824,19 @@ export default function AnalyticsPage() {
                           </div>
                         </div>
                         <div>
-                          <p className="text-sm font-medium text-gogh-grayDark mb-1">CPA (R$) — calculado automaticamente</p>
-                          <p className="text-base font-semibold text-gogh-black bg-gogh-grayLight/30 rounded-lg px-3 py-2 inline-block min-w-[120px]">
+                          <label className="block text-sm font-medium text-gogh-grayDark mb-1">CPA (R$) — calculado automaticamente</label>
+                          <div
+                            className="w-full max-w-[200px] border border-gogh-grayLight rounded-lg px-3 py-2 text-sm font-medium text-gogh-black bg-gogh-grayLight/50 cursor-default select-none"
+                            aria-readonly
+                          >
                             {cpaCalculadoDisplay != null
                               ? `R$ ${cpaCalculadoDisplay.toFixed(2).replace('.', ',')}`
                               : '—'}
-                          </p>
+                          </div>
                           <p className="text-xs text-gogh-grayDark mt-1">
                             {comprasNum > 0
-                              ? 'Valor investido ÷ compras. Este CPA é usado no Status e nas recomendações (margem, prejuízo, escala).'
-                              : 'Preencha valor investido e compras para o sistema calcular o CPA e avaliar a campanha.'}
+                              ? 'Valor investido ÷ compras.'
+                              : 'Preencha valor investido e compras para o sistema calcular o CPA.'}
                           </p>
                         </div>
                         {(impressoesNum > 0 || cliquesNum > 0 || comprasNum > 0 || valorInvestidoNum > 0) && (
