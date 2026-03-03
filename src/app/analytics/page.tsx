@@ -71,6 +71,35 @@ const CTR_BOM = 1.5
 const CTR_MEDIO = 1
 const CONV_FORTE = 3
 const CONV_MEDIO = 1.5
+// Só sugerir valor de aumento de investimento a partir do dia 18 (fase de avaliação), evitando recomendação precoce
+const DIAS_MINIMOS_PARA_SUGERIR_AUMENTO = 18
+
+// Ecossistema de estratégia por faixa de investimento: análise e recomendações se adaptam ao capital investido
+const STRATEGY_TIERS = {
+  baixo: {
+    label: 'Baixo',
+    dailyInvestMax: 49.99,
+    minCreatives: 2,
+    maxCreatives: 3,
+    description: 'Até ~R$ 50/dia',
+  },
+  medio: {
+    label: 'Médio',
+    dailyInvestMax: 299.99,
+    minCreatives: 3,
+    maxCreatives: 5,
+    description: 'R$ 50 a ~R$ 300/dia',
+  },
+  alto: {
+    label: 'Alto',
+    dailyInvestMax: Infinity,
+    minCreatives: 4,
+    maxCreatives: 6,
+    description: 'Acima de ~R$ 300/dia',
+  },
+} as const
+
+export type StrategyTierKey = keyof typeof STRATEGY_TIERS
 
 export default function AnalyticsPage() {
   const { isAuthenticated, loading: authLoading, hasActiveSubscription, isPro } = useAuth()
@@ -281,12 +310,43 @@ export default function AnalyticsPage() {
     const roas = valorInvestidoNum > 0 ? valorFaturadoNum / valorInvestidoNum : 0
     return { freq, ctrPct, taxaConvPct, cpc, cpaCalculado, roas }
   }, [alcanceNum, impressoesNum, cliquesNum, valorInvestidoNum, comprasNum, valorFaturadoNum])
+
+  // Estratégia adaptada ao investimento: tier definido pelo investimento médio/dia (após 3+ dias) ou padrão "médio"
+  const strategyTier = useMemo(() => {
+    const config = STRATEGY_TIERS
+    let investimentoMedioPorDia = 0
+    let daysSinceStart = 0
+    if (selectedCampaign?.start_date && valorInvestidoNum > 0) {
+      const start = new Date(selectedCampaign.start_date + 'T12:00:00')
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+      start.setHours(0, 0, 0, 0)
+      daysSinceStart = Math.max(0, Math.floor((today.getTime() - start.getTime()) / (24 * 60 * 60 * 1000)))
+      investimentoMedioPorDia = valorInvestidoNum / Math.max(1, daysSinceStart)
+    }
+    let tier: StrategyTierKey = 'medio'
+    if (investimentoMedioPorDia > 0 && daysSinceStart >= 3) {
+      if (investimentoMedioPorDia <= config.baixo.dailyInvestMax) tier = 'baixo'
+      else if (investimentoMedioPorDia <= config.medio.dailyInvestMax) tier = 'medio'
+      else tier = 'alto'
+    }
+    const t = config[tier]
+    return {
+      tier,
+      investimentoMedioPorDia: investimentoMedioPorDia > 0 ? investimentoMedioPorDia : null,
+      minCreatives: t.minCreatives,
+      maxCreatives: t.maxCreatives,
+      label: t.label,
+      description: t.description,
+    }
+  }, [selectedCampaign?.start_date, selectedCampaign, valorInvestidoNum])
+
   const { score, statusGeral, statusAlerts, hasDataForDiagnosis } = useMemo(() => {
+    // Só considera que há dados quando existir pelo menos uma métrica dos criativos/campanha
     const hasData =
       impressoesNum > 0 ||
       valorInvestidoNum > 0 ||
-      comprasNum > 0 ||
-      (roiEnabled && valorNum > 0)
+      comprasNum > 0
     if (!hasData) {
       return {
         score: 0,
@@ -382,10 +442,14 @@ export default function AnalyticsPage() {
             start.setHours(0, 0, 0, 0)
             const daysSinceStart = Math.max(1, Math.floor((today.getTime() - start.getTime()) / (24 * 60 * 60 * 1000)))
             const investimentoPorDia = valorInvestidoNum / daysSinceStart
-            if (investimentoPorDia > 0) {
+            if (daysSinceStart >= DIAS_MINIMOS_PARA_SUGERIR_AUMENTO && investimentoPorDia > 0) {
               const scaleMin = investimentoPorDia * 0.15
               const scaleMax = investimentoPorDia * 0.2
               detail += `. Invest. médio/dia: R$ ${investimentoPorDia.toFixed(2).replace('.', ',')}. Pode aumentar R$ ${scaleMin.toFixed(2).replace('.', ',')} a R$ ${scaleMax.toFixed(2).replace('.', ',')}/dia (15–20%).`
+            } else if (daysSinceStart < 7) {
+              detail += '. Campanha em fase de aprendizado (dia 1–5). Não altere o orçamento. A partir do dia 18 o sistema poderá sugerir aumento de investimento.'
+            } else {
+              detail += `. Métricas boas. A partir do dia ${DIAS_MINIMOS_PARA_SUGERIR_AUMENTO} (fase de avaliação) o sistema sugerirá valor de aumento (15–20% ao dia).`
             }
           }
           alerts.push({ type: 'success', action: 'Pode escalar.', detail })
@@ -410,10 +474,14 @@ export default function AnalyticsPage() {
         start.setHours(0, 0, 0, 0)
         const daysSinceStart = Math.max(1, Math.floor((today.getTime() - start.getTime()) / (24 * 60 * 60 * 1000)))
         const investimentoPorDia = valorInvestidoNum / daysSinceStart
-        if (investimentoPorDia > 0) {
+        if (daysSinceStart >= DIAS_MINIMOS_PARA_SUGERIR_AUMENTO && investimentoPorDia > 0) {
           const scaleMin = investimentoPorDia * 0.15
           const scaleMax = investimentoPorDia * 0.2
           scaleDetail = `Investimento médio por dia: R$ ${investimentoPorDia.toFixed(2).replace('.', ',')}. Pode aumentar em R$ ${scaleMin.toFixed(2).replace('.', ',')} a R$ ${scaleMax.toFixed(2).replace('.', ',')} por dia (15–20%).`
+        } else if (daysSinceStart < 7) {
+          scaleDetail = 'Campanha em fase de aprendizado (dia 1–5). Não altere o orçamento. A partir do dia 18 o sistema poderá sugerir aumento de investimento.'
+        } else {
+          scaleDetail = `Métricas dentro da meta. A partir do dia ${DIAS_MINIMOS_PARA_SUGERIR_AUMENTO} (fase de avaliação) o sistema sugerirá valor de aumento (15–20% ao dia).`
         }
       }
       alerts.push({
@@ -430,6 +498,30 @@ export default function AnalyticsPage() {
     }
     if (statusGeral === 'crítica') {
       alerts.push({ type: 'danger', action: 'Revisar estratégia.', detail: `Score ${scoreFinal} crítico.` })
+    }
+    // Estratégia por investimento: quantidade de criativos ideal (min/max) conforme tier
+    const { minCreatives, maxCreatives, label: tierLabel } = strategyTier
+    const activeCreativesCount = creatives.length
+    if (activeCreativesCount > 0) {
+      if (activeCreativesCount === 1) {
+        alerts.push({
+          type: 'warning',
+          action: 'Risco de saturação com 1 criativo.',
+          detail: `Recomendado ter entre ${minCreatives} e ${maxCreatives} criativos ativos (estratégia ${tierLabel}). Adicione criativos para o algoritmo performar melhor.`,
+        })
+      } else if (activeCreativesCount < minCreatives) {
+        alerts.push({
+          type: 'warning',
+          action: `Adicione criativos (estratégia ${tierLabel}).`,
+          detail: `Para seu nível de investimento o ideal é manter entre ${minCreatives} e ${maxCreatives} criativos ativos. Você tem ${activeCreativesCount}.`,
+        })
+      } else if (activeCreativesCount > maxCreatives) {
+        alerts.push({
+          type: 'warning',
+          action: `Muitos criativos para o orçamento (estratégia ${tierLabel}).`,
+          detail: `Ideal entre ${minCreatives} e ${maxCreatives} ativos. Você tem ${activeCreativesCount}. Considere pausar os piores e manter os melhores.`,
+        })
+      }
     }
     if (creatives.length > 0) {
       for (const cr of creatives) {
@@ -488,12 +580,13 @@ export default function AnalyticsPage() {
     selectedCampaign,
     valorInvestidoNum,
     creatives,
+    strategyTier,
   ])
   const lucroPorVenda = lucroBruto
 
   const planoOtimizacao = useMemo(() => {
     if (!selectedCampaign?.start_date) {
-      return { daysSinceStart: null as number | null, phase: null as string | null, phaseLabel: '', phaseSteps: [] as string[], isPaused: false }
+      return { daysSinceStart: null as number | null, phase: null as string | null, phaseLabel: '', phaseSteps: [] as string[], isPaused: false, strategyTier }
     }
     const start = new Date(selectedCampaign.start_date + 'T12:00:00')
     const today = new Date()
@@ -501,6 +594,8 @@ export default function AnalyticsPage() {
     start.setHours(0, 0, 0, 0)
     const daysSinceStart = Math.max(0, Math.floor((today.getTime() - start.getTime()) / (24 * 60 * 60 * 1000)))
     const isPaused = !selectedCampaign.is_active
+    const { minCreatives, maxCreatives } = strategyTier
+    const creativesRange = `${minCreatives}–${maxCreatives}`
     let phase: string
     let phaseLabel: string
     let phaseSteps: string[]
@@ -516,14 +611,14 @@ export default function AnalyticsPage() {
       phaseLabel = 'Dia 7 — Primeira análise'
       phaseSteps = [
         'Analisar métricas principais: CTR, CPC e CPA.',
-        'Pausar 1 ou 2 piores criativos. Manter pelo menos 3 ativos.',
+        `Pausar 1 ou 2 piores criativos. Manter pelo menos ${minCreatives} ativos (estratégia para seu investimento).`,
         'Atualize os dados da campanha para o sistema recomendar próximos passos.',
       ]
     } else if (daysSinceStart <= 17) {
       phase = 'novos-criativos'
       phaseLabel = 'Dia 10 a 14 — Novos criativos'
       phaseSteps = [
-        'Criar 1 ou 2 novos criativos para voltar ao total de 4–5 ativos.',
+        `Criar 1 ou 2 novos criativos para voltar ao total de ${creativesRange} ativos (estratégia para seu investimento).`,
         'Isso mantém o algoritmo saudável e evita saturação.',
       ]
     } else {
@@ -531,13 +626,13 @@ export default function AnalyticsPage() {
       phaseLabel = 'Dia 18+ — Avaliação e modelo contínuo'
       phaseSteps = [
         'Avaliação geral. Se estiver lucrativo: manter rodando, escalar 15–20% ao dia se desejar, ou manter orçamento fixo.',
-        'Sempre manter entre 3 e 5 criativos ativos.',
+        `Manter entre ${minCreatives} e ${maxCreatives} criativos ativos (estratégia para seu investimento).`,
         'Criar novos criativos para repor e manter ciclo contínuo.',
-        'Nunca deixar cair para 1 criativo só; ideal 4–5 ativos.',
+        `Não deixar cair para 1 criativo só; ideal ${creativesRange} ativos.`,
       ]
     }
-    return { daysSinceStart, phase, phaseLabel, phaseSteps, isPaused }
-  }, [selectedCampaign])
+    return { daysSinceStart, phase, phaseLabel, phaseSteps, isPaused, strategyTier }
+  }, [selectedCampaign, strategyTier])
 
   const currentCampaignSignature = useMemo(() => buildCampaignSignature(), [
     roiEnabled,
@@ -772,7 +867,7 @@ export default function AnalyticsPage() {
     icon: React.ReactNode,
     children: React.ReactNode
   ) => (
-    <div className={`rounded-lg border transition-colors ${getAccordionCardClass(id)}`}>
+    <div className={`rounded-lg border transition-colors overflow-hidden ${getAccordionCardClass(id)}`}>
       <button
         type="button"
         onClick={() => toggleAccordion(id)}
@@ -1008,32 +1103,32 @@ export default function AnalyticsPage() {
                   'Campanhas',
                   selectedCampaign ? `${selectedCampaign.name} · Início ${selectedCampaign.start_date}` : 'Crie, ative ou pause campanhas',
                   <Megaphone className="w-4 h-4 text-gogh-grayDark" />,
-                  <div className="pt-3 space-y-4">
-                    <div className="flex flex-wrap gap-3 items-end">
-                      <div className="flex-1 min-w-[160px]">
+                  <div className="pt-3 space-y-4 overflow-hidden">
+                    <div className="flex flex-wrap gap-3 items-end min-w-0">
+                      <div className="flex-1 min-w-0 sm:min-w-[160px]">
                         <label className="block text-sm font-medium text-gogh-grayDark mb-1">Nova campanha</label>
                         <input
                           type="text"
                           value={newCampaignName}
                           onChange={(e) => setNewCampaignName(e.target.value)}
                           placeholder="Nome da campanha"
-                          className="w-full border border-gogh-grayLight rounded-lg px-3 py-2 text-sm"
+                          className="w-full min-w-0 border border-gogh-grayLight rounded-lg px-3 py-2 text-sm"
                         />
                       </div>
-                      <div className="min-w-[140px]">
+                      <div className="min-w-0 max-w-full overflow-hidden basis-32 shrink sm:basis-auto sm:min-w-[140px]">
                         <label className="block text-sm font-medium text-gogh-grayDark mb-1">Início</label>
                         <input
                           type="date"
                           value={newCampaignStartDate}
                           onChange={(e) => setNewCampaignStartDate(e.target.value)}
-                          className="w-full border border-gogh-grayLight rounded-lg px-3 py-2 text-sm"
+                          className="w-full min-w-0 max-w-full border border-gogh-grayLight rounded-lg px-3 py-2 text-sm box-border"
                         />
                       </div>
                       <button
                         type="button"
                         onClick={handleCreateCampaign}
                         disabled={campaignsLoading}
-                        className="inline-flex items-center gap-2 px-4 py-2 bg-gogh-yellow text-gogh-black rounded-xl hover:bg-gogh-yellow/90 font-medium text-sm transition-colors"
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-gogh-yellow text-gogh-black rounded-xl hover:bg-gogh-yellow/90 font-medium text-sm transition-colors shrink-0"
                       >
                         <Plus className="w-4 h-4" />
                         Criar
@@ -1179,6 +1274,22 @@ export default function AnalyticsPage() {
                     )}
                     {selectedCampaignId && selectedCampaign?.start_date && planoOtimizacao.daysSinceStart != null && (
                       <div className="border-t border-gogh-grayLight pt-4 mt-4">
+                        <p className="text-xs font-semibold text-gogh-black mb-1 flex items-center gap-1.5">
+                          <TrendingUp className="w-3.5 h-3.5" />
+                          Estratégia: {strategyTier.label}
+                          {strategyTier.investimentoMedioPorDia != null ? (
+                            <span className="text-gogh-grayDark font-normal">
+                              (invest. médio R$ {strategyTier.investimentoMedioPorDia.toFixed(2).replace('.', ',')}/dia · {strategyTier.description})
+                            </span>
+                          ) : (
+                            <span className="text-gogh-grayDark font-normal">
+                              (preencha dados por 3+ dias para ajuste automático ao investimento)
+                            </span>
+                          )}
+                        </p>
+                        <p className="text-xs text-gogh-grayDark mb-2">
+                          Criativos recomendados para este nível: entre {strategyTier.minCreatives} e {strategyTier.maxCreatives} ativos.
+                        </p>
                         <p className="text-xs font-semibold text-gogh-black mb-2 flex items-center gap-1.5">
                           <Calendar className="w-3.5 h-3.5" />
                           Plano de otimização · Dia {planoOtimizacao.daysSinceStart}
@@ -1187,8 +1298,8 @@ export default function AnalyticsPage() {
                           {[
                             { days: '1–5', phase: 'aprendizado', label: 'Aprendizado', action: 'Não mexer no orçamento.', hint: 'Preencha os dados no painel para o sistema acompanhar.' },
                             { days: '7', phase: 'analise-7', label: '1ª análise', action: 'Atualize os dados no painel.', hint: 'Preencha os dados. O Status vai recomendar: manter, escalar ou trocar criativo.' },
-                            { days: '10–14', phase: 'novos-criativos', label: 'Novos criativos', action: 'Adicione +1 ou 2 criativos.', hint: 'Preencha os dados de cada um. Compare desempenho no Status.' },
-                            { days: '18+', phase: 'avaliacao', label: 'Contínuo (dia 19, 20…)', action: 'Mantenha 4–5 criativos ativos.', hint: 'Preencha os dados periodicamente. Reponha criativos fracos e siga as recomendações do Status.' },
+                            { days: '10–14', phase: 'novos-criativos', label: 'Novos criativos', action: `Adicione +1 ou 2 criativos (meta: ${strategyTier.minCreatives}–${strategyTier.maxCreatives} ativos).`, hint: 'Preencha os dados de cada um. Compare desempenho no Status.' },
+                            { days: '18+', phase: 'avaliacao', label: 'Contínuo (dia 19, 20…)', action: `Mantenha ${strategyTier.minCreatives}–${strategyTier.maxCreatives} criativos ativos.`, hint: 'Preencha os dados periodicamente. Reponha criativos fracos e siga as recomendações do Status.' },
                           ].map((step) => {
                             const isCurrent = planoOtimizacao.phase === step.phase
                             return (
@@ -1215,12 +1326,18 @@ export default function AnalyticsPage() {
                 {accordionCard(
                   'status',
                   'Status e decisões',
-                  statusAlerts.length > 0 ? `Score ${score} · ${statusGeral}` : 'Diagnóstico automático e recomendações',
+                  hasDataForDiagnosis && statusAlerts.length > 0 ? `Score ${score} · ${statusGeral}` : 'Diagnóstico automático e recomendações',
                   <AlertCircle className="w-4 h-4 text-gogh-grayDark" />,
                   <div className="pt-3 space-y-4">
                     <p className="text-sm text-gogh-grayDark">
                       O sistema analisa os dados da campanha e da estrutura financeira e retorna um <strong>score (0–100)</strong> e recomendações objetivas. Você não precisa interpretar números — siga as ações sugeridas.
                     </p>
+                    {!hasDataForDiagnosis ? (
+                      <p className="text-sm text-gogh-grayDark bg-gogh-grayLight/50 rounded-lg p-3">
+                        Preencha os dados da campanha na seção <strong>Campanhas</strong> (alcance, impressões, cliques, valor investido, compras em pelo menos um criativo) para ver o diagnóstico. Opcionalmente, preencha o <strong>Planejamento de valores</strong> para incluir análise de lucro e CPA limite.
+                      </p>
+                    ) : (
+                      <>
                     <div className="flex flex-wrap items-center gap-3">
                       <div
                         className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 font-bold text-lg ${
@@ -1321,6 +1438,8 @@ export default function AnalyticsPage() {
                           })}
                         </ul>
                       </div>
+                    )}
+                      </>
                     )}
                   </div>
                 )}
