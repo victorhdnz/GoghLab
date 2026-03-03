@@ -1564,8 +1564,9 @@ export default function AnalyticsPage() {
                               </label>
                             </div>
                           </div>
+                          <p className="text-[11px] font-medium text-gogh-black mb-1.5 mt-3">Fases</p>
                           {budgetPhases.length > 0 && (
-                            <div className="space-y-2 mb-4">
+                            <div className="space-y-1.5 mb-3">
                               {(() => {
                                 const startDate = selectedCampaign?.start_date ? new Date(selectedCampaign.start_date + 'T12:00:00') : null
                                 let dayOffset = 0
@@ -1575,17 +1576,93 @@ export default function AnalyticsPage() {
                                   dayOffset = diaFim
                                   const porDia = phase.dias > 0 ? phase.valor / phase.dias : 0
                                   return (
-                                    <div key={phase.id} className="rounded-lg border border-gogh-grayLight bg-gogh-beige/30 px-3 py-2 text-xs">
+                                    <div key={phase.id} className="rounded-lg border border-gogh-grayLight bg-gogh-beige/30 px-2.5 py-1.5 text-[11px]">
                                       <span className="font-medium text-gogh-black">Fase {index + 1}:</span>{' '}
                                       <span className="text-gogh-grayDark">R$ {phase.valor.toFixed(2).replace('.', ',')} · {phase.dias} dias</span>
                                       <span className="text-gogh-grayDark"> (R$ {porDia.toFixed(2).replace('.', ',')}/dia)</span>
-                                      {startDate && <span className="block text-gogh-grayDark mt-0.5">Dias {diaInicio}–{diaFim} da campanha</span>}
+                                      {startDate && <span className="block text-gogh-grayDark mt-0.5">Dias {diaInicio}–{diaFim}</span>}
                                     </div>
                                   )
                                 })
                               })()}
                             </div>
                           )}
+                          <div className="rounded-lg border border-gogh-grayLight bg-white p-3 space-y-2 mb-4">
+                            <label className="flex items-center gap-2 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={useAutoDiasRecommendation}
+                                onChange={(e) => setUseAutoDiasRecommendation(e.target.checked)}
+                                className="rounded border-gogh-grayLight"
+                              />
+                              <span className="text-[11px] text-gogh-grayDark">Preencher duração (dias) automaticamente pelo nível {strategyTier.label}</span>
+                            </label>
+                            <div className="flex flex-wrap gap-2 items-end">
+                              <div>
+                                <label className="block text-[11px] text-gogh-grayDark mb-0.5">Valor (R$)</label>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  step="0.01"
+                                  value={newPhaseValor}
+                                  onChange={(e) => setNewPhaseValor(e.target.value)}
+                                  placeholder="Ex: 1200"
+                                  className="w-24 border border-gogh-grayLight rounded-lg px-2 py-1 text-xs"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-[11px] text-gogh-grayDark mb-0.5">Duração (dias)</label>
+                                <input
+                                  type="number"
+                                  min="1"
+                                  value={newPhaseDias}
+                                  onChange={(e) => setNewPhaseDias(e.target.value)}
+                                  placeholder="Ex: 18"
+                                  className="w-20 border border-gogh-grayLight rounded-lg px-2 py-1 text-xs"
+                                />
+                              </div>
+                              {(() => {
+                                const v = parseFloat(String(newPhaseValor).replace(',', '.')) || 0
+                                const d = Math.max(1, Math.floor(parseFloat(String(newPhaseDias).replace(',', '.')) || 0))
+                                const porDia = d > 0 ? v / d : 0
+                                const suggestedDias = v > 0 ? Math.max(1, Math.round(v / suggestedDailyForPlanning)) : 0
+                                return (
+                                  <>
+                                    {v > 0 && d > 0 && <span className="text-[11px] text-gogh-grayDark">≈ R$ {porDia.toFixed(2).replace('.', ',')}/dia</span>}
+                                    {v > 0 && !useAutoDiasRecommendation && suggestedDias > 0 && (
+                                      <button
+                                        type="button"
+                                        onClick={() => setNewPhaseDias(String(suggestedDias))}
+                                        className="text-[11px] text-gogh-grayDark hover:text-gogh-black underline"
+                                      >
+                                        Sugestão: {suggestedDias} dias
+                                      </button>
+                                    )}
+                                    <button
+                                      type="button"
+                                      onClick={addBudgetPhase}
+                                      disabled={!newPhaseValor.trim() || parseFloat(String(newPhaseValor).replace(',', '.')) <= 0}
+                                      className="px-2.5 py-1 bg-gogh-yellow text-gogh-black rounded-lg text-[11px] font-medium hover:bg-gogh-yellow/90 disabled:opacity-50"
+                                    >
+                                      {budgetPhases.length === 0 ? 'Adicionar fase' : 'Adicionar'}
+                                    </button>
+                                    {budgetPhases.length > 0 && (
+                                      <button
+                                        type="button"
+                                        onClick={removeLastBudgetPhase}
+                                        className="text-[11px] text-gogh-grayDark hover:text-gogh-black underline"
+                                      >
+                                        Remover última
+                                      </button>
+                                    )}
+                                  </>
+                                )
+                              })()}
+                            </div>
+                            <p className="text-[10px] text-gogh-grayDark">
+                              Menos dias com mais R$/dia costuma entregar melhor no Meta.
+                            </p>
+                          </div>
                           {selectedCampaign?.start_date && (() => {
                             const start = new Date(selectedCampaign.start_date + 'T12:00:00')
                             start.setHours(0, 0, 0, 0)
@@ -1604,11 +1681,11 @@ export default function AnalyticsPage() {
                               if (d < s || d >= e) return null
                               return Math.floor((d.getTime() - s.getTime()) / (24 * 60 * 60 * 1000)) + 1
                             }
-                            const getMilestoneText = (dayNum: number): string => {
-                              if (dayNum >= 1 && dayNum <= 5) return 'Aprendizado: não altere orçamento; preencha os dados no painel.'
-                              if (dayNum === 7) return '1ª análise: atualize os dados no painel para o Status recomendar próximo passo.'
-                              if (dayNum >= 10 && dayNum <= 14) return `Novos criativos: adicione +1 ou 2 (meta ${strategyTier.minCreatives}–${strategyTier.maxCreatives} ativos) e preencha os dados.`
-                              if (dayNum >= 18) return `Contínuo: mantenha ${strategyTier.minCreatives}–${strategyTier.maxCreatives} criativos ativos; preencha dados e siga o Status.`
+                            const getMilestoneShort = (dayNum: number): string => {
+                              if (dayNum >= 1 && dayNum <= 5) return 'Aprendizado — Não mexer no orçamento.'
+                              if (dayNum === 7) return '1ª análise — Atualizar dados no painel.'
+                              if (dayNum >= 10 && dayNum <= 14) return `Novos criativos — +1 ou 2 criativos (meta ${strategyTier.minCreatives}–${strategyTier.maxCreatives}).`
+                              if (dayNum >= 18) return `Contínuo — Manter ${strategyTier.minCreatives}–${strategyTier.maxCreatives} criativos; seguir Status.`
                               return ''
                             }
                             const getPhaseForDay = (dayNum: number): number => {
@@ -1621,9 +1698,9 @@ export default function AnalyticsPage() {
                               return budgetPhases.length - 1
                             }
                             return (
-                              <div className="mb-4">
-                                <p className="text-[11px] font-medium text-gogh-black mb-2">Amarelo = dia de campanha. Verde = dia para atualizar dados. Verde escuro = preenchido.</p>
-                                <Card className="w-full max-w-[430px] py-4 border border-gogh-grayLight">
+                              <div className="mb-4 flex flex-col items-center">
+                                <p className="text-[10px] text-gogh-grayDark mb-2 text-center">Amarelo = campanha · Verde = atualizar dados · Verde escuro = preenchido</p>
+                                <Card className="w-full max-w-[430px] py-4 border border-gogh-grayLight shadow-sm">
                                   <CardContent className="px-4">
                                     <DayPickerCalendar
                                       mode="single"
@@ -1657,12 +1734,12 @@ export default function AnalyticsPage() {
                                       modifiersClassNames={{
                                         inCampaign: '[&>button]:bg-gogh-yellow/35 [&>button]:text-gogh-black [&>button]:shadow-[inset_0_0_0_1px_rgba(247,201,72,0.5)]',
                                         actionDay: '[&>button]:bg-emerald-500/50 [&>button]:text-gogh-black [&>button]:shadow-[inset_0_0_0_1px_rgba(16,185,129,0.6)]',
-                                        actionDayFilled: '[&>button]:bg-emerald-700/50 [&>button]:text-white [&>button]:shadow-[inset_0_0_0_1px_rgba(4,120,87,0.8)]',
+                                        actionDayFilled: '[&>button]:bg-emerald-400/70 [&>button]:text-white [&>button]:shadow-[inset_0_0_0_1px_rgba(52,211,153,0.9)]',
                                       }}
                                       className="bg-transparent p-0"
                                     />
                                   </CardContent>
-                                  <CardFooter className="flex flex-col items-start gap-2 border-t border-gogh-grayLight px-4 !pt-4">
+                                  <CardFooter className="flex flex-col items-stretch gap-2 border-t border-gogh-grayLight px-4 !pt-4 pb-4">
                                     <div className="text-sm font-medium text-gogh-black">
                                       {campaignCalendarSelectedDate
                                         ? campaignCalendarSelectedDate.toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' })
@@ -1670,27 +1747,19 @@ export default function AnalyticsPage() {
                                     </div>
                                     {campaignCalendarSelectedDate && getDayNum(campaignCalendarSelectedDate) != null && (
                                       <>
-                                        <div className="rounded-md bg-gogh-beige/40 border border-gogh-grayLight p-2.5 text-xs text-gogh-grayDark w-full">
-                                          <p className="font-medium text-gogh-black">Dia {getDayNum(campaignCalendarSelectedDate)} da campanha</p>
-                                          {getMilestoneText(getDayNum(campaignCalendarSelectedDate)!) && (
-                                            <p className="mt-0.5">{getMilestoneText(getDayNum(campaignCalendarSelectedDate)!)}</p>
-                                          )}
-                                          {budgetPhases.length > 0 && (
-                                            <p className="mt-0.5 text-gogh-grayDark">
-                                              Fase {getPhaseForDay(getDayNum(campaignCalendarSelectedDate)!) + 1}
-                                              {budgetPhases[getPhaseForDay(getDayNum(campaignCalendarSelectedDate)!)] && (
-                                                <> · R$ {budgetPhases[getPhaseForDay(getDayNum(campaignCalendarSelectedDate)!)].valor.toFixed(2).replace('.', ',')} em {budgetPhases[getPhaseForDay(getDayNum(campaignCalendarSelectedDate)!)].dias} dias</>
-                                              )}
-                                            </p>
+                                        <div className="rounded-md bg-gogh-beige/30 border border-gogh-grayLight/80 p-2 text-[11px] text-gogh-grayDark w-full">
+                                          <p className="font-medium text-gogh-black">Dia {getDayNum(campaignCalendarSelectedDate)} da campanha{budgetPhases.length > 0 ? ` · Fase ${getPhaseForDay(getDayNum(campaignCalendarSelectedDate)!) + 1}` : ''}</p>
+                                          {getMilestoneShort(getDayNum(campaignCalendarSelectedDate)!) && (
+                                            <p className="mt-0.5 leading-snug">{getMilestoneShort(getDayNum(campaignCalendarSelectedDate)!)}</p>
                                           )}
                                         </div>
                                         {isActionDay(getDayNum(campaignCalendarSelectedDate)!) && (
                                           <button
                                             type="button"
                                             onClick={() => campaignCalendarSelectedDate && toggleFilledDate(campaignCalendarSelectedDate)}
-                                            className={`text-xs font-medium px-3 py-1.5 rounded-lg border transition-colors ${filledDatesSet.has(dateToKey(campaignCalendarSelectedDate)) ? 'bg-emerald-100 border-emerald-300 text-emerald-800' : 'bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100'}`}
+                                            className={`text-[11px] font-medium px-2 py-1 rounded-md border transition-colors ${filledDatesSet.has(dateToKey(campaignCalendarSelectedDate)) ? 'bg-emerald-100 border-emerald-300 text-emerald-800' : 'bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100'}`}
                                           >
-                                            {filledDatesSet.has(dateToKey(campaignCalendarSelectedDate)) ? '✓ Preenchido · Clique para desmarcar' : 'Marcar como preenchido'}
+                                            {filledDatesSet.has(dateToKey(campaignCalendarSelectedDate)) ? '✓ Preenchido' : 'Marcar como preenchido'}
                                           </button>
                                         )}
                                       </>
@@ -1700,86 +1769,6 @@ export default function AnalyticsPage() {
                               </div>
                             )
                           })()}
-                          <div className="rounded-lg border border-gogh-grayLight bg-white p-3 space-y-3">
-                            <p className="text-xs font-medium text-gogh-black">Fases</p>
-                            <label className="flex items-center gap-2 cursor-pointer">
-                              <input
-                                type="checkbox"
-                                checked={useAutoDiasRecommendation}
-                                onChange={(e) => setUseAutoDiasRecommendation(e.target.checked)}
-                                className="rounded border-gogh-grayLight"
-                              />
-                              <span className="text-xs text-gogh-grayDark">Preencher duração (dias) automaticamente pela recomendação do nível {strategyTier.label}</span>
-                            </label>
-                            <div className="flex flex-wrap gap-3 items-end">
-                              <div>
-                                <label className="block text-xs text-gogh-grayDark mb-0.5">Valor (R$)</label>
-                                <input
-                                  type="number"
-                                  min="0"
-                                  step="0.01"
-                                  value={newPhaseValor}
-                                  onChange={(e) => setNewPhaseValor(e.target.value)}
-                                  placeholder="Ex: 1200"
-                                  className="w-28 border border-gogh-grayLight rounded-lg px-2 py-1.5 text-sm"
-                                />
-                              </div>
-                              <div>
-                                <label className="block text-xs text-gogh-grayDark mb-0.5">Duração (dias)</label>
-                                <input
-                                  type="number"
-                                  min="1"
-                                  value={newPhaseDias}
-                                  onChange={(e) => setNewPhaseDias(e.target.value)}
-                                  placeholder="Ex: 18"
-                                  className="w-24 border border-gogh-grayLight rounded-lg px-2 py-1.5 text-sm"
-                                />
-                              </div>
-                              <div className="flex items-center gap-2 flex-wrap">
-                                {(() => {
-                                  const v = parseFloat(String(newPhaseValor).replace(',', '.')) || 0
-                                  const d = Math.max(1, Math.floor(parseFloat(String(newPhaseDias).replace(',', '.')) || 0))
-                                  const porDia = d > 0 ? v / d : 0
-                                  const suggestedDias = v > 0 ? Math.max(1, Math.round(v / suggestedDailyForPlanning)) : 0
-                                  const suggestedPorDia = suggestedDias > 0 ? v / suggestedDias : 0
-                                  return (
-                                    <>
-                                      {v > 0 && d > 0 && <span className="text-xs text-gogh-grayDark">≈ R$ {porDia.toFixed(2).replace('.', ',')}/dia</span>}
-                                      {v > 0 && !useAutoDiasRecommendation && suggestedDias > 0 && (
-                                        <button
-                                          type="button"
-                                          onClick={() => setNewPhaseDias(String(suggestedDias))}
-                                          className="text-xs text-gogh-grayDark hover:text-gogh-black underline"
-                                        >
-                                          Sugestão: {suggestedDias} dias (R$ {suggestedPorDia.toFixed(2).replace('.', ',')}/dia no nível {strategyTier.label})
-                                        </button>
-                                      )}
-                                    </>
-                                  )
-                                })()}
-                                <button
-                                  type="button"
-                                  onClick={addBudgetPhase}
-                                  disabled={!newPhaseValor.trim() || parseFloat(String(newPhaseValor).replace(',', '.')) <= 0}
-                                  className="px-3 py-1.5 bg-gogh-yellow text-gogh-black rounded-lg text-xs font-medium hover:bg-gogh-yellow/90 disabled:opacity-50"
-                                >
-                                  {budgetPhases.length === 0 ? 'Adicionar fase' : 'Adicionar próxima fase'}
-                                </button>
-                                {budgetPhases.length > 0 && (
-                                  <button
-                                    type="button"
-                                    onClick={removeLastBudgetPhase}
-                                    className="text-xs text-gogh-grayDark hover:text-gogh-black underline"
-                                  >
-                                    Remover última fase
-                                  </button>
-                                )}
-                              </div>
-                            </div>
-                            <p className="text-[11px] text-gogh-grayDark">
-                              Dica: menos dias com mais valor por dia costuma entregar melhor no Meta; muitos dias com pouco por dia tende a performar menos.
-                            </p>
-                          </div>
                         </div>
                       </div>
                     )}
