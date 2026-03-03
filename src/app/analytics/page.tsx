@@ -47,6 +47,20 @@ interface AnalyticsCampaign {
   updated_at: string
 }
 
+interface AnalyticsCreative {
+  id: string
+  campaign_id: string
+  name: string
+  alcance: number | null
+  impressoes: number | null
+  cliques_link: number | null
+  valor_investido: number | null
+  compras: number | null
+  valor_total_faturado: number | null
+  created_at: string
+  updated_at: string
+}
+
 // Parâmetros de análise (benchmarks para decisão)
 const FREQ_SAUDAVEL = { min: 1.5, max: 2.5 }
 const FREQ_ATENCAO = { min: 2.5, max: 3 }
@@ -88,6 +102,10 @@ export default function AnalyticsPage() {
   const [valorTotalFaturado, setValorTotalFaturado] = useState<string>('')
   const [savedCampaignSignature, setSavedCampaignSignature] = useState<string>('')
   const [expandedRecommendationIndex, setExpandedRecommendationIndex] = useState<number | null>(null)
+  const [creatives, setCreatives] = useState<AnalyticsCreative[]>([])
+  const [creativesLoading, setCreativesLoading] = useState(false)
+  const [savingCreativeId, setSavingCreativeId] = useState<string | null>(null)
+  const [addingCreative, setAddingCreative] = useState(false)
 
   const buildCampaignSignature = () =>
     JSON.stringify({
@@ -116,6 +134,22 @@ export default function AnalyticsPage() {
       setCampaigns([])
     } finally {
       setCampaignsLoading(false)
+    }
+  }
+
+  const loadCreatives = async (campaignId: string) => {
+    if (!hasAccess) return
+    try {
+      setCreativesLoading(true)
+      const res = await fetch(`/api/analytics/campaigns/${campaignId}/creatives`, { credentials: 'include' })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Erro ao carregar criativos')
+      setCreatives(data.creatives || [])
+    } catch (e: any) {
+      toast.error(e?.message || 'Erro ao carregar criativos')
+      setCreatives([])
+    } finally {
+      setCreativesLoading(false)
     }
   }
 
@@ -167,18 +201,51 @@ export default function AnalyticsPage() {
     }
   }, [mounted, selectedCampaignId, campaigns])
 
+  useEffect(() => {
+    if (!selectedCampaignId || !hasAccess) {
+      setCreatives([])
+      return
+    }
+    loadCreatives(selectedCampaignId)
+  }, [selectedCampaignId, hasAccess])
+
   const parseNum = (s: string) => parseFloat(String(s).replace(',', '.')) || 0
   const toNum = (s: string) => (s.trim() ? parseNum(s) : 0)
   const valorNum = toNum(valorVenda)
   const custoNum = toNum(custoVenda)
   const lucroBruto = valorNum - custoNum
   const metaLucroNum = toNum(metaLucroPorVenda)
-  const alcanceNum = toNum(alcance)
-  const impressoesNum = toNum(impressoes)
-  const cliquesNum = toNum(cliquesLink)
-  const valorInvestidoNum = toNum(valorInvestido)
-  const comprasNum = toNum(compras)
-  const valorFaturadoNum = toNum(valorTotalFaturado)
+
+  const aggregatedFromCreatives = useMemo(() => {
+    if (!creatives.length) return null
+    return {
+      alcance: creatives.reduce((a, c) => a + (c.alcance ?? 0), 0),
+      impressoes: creatives.reduce((a, c) => a + (c.impressoes ?? 0), 0),
+      cliques_link: creatives.reduce((a, c) => a + (c.cliques_link ?? 0), 0),
+      valor_investido: creatives.reduce((a, c) => a + (c.valor_investido ?? 0), 0),
+      compras: creatives.reduce((a, c) => a + (c.compras ?? 0), 0),
+      valor_total_faturado: creatives.reduce((a, c) => a + (c.valor_total_faturado ?? 0), 0),
+    }
+  }, [creatives])
+
+  const alcanceNum = aggregatedFromCreatives
+    ? aggregatedFromCreatives.alcance
+    : toNum(alcance)
+  const impressoesNum = aggregatedFromCreatives
+    ? aggregatedFromCreatives.impressoes
+    : toNum(impressoes)
+  const cliquesNum = aggregatedFromCreatives
+    ? aggregatedFromCreatives.cliques_link
+    : toNum(cliquesLink)
+  const valorInvestidoNum = aggregatedFromCreatives
+    ? aggregatedFromCreatives.valor_investido
+    : toNum(valorInvestido)
+  const comprasNum = aggregatedFromCreatives
+    ? aggregatedFromCreatives.compras
+    : toNum(compras)
+  const valorFaturadoNum = aggregatedFromCreatives
+    ? aggregatedFromCreatives.valor_total_faturado
+    : toNum(valorTotalFaturado)
   const custoMaxAceitavel = useMemo(() => {
     if (lucroBruto <= 0) return 0
     if (metaLucroNum > 0) return Math.max(0, lucroBruto - metaLucroNum)
@@ -335,6 +402,25 @@ export default function AnalyticsPage() {
     if (statusGeral === 'crítica') {
       alerts.push({ type: 'danger', action: 'Revisar estratégia.', detail: `Score ${scoreFinal} crítico.` })
     }
+    if (creatives.length > 0) {
+      for (const cr of creatives) {
+        const cAlc = cr.alcance ?? 0
+        const cImp = cr.impressoes ?? 0
+        const cCliques = cr.cliques_link ?? 0
+        if (cAlc <= 0 && cImp <= 0) continue
+        const cFreq = cAlc > 0 ? (cImp / cAlc) : 0
+        const cCtrPct = cImp > 0 ? (cCliques / cImp) * 100 : 0
+        const name = (cr.name || 'Criativo').trim() || 'Criativo'
+        if (cAlc > 0 && cImp > 0 && cFreq >= FREQ_CRITICO) {
+          alerts.push({ type: 'danger', action: `Trocar o criativo "${name}".`, detail: `Frequência ${cFreq.toFixed(2).replace('.', ',')} → ideal <4` })
+        } else if (cAlc > 0 && cImp > 0 && cFreq > FREQ_SATURACAO) {
+          alerts.push({ type: 'warning', action: `Avaliar novo criativo: "${name}".`, detail: `Frequência ${cFreq.toFixed(2).replace('.', ',')} → ideal ≤3` })
+        }
+        if (cImp > 0 && cCtrPct > 0 && cCtrPct < CTR_MEDIO) {
+          alerts.push({ type: 'warning', action: `Testar novo criativo: "${name}".`, detail: `CTR ${cCtrPct.toFixed(2).replace('.', ',')}% → ideal ≥1%` })
+        }
+      }
+    }
     const severity = (t: AlertItem['type']) => (t === 'danger' ? 3 : t === 'warning' ? 2 : 1)
     const grouped = new Map<string, { type: AlertItem['type']; action: string; details: string[] }>()
     for (const a of alerts) {
@@ -362,6 +448,7 @@ export default function AnalyticsPage() {
     cliquesNum,
     selectedCampaign,
     valorInvestidoNum,
+    creatives,
   ])
   const lucroPorVenda = lucroBruto
 
@@ -431,7 +518,7 @@ export default function AnalyticsPage() {
     currentCampaignSignature !== savedCampaignSignature
   const isDadosCampanhaComplete =
     !!selectedCampaignId &&
-    [alcance, impressoes, cliquesLink, valorInvestido, compras, valorTotalFaturado].every((s) => (s ?? '').trim().length > 0)
+    (creatives.length > 0 || [alcance, impressoes, cliquesLink, valorInvestido, compras, valorTotalFaturado].every((s) => (s ?? '').trim().length > 0))
   const isRoiComplete = !roiEnabled || (roiEnabled && (valorVenda ?? '').trim().length > 0)
 
   const getAccordionCardClass = (sectionId: AnalyticsAccordionId): string => {
@@ -507,9 +594,78 @@ export default function AnalyticsPage() {
       if (!res.ok) throw new Error(data.error || 'Erro ao excluir')
       setCampaigns((prev) => prev.filter((c) => c.id !== id))
       if (selectedCampaignId === id) setSelectedCampaignId(null)
+      setCreatives([])
       toast.success('Campanha excluída')
     } catch (e: any) {
       toast.error(e?.message || 'Erro ao excluir')
+    }
+  }
+
+  const handleAddCreative = async () => {
+    if (!selectedCampaignId) return
+    setAddingCreative(true)
+    try {
+      const res = await fetch(`/api/analytics/campaigns/${selectedCampaignId}/creatives`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ name: `Criativo ${creatives.length + 1}` }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Erro ao criar criativo')
+      setCreatives((prev) => [...prev, data.creative])
+      toast.success('Criativo adicionado. Preencha os dados abaixo.')
+    } catch (e: any) {
+      toast.error(e?.message || 'Erro ao adicionar criativo')
+    } finally {
+      setAddingCreative(false)
+    }
+  }
+
+  const handleUpdateCreative = async (creative: AnalyticsCreative) => {
+    if (!selectedCampaignId) return
+    setSavingCreativeId(creative.id)
+    try {
+      const res = await fetch(`/api/analytics/campaigns/${selectedCampaignId}/creatives/${creative.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          name: creative.name,
+          alcance: creative.alcance != null ? creative.alcance : null,
+          impressoes: creative.impressoes != null ? creative.impressoes : null,
+          cliques_link: creative.cliques_link != null ? creative.cliques_link : null,
+          valor_investido: creative.valor_investido != null ? creative.valor_investido : null,
+          compras: creative.compras != null ? creative.compras : null,
+          valor_total_faturado: creative.valor_total_faturado != null ? creative.valor_total_faturado : null,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Erro ao salvar')
+      setCreatives((prev) => prev.map((c) => (c.id === creative.id ? data.creative : c)))
+      toast.success('Criativo atualizado')
+    } catch (e: any) {
+      toast.error(e?.message || 'Erro ao salvar criativo')
+    } finally {
+      setSavingCreativeId(null)
+    }
+  }
+
+  const handleDeleteCreative = async (creativeId: string) => {
+    if (!selectedCampaignId || !confirm('Excluir este criativo? Os dados dele serão apagados.')) return
+    try {
+      const res = await fetch(`/api/analytics/campaigns/${selectedCampaignId}/creatives/${creativeId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      })
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.error || 'Erro ao excluir')
+      }
+      setCreatives((prev) => prev.filter((c) => c.id !== creativeId))
+      toast.success('Criativo excluído')
+    } catch (e: any) {
+      toast.error(e?.message || 'Erro ao excluir criativo')
     }
   }
 
@@ -522,11 +678,11 @@ export default function AnalyticsPage() {
     { key: 'valor_faturado', label: 'Valor total faturado', value: valorTotalFaturado },
   ]
   const missingDados = requiredDadosFields.filter((f) => !f.value?.trim())
-  const canSaveProfile = selectedCampaignId && isProfileDirty && isDadosCampanhaComplete && isRoiComplete
+  const canSaveProfile = selectedCampaignId && isRoiComplete && (creatives.length > 0 ? isProfileDirty : isProfileDirty && isDadosCampanhaComplete)
 
   const handleSaveProfile = async () => {
     if (!selectedCampaignId) return
-    if (missingDados.length > 0) {
+    if (creatives.length === 0 && missingDados.length > 0) {
       toast.error(`Preencha todos os campos de Dados da campanha: ${requiredDadosFields.filter((f) => !f.value?.trim()).map((f) => f.label).join(', ')}`)
       return
     }
@@ -537,13 +693,15 @@ export default function AnalyticsPage() {
         valor_venda: valorVenda ? parseNum(valorVenda) : null,
         custo_venda: custoVenda ? parseNum(custoVenda) : null,
         meta_lucro_por_venda: metaLucroPorVenda ? parseNum(metaLucroPorVenda) : null,
-        alcance: alcance ? parseInt(alcance, 10) : null,
-        impressoes: impressoes ? parseInt(impressoes, 10) : null,
-        cliques_link: cliquesLink ? parseInt(cliquesLink, 10) : null,
-        valor_investido: valorInvestido ? parseNum(valorInvestido) : null,
-        compras: compras ? parseInt(compras, 10) : null,
-        valor_total_faturado: valorTotalFaturado ? parseNum(valorTotalFaturado) : null,
         custo_por_aquisicao: comprasNum > 0 ? metricasCampanha.cpaCalculado : null,
+      }
+      if (creatives.length === 0) {
+        body.alcance = alcance ? parseInt(alcance, 10) : null
+        body.impressoes = impressoes ? parseInt(impressoes, 10) : null
+        body.cliques_link = cliquesLink ? parseInt(cliquesLink, 10) : null
+        body.valor_investido = valorInvestido ? parseNum(valorInvestido) : null
+        body.compras = compras ? parseInt(compras, 10) : null
+        body.valor_total_faturado = valorTotalFaturado ? parseNum(valorTotalFaturado) : null
       }
       const res = await fetch(`/api/analytics/campaigns/${selectedCampaignId}`, {
         method: 'PATCH',
@@ -893,10 +1051,107 @@ export default function AnalyticsPage() {
                   <div className="pt-3 space-y-4">
                     {!selectedCampaignId ? (
                       <p className="text-sm text-gogh-grayDark py-2">Selecione uma campanha na seção Campanhas para preencher os dados de anúncio. O sistema calculará automaticamente frequência, CTR, conversão, CPC, CPA e ROAS.</p>
+                    ) : creatives.length > 0 ? (
+                      <>
+                        <p className="text-sm text-gogh-grayDark">
+                          Dados por criativo (como no Meta Ads). Os totais da campanha são a soma dos criativos. O Status indica qual criativo trocar ou escalar.
+                        </p>
+                        {creativesLoading ? (
+                          <div className="flex justify-center py-4"><LumaSpin size="sm" /></div>
+                        ) : (
+                          <div className="space-y-4">
+                            {creatives.map((cr) => (
+                              <div key={cr.id} className="rounded-xl border border-gogh-grayLight bg-gogh-beige/30 p-4 space-y-3">
+                                <div className="flex items-center justify-between gap-2 flex-wrap">
+                                  <input
+                                    type="text"
+                                    value={cr.name}
+                                    onChange={(e) => setCreatives((prev) => prev.map((c) => (c.id === cr.id ? { ...c, name: e.target.value } : c)))}
+                                    placeholder="Nome do criativo"
+                                    className="flex-1 min-w-[140px] border border-gogh-grayLight rounded-lg px-3 py-2 text-sm font-medium"
+                                  />
+                                  <div className="flex items-center gap-2">
+                                    <button
+                                      type="button"
+                                      onClick={() => handleUpdateCreative(creatives.find((c) => c.id === cr.id) ?? cr)}
+                                      disabled={savingCreativeId === cr.id}
+                                      className="px-3 py-1.5 text-sm bg-gogh-yellow text-gogh-black rounded-lg hover:bg-gogh-yellow/90 font-medium disabled:opacity-70"
+                                    >
+                                      {savingCreativeId === cr.id ? 'Salvando...' : 'Salvar'}
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDeleteCreative(cr.id)}
+                                      className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg"
+                                      aria-label="Excluir criativo"
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </button>
+                                  </div>
+                                </div>
+                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                  <div>
+                                    <label className="block text-xs font-medium text-gogh-grayDark mb-0.5">Alcance</label>
+                                    <input type="number" min="0" value={cr.alcance ?? ''} onChange={(e) => setCreatives((prev) => prev.map((c) => (c.id === cr.id ? { ...c, alcance: e.target.value ? Number(e.target.value) : null } : c)))} placeholder="0" className="w-full border border-gogh-grayLight rounded-lg px-2 py-1.5 text-sm" />
+                                  </div>
+                                  <div>
+                                    <label className="block text-xs font-medium text-gogh-grayDark mb-0.5">Impressões</label>
+                                    <input type="number" min="0" value={cr.impressoes ?? ''} onChange={(e) => setCreatives((prev) => prev.map((c) => (c.id === cr.id ? { ...c, impressoes: e.target.value ? Number(e.target.value) : null } : c)))} placeholder="0" className="w-full border border-gogh-grayLight rounded-lg px-2 py-1.5 text-sm" />
+                                  </div>
+                                  <div>
+                                    <label className="block text-xs font-medium text-gogh-grayDark mb-0.5">Cliques</label>
+                                    <input type="number" min="0" value={cr.cliques_link ?? ''} onChange={(e) => setCreatives((prev) => prev.map((c) => (c.id === cr.id ? { ...c, cliques_link: e.target.value ? Number(e.target.value) : null } : c)))} placeholder="0" className="w-full border border-gogh-grayLight rounded-lg px-2 py-1.5 text-sm" />
+                                  </div>
+                                  <div>
+                                    <label className="block text-xs font-medium text-gogh-grayDark mb-0.5">Investido (R$)</label>
+                                    <input type="number" min="0" step="0.01" value={cr.valor_investido ?? ''} onChange={(e) => setCreatives((prev) => prev.map((c) => (c.id === cr.id ? { ...c, valor_investido: e.target.value ? Number(e.target.value) : null } : c)))} placeholder="0" className="w-full border border-gogh-grayLight rounded-lg px-2 py-1.5 text-sm" />
+                                  </div>
+                                  <div>
+                                    <label className="block text-xs font-medium text-gogh-grayDark mb-0.5">Compras</label>
+                                    <input type="number" min="0" value={cr.compras ?? ''} onChange={(e) => setCreatives((prev) => prev.map((c) => (c.id === cr.id ? { ...c, compras: e.target.value ? Number(e.target.value) : null } : c)))} placeholder="0" className="w-full border border-gogh-grayLight rounded-lg px-2 py-1.5 text-sm" />
+                                  </div>
+                                  <div>
+                                    <label className="block text-xs font-medium text-gogh-grayDark mb-0.5">Faturado (R$)</label>
+                                    <input type="number" min="0" step="0.01" value={cr.valor_total_faturado ?? ''} onChange={(e) => setCreatives((prev) => prev.map((c) => (c.id === cr.id ? { ...c, valor_total_faturado: e.target.value ? Number(e.target.value) : null } : c)))} placeholder="0" className="w-full border border-gogh-grayLight rounded-lg px-2 py-1.5 text-sm" />
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                            <button
+                              type="button"
+                              onClick={handleAddCreative}
+                              disabled={addingCreative}
+                              className="inline-flex items-center gap-2 px-4 py-2 border border-dashed border-gogh-grayLight rounded-xl text-sm font-medium text-gogh-grayDark hover:bg-gogh-grayLight/30 transition-colors"
+                            >
+                              <Plus className="w-4 h-4" />
+                              {addingCreative ? 'Adicionando...' : 'Adicionar criativo'}
+                            </button>
+                          </div>
+                        )}
+                        {creatives.length > 0 && (impressoesNum > 0 || cliquesNum > 0 || comprasNum > 0 || valorInvestidoNum > 0) && (
+                          <div className="rounded-xl border border-gogh-grayLight bg-gogh-beige/50 p-4 space-y-2 mt-4">
+                            <p className="text-sm font-semibold text-gogh-black flex items-center gap-2">
+                              <TrendingUp className="w-4 h-4 text-gogh-yellow" />
+                              Totais da campanha (soma dos criativos)
+                            </p>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-sm">
+                              {alcanceNum > 0 && impressoesNum > 0 && (
+                                <div><span className="text-gogh-grayDark">Frequência</span><br /><span className="font-medium">{metricasCampanha.freq.toFixed(2)}</span></div>
+                              )}
+                              {impressoesNum > 0 && <div><span className="text-gogh-grayDark">CTR</span><br /><span className="font-medium">{metricasCampanha.ctrPct.toFixed(2)}%</span></div>}
+                              {cliquesNum > 0 && <div><span className="text-gogh-grayDark">Taxa de conversão</span><br /><span className="font-medium">{metricasCampanha.taxaConvPct.toFixed(2)}%</span></div>}
+                              {cliquesNum > 0 && valorInvestidoNum > 0 && <div><span className="text-gogh-grayDark">CPC (R$)</span><br /><span className="font-medium">{metricasCampanha.cpc.toFixed(2)}</span></div>}
+                              {comprasNum > 0 && <div><span className="text-gogh-grayDark">CPA (R$)</span><br /><span className="font-medium">{metricasCampanha.cpaCalculado.toFixed(2)}</span></div>}
+                              {valorInvestidoNum > 0 && valorFaturadoNum > 0 && <div><span className="text-gogh-grayDark">ROAS</span><br /><span className="font-medium">{metricasCampanha.roas.toFixed(2)}x</span></div>}
+                            </div>
+                            {comprasNum > 0 && <p className="text-xs text-gogh-grayDark mt-2">CPA = valor investido ÷ compras.</p>}
+                          </div>
+                        )}
+                      </>
                     ) : (
                       <>
                         <p className="text-sm text-gogh-grayDark">
-                          Preencha os dados da campanha abaixo. O sistema usa essas informações para o Status e as recomendações.
+                          Preencha os dados da campanha abaixo ou adicione criativos para acompanhar cada anúncio separadamente (como no Meta Ads).
                         </p>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                           <div>
@@ -924,6 +1179,15 @@ export default function AnalyticsPage() {
                             <input type="number" min="0" step="0.01" value={valorTotalFaturado} onChange={(e) => setValorTotalFaturado(e.target.value)} placeholder="Ex: 4365" className={`w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 ${getFieldBorderClass('dados-campanha')}`} />
                           </div>
                         </div>
+                        <button
+                          type="button"
+                          onClick={handleAddCreative}
+                          disabled={addingCreative}
+                          className="inline-flex items-center gap-2 px-4 py-2 border border-dashed border-gogh-grayLight rounded-xl text-sm font-medium text-gogh-grayDark hover:bg-gogh-grayLight/30 transition-colors mt-2"
+                        >
+                          <Plus className="w-4 h-4" />
+                          {addingCreative ? 'Adicionando...' : 'Adicionar criativos (por anúncio)'}
+                        </button>
                         {(impressoesNum > 0 || cliquesNum > 0 || comprasNum > 0 || valorInvestidoNum > 0) && (
                           <div className="rounded-xl border border-gogh-grayLight bg-gogh-beige/50 p-4 space-y-2">
                             <p className="text-sm font-semibold text-gogh-black flex items-center gap-2">

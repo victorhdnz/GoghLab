@@ -1490,7 +1490,7 @@ export default function ContentPlanningPage() {
               className="w-full flex items-center justify-between gap-2 p-3 text-left"
               onClick={() => setProfileAccordionOpen(profileAccordionOpen === 'videos-personalizados' ? null : 'videos-personalizados')}
             >
-              <span className="font-medium text-gogh-grayDark">Vídeos personalizados (opcional)</span>
+              <span className="text-base font-semibold text-gogh-black">Vídeos personalizados (opcional)</span>
               {profileAccordionOpen === 'videos-personalizados' ? <ChevronDown className="w-4 h-4 text-gogh-grayDark shrink-0" /> : <ChevronRight className="w-4 h-4 text-gogh-grayDark shrink-0" />}
             </button>
             {profileAccordionOpen === 'videos-personalizados' && (
@@ -1504,11 +1504,17 @@ export default function ContentPlanningPage() {
                   const lastDay = new Date(y, m + 1, 0).getDate()
                   const minDate = `${y}-${String(m + 1).padStart(2, '0')}-01`
                   const maxDate = `${y}-${String(m + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`
+                  const now = new Date()
+                  const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+                  const defaultDateForNew =
+                    now.getFullYear() === y && now.getMonth() === m && todayStr >= minDate && todayStr <= maxDate
+                      ? todayStr
+                      : minDate
                   return (
                     <>
                       <HoverButton
                         type="button"
-                        onClick={() => setPersonalizedVideoEntries((prev) => [...prev, { date: minDate, instruction: '' }])}
+                        onClick={() => setPersonalizedVideoEntries((prev) => [...prev, { date: defaultDateForNew, instruction: '' }])}
                         className="h-9 px-3 text-sm border border-gogh-grayLight rounded-lg"
                       >
                         <Plus className="w-4 h-4 mr-1" />
