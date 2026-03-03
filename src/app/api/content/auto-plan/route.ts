@@ -16,6 +16,12 @@ type ProfileRow = {
   extra_preferences: {
     availability_days?: number[]
     auto_plan_last_month?: string
+    fixed_structure?: string
+    fixed_structure_script?: string
+    fixed_structure_caption?: string
+    fixed_structure_ad_copy?: string
+    fixed_structure_cover?: string
+    fixed_structure_topic?: string
   } | null
 }
 
@@ -381,9 +387,28 @@ export async function POST(request: Request) {
     const primaryGoal = goalsList[0] || ''
     const ctaInstruction = mapGoalToCta(primaryGoal)
 
+    const prefs = profile.extra_preferences || {}
+    const fixedScript = (prefs.fixed_structure_script || prefs.fixed_structure || '').trim()
+    const fixedCaption = (prefs.fixed_structure_caption || '').trim()
+    const fixedAdCopy = (prefs.fixed_structure_ad_copy || '').trim()
+    const fixedCover = (prefs.fixed_structure_cover || '').trim()
+    const fixedTopic = (prefs.fixed_structure_topic || '').trim()
+    const hasFixedStructures = fixedScript || fixedCaption || fixedAdCopy || fixedCover || fixedTopic
+    const fixedStructuresBlock = hasFixedStructures
+      ? [
+          'Elementos fixos que o cliente quer repetir (incluir quando fizer sentido, mantendo formato):',
+          fixedScript ? `- Roteiro (script):\n${fixedScript}` : null,
+          fixedCaption ? `- Legenda do video:\n${fixedCaption}` : null,
+          fixedAdCopy ? `- Legenda do anuncio (ad copy):\n${fixedAdCopy}` : null,
+          fixedCover ? `- Texto de capa:\n${fixedCover}` : null,
+          fixedTopic ? `- Tema/titulo:\n${fixedTopic}` : null,
+        ]
+          .filter(Boolean)
+          .join('\n\n')
+      : null
     const profileSummary = [
       profile.business_name && `Nome do projeto/empresa: ${profile.business_name}`,
-      profile.niche && `Nicho: ${profile.niche}`,
+      profile.niche && `Detalhamento sobre a marca: ${profile.niche}`,
       profile.audience && `Publico-alvo: ${profile.audience}`,
       profile.tone_of_voice && `Tom de voz: ${profile.tone_of_voice}`,
       goalsList.length ? `Objetivos selecionados: ${goalsList.join(' | ')}` : null,
@@ -391,6 +416,7 @@ export async function POST(request: Request) {
         ? `Plataformas: ${profile.platforms.join(', ')}`
         : null,
       `Frequencia desejada por semana: ${freqPerWeek}`,
+      fixedStructuresBlock,
     ]
       .filter(Boolean)
       .join('\n')
@@ -416,6 +442,9 @@ export async function POST(request: Request) {
             `Objetivo principal detectado: ${primaryGoal || 'não informado'}\n` +
             `Diretriz de CTA obrigatória: ${ctaInstruction}\n\n` +
             'REGRAS OBRIGATORIAS:\n' +
+            (hasFixedStructures
+              ? '- Use os elementos fixos indicados no perfil em cada tipo de conteudo correspondente: o que esta em "Roteiro" no script, o que esta em "Legenda do video" na caption, o que esta em "Legenda do anuncio" no ad_copy (headline/body/cta), o que esta em "Texto de capa" nas cover_text_options, e o que esta em "Tema/titulo" para influenciar o topic. Mantenha o formato (emojis e texto) quando incluir.\n'
+              : '') +
             '- Cada roteiro precisa ter profundidade: suficiente para 1:20 a 1:30 de video (entre 230 e 320 palavras). Desenvolva cada bloco com conteudo de verdade, mas de forma equilibrada — evite blocos curtos demais e tambem blocos gigantes ou repetitivos.\n' +
             scriptStrategy.promptInstruction +
             '- Use emoji APENAS no inicio do titulo de cada bloco. Nao use emoji no final de frases e nem no corpo do texto.\n' +

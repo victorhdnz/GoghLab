@@ -31,6 +31,7 @@ const PROFILE_ACCORDION_IDS = [
   'plataforma-videos',
   'objetivos-videos',
   'frequencia',
+  'estrutura-fixa',
 ] as const
 type ProfileAccordionId = (typeof PROFILE_ACCORDION_IDS)[number]
 
@@ -103,7 +104,23 @@ function normalizeDateKey(value: string | null | undefined) {
   return formatDate(parsed)
 }
 
-function buildProfileSignature(form: ProfileFormState, customGoals: string[]) {
+type FixedStructures = {
+  script: string
+  caption: string
+  ad_copy: string
+  cover: string
+  topic: string
+}
+
+const EMPTY_FIXED_STRUCTURES: FixedStructures = {
+  script: '',
+  caption: '',
+  ad_copy: '',
+  cover: '',
+  topic: '',
+}
+
+function buildProfileSignature(form: ProfileFormState, customGoals: string[], fixedStructures: FixedStructures) {
   return JSON.stringify({
     business_name: form.business_name.trim(),
     niche: form.niche.trim(),
@@ -115,6 +132,11 @@ function buildProfileSignature(form: ProfileFormState, customGoals: string[]) {
     availability_days: [...form.availability_days].sort((a, b) => a - b),
     script_strategy_key: getScriptStrategy(form.script_strategy_key).key,
     custom_goals: [...customGoals].map((goal) => goal.trim()).filter(Boolean).sort(),
+    fixed_structure_script: (fixedStructures.script || '').trim(),
+    fixed_structure_caption: (fixedStructures.caption || '').trim(),
+    fixed_structure_ad_copy: (fixedStructures.ad_copy || '').trim(),
+    fixed_structure_cover: (fixedStructures.cover || '').trim(),
+    fixed_structure_topic: (fixedStructures.topic || '').trim(),
   })
 }
 
@@ -270,6 +292,7 @@ export default function ContentPlanningPage() {
   })
   const [customGoals, setCustomGoals] = useState<string[]>([])
   const [newGoalInput, setNewGoalInput] = useState('')
+  const [fixedStructures, setFixedStructures] = useState<FixedStructures>({ ...EMPTY_FIXED_STRUCTURES })
   const [savedProfileSignature, setSavedProfileSignature] = useState('')
 
   const [currentMonth, setCurrentMonth] = useState(() => {
@@ -360,6 +383,13 @@ export default function ContentPlanningPage() {
                   .filter(Boolean)
               : []
           )
+          setFixedStructures({
+            script: typeof data.profile.extra_preferences?.fixed_structure_script === 'string' ? data.profile.extra_preferences.fixed_structure_script : (typeof data.profile.extra_preferences?.fixed_structure === 'string' ? data.profile.extra_preferences.fixed_structure : ''),
+            caption: typeof data.profile.extra_preferences?.fixed_structure_caption === 'string' ? data.profile.extra_preferences.fixed_structure_caption : '',
+            ad_copy: typeof data.profile.extra_preferences?.fixed_structure_ad_copy === 'string' ? data.profile.extra_preferences.fixed_structure_ad_copy : '',
+            cover: typeof data.profile.extra_preferences?.fixed_structure_cover === 'string' ? data.profile.extra_preferences.fixed_structure_cover : '',
+            topic: typeof data.profile.extra_preferences?.fixed_structure_topic === 'string' ? data.profile.extra_preferences.fixed_structure_topic : '',
+          })
           const loadedCustomGoals = Array.isArray(data.profile.extra_preferences?.custom_goals)
             ? data.profile.extra_preferences.custom_goals
                 .map((goal: unknown) => String(goal || '').trim())
@@ -400,7 +430,14 @@ export default function ContentPlanningPage() {
                     : DEFAULT_SCRIPT_STRATEGY_KEY
                 ).key,
               },
-              loadedCustomGoals
+              loadedCustomGoals,
+              {
+                script: typeof data.profile.extra_preferences?.fixed_structure_script === 'string' ? data.profile.extra_preferences.fixed_structure_script : '',
+                caption: typeof data.profile.extra_preferences?.fixed_structure_caption === 'string' ? data.profile.extra_preferences.fixed_structure_caption : '',
+                ad_copy: typeof data.profile.extra_preferences?.fixed_structure_ad_copy === 'string' ? data.profile.extra_preferences.fixed_structure_ad_copy : '',
+                cover: typeof data.profile.extra_preferences?.fixed_structure_cover === 'string' ? data.profile.extra_preferences.fixed_structure_cover : '',
+                topic: typeof data.profile.extra_preferences?.fixed_structure_topic === 'string' ? data.profile.extra_preferences.fixed_structure_topic : '',
+              }
             )
           )
         }
@@ -496,6 +533,11 @@ export default function ContentPlanningPage() {
             custom_goals: customGoals,
             script_strategy_key: profileForm.script_strategy_key,
             script_strategy_name: getScriptStrategy(profileForm.script_strategy_key).label,
+            fixed_structure_script: fixedStructures.script.trim() || undefined,
+            fixed_structure_caption: fixedStructures.caption.trim() || undefined,
+            fixed_structure_ad_copy: fixedStructures.ad_copy.trim() || undefined,
+            fixed_structure_cover: fixedStructures.cover.trim() || undefined,
+            fixed_structure_topic: fixedStructures.topic.trim() || undefined,
           },
         }),
       })
@@ -505,7 +547,7 @@ export default function ContentPlanningPage() {
         return
       }
       setProfile(data.profile)
-      setSavedProfileSignature(buildProfileSignature(profileForm, customGoals))
+      setSavedProfileSignature(buildProfileSignature(profileForm, customGoals, fixedStructures))
       setModifiedSections(new Set())
       toast.success('Perfil de conteúdo salvo com sucesso.')
     } catch (e) {
@@ -631,8 +673,8 @@ export default function ContentPlanningPage() {
   }, [items, selectedDate])
 
   const currentProfileSignature = useMemo(
-    () => buildProfileSignature(profileForm, customGoals),
-    [profileForm, customGoals]
+    () => buildProfileSignature(profileForm, customGoals, fixedStructures),
+    [profileForm, customGoals, fixedStructures]
   )
   const isProfileDirty = savedProfileSignature.length === 0 || currentProfileSignature !== savedProfileSignature
 
@@ -720,6 +762,8 @@ export default function ContentPlanningPage() {
         return profileForm.goals.length > 0
       case 'frequencia':
         return profileForm.availability_days.length > 0
+      case 'estrutura-fixa':
+        return true
       default:
         return false
     }
@@ -1057,12 +1101,12 @@ export default function ContentPlanningPage() {
                     />
                   </div>
                   <div className="flex flex-col md:col-span-2">
-                    <label className="block text-sm font-medium text-gogh-grayDark mb-1">Nicho principal (detalhe bem para a IA)</label>
-                    <p className="text-xs text-gogh-grayDark mb-1.5">Área de atuação e contexto do negócio; quanto mais específico, mais a IA gera tudo (temas, roteiros, legendas e horários) de acordo com isso.</p>
+                    <label className="block text-sm font-medium text-gogh-grayDark mb-1">Detalhamento sobre a marca</label>
+                    <p className="text-xs text-gogh-grayDark mb-1.5">Detalhe bem tudo sobre a empresa: área de atuação, contexto do negócio, diferenciais, serviços. Quanto mais completo, mais a IA gera temas, roteiros e legendas alinhados à sua marca.</p>
                     <textarea
                       value={profileForm.niche}
                       onChange={(e) => { markSectionModified('identificacao'); setProfileForm((f) => ({ ...f, niche: e.target.value })) }}
-                      placeholder="Ex.: Empresa de marketing digital com site de vendas; público empreendedores 25–45 anos."
+                      placeholder="Ex.: Empresa de marketing digital; site de vendas; público empreendedores 25–45 anos; oferecemos cursos e ferramentas."
                       rows={5}
                       className={`w-full px-3 py-2 border rounded-lg text-sm resize-none min-h-[100px] max-h-[280px] overflow-y-auto ${getFieldBorderClass('identificacao')}`}
                     />
@@ -1337,6 +1381,73 @@ export default function ContentPlanningPage() {
               </div>
             )}
           </div>
+
+          {/* Estrutura fixa (opcional) — um campo por tipo de conteúdo */}
+          <div id="perfil-estrutura-fixa" className={`rounded-lg border transition-colors ${getAccordionCardClass('estrutura-fixa')}`}>
+            <button
+              type="button"
+              onClick={() => setProfileAccordionOpen(profileAccordionOpen === 'estrutura-fixa' ? null : 'estrutura-fixa')}
+              className="w-full flex items-center justify-between py-2.5 px-3 text-left hover:opacity-90 transition-opacity"
+            >
+              <span className="text-base font-semibold text-gogh-black">Estrutura fixa nos vídeos (opcional)</span>
+              {profileAccordionOpen === 'estrutura-fixa' ? <ChevronDown className="w-4 h-4 text-gogh-grayDark shrink-0" /> : <ChevronRight className="w-4 h-4 text-gogh-grayDark shrink-0" />}
+            </button>
+            {profileAccordionOpen === 'estrutura-fixa' && (
+              <div className="px-3 pb-3 pt-0 border-t border-gogh-grayLight/50 pt-2 space-y-4">
+                <p className="text-xs text-gogh-grayDark">Preencha o que quiser que a IA repita ou inclua em cada tipo de conteúdo. Deixe em branco o que não for usar.</p>
+                <div>
+                  <label className="block text-sm font-medium text-gogh-grayDark mb-1">Roteiro (script)</label>
+                  <textarea
+                    value={fixedStructures.script}
+                    onChange={(e) => { markSectionModified('estrutura-fixa'); setFixedStructures((s) => ({ ...s, script: e.target.value })) }}
+                    placeholder="Ex.: 🏆 Ferramentas premium&#10;🏆 Cursos&#10;(trechos que devem aparecer no roteiro quando fizer sentido)"
+                    rows={3}
+                    className={`w-full px-3 py-2 border rounded-lg text-sm resize-none min-h-[80px] max-h-[180px] overflow-y-auto ${getFieldBorderClass('estrutura-fixa')}`}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gogh-grayDark mb-1">Legenda do vídeo</label>
+                  <textarea
+                    value={fixedStructures.caption}
+                    onChange={(e) => { markSectionModified('estrutura-fixa'); setFixedStructures((s) => ({ ...s, caption: e.target.value })) }}
+                    placeholder="Ex.: texto ou emojis que devem aparecer na legenda de cada vídeo"
+                    rows={3}
+                    className={`w-full px-3 py-2 border rounded-lg text-sm resize-none min-h-[80px] max-h-[180px] overflow-y-auto ${getFieldBorderClass('estrutura-fixa')}`}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gogh-grayDark mb-1">Legenda do anúncio (ad copy)</label>
+                  <textarea
+                    value={fixedStructures.ad_copy}
+                    onChange={(e) => { markSectionModified('estrutura-fixa'); setFixedStructures((s) => ({ ...s, ad_copy: e.target.value })) }}
+                    placeholder="Ex.: frase ou CTA que deve aparecer no texto do anúncio"
+                    rows={2}
+                    className={`w-full px-3 py-2 border rounded-lg text-sm resize-none min-h-[60px] max-h-[140px] overflow-y-auto ${getFieldBorderClass('estrutura-fixa')}`}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gogh-grayDark mb-1">Texto de capa do vídeo</label>
+                  <textarea
+                    value={fixedStructures.cover}
+                    onChange={(e) => { markSectionModified('estrutura-fixa'); setFixedStructures((s) => ({ ...s, cover: e.target.value })) }}
+                    placeholder="Ex.: estilo ou palavras-chave para as opções de texto de capa"
+                    rows={2}
+                    className={`w-full px-3 py-2 border rounded-lg text-sm resize-none min-h-[60px] max-h-[140px] overflow-y-auto ${getFieldBorderClass('estrutura-fixa')}`}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gogh-grayDark mb-1">Tema / título</label>
+                  <textarea
+                    value={fixedStructures.topic}
+                    onChange={(e) => { markSectionModified('estrutura-fixa'); setFixedStructures((s) => ({ ...s, topic: e.target.value })) }}
+                    placeholder="Ex.: diretrizes ou palavras que devem influenciar o tema/título de cada vídeo"
+                    rows={2}
+                    className={`w-full px-3 py-2 border rounded-lg text-sm resize-none min-h-[60px] max-h-[140px] overflow-y-auto ${getFieldBorderClass('estrutura-fixa')}`}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-6 mt-6 border-t border-gogh-grayLight">
@@ -1454,7 +1565,7 @@ export default function ContentPlanningPage() {
           <div className="rounded-lg border border-gogh-grayLight bg-gogh-grayLight/20 p-4 space-y-5 max-h-[320px] overflow-y-auto">
             <div className="flex flex-col gap-1">
               <p className="text-base font-semibold text-gogh-black">Identificação</p>
-              <p className="text-sm text-gogh-grayDark">Empresa: {profileForm.business_name || '—'} · Nicho: {profileForm.niche ? (profileForm.niche.length > 80 ? profileForm.niche.slice(0, 80) + '…' : profileForm.niche) : '—'}</p>
+              <p className="text-sm text-gogh-grayDark">Empresa: {profileForm.business_name || '—'} · Detalhamento: {profileForm.niche ? (profileForm.niche.length > 80 ? profileForm.niche.slice(0, 80) + '…' : profileForm.niche) : '—'}</p>
               <Button type="button" variant="outline" size="sm" className="w-fit mt-1 h-8 text-xs rounded-full" onClick={() => { setConfirmAutoPlanModalOpen(false); router.push('/planejamento?open=identificacao') }}>Alterar</Button>
             </div>
             <div className="flex flex-col gap-1">

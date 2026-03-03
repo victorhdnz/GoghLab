@@ -19,12 +19,13 @@ import {
   AlertTriangle,
   TrendingUp,
   RefreshCw,
+  Calendar,
 } from 'lucide-react'
 import { LumaSpin } from '@/components/ui/luma-spin'
 import { ShinyButton } from '@/components/ui/shiny-button'
 import toast from 'react-hot-toast'
 
-type AnalyticsAccordionId = 'campanhas' | 'dados-campanha' | 'roi' | 'status'
+type AnalyticsAccordionId = 'campanhas' | 'dados-campanha' | 'roi' | 'plano-otimizacao' | 'status'
 
 interface AnalyticsCampaign {
   id: string
@@ -277,7 +278,21 @@ export default function AnalyticsPage() {
           alerts.push({ type: 'warning', action: 'Não escalar.', detail: `CPA ${cpaStr} no limite ${limiteStr}` })
         } else if (cpaUsado < custoMaxAceitavel * 0.8) {
           scoreCpa = 20
-          alerts.push({ type: 'success', action: 'Pode escalar.', detail: `CPA ${cpaStr} < limite ${limiteStr}` })
+          let detail = `CPA ${cpaStr} < limite ${limiteStr}`
+          if (selectedCampaign?.start_date && valorInvestidoNum > 0) {
+            const start = new Date(selectedCampaign.start_date + 'T12:00:00')
+            const today = new Date()
+            today.setHours(0, 0, 0, 0)
+            start.setHours(0, 0, 0, 0)
+            const daysSinceStart = Math.max(1, Math.floor((today.getTime() - start.getTime()) / (24 * 60 * 60 * 1000)))
+            const investimentoPorDia = valorInvestidoNum / daysSinceStart
+            if (investimentoPorDia > 0) {
+              const scaleMin = investimentoPorDia * 0.15
+              const scaleMax = investimentoPorDia * 0.2
+              detail += `. Invest. médio/dia: R$ ${investimentoPorDia.toFixed(2).replace('.', ',')}. Pode aumentar R$ ${scaleMin.toFixed(2).replace('.', ',')} a R$ ${scaleMax.toFixed(2).replace('.', ',')}/dia (15–20%).`
+            }
+          }
+          alerts.push({ type: 'success', action: 'Pode escalar.', detail })
         } else {
           scoreCpa = 15
         }
@@ -291,7 +306,25 @@ export default function AnalyticsPage() {
     else if (scoreFinal >= 40) statusGeral = 'alerta'
     else statusGeral = 'crítica'
     if (statusGeral === 'saudável' && alerts.length === 0 && roiEnabled && valorNum > 0 && cpaUsado > 0 && cpaUsado < lucroBruto) {
-      alerts.push({ type: 'success', action: 'Pode escalar (até ~20%).', detail: 'Campanha saudável.' })
+      let scaleDetail = 'Campanha saudável.'
+      if (selectedCampaign?.start_date && valorInvestidoNum > 0) {
+        const start = new Date(selectedCampaign.start_date + 'T12:00:00')
+        const today = new Date()
+        today.setHours(0, 0, 0, 0)
+        start.setHours(0, 0, 0, 0)
+        const daysSinceStart = Math.max(1, Math.floor((today.getTime() - start.getTime()) / (24 * 60 * 60 * 1000)))
+        const investimentoPorDia = valorInvestidoNum / daysSinceStart
+        if (investimentoPorDia > 0) {
+          const scaleMin = investimentoPorDia * 0.15
+          const scaleMax = investimentoPorDia * 0.2
+          scaleDetail = `Investimento médio por dia: R$ ${investimentoPorDia.toFixed(2).replace('.', ',')}. Pode aumentar em R$ ${scaleMin.toFixed(2).replace('.', ',')} a R$ ${scaleMax.toFixed(2).replace('.', ',')} por dia (15–20%).`
+        }
+      }
+      alerts.push({
+        type: 'success',
+        action: 'Pode escalar.',
+        detail: scaleDetail,
+      })
     }
     if (statusGeral === 'estável') {
       alerts.push({ type: 'warning', action: 'Otimizar criativo ou público.', detail: `Score ${scoreFinal}. Otimizar antes de escalar.` })
@@ -327,8 +360,58 @@ export default function AnalyticsPage() {
     alcanceNum,
     impressoesNum,
     cliquesNum,
+    selectedCampaign,
+    valorInvestidoNum,
   ])
   const lucroPorVenda = lucroBruto
+
+  const planoOtimizacao = useMemo(() => {
+    if (!selectedCampaign?.start_date) {
+      return { daysSinceStart: null as number | null, phase: null as string | null, phaseLabel: '', phaseSteps: [] as string[], isPaused: false }
+    }
+    const start = new Date(selectedCampaign.start_date + 'T12:00:00')
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    start.setHours(0, 0, 0, 0)
+    const daysSinceStart = Math.max(0, Math.floor((today.getTime() - start.getTime()) / (24 * 60 * 60 * 1000)))
+    const isPaused = !selectedCampaign.is_active
+    let phase: string
+    let phaseLabel: string
+    let phaseSteps: string[]
+    if (daysSinceStart <= 5) {
+      phase = 'aprendizado'
+      phaseLabel = 'Dia 1 a 5 — Fase de aprendizado'
+      phaseSteps = [
+        'Não mexer no orçamento nem nos criativos (fase de aprendizado do algoritmo).',
+        'Atualize os dados da campanha nos próximos dias para acompanhar.',
+      ]
+    } else if (daysSinceStart <= 9) {
+      phase = 'analise-7'
+      phaseLabel = 'Dia 7 — Primeira análise'
+      phaseSteps = [
+        'Analisar métricas principais: CTR, CPC e CPA.',
+        'Pausar 1 ou 2 piores criativos. Manter pelo menos 3 ativos.',
+        'Atualize os dados da campanha para o sistema recomendar próximos passos.',
+      ]
+    } else if (daysSinceStart <= 17) {
+      phase = 'novos-criativos'
+      phaseLabel = 'Dia 10 a 14 — Novos criativos'
+      phaseSteps = [
+        'Criar 1 ou 2 novos criativos para voltar ao total de 4–5 ativos.',
+        'Isso mantém o algoritmo saudável e evita saturação.',
+      ]
+    } else {
+      phase = 'avaliacao'
+      phaseLabel = 'Dia 18+ — Avaliação e modelo contínuo'
+      phaseSteps = [
+        'Avaliação geral. Se estiver lucrativo: manter rodando, escalar 15–20% ao dia se desejar, ou manter orçamento fixo.',
+        'Sempre manter entre 3 e 5 criativos ativos.',
+        'Criar novos criativos para repor e manter ciclo contínuo.',
+        'Nunca deixar cair para 1 criativo só; ideal 4–5 ativos.',
+      ]
+    }
+    return { daysSinceStart, phase, phaseLabel, phaseSteps, isPaused }
+  }, [selectedCampaign])
 
   const currentCampaignSignature = useMemo(() => buildCampaignSignature(), [
     roiEnabled,
@@ -352,7 +435,7 @@ export default function AnalyticsPage() {
   const isRoiComplete = !roiEnabled || (roiEnabled && (valorVenda ?? '').trim().length > 0)
 
   const getAccordionCardClass = (sectionId: AnalyticsAccordionId): string => {
-    if (sectionId === 'campanhas' || sectionId === 'status') return 'bg-white border-gogh-grayLight'
+    if (sectionId === 'campanhas' || sectionId === 'status' || sectionId === 'plano-otimizacao') return 'bg-white border-gogh-grayLight'
     if (!isProfileDirty) return 'bg-white border-gogh-grayLight'
     if (sectionId === 'dados-campanha') {
       return isDadosCampanhaComplete ? 'bg-emerald-50/80 border-emerald-300' : 'bg-red-50/80 border-red-300'
@@ -876,6 +959,47 @@ export default function AnalyticsPage() {
                             </div>
                           </div>
                         )}
+                      </>
+                    )}
+                  </div>
+                )}
+
+                {accordionCard(
+                  'plano-otimizacao',
+                  'Plano de otimização',
+                  planoOtimizacao.daysSinceStart != null
+                    ? `Dia ${planoOtimizacao.daysSinceStart} · ${planoOtimizacao.phaseLabel}`
+                    : 'Guia por dias desde o início da campanha',
+                  <Calendar className="w-4 h-4 text-gogh-grayDark" />,
+                  <div className="pt-3 space-y-4">
+                    <p className="text-sm text-gogh-grayDark">
+                      Estrutura recomendada por fase. Atualize os dados da campanha nos dias indicados para o sistema sugerir as próximas decisões.
+                    </p>
+                    {planoOtimizacao.daysSinceStart == null ? (
+                      <p className="text-sm text-gogh-grayDark bg-gogh-grayLight/50 rounded-lg p-3">
+                        Selecione uma campanha com data de início para ver o guia por dias.
+                      </p>
+                    ) : (
+                      <>
+                        {planoOtimizacao.isPaused && (
+                          <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+                            Campanha pausada. Ao retomar, siga o plano a partir do dia atual desde o início (ou reinicie mentalmente o ciclo se preferir).
+                          </div>
+                        )}
+                        <p className="text-sm font-medium text-gogh-black">
+                          {planoOtimizacao.phaseLabel}
+                          {planoOtimizacao.daysSinceStart != null && (
+                            <span className="text-gogh-grayDark font-normal"> — Dia {planoOtimizacao.daysSinceStart} desde o início</span>
+                          )}
+                        </p>
+                        <ul className="list-disc list-inside space-y-1.5 text-sm text-gogh-grayDark">
+                          {planoOtimizacao.phaseSteps.map((step, i) => (
+                            <li key={i}>{step}</li>
+                          ))}
+                        </ul>
+                        <div className="rounded-lg border border-gogh-grayLight bg-gogh-beige/30 p-3 text-xs text-gogh-grayDark">
+                          <strong>Modelo contínuo:</strong> Nunca deixar menos de 3 criativos ativos; ideal 4–5. Sempre substituir os fracos por novos.
+                        </div>
                       </>
                     )}
                   </div>

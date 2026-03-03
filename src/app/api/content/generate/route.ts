@@ -482,9 +482,24 @@ export async function POST(request: Request) {
       (body.scriptStrategyKey || strategyFromProfile || null) as string | null
     )
 
+    const prefs = profile.extra_preferences || {}
+    const fixedScript = (prefs.fixed_structure_script || (prefs as any).fixed_structure || '').trim()
+    const fixedCaption = (prefs.fixed_structure_caption || '').trim()
+    const fixedAdCopy = (prefs.fixed_structure_ad_copy || '').trim()
+    const fixedCover = (prefs.fixed_structure_cover || '').trim()
+    const fixedTopic = (prefs.fixed_structure_topic || '').trim()
+    const fixedParts: string[] = []
+    if (fixedScript) fixedParts.push(`Roteiro (script):\n${fixedScript}`)
+    if (fixedCaption) fixedParts.push(`Legenda do vídeo:\n${fixedCaption}`)
+    if (fixedAdCopy) fixedParts.push(`Legenda do anúncio:\n${fixedAdCopy}`)
+    if (fixedCover) fixedParts.push(`Texto de capa:\n${fixedCover}`)
+    if (fixedTopic) fixedParts.push(`Tema/título:\n${fixedTopic}`)
+    const fixedStructuresBlock = fixedParts.length
+      ? `Elementos fixos a incluir quando fizer sentido:\n\n${fixedParts.join('\n\n')}`
+      : null
     const profileSummary = [
       profile.business_name && `Nome do projeto/empresa: ${profile.business_name}`,
-      profile.niche && `Nicho: ${profile.niche}`,
+      profile.niche && `Detalhamento sobre a marca: ${profile.niche}`,
       `Público-alvo: ${audienceSummary}`,
       profile.tone_of_voice && `Tom de voz: ${profile.tone_of_voice}`,
       goalsList.length ? `Objetivos selecionados: ${goalsList.join(' | ')}` : null,
@@ -494,6 +509,7 @@ export async function POST(request: Request) {
       typeof profile.frequency_per_week === 'number' && profile.frequency_per_week > 0
         ? `Frequência desejada: ${profile.frequency_per_week} vídeos por semana.`
         : null,
+      fixedStructuresBlock,
     ]
       .filter(Boolean)
       .join('\n')
