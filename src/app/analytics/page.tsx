@@ -18,8 +18,10 @@ import {
   CheckCircle2,
   AlertTriangle,
   TrendingUp,
+  RefreshCw,
 } from 'lucide-react'
 import { LumaSpin } from '@/components/ui/luma-spin'
+import { ShinyButton } from '@/components/ui/shiny-button'
 import toast from 'react-hot-toast'
 
 type AnalyticsAccordionId = 'campanhas' | 'dados-campanha' | 'roi' | 'status'
@@ -83,6 +85,21 @@ export default function AnalyticsPage() {
   const [valorInvestido, setValorInvestido] = useState<string>('')
   const [compras, setCompras] = useState<string>('')
   const [valorTotalFaturado, setValorTotalFaturado] = useState<string>('')
+  const [savedCampaignSignature, setSavedCampaignSignature] = useState<string>('')
+
+  const buildCampaignSignature = () =>
+    JSON.stringify({
+      roi_enabled: roiEnabled,
+      valor_venda: valorVenda.trim(),
+      custo_venda: custoVenda.trim(),
+      meta_lucro_por_venda: metaLucroPorVenda.trim(),
+      alcance: alcance.trim(),
+      impressoes: impressoes.trim(),
+      cliques_link: cliquesLink.trim(),
+      valor_investido: valorInvestido.trim(),
+      compras: compras.trim(),
+      valor_total_faturado: valorTotalFaturado.trim(),
+    })
 
   const loadCampaigns = async () => {
     if (!hasAccess) return
@@ -107,18 +124,18 @@ export default function AnalyticsPage() {
   }, [])
 
   useEffect(() => {
-    if (hasAccess) loadCampaigns()
-  }, [hasAccess])
+    if (mounted && hasAccess) loadCampaigns()
+  }, [mounted, hasAccess])
 
   useEffect(() => {
-    if (!campaigns.length || selectedCampaignId !== null) return
+    if (!mounted || !campaigns.length || selectedCampaignId !== null) return
     const stored = typeof window !== 'undefined' ? window.localStorage.getItem('analytics_selected_campaign_id') : null
     if (!stored || !campaigns.some((c) => c.id === stored)) return
     setSelectedCampaignId(stored)
-  }, [campaigns, selectedCampaignId])
+  }, [mounted, campaigns, selectedCampaignId])
 
   useEffect(() => {
-    if (!selectedCampaignId || !campaigns.length) return
+    if (!mounted || !selectedCampaignId || !campaigns.length) return
     const c = campaigns.find((x) => x.id === selectedCampaignId)
     if (c) {
       setRoiEnabled(c.roi_enabled)
@@ -131,8 +148,22 @@ export default function AnalyticsPage() {
       setValorInvestido(c.valor_investido != null ? String(c.valor_investido) : '')
       setCompras(c.compras != null ? String(c.compras) : '')
       setValorTotalFaturado(c.valor_total_faturado != null ? String(c.valor_total_faturado) : '')
+      setSavedCampaignSignature(
+        JSON.stringify({
+          roi_enabled: c.roi_enabled,
+          valor_venda: c.valor_venda != null ? String(c.valor_venda) : '',
+          custo_venda: c.custo_venda != null ? String(c.custo_venda) : '',
+          meta_lucro_por_venda: c.meta_lucro_por_venda != null ? String(c.meta_lucro_por_venda) : '',
+          alcance: c.alcance != null ? String(c.alcance) : '',
+          impressoes: c.impressoes != null ? String(c.impressoes) : '',
+          cliques_link: c.cliques_link != null ? String(c.cliques_link) : '',
+          valor_investido: c.valor_investido != null ? String(c.valor_investido) : '',
+          compras: c.compras != null ? String(c.compras) : '',
+          valor_total_faturado: c.valor_total_faturado != null ? String(c.valor_total_faturado) : '',
+        })
+      )
     }
-  }, [selectedCampaignId, campaigns])
+  }, [mounted, selectedCampaignId, campaigns])
 
   const parseNum = (s: string) => parseFloat(String(s).replace(',', '.')) || 0
   const toNum = (s: string) => (s.trim() ? parseNum(s) : 0)
@@ -275,6 +306,46 @@ export default function AnalyticsPage() {
   ])
   const lucroPorVenda = lucroBruto
 
+  const currentCampaignSignature = useMemo(() => buildCampaignSignature(), [
+    roiEnabled,
+    valorVenda,
+    custoVenda,
+    metaLucroPorVenda,
+    alcance,
+    impressoes,
+    cliquesLink,
+    valorInvestido,
+    compras,
+    valorTotalFaturado,
+  ])
+  const isProfileDirty =
+    !!selectedCampaignId &&
+    savedCampaignSignature.length > 0 &&
+    currentCampaignSignature !== savedCampaignSignature
+  const isDadosCampanhaComplete =
+    !!selectedCampaignId &&
+    [alcance, impressoes, cliquesLink, valorInvestido, compras, valorTotalFaturado].every((s) => (s ?? '').trim().length > 0)
+  const isRoiComplete = !roiEnabled || (roiEnabled && (valorVenda ?? '').trim().length > 0)
+
+  const getAccordionCardClass = (sectionId: AnalyticsAccordionId): string => {
+    if (sectionId === 'campanhas' || sectionId === 'status') return 'bg-white border-gogh-grayLight'
+    if (!isProfileDirty) return 'bg-white border-gogh-grayLight'
+    if (sectionId === 'dados-campanha') {
+      return isDadosCampanhaComplete ? 'bg-emerald-50/80 border-emerald-300' : 'bg-red-50/80 border-red-300'
+    }
+    if (sectionId === 'roi') {
+      return isRoiComplete ? 'bg-emerald-50/80 border-emerald-300' : 'bg-red-50/80 border-red-300'
+    }
+    return 'bg-white border-gogh-grayLight'
+  }
+
+  const getFieldBorderClass = (sectionId: AnalyticsAccordionId): string => {
+    if (!isProfileDirty) return 'border-gogh-grayLight'
+    if (sectionId === 'roi') return isRoiComplete ? 'border-emerald-400 focus:ring-emerald-200' : 'border-red-300 focus:ring-red-200'
+    if (sectionId === 'dados-campanha') return isDadosCampanhaComplete ? 'border-emerald-400 focus:ring-emerald-200' : 'border-red-300 focus:ring-red-200'
+    return 'border-gogh-grayLight'
+  }
+
   const toggleAccordion = (id: AnalyticsAccordionId) => {
     setAccordionOpen((prev) => (prev === id ? null : id))
   }
@@ -335,29 +406,6 @@ export default function AnalyticsPage() {
     }
   }
 
-  const handleSaveRoiToCampaign = async () => {
-    if (!selectedCampaignId) return
-    try {
-      const res = await fetch(`/api/analytics/campaigns/${selectedCampaignId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
-          roi_enabled: roiEnabled,
-          valor_venda: valorVenda ? parseNum(valorVenda) : null,
-          custo_venda: custoVenda ? parseNum(custoVenda) : null,
-          meta_lucro_por_venda: metaLucroPorVenda ? parseNum(metaLucroPorVenda) : null,
-        }),
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Erro ao salvar')
-      setCampaigns((prev) => prev.map((c) => (c.id === selectedCampaignId ? { ...c, ...data.campaign } : c)))
-      toast.success('Custos e receita salvos na campanha')
-    } catch (e: any) {
-      toast.error(e?.message || 'Erro ao salvar')
-    }
-  }
-
   const cpaCalculadoDisplay = comprasNum > 0 ? metricasCampanha.cpaCalculado : null
   const requiredDadosFields = [
     { key: 'alcance', label: 'Alcance', value: alcance },
@@ -368,34 +416,40 @@ export default function AnalyticsPage() {
     { key: 'valor_faturado', label: 'Valor total faturado', value: valorTotalFaturado },
   ]
   const missingDados = requiredDadosFields.filter((f) => !f.value?.trim())
-  const canSaveDados = selectedCampaignId && missingDados.length === 0
+  const canSaveProfile = selectedCampaignId && isProfileDirty && isDadosCampanhaComplete && isRoiComplete
 
-  const handleSaveDadosCampanha = async () => {
+  const handleSaveProfile = async () => {
     if (!selectedCampaignId) return
     if (missingDados.length > 0) {
-      toast.error(`Preencha todos os campos: ${missingDados.map((f) => f.label).join(', ')}`)
+      toast.error(`Preencha todos os campos de Dados da campanha: ${requiredDadosFields.filter((f) => !f.value?.trim()).map((f) => f.label).join(', ')}`)
       return
     }
     setSavingDados(true)
     try {
+      const body: Record<string, unknown> = {
+        roi_enabled: roiEnabled,
+        valor_venda: valorVenda ? parseNum(valorVenda) : null,
+        custo_venda: custoVenda ? parseNum(custoVenda) : null,
+        meta_lucro_por_venda: metaLucroPorVenda ? parseNum(metaLucroPorVenda) : null,
+        alcance: alcance ? parseInt(alcance, 10) : null,
+        impressoes: impressoes ? parseInt(impressoes, 10) : null,
+        cliques_link: cliquesLink ? parseInt(cliquesLink, 10) : null,
+        valor_investido: valorInvestido ? parseNum(valorInvestido) : null,
+        compras: compras ? parseInt(compras, 10) : null,
+        valor_total_faturado: valorTotalFaturado ? parseNum(valorTotalFaturado) : null,
+        custo_por_aquisicao: comprasNum > 0 ? metricasCampanha.cpaCalculado : null,
+      }
       const res = await fetch(`/api/analytics/campaigns/${selectedCampaignId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({
-          alcance: alcance ? parseInt(alcance, 10) : null,
-          impressoes: impressoes ? parseInt(impressoes, 10) : null,
-          cliques_link: cliquesLink ? parseInt(cliquesLink, 10) : null,
-          valor_investido: valorInvestido ? parseNum(valorInvestido) : null,
-          compras: compras ? parseInt(compras, 10) : null,
-          valor_total_faturado: valorTotalFaturado ? parseNum(valorTotalFaturado) : null,
-          custo_por_aquisicao: comprasNum > 0 ? metricasCampanha.cpaCalculado : null,
-        }),
+        body: JSON.stringify(body),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Erro ao salvar')
       setCampaigns((prev) => prev.map((c) => (c.id === selectedCampaignId ? { ...c, ...data.campaign } : c)))
-      toast.success('Dados da campanha salvos')
+      setSavedCampaignSignature(currentCampaignSignature)
+      toast.success('Alterações salvas na campanha')
     } catch (e: any) {
       toast.error(e?.message || 'Erro ao salvar')
     } finally {
@@ -410,7 +464,7 @@ export default function AnalyticsPage() {
     icon: React.ReactNode,
     children: React.ReactNode
   ) => (
-    <div className="rounded-lg border border-gogh-grayLight bg-white transition-colors">
+    <div className={`rounded-lg border transition-colors ${getAccordionCardClass(id)}`}>
       <button
         type="button"
         onClick={() => toggleAccordion(id)}
@@ -436,7 +490,7 @@ export default function AnalyticsPage() {
   )
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gogh-beige via-white to-gogh-beige pb-12 px-4 pt-2 sm:pt-6 md:pt-12">
+    <div className="min-h-screen bg-gradient-to-br from-gogh-beige via-white to-gogh-beige pb-12 px-4 pt-2 sm:pt-4 md:pt-12">
       {authLoading ? (
         <div className="flex min-h-[60vh] items-center justify-center p-4">
           <LumaSpin size="lg" className="text-gogh-grayDark" />
@@ -520,10 +574,13 @@ export default function AnalyticsPage() {
                 <div className="space-y-2">
                 {accordionCard(
                   'roi',
-                  'Custos e receita (ROI)',
-                  roiEnabled ? `Lucro por venda: ${valorNum > 0 ? `R$ ${lucroPorVenda.toFixed(2).replace('.', ',')}` : '—'}` : 'Opcional — ative para ver lucro e margem',
+                  'Planejamento de valores',
+                  roiEnabled ? `Lucro por venda: ${valorNum > 0 ? `R$ ${lucroPorVenda.toFixed(2).replace('.', ',')}` : '—'}` : 'Usar ou não: configure valor da venda e custos para refletir no status',
                   <DollarSign className="w-4 h-4 text-gogh-grayDark" />,
                   <div className="pt-3 space-y-4">
+                    <p className="text-sm text-gogh-grayDark">
+                      Não são dados do Meta. Configure o <strong>valor da venda</strong> e o <strong>custo por venda</strong> do seu negócio para o sistema refletir lucro e recomendações no Status.
+                    </p>
                     <label className="flex items-center gap-2 cursor-pointer">
                       <input
                         type="checkbox"
@@ -531,7 +588,7 @@ export default function AnalyticsPage() {
                         onChange={(e) => setRoiEnabled(e.target.checked)}
                         className="rounded border-gogh-grayLight"
                       />
-                      <span className="text-sm font-medium text-gogh-grayDark">Usar métricas de custo e receita (para ver lucro e margem)</span>
+                      <span className="text-sm font-medium text-gogh-grayDark">Usar planejamento de valores no status (valor da venda, custo, lucro)</span>
                     </label>
                     {roiEnabled && (
                       <>
@@ -548,7 +605,7 @@ export default function AnalyticsPage() {
                               value={valorVenda}
                               onChange={(e) => setValorVenda(e.target.value)}
                               placeholder="Ex: 97"
-                              className="w-full border border-gogh-grayLight rounded-lg px-3 py-2 text-sm"
+                              className={`w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 ${getFieldBorderClass('roi')}`}
                             />
                           </div>
                           <div>
@@ -560,7 +617,7 @@ export default function AnalyticsPage() {
                               value={custoVenda}
                               onChange={(e) => setCustoVenda(e.target.value)}
                               placeholder="0 se não tiver (ex.: serviço sem custo variável)"
-                              className="w-full border border-gogh-grayLight rounded-lg px-3 py-2 text-sm"
+                              className={`w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 ${getFieldBorderClass('roi')}`}
                             />
                             <p className="text-xs text-gogh-grayDark mt-0.5">O que você gasta para entregar uma unidade (produto, frete, taxa, etc.). Deixe 0 se não tiver.</p>
                           </div>
@@ -573,7 +630,7 @@ export default function AnalyticsPage() {
                               value={metaLucroPorVenda}
                               onChange={(e) => setMetaLucroPorVenda(e.target.value)}
                               placeholder="Ex: 20 — lucro mínimo desejado por venda"
-                              className="w-full border border-gogh-grayLight rounded-lg px-3 py-2 text-sm max-w-[240px]"
+                              className={`w-full border rounded-lg px-3 py-2 text-sm max-w-[240px] focus:ring-2 ${getFieldBorderClass('roi')}`}
                             />
                             <p className="text-xs text-gogh-grayDark mt-0.5">Quanto você quer lucrar por venda. O sistema usa isso para calcular o custo máximo aceitável (CPA limite).</p>
                           </div>
@@ -629,20 +686,6 @@ export default function AnalyticsPage() {
                                 </p>
                               )}
                             </div>
-                            {selectedCampaignId && (
-                              <>
-                                <p className="text-xs text-gogh-grayDark">
-                                  Clique em &quot;Salvar na campanha&quot; para que o checkbox e os valores fiquem salvos ao sair da página.
-                                </p>
-                                <button
-                                  type="button"
-                                  onClick={handleSaveRoiToCampaign}
-                                  className="inline-flex items-center gap-2 px-4 py-2 bg-gogh-black text-white rounded-xl hover:bg-gogh-black/90 text-sm font-medium transition-colors"
-                                >
-                                  Salvar na campanha
-                                </button>
-                              </>
-                            )}
                           </div>
                         ) : (
                           <p className="text-sm text-gogh-grayDark bg-gogh-grayLight/50 rounded-lg p-3">
@@ -754,27 +797,27 @@ export default function AnalyticsPage() {
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                           <div>
                             <label className="block text-sm font-medium text-gogh-grayDark mb-1">Alcance (pessoas)</label>
-                            <input type="number" min="0" value={alcance} onChange={(e) => setAlcance(e.target.value)} placeholder="Ex: 50000" className="w-full border border-gogh-grayLight rounded-lg px-3 py-2 text-sm" />
+                            <input type="number" min="0" value={alcance} onChange={(e) => setAlcance(e.target.value)} placeholder="Ex: 50000" className={`w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 ${getFieldBorderClass('dados-campanha')}`} />
                           </div>
                           <div>
                             <label className="block text-sm font-medium text-gogh-grayDark mb-1">Impressões</label>
-                            <input type="number" min="0" value={impressoes} onChange={(e) => setImpressoes(e.target.value)} placeholder="Ex: 120000" className="w-full border border-gogh-grayLight rounded-lg px-3 py-2 text-sm" />
+                            <input type="number" min="0" value={impressoes} onChange={(e) => setImpressoes(e.target.value)} placeholder="Ex: 120000" className={`w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 ${getFieldBorderClass('dados-campanha')}`} />
                           </div>
                           <div>
                             <label className="block text-sm font-medium text-gogh-grayDark mb-1">Cliques no link</label>
-                            <input type="number" min="0" value={cliquesLink} onChange={(e) => setCliquesLink(e.target.value)} placeholder="Ex: 2400" className="w-full border border-gogh-grayLight rounded-lg px-3 py-2 text-sm" />
+                            <input type="number" min="0" value={cliquesLink} onChange={(e) => setCliquesLink(e.target.value)} placeholder="Ex: 2400" className={`w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 ${getFieldBorderClass('dados-campanha')}`} />
                           </div>
                           <div>
                             <label className="block text-sm font-medium text-gogh-grayDark mb-1">Valor investido (R$)</label>
-                            <input type="number" min="0" step="0.01" value={valorInvestido} onChange={(e) => setValorInvestido(e.target.value)} placeholder="Ex: 1500" className="w-full border border-gogh-grayLight rounded-lg px-3 py-2 text-sm" />
+                            <input type="number" min="0" step="0.01" value={valorInvestido} onChange={(e) => setValorInvestido(e.target.value)} placeholder="Ex: 1500" className={`w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 ${getFieldBorderClass('dados-campanha')}`} />
                           </div>
                           <div>
                             <label className="block text-sm font-medium text-gogh-grayDark mb-1">Compras / conversões</label>
-                            <input type="number" min="0" value={compras} onChange={(e) => setCompras(e.target.value)} placeholder="Ex: 45" className="w-full border border-gogh-grayLight rounded-lg px-3 py-2 text-sm" />
+                            <input type="number" min="0" value={compras} onChange={(e) => setCompras(e.target.value)} placeholder="Ex: 45" className={`w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 ${getFieldBorderClass('dados-campanha')}`} />
                           </div>
                           <div>
                             <label className="block text-sm font-medium text-gogh-grayDark mb-1">Valor total faturado (R$)</label>
-                            <input type="number" min="0" step="0.01" value={valorTotalFaturado} onChange={(e) => setValorTotalFaturado(e.target.value)} placeholder="Ex: 4365" className="w-full border border-gogh-grayLight rounded-lg px-3 py-2 text-sm" />
+                            <input type="number" min="0" step="0.01" value={valorTotalFaturado} onChange={(e) => setValorTotalFaturado(e.target.value)} placeholder="Ex: 4365" className={`w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 ${getFieldBorderClass('dados-campanha')}`} />
                           </div>
                         </div>
                         <div>
@@ -808,19 +851,6 @@ export default function AnalyticsPage() {
                             </div>
                           </div>
                         )}
-                        <button
-                          type="button"
-                          onClick={handleSaveDadosCampanha}
-                          disabled={savingDados}
-                          className="inline-flex items-center justify-center gap-2 min-w-[180px] h-10 px-4 py-2 bg-gogh-black text-white rounded-xl hover:bg-gogh-black/90 text-sm font-medium disabled:opacity-50 shrink-0 transition-colors"
-                        >
-                          {savingDados ? (
-                            <span className="inline-flex h-4 w-4 shrink-0 items-center justify-center overflow-hidden">
-                              <LumaSpin size="sm" />
-                            </span>
-                          ) : null}
-                          Salvar na campanha
-                        </button>
                       </>
                     )}
                   </div>
@@ -872,7 +902,7 @@ export default function AnalyticsPage() {
                     </div>
                     {statusAlerts.length === 0 ? (
                       <p className="text-sm text-gogh-grayDark bg-gogh-grayLight/50 rounded-lg p-3">
-                        Preencha <strong>Dados da campanha</strong> (alcance, impressões, cliques, investido, compras) e <strong>Custos e receita (ROI)</strong> para ver o diagnóstico e as recomendações.
+                        Preencha <strong>Dados da campanha</strong> (alcance, impressões, cliques, investido, compras) e <strong>Planejamento de valores</strong> para ver o diagnóstico e as recomendações.
                       </p>
                     ) : (
                       <div>
@@ -901,6 +931,38 @@ export default function AnalyticsPage() {
                       </div>
                     )}
                   </div>
+                )}
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-6 mt-6 border-t border-gogh-grayLight">
+                  <p className="text-xs text-gogh-grayDark">
+                    {selectedCampaignId
+                      ? (isProfileDirty ? 'Alterações não salvas. Clique em Salvar perfil para gravar na campanha.' : 'Dados da campanha salvos.')
+                      : 'Selecione uma campanha e preencha os dados para poder salvar.'}
+                  </p>
+                  <ShinyButton
+                    type="button"
+                    onClick={handleSaveProfile}
+                    disabled={savingDados || !canSaveProfile}
+                    className="h-9 px-4 min-w-[140px] shrink-0"
+                  >
+                    {savingDados ? (
+                      <>
+                        <span className="inline-flex h-4 w-4 shrink-0 items-center justify-center overflow-hidden">
+                          <LumaSpin size="sm" />
+                        </span>
+                        Salvando...
+                      </>
+                    ) : (
+                      <>
+                        <RefreshCw className="w-4 h-4 shrink-0" />
+                        Salvar perfil
+                      </>
+                    )}
+                  </ShinyButton>
+                </div>
+                {selectedCampaignId && !isDadosCampanhaComplete && isProfileDirty && (
+                  <p className="text-xs text-red-600 mt-2">
+                    Preencha todos os campos de Dados da campanha para salvar.
+                  </p>
                 )}
                 </div>
               </section>
