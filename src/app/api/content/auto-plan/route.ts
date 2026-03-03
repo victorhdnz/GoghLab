@@ -249,6 +249,11 @@ export async function POST(request: Request) {
 
     const body = await request.json().catch(() => ({}))
     const parsedMonth = typeof body.month === 'string' ? toDate(body.month) : null
+    const personalizedVideos = Array.isArray(body.personalizedVideos)
+      ? (body.personalizedVideos as Array<{ date?: string; instruction?: string }>)
+          .filter((e) => typeof e?.date === 'string' && typeof e?.instruction === 'string' && String(e.instruction).trim().length > 0)
+          .map((e) => ({ date: String(e.date), instruction: String(e.instruction).trim() }))
+      : []
     const scriptStrategy = buildScriptStructureInstruction(
       typeof body.scriptStrategyKey === 'string' ? body.scriptStrategyKey : null
     )
@@ -351,6 +356,9 @@ export async function POST(request: Request) {
     }
 
     const occupiedDates = new Set((existingItemsInMonth || []).map((it: any) => it.date))
+    for (const pv of personalizedVideos) {
+      occupiedDates.add(pv.date)
+    }
     const existingTopics = ((existingTopicsAll || []) as Array<{ topic?: unknown }>)
       .map((it) => (it.topic || '').toString().trim())
       .filter((topic: string) => Boolean(topic))

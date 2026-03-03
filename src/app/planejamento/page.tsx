@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'
 import { RainbowButton } from '@/components/ui/rainbow-button'
 import { ShinyButton } from '@/components/ui/shiny-button'
 import { HoverButton } from '@/components/ui/hover-button'
-import { Calendar as CalendarIcon, FileText, Type, Clock, ImageIcon, Megaphone, RefreshCw, Sparkles, Plus, X, CheckCircle2, Circle, ChevronDown, ChevronRight } from 'lucide-react'
+import { Calendar as CalendarIcon, FileText, Type, Clock, ImageIcon, Megaphone, RefreshCw, Sparkles, Plus, X, CheckCircle2, Circle, ChevronDown, ChevronRight, Trash2 } from 'lucide-react'
 import { Calendar } from '@/components/ui/calendar'
 import { CalendarWithEventSlots } from '@/components/ui/calendar-with-event-slots'
 import { Modal } from '@/components/ui/Modal'
@@ -32,6 +32,7 @@ const PROFILE_ACCORDION_IDS = [
   'objetivos-videos',
   'frequencia',
   'estrutura-fixa',
+  'videos-personalizados',
 ] as const
 type ProfileAccordionId = (typeof PROFILE_ACCORDION_IDS)[number]
 
@@ -116,6 +117,11 @@ const EMPTY_FIXED_STRUCTURES: FixedStructures = {
   caption: '',
   ad_copy: '',
   cover: '',
+}
+
+export type PersonalizedVideoEntry = {
+  date: string
+  instruction: string
 }
 
 function buildProfileSignature(form: ProfileFormState, customGoals: string[], fixedStructures: FixedStructures) {
@@ -291,6 +297,7 @@ export default function ContentPlanningPage() {
   const [newGoalInput, setNewGoalInput] = useState('')
   const [fixedStructures, setFixedStructures] = useState<FixedStructures>({ ...EMPTY_FIXED_STRUCTURES })
   const [savedProfileSignature, setSavedProfileSignature] = useState('')
+  const [personalizedVideoEntries, setPersonalizedVideoEntries] = useState<PersonalizedVideoEntry[]>([])
 
   const [currentMonth, setCurrentMonth] = useState(() => {
     const now = new Date()
@@ -758,6 +765,8 @@ export default function ContentPlanningPage() {
         return profileForm.availability_days.length > 0
       case 'estrutura-fixa':
         return true
+      case 'videos-personalizados':
+        return true
       default:
         return false
     }
@@ -765,6 +774,7 @@ export default function ContentPlanningPage() {
 
   const getAccordionCardClass = (sectionId: ProfileAccordionId) => {
     if (profileLoading) return 'bg-white border-gogh-grayLight'
+    if (sectionId === 'videos-personalizados') return 'bg-white border-gogh-grayLight'
     if (!isProfileDirty) return 'bg-white border-gogh-grayLight'
     if (!modifiedSections.has(sectionId)) return 'bg-white border-gogh-grayLight'
     return isSectionComplete(sectionId)
@@ -835,6 +845,9 @@ export default function ContentPlanningPage() {
     setAutoPlanning(true)
     try {
       const selectedStrategy = getScriptStrategy(profileForm.script_strategy_key)
+      const personalizedForMonth = personalizedVideoEntries.filter(
+        (e) => e.instruction.trim().length > 0 && e.date.startsWith(currentMonthKey)
+      )
       const res = await fetch('/api/content/auto-plan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -842,6 +855,7 @@ export default function ContentPlanningPage() {
         body: JSON.stringify({
           month: formatDate(currentMonth),
           scriptStrategyKey: selectedStrategy.key,
+          personalizedVideos: personalizedForMonth,
         }),
       })
       const data = await res.json()
@@ -887,7 +901,44 @@ export default function ContentPlanningPage() {
             }
           : prev
       )
-      toast.success(`Agenda automática criada com ${createdItems.length} vídeo(s).`)
+      let totalCreated = createdItems.length
+      for (const pv of personalizedForMonth) {
+        try {
+          const createRes = await fetch('/api/content/calendar', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ date: pv.date, topic: pv.instruction.trim() }),
+          })
+          const createData = await createRes.json()
+          if (!createRes.ok) {
+            toast.error(createData?.error || 'Erro ao criar vídeo personalizado')
+            continue
+          }
+          const newItem: CalendarItem = createData.item
+          setItems((prev) => [...prev, newItem])
+          const genRes = await fetch('/api/content/generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({
+              calendarItemId: newItem.id,
+              overrideTopic: pv.instruction.trim(),
+              scriptStrategyKey: profileForm.script_strategy_key,
+            }),
+          })
+          const genData = await genRes.json()
+          if (genRes.ok && genData?.item) {
+            setItems((prev) => prev.map((it) => (it.id === newItem.id ? genData.item : it)))
+          }
+          totalCreated += 1
+        } catch (e) {
+          console.error('Erro ao processar vídeo personalizado', e)
+          toast.error('Erro ao processar um vídeo personalizado.')
+        }
+      }
+      setPersonalizedVideoEntries([])
+      toast.success(`Agenda criada com ${totalCreated} vídeo(s).`)
     } catch (e) {
       console.error('Erro na agenda automática', e)
       toast.error(ERRO_GERACAO_MENSAGEM)
@@ -1394,7 +1445,7 @@ export default function ContentPlanningPage() {
                   <textarea
                     value={fixedStructures.script}
                     onChange={(e) => { markSectionModified('estrutura-fixa'); setFixedStructures((s) => ({ ...s, script: e.target.value })) }}
-                    placeholder="Ex.: Eu gostaria que sempre tivesse um CTA pedindo para comprar no meu site. Ou trechos que devem aparecer no roteiro quando fizer sentido (ex.: 🏆 Ferramentas premium, 🏆 Cursos)."
+                    placeholder="Ex.: Eu gostaria que sempre tivesse um CTA pedindo para comprar no meu site. Ou outro trecho fixo de ação no roteiro (o roteiro é falado/escrito, sem emojis)."
                     rows={3}
                     className={`w-full px-3 py-2 border rounded-lg text-sm resize-none min-h-[80px] max-h-[180px] overflow-y-auto ${getFieldBorderClass('estrutura-fixa')}`}
                   />
@@ -1429,6 +1480,85 @@ export default function ContentPlanningPage() {
                     className={`w-full px-3 py-2 border rounded-lg text-sm resize-none min-h-[60px] max-h-[140px] overflow-y-auto ${getFieldBorderClass('estrutura-fixa')}`}
                   />
                 </div>
+              </div>
+            )}
+          </div>
+
+          <div id="perfil-videos-personalizados" className={`rounded-lg border transition-colors ${getAccordionCardClass('videos-personalizados')}`}>
+            <button
+              type="button"
+              className="w-full flex items-center justify-between gap-2 p-3 text-left"
+              onClick={() => setProfileAccordionOpen(profileAccordionOpen === 'videos-personalizados' ? null : 'videos-personalizados')}
+            >
+              <span className="font-medium text-gogh-grayDark">Vídeos personalizados (opcional)</span>
+              {profileAccordionOpen === 'videos-personalizados' ? <ChevronDown className="w-4 h-4 text-gogh-grayDark shrink-0" /> : <ChevronRight className="w-4 h-4 text-gogh-grayDark shrink-0" />}
+            </button>
+            {profileAccordionOpen === 'videos-personalizados' && (
+              <div className="px-3 pb-4 pt-0 space-y-4">
+                <p className="text-xs text-gogh-grayDark">
+                  Para dias em que você já sabe o que quer: descreva o vídeo (tema, estilo, roteiro para voz IA, motion design, etc.). Na geração da agenda, a IA não criará conteúdo automático nesses dias — usará sua descrição.
+                </p>
+                {(() => {
+                  const y = currentMonth.getFullYear()
+                  const m = currentMonth.getMonth()
+                  const lastDay = new Date(y, m + 1, 0).getDate()
+                  const minDate = `${y}-${String(m + 1).padStart(2, '0')}-01`
+                  const maxDate = `${y}-${String(m + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`
+                  return (
+                    <>
+                      <HoverButton
+                        type="button"
+                        onClick={() => setPersonalizedVideoEntries((prev) => [...prev, { date: minDate, instruction: '' }])}
+                        className="h-9 px-3 text-sm border border-gogh-grayLight rounded-lg"
+                      >
+                        <Plus className="w-4 h-4 mr-1" />
+                        Adicionar vídeo personalizado
+                      </HoverButton>
+                      {personalizedVideoEntries.length > 0 && (
+                        <div className="space-y-3">
+                          {personalizedVideoEntries.map((entry, idx) => (
+                            <div key={idx} className="p-3 border border-gogh-grayLight rounded-lg space-y-2">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <label className="text-xs font-medium text-gogh-grayDark">Dia</label>
+                                <input
+                                  type="date"
+                                  min={minDate}
+                                  max={maxDate}
+                                  value={entry.date}
+                                  onChange={(e) => setPersonalizedVideoEntries((prev) => {
+                                    const next = [...prev]
+                                    next[idx] = { ...next[idx], date: e.target.value }
+                                    return next
+                                  })}
+                                  className="px-2 py-1.5 border border-gogh-grayLight rounded text-sm"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => setPersonalizedVideoEntries((prev) => prev.filter((_, i) => i !== idx))}
+                                  className="p-1.5 text-red-500 hover:bg-red-50 rounded"
+                                  aria-label="Remover"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                              <textarea
+                                placeholder="Ex.: Vídeo com voz IA (Google), motion design, tema X; roteiro curto e direto para narração."
+                                value={entry.instruction}
+                                onChange={(e) => setPersonalizedVideoEntries((prev) => {
+                                  const next = [...prev]
+                                  next[idx] = { ...next[idx], instruction: e.target.value }
+                                  return next
+                                })}
+                                rows={2}
+                                className="w-full px-3 py-2 border border-gogh-grayLight rounded-lg text-sm resize-none"
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </>
+                  )
+                })()}
               </div>
             )}
           </div>
