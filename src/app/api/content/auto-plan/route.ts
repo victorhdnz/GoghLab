@@ -247,8 +247,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: SERVICE_ERROR_MESSAGE }, { status: 503 })
     }
 
-    const body = await request.json().catch(() => ({}))
+    const body = await request.json().catch(() => ({})) as Record<string, unknown>
     const parsedMonth = typeof body.month === 'string' ? toDate(body.month) : null
+    const bodyFixedScript = typeof body.fixed_structure_script === 'string' ? body.fixed_structure_script.trim() : ''
+    const bodyFixedCaption = typeof body.fixed_structure_caption === 'string' ? body.fixed_structure_caption.trim() : ''
+    const bodyFixedAdCopy = typeof body.fixed_structure_ad_copy === 'string' ? body.fixed_structure_ad_copy.trim() : ''
+    const bodyFixedCover = typeof body.fixed_structure_cover === 'string' ? body.fixed_structure_cover.trim() : ''
     const personalizedVideos = Array.isArray(body.personalizedVideos)
       ? (body.personalizedVideos as Array<{ date?: string; instruction?: string }>)
           .filter((e) => typeof e?.date === 'string' && typeof e?.instruction === 'string' && String(e.instruction).trim().length > 0)
@@ -395,10 +399,10 @@ export async function POST(request: Request) {
     const ctaInstruction = mapGoalToCta(primaryGoal)
 
     const prefs = profile.extra_preferences || {}
-    const fixedScript = (prefs.fixed_structure_script || prefs.fixed_structure || '').trim()
-    const fixedCaption = (prefs.fixed_structure_caption || '').trim()
-    const fixedAdCopy = (prefs.fixed_structure_ad_copy || '').trim()
-    const fixedCover = (prefs.fixed_structure_cover || '').trim()
+    const fixedScript = (bodyFixedScript || prefs.fixed_structure_script || prefs.fixed_structure || '').trim()
+    const fixedCaption = (bodyFixedCaption || (prefs.fixed_structure_caption ?? '')).trim()
+    const fixedAdCopy = (bodyFixedAdCopy || (prefs.fixed_structure_ad_copy ?? '')).trim()
+    const fixedCover = (bodyFixedCover || (prefs.fixed_structure_cover ?? '')).trim()
     const hasFixedStructures = fixedScript || fixedCaption || fixedAdCopy || fixedCover
     const fixedStructuresBlock = hasFixedStructures
       ? [

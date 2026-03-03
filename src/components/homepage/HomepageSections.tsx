@@ -191,6 +191,7 @@ export function HomepageSections({
         eyebrow="Criar"
         eyebrowHref="/planejamento"
         title={heroTitle}
+        titleBreakAfter="conteúdos "
         subtitle={heroSubtitle}
         ctaLabel={ctaLabel}
         ctaHref="/precos"

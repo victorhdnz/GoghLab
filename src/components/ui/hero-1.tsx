@@ -10,6 +10,8 @@ interface HeroProps {
   eyebrow?: string
   eyebrowHref?: string
   title: string
+  /** No desktop (md+), insere quebra de linha após este trecho do título. Ex: "conteúdos " → "Crie e produza conteúdos" / "com qualidade." */
+  titleBreakAfter?: string
   subtitle: string
   ctaLabel?: string
   ctaHref?: string
@@ -19,6 +21,7 @@ export function Hero({
   eyebrow = 'Criar',
   eyebrowHref = '/planejamento',
   title,
+  titleBreakAfter,
   subtitle,
   ctaLabel = 'Ver planos',
   ctaHref = '/precos',
@@ -26,6 +29,10 @@ export function Hero({
   const router = useRouter()
   const safeTitle = typeof title === 'string' ? title : 'Gogh Lab'
   const safeSubtitle = typeof subtitle === 'string' ? subtitle : 'Criatividade guiada por tecnologia.'
+  const hasBreak = titleBreakAfter && safeTitle.includes(titleBreakAfter)
+  const [firstLine, secondLine] = hasBreak
+    ? [safeTitle.split(titleBreakAfter)[0] + titleBreakAfter.trim(), safeTitle.split(titleBreakAfter).slice(1).join(titleBreakAfter).trim()]
+    : [safeTitle, '']
   return (
     <section
       id="hero"
@@ -46,9 +53,18 @@ export function Hero({
         </Link>
       )}
 
-      {/* Title - preto/amarelo Gogh */}
+      {/* Title - preto/amarelo Gogh; no desktop quebra após "conteúdos" para não ficar uma linha só */}
       <h1 className="animate-fade-in-up text-balance bg-gradient-to-br from-[#0A0A0A] to-[#0A0A0A]/40 bg-clip-text py-6 text-5xl font-semibold leading-tight tracking-tighter text-transparent opacity-0 sm:text-6xl md:text-7xl lg:text-8xl dark:from-white dark:to-white/40 [animation-fill-mode:forwards] motion-reduce:opacity-100">
-        {safeTitle}
+        <span className="md:hidden">{safeTitle}</span>
+        {hasBreak ? (
+          <span className="hidden md:block">
+            {firstLine}
+            <br />
+            {secondLine}
+          </span>
+        ) : (
+          <span className="hidden md:inline">{safeTitle}</span>
+        )}
       </h1>
 
       {/* Subtitle */}

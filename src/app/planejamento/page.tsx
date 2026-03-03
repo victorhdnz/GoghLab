@@ -856,6 +856,10 @@ export default function ContentPlanningPage() {
           month: formatDate(currentMonth),
           scriptStrategyKey: selectedStrategy.key,
           personalizedVideos: personalizedForMonth,
+          fixed_structure_script: (fixedStructures.script || '').trim() || undefined,
+          fixed_structure_caption: (fixedStructures.caption || '').trim() || undefined,
+          fixed_structure_ad_copy: (fixedStructures.ad_copy || '').trim() || undefined,
+          fixed_structure_cover: (fixedStructures.cover || '').trim() || undefined,
         }),
       })
       const data = await res.json()
@@ -1717,6 +1721,38 @@ export default function ContentPlanningPage() {
               <p className="text-base font-semibold text-gogh-black">Frequência desejada</p>
               <p className="text-sm text-gogh-grayDark">{profileForm.availability_days.length ? profileForm.availability_days.map((d) => weekDayOptions.find((o) => o.value === d)?.label ?? d).join(', ') : '—'}</p>
               <Button type="button" variant="outline" size="sm" className="w-fit mt-1 h-8 text-xs rounded-full" onClick={() => { setConfirmAutoPlanModalOpen(false); router.push('/planejamento?open=frequencia') }}>Alterar</Button>
+            </div>
+            <div className="flex flex-col gap-1">
+              <p className="text-base font-semibold text-gogh-black">Estrutura fixa nos vídeos</p>
+              <p className="text-sm text-gogh-grayDark">
+                {[fixedStructures.script, fixedStructures.caption, fixedStructures.ad_copy, fixedStructures.cover].some((s) => (s ?? '').trim().length > 0)
+                  ? [
+                      fixedStructures.script?.trim() && 'Roteiro',
+                      fixedStructures.caption?.trim() && 'Legenda de vídeo',
+                      fixedStructures.ad_copy?.trim() && 'Legenda de anúncio',
+                      fixedStructures.cover?.trim() && 'Texto de capa',
+                    ].filter(Boolean).join(', ') + ' configurado(s). Será aplicado em todos os vídeos (incl. personalizados).'
+                  : 'Nenhuma estrutura fixa configurada.'}
+              </p>
+              <p className="text-xs text-gogh-grayDark">Salva no perfil e usada em toda geração.</p>
+              <Button type="button" variant="outline" size="sm" className="w-fit mt-1 h-8 text-xs rounded-full" onClick={() => { setConfirmAutoPlanModalOpen(false); router.push('/planejamento?open=estrutura-fixa') }}>Alterar</Button>
+            </div>
+            <div className="flex flex-col gap-1">
+              <p className="text-base font-semibold text-gogh-black">Vídeos personalizados (este mês)</p>
+              <p className="text-sm text-gogh-grayDark">
+                {personalizedVideoEntries.filter((e) => e.instruction.trim().length > 0 && e.date.startsWith(currentMonthKey)).length > 0
+                  ? personalizedVideoEntries
+                      .filter((e) => e.instruction.trim().length > 0 && e.date.startsWith(currentMonthKey))
+                      .map((e) => `${e.date}: ${e.instruction.trim().length > 40 ? e.instruction.trim().slice(0, 40) + '…' : e.instruction.trim()}`)
+                      .join(' · ')
+                  : 'Nenhum vídeo personalizado para este mês.'}
+              </p>
+              <p className="text-xs text-gogh-grayDark">
+                {personalizedVideoEntries.filter((e) => e.instruction.trim().length > 0 && e.date.startsWith(currentMonthKey)).length > 0
+                  ? 'Esses dias receberão o conteúdo que você definiu; o restante será gerado pela IA. Não fica salvo no perfil (só para esta geração).'
+                  : 'O que você preencher aqui será enviado nesta geração e não fica salvo no perfil.'}
+              </p>
+              <Button type="button" variant="outline" size="sm" className="w-fit mt-1 h-8 text-xs rounded-full" onClick={() => { setConfirmAutoPlanModalOpen(false); router.push('/planejamento?open=videos-personalizados') }}>Alterar</Button>
             </div>
           </div>
           <div className="flex flex-wrap items-center justify-end gap-2 pt-1">
