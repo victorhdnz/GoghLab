@@ -548,7 +548,7 @@ export default function AnalyticsPage() {
           (c) =>
             (c.name ?? '').trim().length > 0 &&
             [c.alcance, c.impressoes, c.cliques_link, c.valor_investido, c.compras, c.valor_total_faturado].every(
-              (v) => v != null && v !== ''
+              (v) => v != null
             )
         )
       : [alcance, impressoes, cliquesLink, valorInvestido, compras, valorTotalFaturado].every((s) => (s ?? '').trim().length > 0))
@@ -697,7 +697,7 @@ export default function AnalyticsPage() {
       const incomplete = creatives.find(
         (c) =>
           !(c.name ?? '').trim() ||
-          [c.alcance, c.impressoes, c.cliques_link, c.valor_investido, c.compras, c.valor_total_faturado].some((v) => v == null || v === '')
+          [c.alcance, c.impressoes, c.cliques_link, c.valor_investido, c.compras, c.valor_total_faturado].some((v) => v == null)
       )
       if (incomplete) {
         toast.error('Preencha nome e todas as métricas de cada criativo antes de salvar.')
