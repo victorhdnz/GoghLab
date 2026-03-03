@@ -483,11 +483,11 @@ export async function POST(request: Request) {
     )
 
     const prefs = profile.extra_preferences || {}
-    const fixedScript = (prefs.fixed_structure_script || (prefs as any).fixed_structure || '').trim()
-    const fixedCaption = (prefs.fixed_structure_caption || '').trim()
-    const fixedAdCopy = (prefs.fixed_structure_ad_copy || '').trim()
-    const fixedCover = (prefs.fixed_structure_cover || '').trim()
-    const fixedTopic = (prefs.fixed_structure_topic || '').trim()
+    const fixedScript = String(prefs.fixed_structure_script ?? (prefs as Record<string, unknown>).fixed_structure ?? '').trim()
+    const fixedCaption = String(prefs.fixed_structure_caption ?? '').trim()
+    const fixedAdCopy = String(prefs.fixed_structure_ad_copy ?? '').trim()
+    const fixedCover = String(prefs.fixed_structure_cover ?? '').trim()
+    const fixedTopic = String(prefs.fixed_structure_topic ?? '').trim()
     const fixedParts: string[] = []
     if (fixedScript) fixedParts.push(`Roteiro (script):\n${fixedScript}`)
     if (fixedCaption) fixedParts.push(`Legenda do vídeo:\n${fixedCaption}`)
