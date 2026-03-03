@@ -62,6 +62,17 @@ interface AnalyticsCreative {
   updated_at: string
 }
 
+// Fases de orçamento planejado por campanha (não alteram dados reais; só para planejamento)
+interface BudgetPhase {
+  id: string
+  valor: number
+  dias: number
+}
+
+const BUDGET_PHASES_STORAGE_KEY = 'gogh_analytics_budget_phases'
+const BUDGET_TYPE_STORAGE_KEY = 'gogh_analytics_budget_type' // CBO = campanha (por dia na campanha); ABO = conjunto (por conjunto)
+type BudgetTypeMeta = 'cbo' | 'abo'
+
 // Parâmetros de análise (benchmarks para decisão)
 const FREQ_SAUDAVEL = { min: 1.5, max: 2.5 }
 const FREQ_ATENCAO = { min: 2.5, max: 3 }
@@ -140,6 +151,13 @@ export default function AnalyticsPage() {
   const [creativesLoading, setCreativesLoading] = useState(false)
   const [addingCreative, setAddingCreative] = useState(false)
   const [creativosSubOpen, setCreativosSubOpen] = useState(false)
+  const [budgetPhases, setBudgetPhases] = useState<BudgetPhase[]>([])
+  const [newPhaseValor, setNewPhaseValor] = useState('')
+  const [newPhaseDias, setNewPhaseDias] = useState('')
+  const [budgetTypeMeta, setBudgetTypeMeta] = useState<BudgetTypeMeta>(() => {
+    if (typeof window === 'undefined') return 'cbo'
+    return (localStorage.getItem(BUDGET_TYPE_STORAGE_KEY) === 'abo' ? 'abo' : 'cbo') as BudgetTypeMeta
+  })
 
   const buildCampaignSignature = () =>
     JSON.stringify({
@@ -261,6 +279,55 @@ export default function AnalyticsPage() {
     setCreativosSubOpen(true)
     loadCreatives(selectedCampaignId)
   }, [selectedCampaignId, hasAccess])
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !selectedCampaignId) {
+      setBudgetPhases([])
+      return
+    }
+    try {
+      const raw = localStorage.getItem(BUDGET_PHASES_STORAGE_KEY)
+      const map = raw ? (JSON.parse(raw) as Record<string, BudgetPhase[]>) : {}
+      const phases = Array.isArray(map[selectedCampaignId]) ? map[selectedCampaignId] : []
+      setBudgetPhases(phases)
+    } catch {
+      setBudgetPhases([])
+    }
+  }, [selectedCampaignId])
+
+  const persistBudgetPhases = (campaignId: string, phases: BudgetPhase[]) => {
+    try {
+      const raw = typeof window !== 'undefined' ? localStorage.getItem(BUDGET_PHASES_STORAGE_KEY) : null
+      const map = raw ? (JSON.parse(raw) as Record<string, BudgetPhase[]>) : {}
+      map[campaignId] = phases
+      localStorage.setItem(BUDGET_PHASES_STORAGE_KEY, JSON.stringify(map))
+    } catch {}
+  }
+
+  const addBudgetPhase = () => {
+    const valor = parseFloat(String(newPhaseValor).replace(',', '.')) || 0
+    const dias = Math.max(1, Math.floor(parseFloat(String(newPhaseDias).replace(',', '.')) || 0))
+    if (valor <= 0 || !selectedCampaignId) return
+    const phase: BudgetPhase = { id: crypto.randomUUID(), valor, dias }
+    const next = [...budgetPhases, phase]
+    setBudgetPhases(next)
+    persistBudgetPhases(selectedCampaignId, next)
+    setNewPhaseValor('')
+    setNewPhaseDias('')
+    toast.success('Fase de orçamento adicionada')
+  }
+
+  const removeLastBudgetPhase = () => {
+    if (budgetPhases.length === 0 || !selectedCampaignId) return
+    const next = budgetPhases.slice(0, -1)
+    setBudgetPhases(next)
+    persistBudgetPhases(selectedCampaignId, next)
+    toast.success('Última fase removida')
+  }
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') localStorage.setItem(BUDGET_TYPE_STORAGE_KEY, budgetTypeMeta)
+  }, [budgetTypeMeta])
 
   const parseNum = (s: string) => parseFloat(String(s).replace(',', '.')) || 0
   const toNum = (s: string) => (s.trim() ? parseNum(s) : 0)
@@ -995,6 +1062,184 @@ export default function AnalyticsPage() {
                 </div>
                 <div className="space-y-2">
                 {accordionCard(
+                  'campanhas',
+                  'Campanhas',
+                  selectedCampaign ? `${selectedCampaign.name} · Início ${selectedCampaign.start_date}` : 'Crie, ative ou pause campanhas',
+                  <Megaphone className="w-4 h-4 text-gogh-grayDark" />,
+                  <div className="pt-3 space-y-4 overflow-hidden">
+                    <div className="flex flex-wrap gap-3 items-end min-w-0">
+                      <div className="flex-1 min-w-0 sm:min-w-[160px]">
+                        <label className="block text-sm font-medium text-gogh-grayDark mb-1">Nova campanha</label>
+                        <input
+                          type="text"
+                          value={newCampaignName}
+                          onChange={(e) => setNewCampaignName(e.target.value)}
+                          placeholder="Nome da campanha"
+                          className="w-full min-w-0 border border-gogh-grayLight rounded-lg px-3 py-2 text-sm"
+                        />
+                      </div>
+                      <div className="min-w-0 max-w-full overflow-hidden basis-32 shrink sm:basis-auto sm:min-w-[140px]">
+                        <label className="block text-sm font-medium text-gogh-grayDark mb-1">Início</label>
+                        <input
+                          type="date"
+                          value={newCampaignStartDate}
+                          onChange={(e) => setNewCampaignStartDate(e.target.value)}
+                          className="w-full min-w-0 max-w-full border border-gogh-grayLight rounded-lg px-3 py-2 text-sm box-border"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleCreateCampaign}
+                        disabled={campaignsLoading}
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-gogh-yellow text-gogh-black rounded-xl hover:bg-gogh-yellow/90 font-medium text-sm transition-colors shrink-0"
+                      >
+                        <Plus className="w-4 h-4" />
+                        Criar
+                      </button>
+                    </div>
+                    {campaignsLoading ? (
+                      <div className="flex justify-center py-4"><LumaSpin size="sm" /></div>
+                    ) : campaigns.length === 0 ? (
+                      <p className="text-sm text-gogh-grayDark py-2">Nenhuma campanha. Crie uma para organizar métricas e decisões por campanha.</p>
+                    ) : (
+                      <ul className="space-y-2">
+                        {campaigns.map((c) => (
+                          <li
+                            key={c.id}
+                            className={`flex items-center justify-between gap-2 rounded-lg border p-3 transition-colors ${
+                              selectedCampaignId === c.id ? 'border-gogh-yellow bg-gogh-yellow/10' : 'border-gogh-grayLight bg-white'
+                            }`}
+                          >
+                            <button
+                              type="button"
+                              onClick={() => setSelectedCampaignId(c.id)}
+                              className="flex-1 text-left min-w-0"
+                            >
+                              <span className="font-medium text-gogh-black block truncate">{c.name}</span>
+                              <span className="text-xs text-gogh-grayDark">
+                                Início: {c.start_date} · {c.is_active ? 'Ativa' : 'Pausada'}
+                              </span>
+                            </button>
+                            <div className="flex items-center gap-1 shrink-0">
+                              <button
+                                type="button"
+                                onClick={() => handleToggleCampaignActive(c)}
+                                title={c.is_active ? 'Pausar' : 'Ativar'}
+                                className="p-2 rounded-lg text-gogh-grayDark hover:bg-gogh-grayLight"
+                              >
+                                {c.is_active ? <span className="text-xs font-medium text-amber-600">Pausar</span> : <span className="text-xs font-medium text-green-600">Ativar</span>}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteCampaign(c.id)}
+                                title="Excluir"
+                                className="p-2 rounded-lg text-red-600 hover:bg-red-50"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                    {selectedCampaignId && (
+                      <div className="border-t border-gogh-grayLight pt-4 mt-4">
+                        <button
+                          type="button"
+                          onClick={() => setCreativosSubOpen((o) => !o)}
+                          className="w-full flex items-center justify-between gap-2 py-2 px-0 text-left"
+                        >
+                          <span className="text-sm font-semibold text-gogh-black flex items-center gap-2">
+                            <ImageIcon className="w-4 h-4 text-gogh-grayDark" />
+                            Criativos desta campanha
+                            {creatives.length > 0 && (
+                              <span className="text-xs font-normal text-gogh-grayDark">({creatives.length})</span>
+                            )}
+                          </span>
+                          {creativosSubOpen ? <ChevronDown className="w-4 h-4 shrink-0" /> : <ChevronRight className="w-4 h-4 shrink-0" />}
+                        </button>
+                        {creativosSubOpen && (
+                          <div className="pt-3 space-y-3">
+                            {creativesLoading ? (
+                              <div className="flex justify-center py-4"><LumaSpin size="sm" /></div>
+                            ) : creatives.length === 0 ? (
+                              <div className="rounded-lg border border-dashed border-gogh-grayLight bg-gogh-beige/20 p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                                <p className="text-xs text-gogh-grayDark">Adicione cada vídeo ou anúncio e preencha as métricas. Os totais alimentam Dados da campanha e o Status.</p>
+                                <button
+                                  type="button"
+                                  onClick={handleAddCreative}
+                                  disabled={addingCreative}
+                                  className="shrink-0 inline-flex items-center gap-2 px-3 py-2 bg-gogh-yellow text-gogh-black rounded-lg text-sm font-medium hover:bg-gogh-yellow/90"
+                                >
+                                  <Plus className="w-4 h-4" />
+                                  {addingCreative ? '...' : 'Adicionar criativo'}
+                                </button>
+                              </div>
+                            ) : (
+                              <>
+                                {creatives.map((cr) => (
+                                  <div key={cr.id} className="rounded-lg border border-gogh-grayLight bg-white p-3 space-y-2">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                      <input
+                                        type="text"
+                                        value={cr.name}
+                                        onChange={(e) => setCreatives((prev) => prev.map((c) => (c.id === cr.id ? { ...c, name: e.target.value } : c)))}
+                                        placeholder="Nome do criativo"
+                                        className="flex-1 min-w-[120px] border border-gogh-grayLight rounded-lg px-2 py-1.5 text-sm"
+                                      />
+                                      <button type="button" onClick={() => handleDeleteCreative(cr.id)} className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg" aria-label="Excluir"><Trash2 className="w-4 h-4" /></button>
+                                    </div>
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                      <div><label className="block text-xs text-gogh-grayDark">Alcance</label><input type="number" min="0" value={cr.alcance ?? ''} onChange={(e) => setCreatives((prev) => prev.map((c) => (c.id === cr.id ? { ...c, alcance: e.target.value ? Number(e.target.value) : null } : c)))} className="w-full border rounded px-2 py-1 text-sm" /></div>
+                                      <div><label className="block text-xs text-gogh-grayDark">Impressões</label><input type="number" min="0" value={cr.impressoes ?? ''} onChange={(e) => setCreatives((prev) => prev.map((c) => (c.id === cr.id ? { ...c, impressoes: e.target.value ? Number(e.target.value) : null } : c)))} className="w-full border rounded px-2 py-1 text-sm" /></div>
+                                      <div><label className="block text-xs text-gogh-grayDark">Cliques no link</label><input type="number" min="0" value={cr.cliques_link ?? ''} onChange={(e) => setCreatives((prev) => prev.map((c) => (c.id === cr.id ? { ...c, cliques_link: e.target.value ? Number(e.target.value) : null } : c)))} className="w-full border rounded px-2 py-1 text-sm" /></div>
+                                      <div><label className="block text-xs text-gogh-grayDark">Valor usado (R$)</label><input type="number" min="0" step="0.01" value={cr.valor_investido ?? ''} onChange={(e) => setCreatives((prev) => prev.map((c) => (c.id === cr.id ? { ...c, valor_investido: e.target.value ? Number(e.target.value) : null } : c)))} className="w-full border rounded px-2 py-1 text-sm" /></div>
+                                      <div><label className="block text-xs text-gogh-grayDark">Compras</label><input type="number" min="0" value={cr.compras ?? ''} onChange={(e) => setCreatives((prev) => prev.map((c) => (c.id === cr.id ? { ...c, compras: e.target.value ? Number(e.target.value) : null } : c)))} className="w-full border rounded px-2 py-1 text-sm" /></div>
+                                      <div><label className="block text-xs text-gogh-grayDark">Valor de conversão (R$)</label><input type="number" min="0" step="0.01" value={cr.valor_total_faturado ?? ''} onChange={(e) => setCreatives((prev) => prev.map((c) => (c.id === cr.id ? { ...c, valor_total_faturado: e.target.value ? Number(e.target.value) : null } : c)))} className="w-full border rounded px-2 py-1 text-sm" /></div>
+                                    </div>
+                                  </div>
+                                ))}
+                                <button type="button" onClick={handleAddCreative} disabled={addingCreative} className="inline-flex items-center gap-1.5 px-3 py-2 border border-dashed border-gogh-grayLight rounded-lg text-xs font-medium text-gogh-grayDark hover:bg-gogh-grayLight/30">
+                                  <Plus className="w-3.5 h-3.5" />{addingCreative ? '...' : 'Adicionar criativo'}
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    {selectedCampaignId && (
+                      <div className="border-t border-gogh-grayLight pt-4 mt-4">
+                        <p className="text-xs font-semibold text-gogh-black mb-0.5 flex items-center gap-1.5">
+                          <ClipboardList className="w-3.5 h-3.5" />
+                          Dados e métricas
+                        </p>
+                        <p className="text-xs text-gogh-grayDark mb-2">Calculados de forma automática a partir dos dados preenchidos nos criativos.</p>
+                        {creatives.length > 0 ? (
+                          (impressoesNum > 0 || cliquesNum > 0 || comprasNum > 0 || valorInvestidoNum > 0) ? (
+                            <div className="rounded-lg border border-gogh-grayLight bg-gogh-beige/40 p-3">
+                              <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-1 text-xs">
+                                {alcanceNum > 0 && impressoesNum > 0 && <div><span className="text-gogh-grayDark">Frequência</span> <span className="font-medium">{metricasCampanha.freq.toFixed(2)}</span></div>}
+                                {impressoesNum > 0 && <div><span className="text-gogh-grayDark">CTR (Taxa de Cliques)</span> <span className="font-medium">{metricasCampanha.ctrPct.toFixed(2)}%</span></div>}
+                                {cliquesNum > 0 && <div><span className="text-gogh-grayDark">Conversão</span> <span className="font-medium">{metricasCampanha.taxaConvPct.toFixed(2)}%</span></div>}
+                                {impressoesNum > 0 && valorInvestidoNum > 0 && <div><span className="text-gogh-grayDark">CPM (Custo Por Mil impressões)</span> <span className="font-medium">R$ {metricasCampanha.cpm.toFixed(2)}</span></div>}
+                                {cliquesNum > 0 && valorInvestidoNum > 0 && <div><span className="text-gogh-grayDark">CPC (Custo Por Clique)</span> <span className="font-medium">R$ {metricasCampanha.cpc.toFixed(2)}</span></div>}
+                                {comprasNum > 0 && <div><span className="text-gogh-grayDark">CPA (Custo Por Aquisição)</span> <span className="font-medium">R$ {metricasCampanha.cpaCalculado.toFixed(2)}</span></div>}
+                                {valorInvestidoNum > 0 && valorFaturadoNum > 0 && <div><span className="text-gogh-grayDark">ROAS (Retorno Sobre o Investimento em Anúncios)</span> <span className="font-medium">{metricasCampanha.roas.toFixed(2)}x</span></div>}
+                              </div>
+                            </div>
+                          ) : (
+                            <p className="text-xs text-gogh-grayDark">Preencha os criativos acima para ver os totais.</p>
+                          )
+                        ) : (
+                          <p className="text-xs text-gogh-grayDark rounded-lg border border-gogh-grayLight bg-gogh-beige/20 p-3">Adicione pelo menos um criativo e preencha os dados para ver os totais e o diagnóstico.</p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {accordionCard(
                   'roi',
                   'Planejamento de valores',
                   null,
@@ -1189,184 +1434,171 @@ export default function AnalyticsPage() {
                             <p className="text-xs text-amber-700 mt-2">Campanha pausada.</p>
                           )}
                         </div>
-                      </div>
-                    )}
-                  </div>
-                )}
 
-                {accordionCard(
-                  'campanhas',
-                  'Campanhas',
-                  selectedCampaign ? `${selectedCampaign.name} · Início ${selectedCampaign.start_date}` : 'Crie, ative ou pause campanhas',
-                  <Megaphone className="w-4 h-4 text-gogh-grayDark" />,
-                  <div className="pt-3 space-y-4 overflow-hidden">
-                    <div className="flex flex-wrap gap-3 items-end min-w-0">
-                      <div className="flex-1 min-w-0 sm:min-w-[160px]">
-                        <label className="block text-sm font-medium text-gogh-grayDark mb-1">Nova campanha</label>
-                        <input
-                          type="text"
-                          value={newCampaignName}
-                          onChange={(e) => setNewCampaignName(e.target.value)}
-                          placeholder="Nome da campanha"
-                          className="w-full min-w-0 border border-gogh-grayLight rounded-lg px-3 py-2 text-sm"
-                        />
-                      </div>
-                      <div className="min-w-0 max-w-full overflow-hidden basis-32 shrink sm:basis-auto sm:min-w-[140px]">
-                        <label className="block text-sm font-medium text-gogh-grayDark mb-1">Início</label>
-                        <input
-                          type="date"
-                          value={newCampaignStartDate}
-                          onChange={(e) => setNewCampaignStartDate(e.target.value)}
-                          className="w-full min-w-0 max-w-full border border-gogh-grayLight rounded-lg px-3 py-2 text-sm box-border"
-                        />
-                      </div>
-                      <button
-                        type="button"
-                        onClick={handleCreateCampaign}
-                        disabled={campaignsLoading}
-                        className="inline-flex items-center gap-2 px-4 py-2 bg-gogh-yellow text-gogh-black rounded-xl hover:bg-gogh-yellow/90 font-medium text-sm transition-colors shrink-0"
-                      >
-                        <Plus className="w-4 h-4" />
-                        Criar
-                      </button>
-                    </div>
-                    {campaignsLoading ? (
-                      <div className="flex justify-center py-4"><LumaSpin size="sm" /></div>
-                    ) : campaigns.length === 0 ? (
-                      <p className="text-sm text-gogh-grayDark py-2">Nenhuma campanha. Crie uma para organizar métricas e decisões por campanha.</p>
-                    ) : (
-                      <ul className="space-y-2">
-                        {campaigns.map((c) => (
-                          <li
-                            key={c.id}
-                            className={`flex items-center justify-between gap-2 rounded-lg border p-3 transition-colors ${
-                              selectedCampaignId === c.id ? 'border-gogh-yellow bg-gogh-yellow/10' : 'border-gogh-grayLight bg-white'
-                            }`}
-                          >
-                            <button
-                              type="button"
-                              onClick={() => setSelectedCampaignId(c.id)}
-                              className="flex-1 text-left min-w-0"
-                            >
-                              <span className="font-medium text-gogh-black block truncate">{c.name}</span>
-                              <span className="text-xs text-gogh-grayDark">
-                                Início: {c.start_date} · {c.is_active ? 'Ativa' : 'Pausada'}
-                              </span>
-                            </button>
-                            <div className="flex items-center gap-1 shrink-0">
-                              <button
-                                type="button"
-                                onClick={() => handleToggleCampaignActive(c)}
-                                title={c.is_active ? 'Pausar' : 'Ativar'}
-                                className="p-2 rounded-lg text-gogh-grayDark hover:bg-gogh-grayLight"
-                              >
-                                {c.is_active ? <span className="text-xs font-medium text-amber-600">Pausar</span> : <span className="text-xs font-medium text-green-600">Ativar</span>}
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => handleDeleteCampaign(c.id)}
-                                title="Excluir"
-                                className="p-2 rounded-lg text-red-600 hover:bg-red-50"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
+                        <div className="border-t border-gogh-grayLight pt-4 mt-4">
+                          <p className="text-xs font-semibold text-gogh-black mb-1 flex items-center gap-1.5">
+                            <DollarSign className="w-3.5 h-3.5 text-gogh-yellow" />
+                            Planejamento de orçamento
+                          </p>
+                          <p className="text-xs text-gogh-grayDark mb-2">
+                            Valor que você pretende investir e por quantos dias. <strong>Não altera os dados reais</strong> da campanha — use para planejamento; preencha o valor investido na seção Campanhas com o real.
+                          </p>
+                          <div className="mb-3 rounded-lg border border-gogh-grayLight bg-gogh-beige/20 p-2">
+                            <p className="text-[11px] font-medium text-gogh-black mb-1.5">No Meta, como você define o orçamento?</p>
+                            <div className="flex flex-wrap gap-3">
+                              <label className="flex items-center gap-2 cursor-pointer">
+                                <input
+                                  type="radio"
+                                  name="budgetTypeMeta"
+                                  checked={budgetTypeMeta === 'cbo'}
+                                  onChange={() => setBudgetTypeMeta('cbo')}
+                                  className="border-gogh-grayLight"
+                                />
+                                <span className="text-xs text-gogh-grayDark"><strong>CBO</strong> — Campanha (orçamento por dia na campanha; o Meta distribui entre conjuntos)</span>
+                              </label>
+                              <label className="flex items-center gap-2 cursor-pointer">
+                                <input
+                                  type="radio"
+                                  name="budgetTypeMeta"
+                                  checked={budgetTypeMeta === 'abo'}
+                                  onChange={() => setBudgetTypeMeta('abo')}
+                                  className="border-gogh-grayLight"
+                                />
+                                <span className="text-xs text-gogh-grayDark"><strong>ABO</strong> — Conjunto de anúncios (orçamento por conjunto; some os valores para o total planejado)</span>
+                              </label>
                             </div>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                    {selectedCampaignId && (
-                      <div className="border-t border-gogh-grayLight pt-4 mt-4">
-                        <button
-                          type="button"
-                          onClick={() => setCreativosSubOpen((o) => !o)}
-                          className="w-full flex items-center justify-between gap-2 py-2 px-0 text-left"
-                        >
-                          <span className="text-sm font-semibold text-gogh-black flex items-center gap-2">
-                            <ImageIcon className="w-4 h-4 text-gogh-grayDark" />
-                            Criativos desta campanha
-                            {creatives.length > 0 && (
-                              <span className="text-xs font-normal text-gogh-grayDark">({creatives.length})</span>
-                            )}
-                          </span>
-                          {creativosSubOpen ? <ChevronDown className="w-4 h-4 shrink-0" /> : <ChevronRight className="w-4 h-4 shrink-0" />}
-                        </button>
-                        {creativosSubOpen && (
-                          <div className="pt-3 space-y-3">
-                            {creativesLoading ? (
-                              <div className="flex justify-center py-4"><LumaSpin size="sm" /></div>
-                            ) : creatives.length === 0 ? (
-                              <div className="rounded-lg border border-dashed border-gogh-grayLight bg-gogh-beige/20 p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                                <p className="text-xs text-gogh-grayDark">Adicione cada vídeo ou anúncio e preencha as métricas. Os totais alimentam Dados da campanha e o Status.</p>
+                          </div>
+                          {budgetPhases.length > 0 && (
+                            <div className="space-y-2 mb-4">
+                              {(() => {
+                                const startDate = selectedCampaign?.start_date ? new Date(selectedCampaign.start_date + 'T12:00:00') : null
+                                let dayOffset = 0
+                                return budgetPhases.map((phase, index) => {
+                                  const diaInicio = dayOffset + 1
+                                  const diaFim = dayOffset + phase.dias
+                                  dayOffset = diaFim
+                                  const porDia = phase.dias > 0 ? phase.valor / phase.dias : 0
+                                  return (
+                                    <div key={phase.id} className="rounded-lg border border-gogh-grayLight bg-gogh-beige/30 px-3 py-2 text-xs">
+                                      <span className="font-medium text-gogh-black">Fase {index + 1}:</span>{' '}
+                                      <span className="text-gogh-grayDark">R$ {phase.valor.toFixed(2).replace('.', ',')} · {phase.dias} dias</span>
+                                      <span className="text-gogh-grayDark"> (R$ {porDia.toFixed(2).replace('.', ',')}/dia)</span>
+                                      {startDate && <span className="block text-gogh-grayDark mt-0.5">Dias {diaInicio}–{diaFim} da campanha</span>}
+                                    </div>
+                                  )
+                                })
+                              })()}
+                            </div>
+                          )}
+                          {budgetPhases.length > 0 && selectedCampaign?.start_date && (() => {
+                            const start = new Date(selectedCampaign.start_date + 'T12:00:00')
+                            const today = new Date()
+                            today.setHours(0, 0, 0, 0)
+                            start.setHours(0, 0, 0, 0)
+                            const totalDias = budgetPhases.reduce((s, p) => s + p.dias, 0)
+                            const phaseColors = ['bg-gogh-yellow/50', 'bg-amber-400/50', 'bg-orange-400/50', 'bg-amber-600/50']
+                            const days: { dayNum: number; date: Date; phaseIndex: number }[] = []
+                            let dayOffset = 0
+                            for (let i = 0; i < Math.min(totalDias, 60); i++) {
+                              const d = new Date(start)
+                              d.setDate(d.getDate() + i)
+                              let phaseIndex = 0
+                              let acc = 0
+                              for (let p = 0; p < budgetPhases.length; p++) {
+                                acc += budgetPhases[p].dias
+                                if (i + 1 <= acc) { phaseIndex = p; break }
+                              }
+                              days.push({ dayNum: i + 1, date: d, phaseIndex })
+                            }
+                            const byMonth = days.reduce((acc, { date, dayNum, phaseIndex }) => {
+                              const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+                              if (!acc[key]) acc[key] = { label: date.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' }), days: [] }
+                              acc[key].days.push({ dayNum, day: date.getDate(), phaseIndex })
+                              return acc
+                            }, {} as Record<string, { label: string; days: { dayNum: number; day: number; phaseIndex: number }[] }>)
+                            return (
+                              <div className="mb-4">
+                                <p className="text-[11px] font-medium text-gogh-black mb-2">Agenda do planejamento (dias da campanha)</p>
+                                <div className="flex flex-wrap gap-4">
+                                  {Object.entries(byMonth).map(([key, { label, days: monthDays }]) => (
+                                    <div key={key} className="rounded-lg border border-gogh-grayLight bg-white p-2">
+                                      <p className="text-[11px] text-gogh-grayDark mb-1.5">{label}</p>
+                                      <div className="grid grid-cols-7 gap-0.5">
+                                        {monthDays.map(({ dayNum, day, phaseIndex }) => (
+                                          <div
+                                            key={dayNum}
+                                            title={`Dia ${dayNum} · Fase ${phaseIndex + 1}`}
+                                            className={`w-6 h-6 rounded flex items-center justify-center text-[10px] font-medium ${phaseColors[phaseIndex % phaseColors.length]} border border-gogh-grayLight/50`}
+                                          >
+                                            {day}
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )
+                          })()}
+                          <div className="rounded-lg border border-gogh-grayLight bg-white p-3 space-y-3">
+                            <p className="text-xs font-medium text-gogh-black">
+                              {budgetPhases.length === 0 ? 'Primeira fase de investimento' : 'Próxima reposição'}
+                            </p>
+                            <div className="flex flex-wrap gap-3 items-end">
+                              <div>
+                                <label className="block text-xs text-gogh-grayDark mb-0.5">Valor (R$)</label>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  step="0.01"
+                                  value={newPhaseValor}
+                                  onChange={(e) => setNewPhaseValor(e.target.value)}
+                                  placeholder="Ex: 1200"
+                                  className="w-28 border border-gogh-grayLight rounded-lg px-2 py-1.5 text-sm"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-xs text-gogh-grayDark mb-0.5">Duração (dias)</label>
+                                <input
+                                  type="number"
+                                  min="1"
+                                  value={newPhaseDias}
+                                  onChange={(e) => setNewPhaseDias(e.target.value)}
+                                  placeholder="Ex: 18"
+                                  className="w-24 border border-gogh-grayLight rounded-lg px-2 py-1.5 text-sm"
+                                />
+                              </div>
+                              <div className="flex items-center gap-2">
+                                {(() => {
+                                  const v = parseFloat(String(newPhaseValor).replace(',', '.')) || 0
+                                  const d = Math.max(1, Math.floor(parseFloat(String(newPhaseDias).replace(',', '.')) || 0))
+                                  const porDia = d > 0 ? v / d : 0
+                                  return v > 0 && d > 0 ? <span className="text-xs text-gogh-grayDark">≈ R$ {porDia.toFixed(2).replace('.', ',')}/dia</span> : null
+                                })()}
                                 <button
                                   type="button"
-                                  onClick={handleAddCreative}
-                                  disabled={addingCreative}
-                                  className="shrink-0 inline-flex items-center gap-2 px-3 py-2 bg-gogh-yellow text-gogh-black rounded-lg text-sm font-medium hover:bg-gogh-yellow/90"
+                                  onClick={addBudgetPhase}
+                                  disabled={!newPhaseValor.trim() || parseFloat(String(newPhaseValor).replace(',', '.')) <= 0}
+                                  className="px-3 py-1.5 bg-gogh-yellow text-gogh-black rounded-lg text-xs font-medium hover:bg-gogh-yellow/90 disabled:opacity-50"
                                 >
-                                  <Plus className="w-4 h-4" />
-                                  {addingCreative ? '...' : 'Adicionar criativo'}
+                                  {budgetPhases.length === 0 ? 'Adicionar fase' : 'Adicionar próxima fase'}
                                 </button>
-                              </div>
-                            ) : (
-                              <>
-                                {creatives.map((cr) => (
-                                  <div key={cr.id} className="rounded-lg border border-gogh-grayLight bg-white p-3 space-y-2">
-                                    <div className="flex items-center gap-2 flex-wrap">
-                                      <input
-                                        type="text"
-                                        value={cr.name}
-                                        onChange={(e) => setCreatives((prev) => prev.map((c) => (c.id === cr.id ? { ...c, name: e.target.value } : c)))}
-                                        placeholder="Nome do criativo"
-                                        className="flex-1 min-w-[120px] border border-gogh-grayLight rounded-lg px-2 py-1.5 text-sm"
-                                      />
-                                      <button type="button" onClick={() => handleDeleteCreative(cr.id)} className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg" aria-label="Excluir"><Trash2 className="w-4 h-4" /></button>
-                                    </div>
-                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                                      <div><label className="block text-xs text-gogh-grayDark">Alcance</label><input type="number" min="0" value={cr.alcance ?? ''} onChange={(e) => setCreatives((prev) => prev.map((c) => (c.id === cr.id ? { ...c, alcance: e.target.value ? Number(e.target.value) : null } : c)))} className="w-full border rounded px-2 py-1 text-sm" /></div>
-                                      <div><label className="block text-xs text-gogh-grayDark">Impressões</label><input type="number" min="0" value={cr.impressoes ?? ''} onChange={(e) => setCreatives((prev) => prev.map((c) => (c.id === cr.id ? { ...c, impressoes: e.target.value ? Number(e.target.value) : null } : c)))} className="w-full border rounded px-2 py-1 text-sm" /></div>
-                                      <div><label className="block text-xs text-gogh-grayDark">Cliques no link</label><input type="number" min="0" value={cr.cliques_link ?? ''} onChange={(e) => setCreatives((prev) => prev.map((c) => (c.id === cr.id ? { ...c, cliques_link: e.target.value ? Number(e.target.value) : null } : c)))} className="w-full border rounded px-2 py-1 text-sm" /></div>
-                                      <div><label className="block text-xs text-gogh-grayDark">Valor usado (R$)</label><input type="number" min="0" step="0.01" value={cr.valor_investido ?? ''} onChange={(e) => setCreatives((prev) => prev.map((c) => (c.id === cr.id ? { ...c, valor_investido: e.target.value ? Number(e.target.value) : null } : c)))} className="w-full border rounded px-2 py-1 text-sm" /></div>
-                                      <div><label className="block text-xs text-gogh-grayDark">Compras</label><input type="number" min="0" value={cr.compras ?? ''} onChange={(e) => setCreatives((prev) => prev.map((c) => (c.id === cr.id ? { ...c, compras: e.target.value ? Number(e.target.value) : null } : c)))} className="w-full border rounded px-2 py-1 text-sm" /></div>
-                                      <div><label className="block text-xs text-gogh-grayDark">Valor de conversão (R$)</label><input type="number" min="0" step="0.01" value={cr.valor_total_faturado ?? ''} onChange={(e) => setCreatives((prev) => prev.map((c) => (c.id === cr.id ? { ...c, valor_total_faturado: e.target.value ? Number(e.target.value) : null } : c)))} className="w-full border rounded px-2 py-1 text-sm" /></div>
-                                    </div>
-                                  </div>
-                                ))}
-                                <button type="button" onClick={handleAddCreative} disabled={addingCreative} className="inline-flex items-center gap-1.5 px-3 py-2 border border-dashed border-gogh-grayLight rounded-lg text-xs font-medium text-gogh-grayDark hover:bg-gogh-grayLight/30">
-                                  <Plus className="w-3.5 h-3.5" />{addingCreative ? '...' : 'Adicionar criativo'}
-                                </button>
-                              </>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                    {selectedCampaignId && (
-                      <div className="border-t border-gogh-grayLight pt-4 mt-4">
-                        <p className="text-xs font-semibold text-gogh-black mb-0.5 flex items-center gap-1.5">
-                          <ClipboardList className="w-3.5 h-3.5" />
-                          Dados e métricas
-                        </p>
-                        <p className="text-xs text-gogh-grayDark mb-2">Calculados de forma automática a partir dos dados preenchidos nos criativos.</p>
-                        {creatives.length > 0 ? (
-                          (impressoesNum > 0 || cliquesNum > 0 || comprasNum > 0 || valorInvestidoNum > 0) ? (
-                            <div className="rounded-lg border border-gogh-grayLight bg-gogh-beige/40 p-3">
-                              <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-1 text-xs">
-                                {alcanceNum > 0 && impressoesNum > 0 && <div><span className="text-gogh-grayDark">Frequência</span> <span className="font-medium">{metricasCampanha.freq.toFixed(2)}</span></div>}
-                                {impressoesNum > 0 && <div><span className="text-gogh-grayDark">CTR</span> <span className="font-medium">{metricasCampanha.ctrPct.toFixed(2)}%</span></div>}
-                                {cliquesNum > 0 && <div><span className="text-gogh-grayDark">Conversão</span> <span className="font-medium">{metricasCampanha.taxaConvPct.toFixed(2)}%</span></div>}
-                                {impressoesNum > 0 && valorInvestidoNum > 0 && <div><span className="text-gogh-grayDark">CPM</span> <span className="font-medium">R$ {metricasCampanha.cpm.toFixed(2)}</span></div>}
-                                {cliquesNum > 0 && valorInvestidoNum > 0 && <div><span className="text-gogh-grayDark">CPC</span> <span className="font-medium">R$ {metricasCampanha.cpc.toFixed(2)}</span></div>}
-                                {comprasNum > 0 && <div><span className="text-gogh-grayDark">CPA (custo por compra)</span> <span className="font-medium">R$ {metricasCampanha.cpaCalculado.toFixed(2)}</span></div>}
-                                {valorInvestidoNum > 0 && valorFaturadoNum > 0 && <div><span className="text-gogh-grayDark">ROAS</span> <span className="font-medium">{metricasCampanha.roas.toFixed(2)}x</span></div>}
+                                {budgetPhases.length > 0 && (
+                                  <button
+                                    type="button"
+                                    onClick={removeLastBudgetPhase}
+                                    className="text-xs text-gogh-grayDark hover:text-gogh-black underline"
+                                  >
+                                    Remover última fase
+                                  </button>
+                                )}
                               </div>
                             </div>
-                          ) : (
-                            <p className="text-xs text-gogh-grayDark">Preencha os criativos acima para ver os totais.</p>
-                          )
-                        ) : (
-                          <p className="text-xs text-gogh-grayDark rounded-lg border border-gogh-grayLight bg-gogh-beige/20 p-3">Adicione pelo menos um criativo e preencha os dados para ver os totais e o diagnóstico.</p>
-                        )}
+                            <p className="text-[11px] text-gogh-grayDark">
+                              Dica: menos dias com mais valor por dia costuma entregar melhor no Meta; muitos dias com pouco por dia tende a performar menos.
+                            </p>
+                          </div>
+                        </div>
                       </div>
                     )}
                   </div>
