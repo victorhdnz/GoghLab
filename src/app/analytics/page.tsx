@@ -86,6 +86,7 @@ export default function AnalyticsPage() {
   const [compras, setCompras] = useState<string>('')
   const [valorTotalFaturado, setValorTotalFaturado] = useState<string>('')
   const [savedCampaignSignature, setSavedCampaignSignature] = useState<string>('')
+  const [expandedRecommendationIndex, setExpandedRecommendationIndex] = useState<number | null>(null)
 
   const buildCampaignSignature = () =>
     JSON.stringify({
@@ -201,11 +202,12 @@ export default function AnalyticsPage() {
       return {
         score: 0,
         statusGeral: 'sem_dados' as const,
-        statusAlerts: [] as { type: 'success' | 'warning' | 'danger'; text: string }[],
+        statusAlerts: [] as { type: 'success' | 'warning' | 'danger'; action: string; details: string[] }[],
         hasDataForDiagnosis: false,
       }
     }
-    const alerts: { type: 'success' | 'warning' | 'danger'; text: string }[] = []
+    type AlertItem = { type: 'success' | 'warning' | 'danger'; action: string; detail: string }
+    const alerts: AlertItem[] = []
     let scoreFreq = 20
     let scoreCtr = 20
     let scoreConv = 20
@@ -217,13 +219,13 @@ export default function AnalyticsPage() {
       const freqStr = freq.toFixed(2).replace('.', ',')
       if (freq >= FREQ_CRITICO) {
         scoreFreq = 0
-        alerts.push({ type: 'danger', text: `Frequência ${freqStr} → ideal <4. Trocar criativo.` })
+        alerts.push({ type: 'danger', action: 'Trocar criativo.', detail: `Frequência ${freqStr} → ideal <4` })
       } else if (freq > FREQ_SATURACAO) {
         scoreFreq = 5
-        alerts.push({ type: 'warning', text: `Frequência ${freqStr} → ideal ≤3. Avaliar novo criativo.` })
+        alerts.push({ type: 'warning', action: 'Avaliar novo criativo.', detail: `Frequência ${freqStr} → ideal ≤3` })
       } else if (freq > FREQ_ATENCAO.max) {
         scoreFreq = 10
-        alerts.push({ type: 'warning', text: `Frequência ${freqStr}. Acompanhar.` })
+        alerts.push({ type: 'warning', action: 'Acompanhar.', detail: `Frequência ${freqStr} (entre 2,5 e 3)` })
       } else if (freq >= FREQ_SAUDAVEL.min && freq <= FREQ_SAUDAVEL.max) {
         scoreFreq = 20
       }
@@ -235,10 +237,10 @@ export default function AnalyticsPage() {
       if (ctrPct >= CTR_BOM) scoreCtr = 20
       else if (ctrPct >= CTR_MEDIO) {
         scoreCtr = 12
-        alerts.push({ type: 'warning', text: `CTR ${ctrStr}% → ideal ≥1,5%. Testar novo criativo.` })
+        alerts.push({ type: 'warning', action: 'Testar novo criativo.', detail: `CTR ${ctrStr}% → ideal ≥1,5%` })
       } else if (ctrPct > 0) {
         scoreCtr = 5
-        alerts.push({ type: 'warning', text: `CTR ${ctrStr}% → ideal ≥1%. Testar novo criativo.` })
+        alerts.push({ type: 'warning', action: 'Testar novo criativo.', detail: `CTR ${ctrStr}% → ideal ≥1%` })
       }
     }
     if (cliquesNum > 0 && comprasNum >= 0) {
@@ -247,17 +249,17 @@ export default function AnalyticsPage() {
       else if (taxaConvPct >= CONV_MEDIO) scoreConv = 12
       else if (taxaConvPct > 0) {
         scoreConv = 5
-        alerts.push({ type: 'warning', text: `Conversão ${convStr}% → ideal ≥1,5%. Revisar oferta ou página.` })
+        alerts.push({ type: 'warning', action: 'Revisar oferta ou página.', detail: `Conversão ${convStr}% → ideal ≥1,5%` })
       }
     }
     if (roiEnabled && valorNum > 0) {
       const lucroStr = `R$ ${lucroBruto.toFixed(2).replace('.', ',')}`
       if (lucroBruto <= 0) {
         scoreLucro = 0
-        alerts.push({ type: 'danger', text: `Lucro ${lucroStr} (prejuízo). Ajustar preço ou custo.` })
+        alerts.push({ type: 'danger', action: 'Ajustar preço ou custo.', detail: `Lucro ${lucroStr} (prejuízo)` })
       } else if (metaLucroNum > 0 && lucroBruto >= metaLucroNum) {
         scoreLucro = 20
-        alerts.push({ type: 'success', text: `Lucro ${lucroStr}. Dentro da meta.` })
+        alerts.push({ type: 'success', action: 'Dentro da meta.', detail: `Lucro ${lucroStr}` })
       } else if (lucroBruto > 0) {
         scoreLucro = 15
       }
@@ -266,16 +268,16 @@ export default function AnalyticsPage() {
         const limiteStr = `R$ ${custoMaxAceitavel.toFixed(2).replace('.', ',')}`
         if (cpaUsado > lucroBruto) {
           scoreCpa = 0
-          alerts.push({ type: 'danger', text: `CPA ${cpaStr} > lucro ${lucroStr}. Não escalar.` })
+          alerts.push({ type: 'danger', action: 'Não escalar.', detail: `CPA ${cpaStr} > lucro ${lucroStr} (prejuízo por aquisição)` })
         } else if (cpaUsado > custoMaxAceitavel) {
           scoreCpa = 0
-          alerts.push({ type: 'danger', text: `CPA ${cpaStr} → limite ${limiteStr}. Não escalar.` })
+          alerts.push({ type: 'danger', action: 'Não escalar.', detail: `CPA ${cpaStr} → limite ${limiteStr}` })
         } else if (cpaUsado >= custoMaxAceitavel * 0.98) {
           scoreCpa = 8
-          alerts.push({ type: 'warning', text: `CPA ${cpaStr} no limite. Não escalar.` })
+          alerts.push({ type: 'warning', action: 'Não escalar.', detail: `CPA ${cpaStr} no limite ${limiteStr}` })
         } else if (cpaUsado < custoMaxAceitavel * 0.8) {
           scoreCpa = 20
-          alerts.push({ type: 'success', text: `CPA ${cpaStr} < limite ${limiteStr}. Pode escalar.` })
+          alerts.push({ type: 'success', action: 'Pode escalar.', detail: `CPA ${cpaStr} < limite ${limiteStr}` })
         } else {
           scoreCpa = 15
         }
@@ -289,18 +291,31 @@ export default function AnalyticsPage() {
     else if (scoreFinal >= 40) statusGeral = 'alerta'
     else statusGeral = 'crítica'
     if (statusGeral === 'saudável' && alerts.length === 0 && roiEnabled && valorNum > 0 && cpaUsado > 0 && cpaUsado < lucroBruto) {
-      alerts.push({ type: 'success', text: 'Pode escalar (até ~20%).' })
+      alerts.push({ type: 'success', action: 'Pode escalar (até ~20%).', detail: 'Campanha saudável.' })
     }
     if (statusGeral === 'estável') {
-      alerts.push({ type: 'warning', text: 'Otimizar criativo ou público antes de escalar.' })
+      alerts.push({ type: 'warning', action: 'Otimizar criativo ou público.', detail: `Score ${scoreFinal}. Otimizar antes de escalar.` })
     }
     if (statusGeral === 'alerta') {
-      alerts.push({ type: 'warning', text: 'Ajustar criativo ou público.' })
+      alerts.push({ type: 'warning', action: 'Ajustar criativo ou público.', detail: `Score ${scoreFinal} em alerta.` })
     }
     if (statusGeral === 'crítica') {
-      alerts.push({ type: 'danger', text: 'Revisar estratégia.' })
+      alerts.push({ type: 'danger', action: 'Revisar estratégia.', detail: `Score ${scoreFinal} crítico.` })
     }
-    return { score: scoreFinal, statusGeral, statusAlerts: alerts, hasDataForDiagnosis: true }
+    const severity = (t: AlertItem['type']) => (t === 'danger' ? 3 : t === 'warning' ? 2 : 1)
+    const grouped = new Map<string, { type: AlertItem['type']; action: string; details: string[] }>()
+    for (const a of alerts) {
+      const key = a.action
+      const existing = grouped.get(key)
+      if (existing) {
+        existing.details.push(a.detail)
+        if (severity(a.type) > severity(existing.type)) existing.type = a.type
+      } else {
+        grouped.set(key, { type: a.type, action: a.action, details: [a.detail] })
+      }
+    }
+    const statusAlerts = Array.from(grouped.values())
+    return { score: scoreFinal, statusGeral, statusAlerts, hasDataForDiagnosis: true }
   }, [
     metricasCampanha,
     roiEnabled,
@@ -917,26 +932,50 @@ export default function AnalyticsPage() {
                     ) : (
                       <div>
                         <p className="text-sm font-medium text-gogh-black mb-2">Recomendações:</p>
+                        <p className="text-xs text-gogh-grayDark mb-2">Clique na ação para ver o detalhe dos índices (atual → ideal).</p>
                         <ul className="space-y-2">
-                          {statusAlerts.map((a, i) => (
-                            <li
-                              key={i}
-                              className={`flex items-start gap-2 rounded-lg p-3 text-sm ${
-                                a.type === 'success'
-                                  ? 'bg-green-50 border border-green-200 text-green-800'
-                                  : a.type === 'warning'
-                                    ? 'bg-amber-50 border border-amber-200 text-amber-800'
-                                    : 'bg-red-50 border border-red-200 text-red-800'
-                              }`}
-                            >
-                              {a.type === 'success' ? (
-                                <CheckCircle2 className="w-5 h-5 shrink-0 mt-0.5" />
-                              ) : (
-                                <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" />
-                              )}
-                              <span>{a.text}</span>
-                            </li>
-                          ))}
+                          {statusAlerts.map((a, i) => {
+                            const isExpanded = expandedRecommendationIndex === i
+                            return (
+                              <li
+                                key={i}
+                                className={`rounded-lg border text-sm overflow-hidden ${
+                                  a.type === 'success'
+                                    ? 'bg-green-50 border-green-200 text-green-800'
+                                    : a.type === 'warning'
+                                      ? 'bg-amber-50 border-amber-200 text-amber-800'
+                                      : 'bg-red-50 border-red-200 text-red-800'
+                                }`}
+                              >
+                                <button
+                                  type="button"
+                                  onClick={() => setExpandedRecommendationIndex((prev) => (prev === i ? null : i))}
+                                  className="w-full flex items-center gap-2 p-3 text-left hover:opacity-90 transition-opacity"
+                                >
+                                  {a.type === 'success' ? (
+                                    <CheckCircle2 className="w-5 h-5 shrink-0" />
+                                  ) : (
+                                    <AlertTriangle className="w-5 h-5 shrink-0" />
+                                  )}
+                                  <span className="flex-1 font-medium">{a.action}</span>
+                                  {isExpanded ? (
+                                    <ChevronDown className="w-4 h-4 shrink-0" />
+                                  ) : (
+                                    <ChevronRight className="w-4 h-4 shrink-0" />
+                                  )}
+                                </button>
+                                {isExpanded && (
+                                  <div className="px-3 pb-3 pt-0 border-t border-current/20 space-y-1">
+                                    {a.details.map((d, j) => (
+                                      <p key={j} className="text-xs opacity-90 pt-2 first:pt-2">
+                                        {d}
+                                      </p>
+                                    ))}
+                                  </div>
+                                )}
+                              </li>
+                            )
+                          })}
                         </ul>
                       </div>
                     )}
