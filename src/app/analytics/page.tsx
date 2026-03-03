@@ -432,6 +432,9 @@ export default function AnalyticsPage() {
         const cFreq = cAlc > 0 ? (cImp / cAlc) : 0
         const cCtrPct = cImp > 0 ? (cCliques / cImp) * 100 : 0
         const name = (cr.name || 'Criativo').trim() || 'Criativo'
+        const underperforming = (cAlc > 0 && cImp > 0 && cFreq >= FREQ_CRITICO) ||
+          (cAlc > 0 && cImp > 0 && cFreq > FREQ_SATURACAO) ||
+          (cImp > 0 && cCtrPct > 0 && cCtrPct < CTR_MEDIO)
         if (cAlc > 0 && cImp > 0 && cFreq >= FREQ_CRITICO) {
           alerts.push({ type: 'danger', action: `Trocar o criativo "${name}".`, detail: `Frequência ${cFreq.toFixed(2).replace('.', ',')} → ideal <4` })
         } else if (cAlc > 0 && cImp > 0 && cFreq > FREQ_SATURACAO) {
@@ -439,6 +442,13 @@ export default function AnalyticsPage() {
         }
         if (cImp > 0 && cCtrPct > 0 && cCtrPct < CTR_MEDIO) {
           alerts.push({ type: 'warning', action: `Testar novo criativo: "${name}".`, detail: `CTR ${cCtrPct.toFixed(2).replace('.', ',')}% → ideal ≥1%` })
+        }
+        if (underperforming) {
+          alerts.push({
+            type: 'warning',
+            action: `Pausar ou excluir o criativo "${name}".`,
+            detail: 'Performando mal. Pause no Meta e exclua aqui para alinhar o painel; depois adicione um novo criativo se quiser.',
+          })
         }
       }
     }
@@ -543,15 +553,14 @@ export default function AnalyticsPage() {
   const isProfileDirty = isCampaignSigDirty || isCreativesDirty
   const isDadosCampanhaComplete =
     !!selectedCampaignId &&
-    (creatives.length > 0
-      ? creatives.every(
-          (c) =>
-            (c.name ?? '').trim().length > 0 &&
-            [c.alcance, c.impressoes, c.cliques_link, c.valor_investido, c.compras, c.valor_total_faturado].every(
-              (v) => v != null
-            )
+    creatives.length > 0 &&
+    creatives.every(
+      (c) =>
+        (c.name ?? '').trim().length > 0 &&
+        [c.alcance, c.impressoes, c.cliques_link, c.valor_investido, c.compras, c.valor_total_faturado].every(
+          (v) => v != null
         )
-      : [alcance, impressoes, cliquesLink, valorInvestido, compras, valorTotalFaturado].every((s) => (s ?? '').trim().length > 0))
+    )
   const isRoiComplete = !roiEnabled || (roiEnabled && (valorVenda ?? '').trim().length > 0)
 
   const getAccordionCardClass = (sectionId: AnalyticsAccordionId): string => {
@@ -599,7 +608,14 @@ export default function AnalyticsPage() {
       setSelectedCampaignId(data.campaign.id)
       setNewCampaignName('')
       setNewCampaignStartDate(new Date().toISOString().split('T')[0])
-      toast.success('Campanha criada')
+      const crRes = await fetch(`/api/analytics/campaigns/${data.campaign.id}/creatives`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ name: 'Criativo 1' }),
+      })
+      if (crRes.ok) await loadCreatives(data.campaign.id)
+      toast.success('Campanha criada. Preencha os dados do criativo.')
     } catch (e: any) {
       toast.error(e?.message || 'Erro ao criar campanha')
     }
@@ -676,23 +692,10 @@ export default function AnalyticsPage() {
     }
   }
 
-  const requiredDadosFields = [
-    { key: 'alcance', label: 'Alcance', value: alcance },
-    { key: 'impressoes', label: 'Impressões', value: impressoes },
-    { key: 'cliques', label: 'Cliques no link', value: cliquesLink },
-    { key: 'valor_investido', label: 'Valor usado', value: valorInvestido },
-    { key: 'compras', label: 'Compras', value: compras },
-    { key: 'valor_faturado', label: 'Valor de conversão de compras', value: valorTotalFaturado },
-  ]
-  const missingDados = requiredDadosFields.filter((f) => !f.value?.trim())
-  const canSaveProfile = selectedCampaignId && isRoiComplete && (creatives.length > 0 ? isProfileDirty : isProfileDirty && isDadosCampanhaComplete)
+  const canSaveProfile = selectedCampaignId && isRoiComplete && isProfileDirty
 
   const handleSaveProfile = async () => {
     if (!selectedCampaignId) return
-    if (creatives.length === 0 && missingDados.length > 0) {
-      toast.error(`Preencha os dados da campanha: ${requiredDadosFields.filter((f) => !f.value?.trim()).map((f) => f.label).join(', ')}`)
-      return
-    }
     if (creatives.length > 0) {
       const incomplete = creatives.find(
         (c) =>
@@ -712,14 +715,6 @@ export default function AnalyticsPage() {
         custo_venda: custoVenda ? parseNum(custoVenda) : null,
         meta_lucro_por_venda: metaLucroPorVenda ? parseNum(metaLucroPorVenda) : null,
         custo_por_aquisicao: comprasNum > 0 ? metricasCampanha.cpaCalculado : null,
-      }
-      if (creatives.length === 0) {
-        body.alcance = alcance ? parseInt(alcance, 10) : null
-        body.impressoes = impressoes ? parseInt(impressoes, 10) : null
-        body.cliques_link = cliquesLink ? parseInt(cliquesLink, 10) : null
-        body.valor_investido = valorInvestido ? parseNum(valorInvestido) : null
-        body.compras = compras ? parseInt(compras, 10) : null
-        body.valor_total_faturado = valorTotalFaturado ? parseNum(valorTotalFaturado) : null
       }
       const res = await fetch(`/api/analytics/campaigns/${selectedCampaignId}`, {
         method: 'PATCH',
@@ -1149,10 +1144,11 @@ export default function AnalyticsPage() {
                     )}
                     {selectedCampaignId && (
                       <div className="border-t border-gogh-grayLight pt-4 mt-4">
-                        <p className="text-xs font-semibold text-gogh-black mb-2 flex items-center gap-1.5">
+                        <p className="text-xs font-semibold text-gogh-black mb-0.5 flex items-center gap-1.5">
                           <ClipboardList className="w-3.5 h-3.5" />
                           Dados e métricas
                         </p>
+                        <p className="text-xs text-gogh-grayDark mb-2">Calculados de forma automática a partir dos dados preenchidos nos criativos.</p>
                         {creatives.length > 0 ? (
                           (impressoesNum > 0 || cliquesNum > 0 || comprasNum > 0 || valorInvestidoNum > 0) ? (
                             <div className="rounded-lg border border-gogh-grayLight bg-gogh-beige/40 p-3">
@@ -1169,25 +1165,7 @@ export default function AnalyticsPage() {
                             <p className="text-xs text-gogh-grayDark">Preencha os criativos acima para ver os totais.</p>
                           )
                         ) : (
-                          <>
-                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                              <div><label className="block text-xs text-gogh-grayDark">Alcance</label><input type="number" min="0" value={alcance} onChange={(e) => setAlcance(e.target.value)} placeholder="0" className={`w-full border rounded-lg px-2 py-1.5 text-sm ${isDadosCampanhaComplete ? 'border-emerald-400' : 'border-red-300'}`} /></div>
-                              <div><label className="block text-xs text-gogh-grayDark">Impressões</label><input type="number" min="0" value={impressoes} onChange={(e) => setImpressoes(e.target.value)} placeholder="0" className={`w-full border rounded-lg px-2 py-1.5 text-sm ${isDadosCampanhaComplete ? 'border-emerald-400' : 'border-red-300'}`} /></div>
-                              <div><label className="block text-xs text-gogh-grayDark">Cliques no link</label><input type="number" min="0" value={cliquesLink} onChange={(e) => setCliquesLink(e.target.value)} placeholder="0" className={`w-full border rounded-lg px-2 py-1.5 text-sm ${isDadosCampanhaComplete ? 'border-emerald-400' : 'border-red-300'}`} /></div>
-                              <div><label className="block text-xs text-gogh-grayDark">Valor usado (R$)</label><input type="number" min="0" step="0.01" value={valorInvestido} onChange={(e) => setValorInvestido(e.target.value)} placeholder="0" className={`w-full border rounded-lg px-2 py-1.5 text-sm ${isDadosCampanhaComplete ? 'border-emerald-400' : 'border-red-300'}`} /></div>
-                              <div><label className="block text-xs text-gogh-grayDark">Compras</label><input type="number" min="0" value={compras} onChange={(e) => setCompras(e.target.value)} placeholder="0" className={`w-full border rounded-lg px-2 py-1.5 text-sm ${isDadosCampanhaComplete ? 'border-emerald-400' : 'border-red-300'}`} /></div>
-                              <div><label className="block text-xs text-gogh-grayDark">Valor de conversão (R$)</label><input type="number" min="0" step="0.01" value={valorTotalFaturado} onChange={(e) => setValorTotalFaturado(e.target.value)} placeholder="0" className={`w-full border rounded-lg px-2 py-1.5 text-sm ${isDadosCampanhaComplete ? 'border-emerald-400' : 'border-red-300'}`} /></div>
-                            </div>
-                            {(impressoesNum > 0 || cliquesNum > 0 || valorInvestidoNum > 0) && (
-                              <div className="mt-2 rounded-lg border border-gogh-grayLight bg-gogh-beige/40 p-2 grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-1 text-xs">
-                                {alcanceNum > 0 && impressoesNum > 0 && <div><span className="text-gogh-grayDark">Frequência</span> {metricasCampanha.freq.toFixed(2)}</div>}
-                                {impressoesNum > 0 && <div><span className="text-gogh-grayDark">CTR</span> {metricasCampanha.ctrPct.toFixed(2)}%</div>}
-                                {cliquesNum > 0 && <div><span className="text-gogh-grayDark">Conversão</span> {metricasCampanha.taxaConvPct.toFixed(2)}%</div>}
-                                {comprasNum > 0 && <div><span className="text-gogh-grayDark">Custo por compra</span> R$ {metricasCampanha.cpaCalculado.toFixed(2)}</div>}
-                                {valorInvestidoNum > 0 && valorFaturadoNum > 0 && <div><span className="text-gogh-grayDark">ROAS</span> {metricasCampanha.roas.toFixed(2)}x</div>}
-                              </div>
-                            )}
-                          </>
+                          <p className="text-xs text-gogh-grayDark rounded-lg border border-gogh-grayLight bg-gogh-beige/20 p-3">Adicione pelo menos um criativo e preencha os dados para ver os totais e o diagnóstico.</p>
                         )}
                       </div>
                     )}
@@ -1311,11 +1289,18 @@ export default function AnalyticsPage() {
                                 </button>
                                 {isExpanded && (
                                   <div className="px-3 pb-3 pt-0 border-t border-current/20 space-y-1">
-                                    {a.details.map((d, j) => (
-                                      <p key={j} className="text-xs opacity-90 pt-2 first:pt-2">
-                                        {d}
-                                      </p>
-                                    ))}
+                                    {a.details.map((d, j) => {
+                                      const lines = (d || '').split(/(?<=\.)\s+/).map((s) => s.trim()).filter(Boolean)
+                                      return (
+                                        <div key={j} className="space-y-1 pt-2 first:pt-2">
+                                          {lines.map((line, k) => (
+                                            <p key={k} className="text-xs opacity-90">
+                                              {line}
+                                            </p>
+                                          ))}
+                                        </div>
+                                      )
+                                    })}
                                   </div>
                                 )}
                               </li>
