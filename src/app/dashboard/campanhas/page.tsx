@@ -286,8 +286,8 @@ export default function CampanhasPage() {
     <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <DashboardNavigation
-          title="Painel Inteligente de Análise de Campanhas"
-          subtitle="Consultor automático para tráfego pago — diagnóstico, métricas e recomendações"
+          title="Painel de Campanhas"
+          subtitle="Diagnóstico, métricas e recomendações"
           backUrl="/dashboard"
           backLabel="Voltar ao Dashboard"
         />
