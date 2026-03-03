@@ -11,7 +11,7 @@ type TourStep = { selector: string; title: string; description: string }
 // Desktop: Início → Criar (menu) → Produto → Ver planos → Conta
 const unifiedStepsDesktop: TourStep[] = [
   { selector: '[data-tour="nav-home-desktop"]', title: 'Início', description: 'Este ícone leva para a página inicial.' },
-  { selector: '[data-tour="nav-create-desktop"]', title: 'Criar', description: 'Este ícone abre o menu com Gogh Agenda (planejamento com IA) e Gogh Analytics (dashboard de análise de anúncios).' },
+  { selector: '[data-tour="nav-create-desktop"]', title: 'Criar', description: 'Este ícone abre o menu com Gogh Agenda IA (planejamento com IA) e Gogh Analytics Ads (dashboard de análise de anúncios).' },
   { selector: '[data-tour="nav-product-desktop"]', title: 'Produto', description: 'Este ícone leva ao menu com Ferramentas e Cursos.' },
   { selector: '[data-tour="nav-plans-desktop"]', title: 'Planos e assinatura', description: 'Este ícone leva à página de planos e upgrade.' },
   { selector: '[data-tour="nav-account-desktop"]', title: 'Sua conta', description: 'Este ícone leva à sua conta (perfil, assinatura e recursos).' },
@@ -21,7 +21,7 @@ const unifiedStepsDesktop: TourStep[] = [
 const unifiedStepsMobile: TourStep[] = [
   { selector: '[data-tour="nav-home-mobile"]', title: 'Início', description: 'Este ícone leva para a página inicial.' },
   { selector: '[data-tour="nav-product-mobile"]', title: 'Produto', description: 'Este ícone leva ao menu com Ferramentas e Cursos.' },
-  { selector: '[data-tour="nav-create-mobile"]', title: 'Criar', description: 'Este ícone abre o menu com Gogh Agenda (planejamento com IA) e Gogh Analytics (dashboard de análise de anúncios).' },
+  { selector: '[data-tour="nav-create-mobile"]', title: 'Criar', description: 'Este ícone abre o menu com Gogh Agenda IA (planejamento com IA) e Gogh Analytics Ads (dashboard de análise de anúncios).' },
   { selector: '[data-tour="nav-plans-mobile"]', title: 'Planos e assinatura', description: 'Este ícone leva à página de planos e upgrade.' },
   { selector: '[data-tour="nav-account-mobile"]', title: 'Sua conta', description: 'Este ícone leva à sua conta (perfil, assinatura e recursos).' },
 ]

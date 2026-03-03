@@ -107,7 +107,7 @@ function SpotlightNavItem({
   )
 }
 
-// ——— Menu structure: Início, Criar (dropdown: Gogh Agenda + Gogh Analytics), Produto (dropdown)
+// ——— Menu structure: Início, Criar (dropdown: Gogh Agenda IA + Gogh Analytics Ads), Produto (dropdown)
 type SubItem = { title: string; description?: string; url: string; icon: React.ElementType }
 const menuWithDropdowns: Array<
   { title: string; url: string; highlight?: boolean; items?: SubItem[] }> = [
@@ -117,8 +117,8 @@ const menuWithDropdowns: Array<
     url: '/planejamento',
     highlight: true,
     items: [
-      { title: 'Gogh Agenda', description: 'Planejamento e agenda de conteúdo com IA', url: '/planejamento', icon: Calendar },
-      { title: 'Gogh Analytics', description: 'Análise de anúncios e desempenho', url: '/analytics', icon: BarChart3 },
+      { title: 'Gogh Agenda IA', description: 'Planejamento e agenda de conteúdo com IA', url: '/planejamento', icon: Calendar },
+      { title: 'Gogh Analytics Ads', description: 'Análise de anúncios e desempenho', url: '/analytics', icon: BarChart3 },
     ],
   },
   {
@@ -360,7 +360,7 @@ export function FloatingHeader({ initialSiteLogo = null, initialSiteName }: Floa
     </header>
   )
 
-  // ——— Mobile: barra inferior — Produto e Criar abrem menu (Ferramentas/Cursos e Gogh Agenda/Analytics)
+  // ——— Mobile: barra inferior — Produto e Criar abrem menu (Ferramentas/Cursos e Gogh Agenda IA/Analytics Ads)
   const produtoItem = menuWithDropdowns.find((m) => m.title === 'Produto' && m.items?.length)
   const criarItem = menuWithDropdowns.find((m) => m.title === 'Criar' && m.items?.length)
   const mobileNavItems = [

@@ -1086,10 +1086,10 @@ export default function ContentPlanningPage() {
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-gogh-black flex items-center gap-2">
             <CalendarIcon className="w-6 h-6 text-gogh-yellow" />
-            Planejamento de Vídeos
+            Gogh Agenda IA
           </h1>
-          <p className="text-sm text-gogh-grayDark">
-            Defina o perfil da sua marca, planeje seus vídeos e gere roteiros, legendas e hashtags com um clique.
+          <p className="text-sm text-gogh-grayDark mt-0.5">
+            Planejamento e agenda de conteúdo com IA. Defina o perfil da sua marca, planeje seus vídeos e gere roteiros, legendas e hashtags com um clique.
           </p>
         </div>
       </div>

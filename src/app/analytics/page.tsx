@@ -904,7 +904,7 @@ export default function AnalyticsPage() {
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold text-gogh-black flex items-center gap-2">
               <BarChart3 className="w-6 h-6 text-gogh-yellow" />
-              Gogh Analytics
+              Gogh Analytics Ads
             </h1>
             <p className="text-sm text-gogh-grayDark mt-0.5">Análise de anúncios e desempenho</p>
           </div>
@@ -938,7 +938,7 @@ export default function AnalyticsPage() {
               <div className="text-center p-4 sm:p-6 md:p-8">
                 <Lock className="w-16 h-16 text-gogh-grayDark mx-auto mb-4 opacity-50" />
                 <h3 className="text-xl font-bold text-gogh-black mb-2">
-                  {!hasActiveSubscription ? 'Assine o Gogh Pro para acessar' : 'Gogh Analytics é exclusivo do Plano Pro'}
+                  {!hasActiveSubscription ? 'Assine o Gogh Pro para acessar' : 'Gogh Analytics Ads é exclusivo do Plano Pro'}
                 </h3>
                 <p className="text-gogh-grayDark mb-6 max-w-md mx-auto">
                   {!hasActiveSubscription
