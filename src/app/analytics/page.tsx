@@ -14,11 +14,14 @@ import {
   Plus,
   Trash2,
   AlertCircle,
+  ClipboardList,
+  CheckCircle2,
+  AlertTriangle,
 } from 'lucide-react'
 import { LumaSpin } from '@/components/ui/luma-spin'
 import toast from 'react-hot-toast'
 
-type AnalyticsAccordionId = 'campanhas' | 'status' | 'roi'
+type AnalyticsAccordionId = 'campanhas' | 'dados-campanha' | 'roi' | 'status'
 
 interface AnalyticsCampaign {
   id: string
@@ -38,6 +41,7 @@ export default function AnalyticsPage() {
   const hasAccess = isAuthenticated && isPro
 
   const [accordionOpen, setAccordionOpen] = useState<AnalyticsAccordionId | null>('campanhas')
+  const [savingDados, setSavingDados] = useState(false)
   const [campaigns, setCampaigns] = useState<AnalyticsCampaign[]>([])
   const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(null)
   const [campaignsLoading, setCampaignsLoading] = useState(false)
@@ -160,15 +164,61 @@ export default function AnalyticsPage() {
           roi_enabled: roiEnabled,
           valor_venda: valorVenda ? parseFloat(valorVenda.replace(',', '.')) : null,
           custo_venda: custoVenda ? parseFloat(custoVenda.replace(',', '.')) : null,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Erro ao salvar')
+      setCampaigns((prev) => prev.map((c) => (c.id === selectedCampaignId ? { ...c, ...data.campaign } : c)))
+      toast.success('Custos e receita salvos na campanha')
+    } catch (e: any) {
+      toast.error(e?.message || 'Erro ao salvar')
+    }
+  }
+
+  const handleSaveDadosCampanha = async () => {
+    if (!selectedCampaignId) return
+    setSavingDados(true)
+    try {
+      const res = await fetch(`/api/analytics/campaigns/${selectedCampaignId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
           custo_por_aquisicao: custoPorAquisição ? parseFloat(custoPorAquisição.replace(',', '.')) : null,
         }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Erro ao salvar')
       setCampaigns((prev) => prev.map((c) => (c.id === selectedCampaignId ? { ...c, ...data.campaign } : c)))
-      toast.success('Dados salvos na campanha')
+      toast.success('Dados da campanha salvos')
     } catch (e: any) {
       toast.error(e?.message || 'Erro ao salvar')
+    } finally {
+      setSavingDados(false)
+    }
+  }
+
+  const valorNum = parseFloat(valorVenda.replace(',', '.')) || 0
+  const custoNum = parseFloat(custoVenda.replace(',', '.')) || 0
+  const lucroPorVenda = valorNum - custoNum
+  const cpaNum = parseFloat(custoPorAquisição.replace(',', '.')) || 0
+  const statusAlerts: { type: 'success' | 'warning' | 'danger'; text: string }[] = []
+  if (roiEnabled && valorNum > 0) {
+    if (lucroPorVenda <= 0) {
+      statusAlerts.push({
+        type: 'danger',
+        text: 'Seu lucro por venda está zerado ou negativo. Ajuste o valor de venda ou o custo para ter margem saudável.',
+      })
+    } else if (cpaNum > 0 && cpaNum >= lucroPorVenda) {
+      statusAlerts.push({
+        type: 'warning',
+        text: 'Seu CPA está igual ou acima do lucro por venda. Você está no prejuízo ou empatado por aquisição. Reduza o custo por aquisição ou aumente o lucro por venda.',
+      })
+    } else if (cpaNum > 0 && cpaNum < lucroPorVenda) {
+      statusAlerts.push({
+        type: 'success',
+        text: `Seu CPA (R$ ${cpaNum.toFixed(2).replace('.', ',')}) está abaixo do lucro por venda (R$ ${lucroPorVenda.toFixed(2).replace('.', ',')}). Você está no lucro por aquisição.`,
+      })
     }
   }
 
@@ -355,21 +405,52 @@ export default function AnalyticsPage() {
                 )}
 
                 {accordionCard(
-                  'status',
-                  'Status e decisões',
-                  'Tomadas de decisão da campanha de anúncios',
-                  <AlertCircle className="w-4 h-4 text-gogh-grayDark" />,
-                  <div className="pt-3 space-y-3">
-                    <p className="text-sm text-gogh-grayDark">
-                      Use esta área para acompanhar as decisões da sua campanha de tráfego pago. Preencha valor da venda e custos na seção <strong>Custos e receita (ROI)</strong> para calcular o CPA break-even e saber se está no lucro. Em breve: recomendações automáticas com base nos resultados dos anúncios (ex.: trocar criativo, aumentar investimento ou manter).
-                    </p>
+                  'dados-campanha',
+                  'Dados da campanha',
+                  selectedCampaign ? `CPA e índices da campanha "${selectedCampaign.name}"` : 'Selecione uma campanha para preencher',
+                  <ClipboardList className="w-4 h-4 text-gogh-grayDark" />,
+                  <div className="pt-3 space-y-4">
+                    {!selectedCampaignId ? (
+                      <p className="text-sm text-gogh-grayDark py-2">Selecione uma campanha na seção Campanhas para preencher os dados de anúncio (CPA e outros índices).</p>
+                    ) : (
+                      <>
+                        <p className="text-sm text-gogh-grayDark">
+                          Preencha os dados da sua campanha de tráfego pago. O <strong>CPA (custo por aquisição)</strong> é quanto você gasta em anúncios por cada conversão (venda, lead, etc.). Esses dados são usados no Status para avisar se você está no lucro ou no prejuízo.
+                        </p>
+                        <div className="space-y-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gogh-grayDark mb-1">CPA médio (R$) — custo por aquisição</label>
+                            <input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              value={custoPorAquisição}
+                              onChange={(e) => setCustoPorAquisição(e.target.value)}
+                              placeholder="Ex: 45"
+                              className="w-full border border-gogh-grayLight rounded-lg px-3 py-2 text-sm max-w-[200px]"
+                            />
+                            <p className="text-xs text-gogh-grayDark mt-1">Quanto você gasta em anúncios por cada conversão (cliente, lead).</p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={handleSaveDadosCampanha}
+                            disabled={savingDados}
+                            className="inline-flex items-center gap-2 px-4 py-2 bg-gogh-black text-white rounded-lg hover:bg-gogh-black/90 text-sm font-medium disabled:opacity-50"
+                          >
+                            {savingDados ? <LumaSpin size="sm" /> : null}
+                            Salvar na campanha
+                          </button>
+                        </div>
+                        <p className="text-xs text-gogh-grayDark border-t border-gogh-grayLight/50 pt-3">Em breve: mais campos (gasto total, impressões, cliques, etc.) para análise completa.</p>
+                      </>
+                    )}
                   </div>
                 )}
 
                 {accordionCard(
                   'roi',
                   'Custos e receita (ROI)',
-                  roiEnabled ? 'Valor, custo e CPA para decisão de tráfego pago' : 'Opcional — ative para ver lucro e CPA break-even',
+                  roiEnabled ? `Lucro por venda: ${valorNum > 0 ? `R$ ${lucroPorVenda.toFixed(2).replace('.', ',')}` : '—'}` : 'Opcional — ative para ver lucro e margem',
                   <DollarSign className="w-4 h-4 text-gogh-grayDark" />,
                   <div className="pt-3 space-y-4">
                     <label className="flex items-center gap-2 cursor-pointer">
@@ -379,14 +460,14 @@ export default function AnalyticsPage() {
                         onChange={(e) => setRoiEnabled(e.target.checked)}
                         className="rounded border-gogh-grayLight"
                       />
-                      <span className="text-sm font-medium text-gogh-grayDark">Usar métricas de custo e receita</span>
+                      <span className="text-sm font-medium text-gogh-grayDark">Usar métricas de custo e receita (para ver lucro e margem)</span>
                     </label>
                     {roiEnabled && (
                       <>
-                        <p className="text-xs text-gogh-grayDark">
-                          Informe o valor da sua venda e o custo (se houver) para ver o lucro por venda e quanto você pode gastar por aquisição (CPA) sem prejuízo.
+                        <p className="text-sm text-gogh-grayDark">
+                          <strong>Valor da venda</strong> é o preço que você cobra. <strong>Custo por venda</strong> é o que você gasta para entregar uma unidade — por exemplo: custo do produto, frete, taxa da plataforma. Quem não tem custo por venda (ex.: serviço digital sem custo variável) pode deixar 0.
                         </p>
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           <div>
                             <label className="block text-sm font-medium text-gogh-grayDark mb-1">Valor da venda (R$)</label>
                             <input
@@ -400,73 +481,109 @@ export default function AnalyticsPage() {
                             />
                           </div>
                           <div>
-                            <label className="block text-sm font-medium text-gogh-grayDark mb-1">Custo por venda (R$) — opcional</label>
+                            <label className="block text-sm font-medium text-gogh-grayDark mb-1">Custo por venda (R$)</label>
                             <input
                               type="number"
                               min="0"
                               step="0.01"
                               value={custoVenda}
                               onChange={(e) => setCustoVenda(e.target.value)}
-                              placeholder="0 se não tiver"
+                              placeholder="0 se não tiver (ex.: serviço sem custo variável)"
                               className="w-full border border-gogh-grayLight rounded-lg px-3 py-2 text-sm"
                             />
-                            <p className="text-xs text-gogh-grayDark mt-0.5">Deixe 0 ou vazio se não tiver custo por venda.</p>
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gogh-grayDark mb-1">Seu CPA médio (R$) — opcional</label>
-                            <input
-                              type="number"
-                              min="0"
-                              step="0.01"
-                              value={custoPorAquisição}
-                              onChange={(e) => setCustoPorAquisição(e.target.value)}
-                              placeholder="Ex: 45"
-                              className="w-full border border-gogh-grayLight rounded-lg px-3 py-2 text-sm"
-                            />
-                            <p className="text-xs text-gogh-grayDark mt-0.5">Quanto você gasta por conversão no anúncio.</p>
+                            <p className="text-xs text-gogh-grayDark mt-0.5">O que você gasta para entregar uma unidade (produto, frete, etc.). Deixe 0 se não tiver.</p>
                           </div>
                         </div>
-                        {(() => {
-                          const valor = parseFloat(valorVenda.replace(',', '.')) || 0
-                          const custo = parseFloat(custoVenda.replace(',', '.')) || 0
-                          const cpa = parseFloat(custoPorAquisição.replace(',', '.')) || 0
-                          const lucroVenda = valor - custo
-                          if (valor <= 0) {
-                            return (
-                              <p className="text-sm text-gogh-grayDark bg-gogh-grayLight/50 rounded-lg p-3">
-                                Preencha o valor da venda para ver o lucro por venda e o CPA break-even (máximo que pode gastar por aquisição sem prejuízo).
+                        {valorNum > 0 ? (
+                          <div className="space-y-3">
+                            <div
+                              className={`rounded-xl border-2 p-4 ${
+                                lucroPorVenda > 0
+                                  ? 'bg-green-50 border-green-200'
+                                  : lucroPorVenda < 0
+                                    ? 'bg-red-50 border-red-200'
+                                    : 'bg-amber-50 border-amber-200'
+                              }`}
+                            >
+                              <p className="text-sm font-medium text-gogh-black mb-1">Resultado: Lucro por venda</p>
+                              <p className="text-lg font-bold">
+                                {lucroPorVenda > 0 ? (
+                                  <span className="text-green-700">R$ {lucroPorVenda.toFixed(2).replace('.', ',')}</span>
+                                ) : lucroPorVenda < 0 ? (
+                                  <span className="text-red-700">R$ {lucroPorVenda.toFixed(2).replace('.', ',')}</span>
+                                ) : (
+                                  <span className="text-amber-700">R$ 0,00</span>
+                                )}
                               </p>
-                            )
-                          }
-                          return (
-                            <div className="space-y-2 bg-gogh-grayLight/30 rounded-lg p-4 border border-gogh-grayLight/50">
-                              <p className="text-sm font-medium text-gogh-black">
-                                Lucro por venda: <span className="text-green-600">R$ {lucroVenda.toFixed(2).replace('.', ',')}</span>
-                                {custo > 0 && <span className="text-gogh-grayDark font-normal"> (valor − custo)</span>}
+                              <p className="text-xs text-gogh-grayDark mt-1">
+                                Valor da venda (R$ {valorNum.toFixed(2).replace('.', ',')}) − Custo por venda (R$ {custoNum.toFixed(2).replace('.', ',')})
                               </p>
-                              <p className="text-sm text-gogh-grayDark">
-                                CPA break-even: você pode gastar até <strong className="text-gogh-black">R$ {lucroVenda.toFixed(2).replace('.', ',')}</strong> por aquisição para não ter prejuízo.
-                              </p>
-                              {cpa > 0 && (
-                                <p className={`text-sm font-medium ${cpa <= lucroVenda ? 'text-green-600' : 'text-red-600'}`}>
-                                  {cpa <= lucroVenda
-                                    ? `Seu CPA (R$ ${cpa.toFixed(2).replace('.', ',')}) está abaixo do break-even. Você está no lucro por venda.`
-                                    : `Seu CPA (R$ ${cpa.toFixed(2).replace('.', ',')}) está acima do break-even. Ajuste anúncios ou valor/custo para ficar no lucro.`}
+                              {lucroPorVenda > 0 && (
+                                <p className="text-xs font-medium text-green-700 mt-2 flex items-center gap-1">
+                                  <CheckCircle2 className="w-4 h-4" /> Margem positiva — você pode gastar até R$ {lucroPorVenda.toFixed(2).replace('.', ',')} por aquisição (CPA) sem prejuízo.
+                                </p>
+                              )}
+                              {lucroPorVenda <= 0 && valorNum > 0 && (
+                                <p className="text-xs font-medium text-amber-700 mt-2 flex items-center gap-1">
+                                  <AlertTriangle className="w-4 h-4" /> Ajuste o valor ou o custo para ter lucro por venda.
                                 </p>
                               )}
                             </div>
-                          )
-                        })()}
-                        {selectedCampaignId && (
-                          <button
-                            type="button"
-                            onClick={handleSaveRoiToCampaign}
-                            className="mt-3 inline-flex items-center gap-2 px-4 py-2 bg-gogh-black text-white rounded-lg hover:bg-gogh-black/90 text-sm font-medium"
-                          >
-                            Salvar na campanha
-                          </button>
+                            {selectedCampaignId && (
+                              <button
+                                type="button"
+                                onClick={handleSaveRoiToCampaign}
+                                className="inline-flex items-center gap-2 px-4 py-2 bg-gogh-black text-white rounded-lg hover:bg-gogh-black/90 text-sm font-medium"
+                              >
+                                Salvar na campanha
+                              </button>
+                            )}
+                          </div>
+                        ) : (
+                          <p className="text-sm text-gogh-grayDark bg-gogh-grayLight/50 rounded-lg p-3">
+                            Preencha o valor da venda para ver o lucro por venda (e o máximo que pode gastar por aquisição sem prejuízo).
+                          </p>
                         )}
                       </>
+                    )}
+                  </div>
+                )}
+
+                {accordionCard(
+                  'status',
+                  'Status e decisões',
+                  statusAlerts.length > 0 ? `${statusAlerts.length} aviso(s)` : 'Notificações sobre lucro e campanha',
+                  <AlertCircle className="w-4 h-4 text-gogh-grayDark" />,
+                  <div className="pt-3 space-y-3">
+                    <p className="text-sm text-gogh-grayDark">
+                      Aqui aparecem avisos com base no que você preencheu em <strong>Custos e receita (ROI)</strong> e em <strong>Dados da campanha</strong> (CPA). Quando o lucro por venda estiver zerado ou no prejuízo, ou quando o CPA estiver igual ou acima do lucro, você será notificado para tomar decisão.
+                    </p>
+                    {statusAlerts.length === 0 ? (
+                      <p className="text-sm text-gogh-grayDark bg-gogh-grayLight/50 rounded-lg p-3">
+                        Preencha valor da venda e custo (seção ROI) e CPA (seção Dados da campanha) para ver as notificações de decisão.
+                      </p>
+                    ) : (
+                      <ul className="space-y-2">
+                        {statusAlerts.map((a, i) => (
+                          <li
+                            key={i}
+                            className={`flex items-start gap-2 rounded-lg p-3 text-sm ${
+                              a.type === 'success'
+                                ? 'bg-green-50 border border-green-200 text-green-800'
+                                : a.type === 'warning'
+                                  ? 'bg-amber-50 border border-amber-200 text-amber-800'
+                                  : 'bg-red-50 border border-red-200 text-red-800'
+                            }`}
+                          >
+                            {a.type === 'success' ? (
+                              <CheckCircle2 className="w-5 h-5 shrink-0 mt-0.5" />
+                            ) : (
+                              <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" />
+                            )}
+                            <span>{a.text}</span>
+                          </li>
+                        ))}
+                      </ul>
                     )}
                   </div>
                 )}
