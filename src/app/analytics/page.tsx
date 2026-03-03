@@ -71,6 +71,7 @@ interface BudgetPhase {
 
 const BUDGET_PHASES_STORAGE_KEY = 'gogh_analytics_budget_phases'
 const BUDGET_TYPE_STORAGE_KEY = 'gogh_analytics_budget_type' // CBO = campanha (por dia na campanha); ABO = conjunto (por conjunto)
+const AUTO_DIAS_RECOMMENDATION_KEY = 'gogh_analytics_auto_dias'
 type BudgetTypeMeta = 'cbo' | 'abo'
 
 // Parâmetros de análise (benchmarks para decisão)
@@ -86,6 +87,7 @@ const CONV_MEDIO = 1.5
 const DIAS_MINIMOS_PARA_SUGERIR_AUMENTO = 18
 
 // Ecossistema de estratégia por faixa de investimento: análise e recomendações se adaptam ao capital investido
+// suggestedDailyForPlanning: R$/dia de referência para sugerir "duração em dias" no planejamento (valor total ÷ dias)
 const STRATEGY_TIERS = {
   baixo: {
     label: 'Baixo',
@@ -93,6 +95,7 @@ const STRATEGY_TIERS = {
     minCreatives: 2,
     maxCreatives: 3,
     description: 'Até ~R$ 50/dia',
+    suggestedDailyForPlanning: 35,
   },
   medio: {
     label: 'Médio',
@@ -100,6 +103,7 @@ const STRATEGY_TIERS = {
     minCreatives: 3,
     maxCreatives: 5,
     description: 'R$ 50 a ~R$ 300/dia',
+    suggestedDailyForPlanning: 120,
   },
   alto: {
     label: 'Alto',
@@ -107,6 +111,7 @@ const STRATEGY_TIERS = {
     minCreatives: 4,
     maxCreatives: 6,
     description: 'Acima de ~R$ 300/dia',
+    suggestedDailyForPlanning: 350,
   },
 } as const
 
@@ -157,6 +162,10 @@ export default function AnalyticsPage() {
   const [budgetTypeMeta, setBudgetTypeMeta] = useState<BudgetTypeMeta>(() => {
     if (typeof window === 'undefined') return 'cbo'
     return (localStorage.getItem(BUDGET_TYPE_STORAGE_KEY) === 'abo' ? 'abo' : 'cbo') as BudgetTypeMeta
+  })
+  const [useAutoDiasRecommendation, setUseAutoDiasRecommendation] = useState(() => {
+    if (typeof window === 'undefined') return false
+    return localStorage.getItem(AUTO_DIAS_RECOMMENDATION_KEY) === '1'
   })
 
   const buildCampaignSignature = () =>
@@ -411,6 +420,22 @@ export default function AnalyticsPage() {
       description: t.description,
     }
   }, [selectedCampaign?.start_date, selectedCampaign, valorInvestidoNum])
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(AUTO_DIAS_RECOMMENDATION_KEY, useAutoDiasRecommendation ? '1' : '0')
+    }
+  }, [useAutoDiasRecommendation])
+
+  // Quando "usar recomendação automática" está ligado, preenche duração (dias) conforme o nível da estratégia
+  const suggestedDailyForPlanning = STRATEGY_TIERS[strategyTier.tier].suggestedDailyForPlanning
+  useEffect(() => {
+    if (!useAutoDiasRecommendation || !selectedCampaignId) return
+    const v = parseFloat(String(newPhaseValor).replace(',', '.')) || 0
+    if (v <= 0) return
+    const dias = Math.max(1, Math.round(v / suggestedDailyForPlanning))
+    setNewPhaseDias(String(dias))
+  }, [useAutoDiasRecommendation, newPhaseValor, selectedCampaignId, suggestedDailyForPlanning])
 
   const { score, statusGeral, statusAlerts, hasDataForDiagnosis } = useMemo(() => {
     // Só considera que há dados quando existir pelo menos uma métrica dos criativos/campanha
@@ -1384,20 +1409,23 @@ export default function AnalyticsPage() {
                         <div className="rounded-lg bg-gogh-grayLight/40 border border-gogh-grayLight p-3 space-y-2">
                           <p className="text-xs font-semibold text-gogh-black flex items-center gap-1.5">
                             <TrendingUp className="w-3.5 h-3.5 text-gogh-yellow" />
-                            Estratégia: {strategyTier.label}
+                            Estratégia: nível {strategyTier.label}
+                          </p>
+                          <p className="text-xs text-gogh-grayDark">
+                            Faixa do nível {strategyTier.label}: <strong>{strategyTier.description}</strong> — referência para meta de criativos e plano de otimização.
                           </p>
                           {strategyTier.investimentoMedioPorDia != null ? (
-                            <>
-                              <p className="text-xs text-gogh-black">
-                                Seu investimento médio: <strong>R$ {strategyTier.investimentoMedioPorDia.toFixed(2).replace('.', ',')}/dia</strong>
-                              </p>
-                              <p className="text-xs text-gogh-grayDark">
-                                Faixa deste nível: {strategyTier.description}
-                              </p>
-                            </>
+                            <p className="text-xs text-gogh-black">
+                              Investimento real (dados da campanha): <strong>R$ {strategyTier.investimentoMedioPorDia.toFixed(2).replace('.', ',')}/dia</strong>
+                            </p>
                           ) : (
                             <p className="text-xs text-gogh-grayDark">
-                              Preencha os dados da campanha por 3+ dias para o nível ser ajustado ao seu investimento.
+                              Investimento real: preencha os dados da campanha (seção Campanhas) por 3+ dias para o nível ser ajustado ao que você está gastando.
+                            </p>
+                          )}
+                          {budgetPhases.length > 0 && budgetPhases[0].dias > 0 && (
+                            <p className="text-xs text-gogh-black border-t border-gogh-grayLight/80 pt-1">
+                              Investimento planejado (1ª fase): <strong>R$ {(budgetPhases[0].valor / budgetPhases[0].dias).toFixed(2).replace('.', ',')}/dia</strong> por {budgetPhases[0].dias} dias
                             </p>
                           )}
                           <p className="text-xs text-gogh-black pt-1 border-t border-gogh-grayLight/80">
@@ -1490,52 +1518,71 @@ export default function AnalyticsPage() {
                               })()}
                             </div>
                           )}
-                          {budgetPhases.length > 0 && selectedCampaign?.start_date && (() => {
+                          {selectedCampaign?.start_date && (() => {
                             const start = new Date(selectedCampaign.start_date + 'T12:00:00')
-                            const today = new Date()
-                            today.setHours(0, 0, 0, 0)
                             start.setHours(0, 0, 0, 0)
-                            const totalDias = budgetPhases.reduce((s, p) => s + p.dias, 0)
+                            const totalDias = budgetPhases.length > 0
+                              ? Math.min(budgetPhases.reduce((s, p) => s + p.dias, 0), 60)
+                              : 35
                             const phaseColors = ['bg-gogh-yellow/50', 'bg-amber-400/50', 'bg-orange-400/50', 'bg-amber-600/50']
-                            const days: { dayNum: number; date: Date; phaseIndex: number }[] = []
+                            const getMilestone = (dayNum: number): string | null => {
+                              if (dayNum >= 1 && dayNum <= 5) return 'Aprendizado'
+                              if (dayNum === 7) return '1ª análise'
+                              if (dayNum >= 10 && dayNum <= 14) return 'Novos criativos'
+                              if (dayNum >= 18) return 'Contínuo'
+                              return null
+                            }
+                            const days: { dayNum: number; date: Date; phaseIndex: number; milestone: string | null }[] = []
                             let dayOffset = 0
-                            for (let i = 0; i < Math.min(totalDias, 60); i++) {
+                            for (let i = 0; i < totalDias; i++) {
                               const d = new Date(start)
                               d.setDate(d.getDate() + i)
                               let phaseIndex = 0
-                              let acc = 0
-                              for (let p = 0; p < budgetPhases.length; p++) {
-                                acc += budgetPhases[p].dias
-                                if (i + 1 <= acc) { phaseIndex = p; break }
+                              if (budgetPhases.length > 0) {
+                                let acc = 0
+                                for (let p = 0; p < budgetPhases.length; p++) {
+                                  acc += budgetPhases[p].dias
+                                  if (i + 1 <= acc) { phaseIndex = p; break }
+                                }
                               }
-                              days.push({ dayNum: i + 1, date: d, phaseIndex })
+                              days.push({ dayNum: i + 1, date: d, phaseIndex, milestone: getMilestone(i + 1) })
                             }
-                            const byMonth = days.reduce((acc, { date, dayNum, phaseIndex }) => {
+                            const byMonth = days.reduce((acc, { date, dayNum, phaseIndex, milestone }) => {
                               const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
                               if (!acc[key]) acc[key] = { label: date.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' }), days: [] }
-                              acc[key].days.push({ dayNum, day: date.getDate(), phaseIndex })
+                              acc[key].days.push({ dayNum, day: date.getDate(), phaseIndex, milestone })
                               return acc
-                            }, {} as Record<string, { label: string; days: { dayNum: number; day: number; phaseIndex: number }[] }>)
+                            }, {} as Record<string, { label: string; days: { dayNum: number; day: number; phaseIndex: number; milestone: string | null }[] }>)
+                            const weekDays = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
                             return (
                               <div className="mb-4">
-                                <p className="text-[11px] font-medium text-gogh-black mb-2">Agenda do planejamento (dias da campanha)</p>
+                                <p className="text-[11px] font-medium text-gogh-black mb-1.5">Calendário da campanha (dias com ação do plano em destaque)</p>
+                                <p className="text-[10px] text-gogh-grayDark mb-2">Cores de fundo = fases de orçamento. Borda colorida = dia com ação: azul = 1ª análise (dia 7), verde = Novos criativos (10–14), âmbar = Contínuo (18+).</p>
                                 <div className="flex flex-wrap gap-4">
-                                  {Object.entries(byMonth).map(([key, { label, days: monthDays }]) => (
-                                    <div key={key} className="rounded-lg border border-gogh-grayLight bg-white p-2">
-                                      <p className="text-[11px] text-gogh-grayDark mb-1.5">{label}</p>
-                                      <div className="grid grid-cols-7 gap-0.5">
-                                        {monthDays.map(({ dayNum, day, phaseIndex }) => (
-                                          <div
-                                            key={dayNum}
-                                            title={`Dia ${dayNum} · Fase ${phaseIndex + 1}`}
-                                            className={`w-6 h-6 rounded flex items-center justify-center text-[10px] font-medium ${phaseColors[phaseIndex % phaseColors.length]} border border-gogh-grayLight/50`}
-                                          >
-                                            {day}
-                                          </div>
-                                        ))}
+                                  {Object.entries(byMonth).map(([key, { label, days: monthDays }]) => {
+                                    const firstDayDate = monthDays.length > 0 ? (() => { const d = new Date(start); d.setDate(d.getDate() + (monthDays[0].dayNum - 1)); return d; })() : null
+                                    const padStart = firstDayDate ? firstDayDate.getDay() : 0
+                                    return (
+                                      <div key={key} className="rounded-xl border border-gogh-grayLight bg-white p-3 shadow-sm">
+                                        <p className="text-xs font-semibold text-gogh-black mb-2">{label}</p>
+                                        <div className="grid grid-cols-7 gap-0.5 text-[10px] text-gogh-grayDark mb-1">
+                                          {weekDays.map((w) => <div key={w} className="w-7 h-5 flex items-center justify-center font-medium">{w}</div>)}
+                                        </div>
+                                        <div className="grid grid-cols-7 gap-0.5">
+                                          {Array.from({ length: padStart }, (_, i) => <div key={`pad-${i}`} className="w-7 h-7" />)}
+                                          {monthDays.map(({ dayNum, day, phaseIndex, milestone }) => (
+                                            <div
+                                              key={dayNum}
+                                              title={milestone ? `Dia ${dayNum} · ${milestone}` : `Dia ${dayNum} · Fase ${phaseIndex + 1}`}
+                                              className={`w-7 h-7 rounded-md flex items-center justify-center text-[10px] font-medium border ${phaseColors[phaseIndex % phaseColors.length]} ${milestone === '1ª análise' ? 'ring-2 ring-blue-500 ring-inset' : milestone === 'Novos criativos' ? 'ring-2 ring-emerald-500 ring-inset' : milestone === 'Contínuo' ? 'ring-2 ring-amber-600 ring-inset' : milestone === 'Aprendizado' ? 'ring-2 ring-amber-700/80 ring-inset' : 'border-gogh-grayLight/50'}`}
+                                            >
+                                              {day}
+                                            </div>
+                                          ))}
+                                        </div>
                                       </div>
-                                    </div>
-                                  ))}
+                                    )
+                                  })}
                                 </div>
                               </div>
                             )
@@ -1544,6 +1591,15 @@ export default function AnalyticsPage() {
                             <p className="text-xs font-medium text-gogh-black">
                               {budgetPhases.length === 0 ? 'Primeira fase de investimento' : 'Próxima reposição'}
                             </p>
+                            <label className="flex items-center gap-2 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={useAutoDiasRecommendation}
+                                onChange={(e) => setUseAutoDiasRecommendation(e.target.checked)}
+                                className="rounded border-gogh-grayLight"
+                              />
+                              <span className="text-xs text-gogh-grayDark">Preencher duração (dias) automaticamente pela recomendação do nível {strategyTier.label}</span>
+                            </label>
                             <div className="flex flex-wrap gap-3 items-end">
                               <div>
                                 <label className="block text-xs text-gogh-grayDark mb-0.5">Valor (R$)</label>
@@ -1568,12 +1624,27 @@ export default function AnalyticsPage() {
                                   className="w-24 border border-gogh-grayLight rounded-lg px-2 py-1.5 text-sm"
                                 />
                               </div>
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-2 flex-wrap">
                                 {(() => {
                                   const v = parseFloat(String(newPhaseValor).replace(',', '.')) || 0
                                   const d = Math.max(1, Math.floor(parseFloat(String(newPhaseDias).replace(',', '.')) || 0))
                                   const porDia = d > 0 ? v / d : 0
-                                  return v > 0 && d > 0 ? <span className="text-xs text-gogh-grayDark">≈ R$ {porDia.toFixed(2).replace('.', ',')}/dia</span> : null
+                                  const suggestedDias = v > 0 ? Math.max(1, Math.round(v / suggestedDailyForPlanning)) : 0
+                                  const suggestedPorDia = suggestedDias > 0 ? v / suggestedDias : 0
+                                  return (
+                                    <>
+                                      {v > 0 && d > 0 && <span className="text-xs text-gogh-grayDark">≈ R$ {porDia.toFixed(2).replace('.', ',')}/dia</span>}
+                                      {v > 0 && !useAutoDiasRecommendation && suggestedDias > 0 && (
+                                        <button
+                                          type="button"
+                                          onClick={() => setNewPhaseDias(String(suggestedDias))}
+                                          className="text-xs text-gogh-grayDark hover:text-gogh-black underline"
+                                        >
+                                          Sugestão: {suggestedDias} dias (R$ {suggestedPorDia.toFixed(2).replace('.', ',')}/dia no nível {strategyTier.label})
+                                        </button>
+                                      )}
+                                    </>
+                                  )
                                 })()}
                                 <button
                                   type="button"
