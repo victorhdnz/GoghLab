@@ -61,7 +61,7 @@ export default function AnalyticsPage() {
   const hasAccess = isAuthenticated && isPro
 
   const [mounted, setMounted] = useState(false)
-  const [accordionOpen, setAccordionOpen] = useState<AnalyticsAccordionId | null>('roi')
+  const [accordionOpen, setAccordionOpen] = useState<AnalyticsAccordionId | null>('campanhas')
   const [savingDados, setSavingDados] = useState(false)
   const [campaigns, setCampaigns] = useState<AnalyticsCampaign[]>([])
   const [selectedCampaignId, setSelectedCampaignIdState] = useState<string | null>(null)
@@ -393,7 +393,7 @@ export default function AnalyticsPage() {
   }
 
   const handleDeleteCampaign = async (id: string) => {
-    if (!confirm('Excluir esta campanha? Os dados de ROI salvos nela serão perdidos.')) return
+    if (!confirm('Excluir esta campanha? Todos os dados salvos nela serão apagados permanentemente.')) return
     try {
       const res = await fetch(`/api/analytics/campaigns/${id}`, { method: 'DELETE', credentials: 'include' })
       const data = await res.json()
@@ -573,6 +573,90 @@ export default function AnalyticsPage() {
                 </div>
                 <div className="space-y-2">
                 {accordionCard(
+                  'campanhas',
+                  'Campanhas',
+                  selectedCampaign ? `${selectedCampaign.name} · Início ${selectedCampaign.start_date}` : 'Crie, ative ou pause campanhas',
+                  <Megaphone className="w-4 h-4 text-gogh-grayDark" />,
+                  <div className="pt-3 space-y-4">
+                    <div className="flex flex-wrap gap-3 items-end">
+                      <div className="flex-1 min-w-[160px]">
+                        <label className="block text-sm font-medium text-gogh-grayDark mb-1">Nova campanha</label>
+                        <input
+                          type="text"
+                          value={newCampaignName}
+                          onChange={(e) => setNewCampaignName(e.target.value)}
+                          placeholder="Nome da campanha"
+                          className="w-full border border-gogh-grayLight rounded-lg px-3 py-2 text-sm"
+                        />
+                      </div>
+                      <div className="min-w-[140px]">
+                        <label className="block text-sm font-medium text-gogh-grayDark mb-1">Início</label>
+                        <input
+                          type="date"
+                          value={newCampaignStartDate}
+                          onChange={(e) => setNewCampaignStartDate(e.target.value)}
+                          className="w-full border border-gogh-grayLight rounded-lg px-3 py-2 text-sm"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleCreateCampaign}
+                        disabled={campaignsLoading}
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-gogh-yellow text-gogh-black rounded-xl hover:bg-gogh-yellow/90 font-medium text-sm transition-colors"
+                      >
+                        <Plus className="w-4 h-4" />
+                        Criar
+                      </button>
+                    </div>
+                    {campaignsLoading ? (
+                      <div className="flex justify-center py-4"><LumaSpin size="sm" /></div>
+                    ) : campaigns.length === 0 ? (
+                      <p className="text-sm text-gogh-grayDark py-2">Nenhuma campanha. Crie uma para organizar métricas e decisões por campanha.</p>
+                    ) : (
+                      <ul className="space-y-2">
+                        {campaigns.map((c) => (
+                          <li
+                            key={c.id}
+                            className={`flex items-center justify-between gap-2 rounded-lg border p-3 transition-colors ${
+                              selectedCampaignId === c.id ? 'border-gogh-yellow bg-gogh-yellow/10' : 'border-gogh-grayLight bg-white'
+                            }`}
+                          >
+                            <button
+                              type="button"
+                              onClick={() => setSelectedCampaignId(c.id)}
+                              className="flex-1 text-left min-w-0"
+                            >
+                              <span className="font-medium text-gogh-black block truncate">{c.name}</span>
+                              <span className="text-xs text-gogh-grayDark">
+                                Início: {c.start_date} · {c.is_active ? 'Ativa' : 'Pausada'}
+                              </span>
+                            </button>
+                            <div className="flex items-center gap-1 shrink-0">
+                              <button
+                                type="button"
+                                onClick={() => handleToggleCampaignActive(c)}
+                                title={c.is_active ? 'Pausar' : 'Ativar'}
+                                className="p-2 rounded-lg text-gogh-grayDark hover:bg-gogh-grayLight"
+                              >
+                                {c.is_active ? <span className="text-xs font-medium text-amber-600">Pausar</span> : <span className="text-xs font-medium text-green-600">Ativar</span>}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteCampaign(c.id)}
+                                title="Excluir"
+                                className="p-2 rounded-lg text-red-600 hover:bg-red-50"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                )}
+
+                {accordionCard(
                   'roi',
                   'Planejamento de valores',
                   roiEnabled ? `Lucro por venda: ${valorNum > 0 ? `R$ ${lucroPorVenda.toFixed(2).replace('.', ',')}` : '—'}` : 'Usar ou não: configure valor da venda e custos para refletir no status',
@@ -592,9 +676,6 @@ export default function AnalyticsPage() {
                     </label>
                     {roiEnabled && (
                       <>
-                        <p className="text-sm text-gogh-grayDark">
-                          <strong>Valor da venda</strong> é o preço que você cobra. <strong>Custo por venda</strong> é o que você gasta para entregar uma unidade — por exemplo: custo do produto, frete, taxa da plataforma. Quem não tem custo por venda (ex.: serviço digital sem custo variável) pode deixar 0.
-                        </p>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           <div>
                             <label className="block text-sm font-medium text-gogh-grayDark mb-1">Preço do produto/serviço (R$)</label>
@@ -607,6 +688,7 @@ export default function AnalyticsPage() {
                               placeholder="Ex: 97"
                               className={`w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 ${getFieldBorderClass('roi')}`}
                             />
+                            <p className="text-xs text-gogh-grayDark mt-0.5">Preço que você cobra pelo produto ou serviço.</p>
                           </div>
                           <div>
                             <label className="block text-sm font-medium text-gogh-grayDark mb-1">Custo variável por venda (R$)</label>
@@ -693,90 +775,6 @@ export default function AnalyticsPage() {
                           </p>
                         )}
                       </>
-                    )}
-                  </div>
-                )}
-
-                {accordionCard(
-                  'campanhas',
-                  'Campanhas',
-                  selectedCampaign ? `${selectedCampaign.name} · Início ${selectedCampaign.start_date}` : 'Crie, ative ou pause campanhas',
-                  <Megaphone className="w-4 h-4 text-gogh-grayDark" />,
-                  <div className="pt-3 space-y-4">
-                    <div className="flex flex-wrap gap-3 items-end">
-                      <div className="flex-1 min-w-[160px]">
-                        <label className="block text-sm font-medium text-gogh-grayDark mb-1">Nova campanha</label>
-                        <input
-                          type="text"
-                          value={newCampaignName}
-                          onChange={(e) => setNewCampaignName(e.target.value)}
-                          placeholder="Nome da campanha"
-                          className="w-full border border-gogh-grayLight rounded-lg px-3 py-2 text-sm"
-                        />
-                      </div>
-                      <div className="min-w-[140px]">
-                        <label className="block text-sm font-medium text-gogh-grayDark mb-1">Início</label>
-                        <input
-                          type="date"
-                          value={newCampaignStartDate}
-                          onChange={(e) => setNewCampaignStartDate(e.target.value)}
-                          className="w-full border border-gogh-grayLight rounded-lg px-3 py-2 text-sm"
-                        />
-                      </div>
-                      <button
-                        type="button"
-                        onClick={handleCreateCampaign}
-                        disabled={campaignsLoading}
-                        className="inline-flex items-center gap-2 px-4 py-2 bg-gogh-yellow text-gogh-black rounded-xl hover:bg-gogh-yellow/90 font-medium text-sm transition-colors"
-                      >
-                        <Plus className="w-4 h-4" />
-                        Criar
-                      </button>
-                    </div>
-                    {campaignsLoading ? (
-                      <div className="flex justify-center py-4"><LumaSpin size="sm" /></div>
-                    ) : campaigns.length === 0 ? (
-                      <p className="text-sm text-gogh-grayDark py-2">Nenhuma campanha. Crie uma para organizar métricas e decisões por campanha.</p>
-                    ) : (
-                      <ul className="space-y-2">
-                        {campaigns.map((c) => (
-                          <li
-                            key={c.id}
-                            className={`flex items-center justify-between gap-2 rounded-lg border p-3 transition-colors ${
-                              selectedCampaignId === c.id ? 'border-gogh-yellow bg-gogh-yellow/10' : 'border-gogh-grayLight bg-white'
-                            }`}
-                          >
-                            <button
-                              type="button"
-                              onClick={() => setSelectedCampaignId(c.id)}
-                              className="flex-1 text-left min-w-0"
-                            >
-                              <span className="font-medium text-gogh-black block truncate">{c.name}</span>
-                              <span className="text-xs text-gogh-grayDark">
-                                Início: {c.start_date} · {c.is_active ? 'Ativa' : 'Pausada'}
-                              </span>
-                            </button>
-                            <div className="flex items-center gap-1 shrink-0">
-                              <button
-                                type="button"
-                                onClick={() => handleToggleCampaignActive(c)}
-                                title={c.is_active ? 'Pausar' : 'Ativar'}
-                                className="p-2 rounded-lg text-gogh-grayDark hover:bg-gogh-grayLight"
-                              >
-                                {c.is_active ? <span className="text-xs font-medium text-amber-600">Pausar</span> : <span className="text-xs font-medium text-green-600">Ativar</span>}
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => handleDeleteCampaign(c.id)}
-                                title="Excluir"
-                                className="p-2 rounded-lg text-red-600 hover:bg-red-50"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            </div>
-                          </li>
-                        ))}
-                      </ul>
                     )}
                   </div>
                 )}
@@ -935,7 +933,7 @@ export default function AnalyticsPage() {
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-6 mt-6 border-t border-gogh-grayLight">
                   <p className="text-xs text-gogh-grayDark">
                     {selectedCampaignId
-                      ? (isProfileDirty ? 'Alterações não salvas. Clique em Salvar perfil para gravar na campanha.' : 'Dados da campanha salvos.')
+                      ? (isProfileDirty ? 'Alterações não salvas. Clique em Salvar na campanha para gravar.' : 'Dados da campanha salvos.')
                       : 'Selecione uma campanha e preencha os dados para poder salvar.'}
                   </p>
                   <ShinyButton
@@ -954,7 +952,7 @@ export default function AnalyticsPage() {
                     ) : (
                       <>
                         <RefreshCw className="w-4 h-4 shrink-0" />
-                        Salvar perfil
+                        Salvar na campanha
                       </>
                     )}
                   </ShinyButton>
