@@ -343,10 +343,12 @@ export default function AnalyticsPage() {
     }
     if (roiEnabled && valorNum > 0) {
       const lucroStr = `R$ ${lucroBruto.toFixed(2).replace('.', ',')}`
+      const cpaAcimaDoLimite = custoMaxAceitavel > 0 && cpaUsado > 0 && cpaUsado > custoMaxAceitavel
+      const lucroRealPorVenda = cpaUsado > 0 ? lucroBruto - cpaUsado : lucroBruto
       if (lucroBruto <= 0) {
         scoreLucro = 0
         alerts.push({ type: 'danger', action: 'Ajustar preço ou custo.', detail: `Lucro ${lucroStr} (prejuízo)` })
-      } else if (metaLucroNum > 0 && lucroBruto >= metaLucroNum) {
+      } else if (metaLucroNum > 0 && lucroBruto >= metaLucroNum && !cpaAcimaDoLimite) {
         scoreLucro = 20
         alerts.push({ type: 'success', action: 'Dentro da meta.', detail: `Lucro ${lucroStr}` })
       } else if (lucroBruto > 0) {
@@ -360,7 +362,13 @@ export default function AnalyticsPage() {
           alerts.push({ type: 'danger', action: 'Não escalar.', detail: `CPA ${cpaStr} > lucro ${lucroStr} (prejuízo por aquisição)` })
         } else if (cpaUsado > custoMaxAceitavel) {
           scoreCpa = 0
-          alerts.push({ type: 'danger', action: 'Não escalar.', detail: `CPA ${cpaStr} → limite ${limiteStr}` })
+          const lucroRealStr = `R$ ${lucroRealPorVenda.toFixed(2).replace('.', ',')}`
+          const metaStr = metaLucroNum > 0 ? ` (meta R$ ${metaLucroNum.toFixed(2).replace('.', ',')})` : ''
+          alerts.push({
+            type: 'danger',
+            action: 'Não escalar.',
+            detail: `CPA ${cpaStr} > limite ${limiteStr}. Lucro real por venda: ${lucroRealStr}${metaStr}.`,
+          })
         } else if (cpaUsado >= custoMaxAceitavel * 0.98) {
           scoreCpa = 8
           alerts.push({ type: 'warning', action: 'Não escalar.', detail: `CPA ${cpaStr} no limite ${limiteStr}` })
@@ -1250,10 +1258,15 @@ export default function AnalyticsPage() {
                     </div>
                     {statusAlerts.length === 0 ? (
                       <p className="text-sm text-gogh-grayDark bg-gogh-grayLight/50 rounded-lg p-3">
-                        Preencha os dados da campanha na seção <strong>Campanhas</strong> e o <strong>Planejamento de valores</strong> para ver o diagnóstico.
+                        Preencha os dados da campanha na seção <strong>Campanhas</strong> para ver o diagnóstico. Opcionalmente, preencha o <strong>Planejamento de valores</strong> para incluir análise de lucro e CPA limite.
                       </p>
                     ) : (
                       <div>
+                        <p className="text-xs text-gogh-grayDark mb-2">
+                          {roiEnabled && valorNum > 0
+                            ? 'Análise considerando Planejamento de valores (lucro e CPA limite).'
+                            : 'Análise com base nas métricas dos criativos (frequência, CTR, conversão).'}
+                        </p>
                         <p className="text-sm font-medium text-gogh-black mb-2">Recomendações:</p>
                         <p className="text-xs text-gogh-grayDark mb-2">Clique na ação para ver o detalhe dos índices (atual → ideal).</p>
                         <ul className="space-y-2">
