@@ -1543,31 +1543,43 @@ export default function AnalyticsPage() {
                                       disabled={(date) => {
                                         const d = new Date(date)
                                         d.setHours(0, 0, 0, 0)
-                                        const s = new Date(start)
-                                        s.setHours(0, 0, 0, 0)
                                         const e = new Date(endDate)
                                         e.setHours(0, 0, 0, 0)
-                                        return d < s || d >= e
+                                        return d >= e
                                       }}
-                                      modifiers={budgetPhases.length > 0 ? {
-                                        inCampaign: (date) => {
+                                      modifiers={{
+                                        dayPassed: (date) => {
                                           const n = getDayNum(date)
-                                          return n != null && !isActionDay(n)
+                                          if (n == null) return false
+                                          const d = new Date(date)
+                                          d.setHours(0, 0, 0, 0)
+                                          const today = new Date()
+                                          today.setHours(0, 0, 0, 0)
+                                          return d < today
                                         },
-                                        actionDay: (date) => {
-                                          const n = getDayNum(date)
-                                          return n != null && isActionDay(n) && !filledDatesSet.has(dateToKey(date))
-                                        },
-                                        actionDayFilled: (date) => {
-                                          const n = getDayNum(date)
-                                          return n != null && isActionDay(n) && filledDatesSet.has(dateToKey(date))
-                                        },
-                                      } : {}}
-                                      modifiersClassNames={budgetPhases.length > 0 ? {
-                                        inCampaign: '[&>button]:bg-gogh-yellow/35 [&>button]:text-gogh-black [&>button]:shadow-[inset_0_0_0_1px_rgba(247,201,72,0.5)]',
-                                        actionDay: '[&>button]:bg-emerald-500/50 [&>button]:text-gogh-black [&>button]:shadow-[inset_0_0_0_1px_rgba(16,185,129,0.6)]',
-                                        actionDayFilled: '[&>button]:bg-emerald-400/70 [&>button]:text-white [&>button]:shadow-[inset_0_0_0_1px_rgba(52,211,153,0.9)]',
-                                      } : {}}
+                                        ...(budgetPhases.length > 0 ? {
+                                          inCampaign: (date: Date) => {
+                                            const n = getDayNum(date)
+                                            return n != null && !isActionDay(n)
+                                          },
+                                          actionDay: (date: Date) => {
+                                            const n = getDayNum(date)
+                                            return n != null && isActionDay(n) && !filledDatesSet.has(dateToKey(date))
+                                          },
+                                          actionDayFilled: (date: Date) => {
+                                            const n = getDayNum(date)
+                                            return n != null && isActionDay(n) && filledDatesSet.has(dateToKey(date))
+                                          },
+                                        } : {}),
+                                      }}
+                                      modifiersClassNames={{
+                                        dayPassed: '[&>button]:line-through [&>button]:opacity-65',
+                                        ...(budgetPhases.length > 0 ? {
+                                          inCampaign: '[&>button]:bg-gogh-yellow/35 [&>button]:text-gogh-black [&>button]:shadow-[inset_0_0_0_1px_rgba(247,201,72,0.5)]',
+                                          actionDay: '[&>button]:bg-emerald-500/50 [&>button]:text-gogh-black [&>button]:shadow-[inset_0_0_0_1px_rgba(16,185,129,0.6)]',
+                                          actionDayFilled: '[&>button]:bg-emerald-400/70 [&>button]:text-white [&>button]:shadow-[inset_0_0_0_1px_rgba(52,211,153,0.9)]',
+                                        } : {}),
+                                      }}
                                       classNames={{
                                         day_button: '!size-7',
                                         day: '!size-7 !px-0',
