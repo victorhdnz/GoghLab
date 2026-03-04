@@ -1202,7 +1202,7 @@ export default function AnalyticsPage() {
         <div className="px-3 pb-3 pt-0 border-t border-gogh-grayLight/50">{children}</div>
       )}
     </div>
-  )
+  );
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gogh-beige via-white to-gogh-beige pb-12 px-4 pt-2 sm:pt-4 md:pt-12">
@@ -2101,7 +2101,7 @@ export default function AnalyticsPage() {
                       </div>
                     )}
                       </>
-                    ))}
+                    )}
                   </div>
                 )}
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-6 mt-6 border-t border-gogh-grayLight">
