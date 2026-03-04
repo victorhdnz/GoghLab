@@ -150,9 +150,16 @@ function dateToKey(d: Date): string {
   return `${y}-${m}-${day}`
 }
 
-// Um único dia por tipo de ação, para não repetir a mesma mensagem em vários dias seguidos
-function isActionDay(dayNum: number): boolean {
-  return dayNum === 1 || dayNum === 7 || dayNum === 10 || dayNum === 18
+// Um único dia por tipo de ação; adapta ao total de dias do plano; tier alto pode ter 1ª análise no dia 5
+function isActionDay(dayNum: number, totalDays?: number, tier?: 'baixo' | 'medio' | 'alto'): boolean {
+  const total = totalDays ?? 30
+  if (dayNum === 1) return true
+  if (tier === 'alto' && dayNum === 5 && total >= 5) return true // 1ª análise antecipada para orçamento alto
+  if (dayNum === 7 && total >= 7 && tier !== 'alto') return true // 1ª análise para medio/baixo
+  if (dayNum === 10 && total >= 10) return true
+  if (total >= 18 && dayNum === 18) return true
+  if (total < 18 && dayNum === total) return true // último dia do plano = avaliação
+  return false
 }
 
 // Parâmetros de análise (benchmarks para decisão)
@@ -167,19 +174,33 @@ const CTR_MEDIO = 0.8
 const CONV_OTIMO = 4
 const CONV_FORTE = 2
 const CONV_MEDIO = 1
-// Escala: conservador dia 18; antecipada quando maturidade ok + conversões ≥ tier (7–15) + CPA ok
+// ROAS (venda-site): métrica central e-commerce; usado no score quando perfil = venda-site
+const ROAS_OTIMO = 2
+const ROAS_BOM = 1.5
+const ROAS_MEDIO = 1
+// Escala: antecipada quando maturidade ok + conversões ≥ tier + CPA ok; dia 18 é referência, não barreira
 const DIAS_MINIMOS_PARA_SUGERIR_AUMENTO = 18
-// Maturidade de dados: condiciona agressividade das recomendações (não bloqueia; adapta)
+// Dados mínimos para considerar que há diagnóstico (evita análise estatisticamente frágil)
+const HAS_DATA_IMPRESSOES = 1500
+const HAS_DATA_CLIQUES = 75
+const HAS_DATA_COMPRAS = 5
+// Maturidade de dados: condiciona agressividade das recomendações; dias mínimos adaptativos por tier (alto aprende mais rápido)
 const MATURIDADE = {
-  DIAS_MINIMOS_INSUFICIENTE: 3,
-  IMPRESSOES_MINIMAS_INSUFICIENTE: 1000,
+  IMPRESSOES_MINIMAS_INSUFICIENTE: 1500,
   CONVERSOES_FASE_INICIAL: 10,
   CONVERSOES_FASE_OTIMIZACAO: 30,
 } as const
+const MATURIDADE_DIAS_MINIMOS_POR_TIER: Record<'baixo' | 'medio' | 'alto', number> = {
+  baixo: 5,
+  medio: 3,
+  alto: 2,
+}
 export type MaturidadeKey = 'dados_insuficientes' | 'fase_inicial' | 'fase_otimizacao' | 'fase_escala'
 // Duração de fase: permitir qualquer duração (1–60); análise se adapta à maturidade
 const MIN_DIAS_FASE = 1
 const MAX_DIAS_FASE = 60
+// Abaixo disso o plano é "muito curto" para decisões (pausar/trocar criativo); mensagens orientam a seguir com mais dias
+const MIN_DIAS_PLANO_PARA_ESTRATEGIA = 5
 
 // Ecossistema de estratégia por faixa de investimento: análise e recomendações se adaptam ao capital investido
 // Inclui conversões mínimas para sugerir escala e tolerância de frequência por tier
@@ -839,11 +860,11 @@ setSavedCampaignSignature(
         maturidadeLabel: '',
       }
     }
-    // Dados suficientes para diagnóstico (evita análise estatisticamente irrelevante)
+    // Dados suficientes para diagnóstico (evita análise estatisticamente frágil; ref. auditoria 2025)
     const hasData =
-      impressoesNum >= 1000 ||
-      cliquesNum >= 50 ||
-      comprasNum >= 5
+      impressoesNum >= HAS_DATA_IMPRESSOES ||
+      cliquesNum >= HAS_DATA_CLIQUES ||
+      comprasNum >= HAS_DATA_COMPRAS
     if (!hasData) {
       return {
         score: 0,
@@ -861,8 +882,9 @@ setSavedCampaignSignature(
     const daysSinceStart = selectedCampaign?.start_date
       ? Math.max(0, Math.floor((Date.now() - new Date(selectedCampaign.start_date + 'T12:00:00').getTime()) / (24 * 60 * 60 * 1000)))
       : 0
+    const diasMinimosTier = MATURIDADE_DIAS_MINIMOS_POR_TIER[strategyTier.tier]
     const maturidade: MaturidadeKey =
-      daysSinceStart < MATURIDADE.DIAS_MINIMOS_INSUFICIENTE || impressoesNum < MATURIDADE.IMPRESSOES_MINIMAS_INSUFICIENTE
+      daysSinceStart < diasMinimosTier || impressoesNum < MATURIDADE.IMPRESSOES_MINIMAS_INSUFICIENTE
         ? 'dados_insuficientes'
         : comprasNum < MATURIDADE.CONVERSOES_FASE_INICIAL
           ? 'fase_inicial'
@@ -970,9 +992,10 @@ setSavedCampaignSignature(
             const podeEscalarPadrao = daysSinceStart >= DIAS_MINIMOS_PARA_SUGERIR_AUMENTO && investimentoPorDia > 0
             if ((podeEscalarAntecipado || podeEscalarPadrao) && investimentoPorDia > 0) {
               action = 'Pode escalar.'
+              const escalaAgressiva = custoMaxAceitavel > 0 && cpaUsado < custoMaxAceitavel * 0.7
               const scaleMin = investimentoPorDia * 0.15
-              const scaleMax = investimentoPorDia * 0.2
-              detail = `${labels.custoPorResultadoShort} ${cpaStr} < limite ${limiteStr}. Invest. médio/dia: R$ ${investimentoPorDia.toFixed(2).replace('.', ',')}. Pode aumentar R$ ${scaleMin.toFixed(2).replace('.', ',')} a R$ ${scaleMax.toFixed(2).replace('.', ',')}/dia (15–20%).`
+              const scaleMax = investimentoPorDia * (escalaAgressiva ? 0.2 : 0.15)
+              detail = `${labels.custoPorResultadoShort} ${cpaStr} < limite ${limiteStr}. Invest. médio/dia: R$ ${investimentoPorDia.toFixed(2).replace('.', ',')}. Pode aumentar R$ ${scaleMin.toFixed(2).replace('.', ',')} a R$ ${scaleMax.toFixed(2).replace('.', ',')}/dia (15%${escalaAgressiva ? '–20%' : ''}).`
             } else if (maturidade === 'dados_insuficientes') {
               action = `${labels.custoPorResultadoShort} dentro do limite.`
               detail = `${labels.custoPorResultadoShort} ${cpaStr} < limite ${limiteStr}. Dados ainda insuficientes para sugerir escala; evite alterar orçamento.`
@@ -981,7 +1004,7 @@ setSavedCampaignSignature(
               detail = `${labels.custoPorResultadoShort} ${cpaStr} < limite ${limiteStr}. Para seu nível (${strategyTier.label}), espere ≥${conversoesMinParaEscala} conversões para o sistema sugerir aumento.`
             } else {
               action = `${labels.custoPorResultadoShort} dentro do limite.`
-              detail = `${labels.custoPorResultadoShort} ${cpaStr} < limite ${limiteStr}. A partir do dia ${DIAS_MINIMOS_PARA_SUGERIR_AUMENTO} o sistema sugerirá valor de aumento (15–20% ao dia).`
+              detail = `${labels.custoPorResultadoShort} ${cpaStr} < limite ${limiteStr}. Com mais dias e dados, o sistema sugerirá valor de aumento (15% ou até 20% ao dia se CPA bem abaixo do limite).`
             }
           } else {
             action = `${labels.custoPorResultadoShort} dentro do limite.`
@@ -993,7 +1016,15 @@ setSavedCampaignSignature(
         }
       }
     }
-    const total = scoreFreq + scoreCtr + scoreConv + scoreCpa + scoreLucro
+    // Perfil venda-site: ROAS entra no score (pesos 10,10,20,20,20,20 — e-commerce)
+    const isVendaSite = analyticsProfile === 'venda-site'
+    const roas = metricasCampanha.roas ?? 0
+    const scoreRoas = isVendaSite && valorInvestidoNum > 0
+      ? (roas >= ROAS_OTIMO ? 20 : roas >= ROAS_BOM ? 15 : roas >= ROAS_MEDIO ? 8 : 3)
+      : 0
+    const total = isVendaSite
+      ? Math.min(100, (scoreFreq * 10 / 15) + (scoreCtr * 10 / 15) + scoreConv + (scoreCpa * 20 / 25) + (scoreLucro * 20 / 25) + scoreRoas)
+      : scoreFreq + scoreCtr + scoreConv + scoreCpa + scoreLucro
     const scoreFinal = Math.min(100, total)
     let statusGeral: 'saudável' | 'estável' | 'alerta' | 'crítica' = 'saudável'
     if (scoreFinal >= 80) statusGeral = 'saudável'
@@ -1014,9 +1045,10 @@ setSavedCampaignSignature(
         const podeEscalarPadrao = daysSinceStart >= DIAS_MINIMOS_PARA_SUGERIR_AUMENTO && investimentoPorDia > 0
         if ((podeEscalarAntecipado || podeEscalarPadrao) && investimentoPorDia > 0) {
           action = 'Pode escalar.'
+          const escalaAgressiva = custoMaxAceitavel > 0 && cpaUsado < custoMaxAceitavel * 0.7
           const scaleMin = investimentoPorDia * 0.15
-          const scaleMax = investimentoPorDia * 0.2
-          scaleDetail = `Investimento médio por dia: R$ ${investimentoPorDia.toFixed(2).replace('.', ',')}. Pode aumentar em R$ ${scaleMin.toFixed(2).replace('.', ',')} a R$ ${scaleMax.toFixed(2).replace('.', ',')} por dia (15–20%).`
+          const scaleMax = investimentoPorDia * (escalaAgressiva ? 0.2 : 0.15)
+          scaleDetail = `Investimento médio por dia: R$ ${investimentoPorDia.toFixed(2).replace('.', ',')}. Pode aumentar em R$ ${scaleMin.toFixed(2).replace('.', ',')} a R$ ${scaleMax.toFixed(2).replace('.', ',')} por dia (15%${escalaAgressiva ? '–20%' : ''}).`
         } else if (maturidade === 'dados_insuficientes') {
           action = 'Métricas dentro da meta.'
           scaleDetail = 'Dados insuficientes para decisões estratégicas. Evite alterar orçamento ou criativos.'
@@ -1025,7 +1057,7 @@ setSavedCampaignSignature(
           scaleDetail = `Para seu nível (${strategyTier.label}), espere ≥${conversoesMinParaEscala} conversões para o sistema sugerir aumento.`
         } else {
           action = 'Métricas dentro da meta.'
-          scaleDetail = `A partir do dia ${DIAS_MINIMOS_PARA_SUGERIR_AUMENTO} o sistema sugerirá valor de aumento (15–20% ao dia).`
+          scaleDetail = 'Com mais dias e dados, o sistema sugerirá valor de aumento (15% ou até 20% ao dia se CPA bem abaixo do limite).'
         }
       } else {
         action = 'Campanha saudável.'
@@ -1146,6 +1178,14 @@ setSavedCampaignSignature(
         }
       }
     }
+    // Poucos dias de campanha: decisões de pausar/trocar criativo precisam de mais tempo (embasamento gestores/empresas)
+    if (daysSinceStart <= MIN_DIAS_PLANO_PARA_ESTRATEGIA && daysSinceStart >= 0) {
+      alerts.push({
+        type: 'warning',
+        action: 'Poucos dias de campanha.',
+        detail: 'Recomendações de pausar ou trocar criativo são mais confiáveis com 7+ dias; o Meta precisa de tempo para entregar. Use o Status para acompanhar; evite mudanças bruscas agora.',
+      })
+    }
     const severity = (t: AlertItem['type']) => (t === 'danger' ? 3 : t === 'warning' ? 2 : 1)
     const grouped = new Map<string, { type: AlertItem['type']; action: string; details: string[] }>()
     for (const a of alerts) {
@@ -1185,6 +1225,7 @@ setSavedCampaignSignature(
     adSets,
     strategyTier,
     profileLabels,
+    analyticsProfile,
   ])
   const lucroPorVenda = lucroBruto
 
@@ -2231,12 +2272,20 @@ setSavedCampaignSignature(
                               if (d < s || d >= e) return null
                               return Math.floor((d.getTime() - s.getTime()) / (24 * 60 * 60 * 1000)) + 1
                             }
-                            // Cada ação aparece só no primeiro dia da janela, para não repetir a mesma mensagem vários dias seguidos
+                            // Cada ação em um único dia; tier alto: 1ª análise no dia 5; medio/baixo: dia 7
                             const getMilestoneShort = (dayNum: number): string => {
+                              const planoMuitoCurto = totalDias <= MIN_DIAS_PLANO_PARA_ESTRATEGIA
+                              if (planoMuitoCurto) {
+                                if (dayNum === 1) return 'Plano curto — Poucos dias não dão tempo para o Meta entregar nem para decisões (pausar/trocar criativo). Use para teste; depois planeje uma fase com mais dias (7+ ideal) para análise e resultado.'
+                                if (dayNum === totalDias) return 'Fim do plano — Tempo insuficiente para lucro e decisões. Se for continuar, adicione uma fase com mais dias para o algoritmo entregar e para recomendações de pausar/trocar criativo.'
+                                return ''
+                              }
                               if (dayNum === 1) return 'Aprendizado — Não mexer no orçamento nem nos criativos.'
-                              if (dayNum === 7) return `1ª análise — Analisar CTR, CPC e CPA; pausar 1 ou 2 piores criativos (manter ≥${strategyTier.minCreatives} ativos).`
-                              if (dayNum === 10) return `Novos criativos — +1 ou 2 criativos para voltar a ${strategyTier.minCreatives}–${strategyTier.maxCreatives} ativos; evita saturação.`
-                              if (dayNum === 18) return `Avaliação — Se lucrativo: manter ou escalar 15–20%/dia; manter ${strategyTier.minCreatives}–${strategyTier.maxCreatives} criativos; repor os fracos.`
+                              if (strategyTier.tier === 'alto' && dayNum === 5 && totalDias >= 5) return `1ª análise — Analisar CTR, CPC e CPA; pausar 1 ou 2 piores criativos (manter ≥${strategyTier.minCreatives} ativos).`
+                              if (dayNum === 7 && totalDias >= 7 && strategyTier.tier !== 'alto') return `1ª análise — Analisar CTR, CPC e CPA; pausar 1 ou 2 piores criativos (manter ≥${strategyTier.minCreatives} ativos).`
+                              if (dayNum === 10 && totalDias >= 10) return `Novos criativos — +1 ou 2 criativos para voltar a ${strategyTier.minCreatives}–${strategyTier.maxCreatives} ativos; evita saturação.`
+                              if (dayNum === 18 && totalDias >= 18) return `Avaliação — Se lucrativo: manter ou escalar 15%/dia (até 20% se CPA bem abaixo do limite); manter ${strategyTier.minCreatives}–${strategyTier.maxCreatives} criativos; repor os fracos.`
+                              if (dayNum === totalDias && totalDias < 18 && totalDias > 0) return `Avaliação (último dia) — Analisar resultado do plano; se lucrativo, manter ou escalar; manter ${strategyTier.minCreatives}–${strategyTier.maxCreatives} criativos.`
                               return ''
                             }
                             const getPhaseForDay = (dayNum: number): number => {
@@ -2290,15 +2339,15 @@ setSavedCampaignSignature(
                                         ...(budgetPhases.length > 0 ? {
                                           inCampaign: (date: Date) => {
                                             const n = getDayNum(date)
-                                            return n != null && !isActionDay(n)
+                                            return n != null && !isActionDay(n, totalDias, strategyTier.tier)
                                           },
                                           actionDay: (date: Date) => {
                                             const n = getDayNum(date)
-                                            return n != null && isActionDay(n) && !filledDatesSet.has(dateToKey(date))
+                                            return n != null && isActionDay(n, totalDias, strategyTier.tier) && !filledDatesSet.has(dateToKey(date))
                                           },
                                           actionDayFilled: (date: Date) => {
                                             const n = getDayNum(date)
-                                            return n != null && isActionDay(n) && filledDatesSet.has(dateToKey(date))
+                                            return n != null && isActionDay(n, totalDias, strategyTier.tier) && filledDatesSet.has(dateToKey(date))
                                           },
                                         } : {}),
                                       }}
@@ -2365,7 +2414,7 @@ setSavedCampaignSignature(
                                             <p className="text-[10px] text-gogh-grayDark border-t border-gogh-grayLight/60 pt-1.5 mt-1">Preencha os dados em Campanhas para ver a análise neste dia.</p>
                                           )}
                                         </div>
-                                        {isActionDay(getDayNum(campaignCalendarSelectedDate)!) && (
+                                        {isActionDay(getDayNum(campaignCalendarSelectedDate)!, totalDias, strategyTier.tier) && (
                                             <button
                                             type="button"
                                             onClick={() => campaignCalendarSelectedDate && toggleFilledDate(campaignCalendarSelectedDate)}
