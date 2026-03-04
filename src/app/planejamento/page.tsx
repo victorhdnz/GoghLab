@@ -1457,43 +1457,49 @@ export default function ContentPlanningPage() {
             </button>
             {profileAccordionOpen === 'estrutura-fixa' && (
               <div className="px-3 pb-3 pt-0 border-t border-gogh-grayLight/50 pt-2 space-y-4">
-                <p className="text-xs text-gogh-grayDark">Preencha o que quiser que a IA repita ou inclua em cada tipo de conteúdo. Deixe em branco o que não for usar.</p>
+                <p className="text-xs text-gogh-grayDark">
+                  Especifique o que deve ser repetido ou incluído em cada tipo de conteúdo gerado. Cada campo é opcional — preencha só o que fizer sentido para sua marca; a IA usará exatamente o que você descrever. Deixe em branco o que não for usar.
+                </p>
                 <div>
                   <label className="block text-sm font-medium text-gogh-grayDark mb-1">Roteiro (script)</label>
+                  <p className="text-[11px] text-gogh-grayDark mb-1">Trecho ou instrução fixa que deve aparecer em todo roteiro (falado/escrito, sem emojis).</p>
                   <textarea
                     value={fixedStructures.script}
                     onChange={(e) => { markSectionModified('estrutura-fixa'); setFixedStructures((s) => ({ ...s, script: e.target.value })) }}
-                    placeholder="Ex.: Eu gostaria que sempre tivesse um CTA pedindo para comprar no meu site. Ou outro trecho fixo de ação no roteiro (o roteiro é falado/escrito, sem emojis)."
+                    placeholder="Ex.: Sempre terminar pedindo para o espectador clicar abaixo e saber mais. Ou: incluir um CTA para comprar no site / acessar o link. Escreva o texto exato ou descreva o que quer; a IA insere em todos os vídeos."
                     rows={3}
                     className={`w-full px-3 py-2 border rounded-lg text-sm resize-none min-h-[80px] max-h-[180px] overflow-y-auto ${getFieldBorderClass('estrutura-fixa')}`}
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gogh-grayDark mb-1">Legenda do vídeo</label>
+                  <p className="text-[11px] text-gogh-grayDark mb-1">Bloco fixo que deve aparecer em todas as legendas (ex.: tópicos com emoji do que você oferece). Se quiser hashtags fixas em toda legenda, inclua-as aqui no final.</p>
                   <textarea
                     value={fixedStructures.caption}
                     onChange={(e) => { markSectionModified('estrutura-fixa'); setFixedStructures((s) => ({ ...s, caption: e.target.value })) }}
-                    placeholder="Ex.: Quero que a legenda sempre mostre em tópicos com emoji o que a minha empresa fornece (ex.: 🏆 Ferramentas premium, 🏆 Cursos), para a pessoa ter um resumo visual."
+                    placeholder="Ex.: Texto e emojis que devem aparecer em toda legenda (ex.: 🏆 Item 1, 🏆 Item 2, 🔗 CTA para link da bio ou Saiba mais). No final, se quiser, as hashtags fixas (ex.: #seunicho #digital). A IA mantém esse bloco e completa o resto conforme o tema de cada vídeo."
                     rows={3}
                     className={`w-full px-3 py-2 border rounded-lg text-sm resize-none min-h-[80px] max-h-[180px] overflow-y-auto ${getFieldBorderClass('estrutura-fixa')}`}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gogh-grayDark mb-1">Legenda do anúncio (ad copy)</label>
+                  <label className="block text-sm font-medium text-gogh-grayDark mb-1">Texto do anúncio (ad copy)</label>
+                  <p className="text-[11px] text-gogh-grayDark mb-1">Texto ou bloco fixo para o campo de texto do anúncio (headline, body ou CTA).</p>
                   <textarea
                     value={fixedStructures.ad_copy}
                     onChange={(e) => { markSectionModified('estrutura-fixa'); setFixedStructures((s) => ({ ...s, ad_copy: e.target.value })) }}
-                    placeholder="Ex.: Sempre incluir os tópicos do que a empresa fornece, para a pessoa ver um resumo (ex.: 🏆 Ferramentas · 🏆 Cursos). Ou uma frase/CTA fixa para o texto do anúncio."
+                    placeholder="Ex.: Resumo do que sua empresa oferece (em tópicos ou frase), CTA fixo para o anúncio, ou instrução (ex.: sempre incluir 🏆 Ferramentas · 🏆 Cursos). Descreva o que quer; a IA usa em todos os anúncios gerados."
                     rows={2}
                     className={`w-full px-3 py-2 border rounded-lg text-sm resize-none min-h-[60px] max-h-[140px] overflow-y-auto ${getFieldBorderClass('estrutura-fixa')}`}
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gogh-grayDark mb-1">Texto de capa do vídeo</label>
+                  <p className="text-[11px] text-gogh-grayDark mb-1">Estilo ou conteúdo fixo para as opções de texto que aparecem na capa/thumbnail.</p>
                   <textarea
                     value={fixedStructures.cover}
                     onChange={(e) => { markSectionModified('estrutura-fixa'); setFixedStructures((s) => ({ ...s, cover: e.target.value })) }}
-                    placeholder="Ex.: Início fixo ou estilo para as opções de texto de capa (ex.: sempre começar com uma frase específica, ou palavras-chave que devem aparecer)."
+                    placeholder="Ex.: Frase que deve sempre aparecer, palavras-chave obrigatórias, ou tom (ex.: sempre direto e curto). Opcional; deixe em branco se não quiser definir."
                     rows={2}
                     className={`w-full px-3 py-2 border rounded-lg text-sm resize-none min-h-[60px] max-h-[140px] overflow-y-auto ${getFieldBorderClass('estrutura-fixa')}`}
                   />
