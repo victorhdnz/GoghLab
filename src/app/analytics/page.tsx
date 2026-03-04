@@ -1076,6 +1076,12 @@ setSavedCampaignSignature(
         })
       }
     }
+    const isAbo = selectedCampaign?.budget_type_meta === 'abo'
+    const adSetSuffix = (adSetId: string | null) => {
+      if (!isAbo || !adSetId) return ''
+      const set = adSets.find((s) => s.id === adSetId)
+      return set ? ` (conjunto "${set.name}")` : ''
+    }
     if (creatives.length > 0) {
       for (const cr of creatives) {
         const cAlc = cr.alcance ?? 0
@@ -1085,22 +1091,56 @@ setSavedCampaignSignature(
         const cFreq = cAlc > 0 ? (cImp / cAlc) : 0
         const cCtrPct = cImp > 0 ? (cCliques / cImp) * 100 : 0
         const name = (cr.name || 'Criativo').trim() || 'Criativo'
+        const suffix = adSetSuffix(cr.ad_set_id)
         const underperforming = (cAlc > 0 && cImp > 0 && cFreq >= freqCriticoTier) ||
           (cAlc > 0 && cImp > 0 && cFreq > FREQ_SATURACAO) ||
           (cImp > 0 && cCtrPct > 0 && cCtrPct < CTR_MEDIO)
         if (cAlc > 0 && cImp > 0 && cFreq >= freqCriticoTier) {
-          alerts.push({ type: 'danger', action: `Trocar o criativo "${name}".`, detail: `Frequência ${cFreq.toFixed(2).replace('.', ',')} → ideal <${freqCriticoTier} (nível ${strategyTier.label})` })
+          alerts.push({ type: 'danger', action: `Trocar o criativo "${name}"${suffix}.`, detail: `Frequência ${cFreq.toFixed(2).replace('.', ',')} → ideal <${freqCriticoTier} (nível ${strategyTier.label})` })
         } else if (cAlc > 0 && cImp > 0 && cFreq >= freqCriticoTier - 1) {
-          alerts.push({ type: 'warning', action: `Avaliar novo criativo: "${name}".`, detail: `Frequência ${cFreq.toFixed(2).replace('.', ',')} → ideal <${freqCriticoTier}` })
+          alerts.push({ type: 'warning', action: `Avaliar novo criativo: "${name}"${suffix}.`, detail: `Frequência ${cFreq.toFixed(2).replace('.', ',')} → ideal <${freqCriticoTier}` })
         }
         if (cImp > 0 && cCtrPct > 0 && cCtrPct < CTR_MEDIO) {
-          alerts.push({ type: 'warning', action: `Testar novo criativo: "${name}".`, detail: `CTR ${cCtrPct.toFixed(2).replace('.', ',')}% → ideal ≥0,8%` })
+          alerts.push({ type: 'warning', action: `Testar novo criativo: "${name}"${suffix}.`, detail: `CTR ${cCtrPct.toFixed(2).replace('.', ',')}% → ideal ≥0,8%` })
         }
         if (underperforming) {
           alerts.push({
             type: 'warning',
-            action: `Pausar ou excluir o criativo "${name}".`,
+            action: `Pausar ou excluir o criativo "${name}"${suffix}.`,
             detail: 'Performando mal. Pause no Meta e exclua aqui para alinhar o painel; depois adicione um novo criativo se quiser.',
+          })
+        }
+      }
+    }
+    // ABO: recomendações por conjunto (como gestores fazem — pausar conjunto inteiro quando CPA do conjunto está acima do limite ou todos os criativos fracos)
+    if (isAbo && adSets.length > 0) {
+      for (const adSet of adSets) {
+        const creativesInSet = creatives.filter((c) => c.ad_set_id === adSet.id)
+        if (creativesInSet.length === 0) continue
+        const setInvestido = creativesInSet.reduce((s, c) => s + (c.valor_investido ?? 0), 0)
+        const setCompras = creativesInSet.reduce((s, c) => s + (c.compras ?? 0), 0)
+        const setCpa = setCompras > 0 ? setInvestido / setCompras : 0
+        if (roiEnabled && valorNum > 0 && custoMaxAceitavel > 0 && setCpa > 0 && setCpa > custoMaxAceitavel) {
+          alerts.push({
+            type: 'danger',
+            action: `Conjunto "${adSet.name}": CPA acima do limite.`,
+            detail: `CPA do conjunto R$ ${setCpa.toFixed(2).replace('.', ',')} > limite R$ ${custoMaxAceitavel.toFixed(2).replace('.', ',')}. Considere pausar o conjunto no Meta ou reduzir orçamento.`,
+          })
+        }
+        const withData = creativesInSet.filter((c) => (c.alcance ?? 0) > 0 && (c.impressoes ?? 0) > 0)
+        const allUnderperforming = withData.length > 0 && withData.every((c) => {
+          const alc = c.alcance ?? 0
+          const imp = c.impressoes ?? 0
+          const cliques = c.cliques_link ?? 0
+          const freq = alc > 0 ? imp / alc : 0
+          const ctr = imp > 0 ? (cliques / imp) * 100 : 0
+          return freq >= freqCriticoTier || (ctr > 0 && ctr < CTR_MEDIO)
+        })
+        if (allUnderperforming) {
+          alerts.push({
+            type: 'warning',
+            action: `Conjunto "${adSet.name}": todos os criativos com desempenho fraco.`,
+            detail: 'Considere pausar o conjunto no Meta ou trocar todos os criativos antes de manter orçamento.',
           })
         }
       }
@@ -1141,9 +1181,9 @@ setSavedCampaignSignature(
     selectedCampaign,
     valorInvestidoNum,
     creatives,
+    adSets,
     strategyTier,
     profileLabels,
-    selectedCampaign,
   ])
   const lucroPorVenda = lucroBruto
 
