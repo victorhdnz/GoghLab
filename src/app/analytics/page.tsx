@@ -471,10 +471,28 @@ export default function AnalyticsPage() {
     if (selectedCampaignId && campaigns.length > 0) {
       const c = campaigns.find((x) => x.id === selectedCampaignId)
       if (c) {
-        setRoiEnabled(c.roi_enabled)
-        setValorVenda(c.valor_venda != null ? String(c.valor_venda) : '')
-        setCustoVenda(c.custo_venda != null ? String(c.custo_venda) : '')
-        setMetaLucroPorVenda(c.meta_lucro_por_venda != null ? String(c.meta_lucro_por_venda) : '')
+        // Se a campanha não tem planejamento salvo, usar rascunho do localStorage para não desmarcar/limpar o que o usuário preencheu
+        const campaignHasPlanejamento = c.roi_enabled === true || c.valor_venda != null || (c.custo_venda != null && String(c.custo_venda).trim() !== '')
+        let roiEnabledVal = c.roi_enabled
+        let valorVendaVal = c.valor_venda != null ? String(c.valor_venda) : ''
+        let custoVendaVal = c.custo_venda != null ? String(c.custo_venda) : ''
+        let metaLucroVal = c.meta_lucro_por_venda != null ? String(c.meta_lucro_por_venda) : ''
+        if (!campaignHasPlanejamento && typeof window !== 'undefined') {
+          try {
+            const raw = localStorage.getItem(PLANEJAMENTO_VALORES_DRAFT_KEY)
+            if (raw) {
+              const d = JSON.parse(raw) as { roiEnabled?: boolean; valorVenda?: string; custoVenda?: string; metaLucroPorVenda?: string }
+              roiEnabledVal = d.roiEnabled ?? false
+              valorVendaVal = d.valorVenda ?? ''
+              custoVendaVal = d.custoVenda ?? ''
+              metaLucroVal = d.metaLucroPorVenda ?? ''
+            }
+          } catch {}
+        }
+        setRoiEnabled(roiEnabledVal)
+        setValorVenda(valorVendaVal)
+        setCustoVenda(custoVendaVal)
+        setMetaLucroPorVenda(metaLucroVal)
         setAlcance(c.alcance != null ? String(c.alcance) : '')
         setImpressoes(c.impressoes != null ? String(c.impressoes) : '')
         setCliquesLink(c.cliques_link != null ? String(c.cliques_link) : '')
@@ -494,20 +512,20 @@ export default function AnalyticsPage() {
         setBudgetTypeMeta(bt)
         setSavedBudgetTypeMeta(bt)
         if (typeof window !== 'undefined') localStorage.setItem(BUDGET_TYPE_STORAGE_KEY, bt)
-setSavedCampaignSignature(
-        JSON.stringify({
-          roi_enabled: c.roi_enabled,
-          valor_venda: c.valor_venda != null ? String(c.valor_venda) : '',
-          custo_venda: c.custo_venda != null ? String(c.custo_venda) : '',
-          meta_lucro_por_venda: c.meta_lucro_por_venda != null ? String(c.meta_lucro_por_venda) : '',
-          alcance: c.alcance != null ? String(c.alcance) : '',
-          impressoes: c.impressoes != null ? String(c.impressoes) : '',
-          cliques_link: c.cliques_link != null ? String(c.cliques_link) : '',
-          valor_investido: c.valor_investido != null ? String(c.valor_investido) : '',
-          compras: c.compras != null ? String(c.compras) : '',
-          valor_total_faturado: c.valor_total_faturado != null ? String(c.valor_total_faturado) : '',
-        })
-      )
+        setSavedCampaignSignature(
+          JSON.stringify({
+            roi_enabled: roiEnabledVal,
+            valor_venda: valorVendaVal,
+            custo_venda: custoVendaVal,
+            meta_lucro_por_venda: metaLucroVal,
+            alcance: c.alcance != null ? String(c.alcance) : '',
+            impressoes: c.impressoes != null ? String(c.impressoes) : '',
+            cliques_link: c.cliques_link != null ? String(c.cliques_link) : '',
+            valor_investido: c.valor_investido != null ? String(c.valor_investido) : '',
+            compras: c.compras != null ? String(c.compras) : '',
+            valor_total_faturado: c.valor_total_faturado != null ? String(c.valor_total_faturado) : '',
+          })
+        )
         setSavedPlanejamentoDraft(null)
         return
       }
