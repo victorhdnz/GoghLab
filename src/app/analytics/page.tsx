@@ -2427,7 +2427,7 @@ export default function AnalyticsPage() {
                                               </ul>
                                             </div>
                                           )}
-                                          {isSelectedDayPastOrToday && !hasDataForDiagnosis && (
+                                          {isSelectedDayPastOrToday && !hasDataForDiagnosis && isActionDay(getDayNum(campaignCalendarSelectedDate)!, totalDias, strategyTier.tier) && (
                                             <p className="text-[10px] text-gogh-grayDark border-t border-gogh-grayLight/60 pt-1.5 mt-1">Preencha os dados em Campanhas para ver a análise neste dia. Com os dados preenchidos, aparecerão aqui as <strong>ações exatas</strong> (qual criativo pausar ou trocar; em ABO, qual conjunto ajustar).</p>
                                           )}
                                         </div>
