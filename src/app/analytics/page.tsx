@@ -1432,19 +1432,28 @@ export default function AnalyticsPage() {
                     : 'Perfil de venda, planejamento de valores, orçamento por fases, agenda de ações e status. Tudo para analisar, planejar e decidir.',
                   <TrendingUp className="w-4 h-4 text-gogh-grayDark" />,
                   <div className="pt-3 space-y-4">
-                    <p className="text-sm text-gogh-grayDark -mt-1">
-                      {hasExistingAds === true
-                        ? 'Nesta seção: perfil de análise (forma de venda), planejamento de valores (CPA/lucro) e status da campanha. Use para acompanhar se está dentro da meta.'
-                        : 'Nesta seção: perfil de análise (forma de venda), valores do negócio, nível de investimento, planejamento de orçamento por fases, calendário com ações por dia e resumo de status. Use para tomar decisões com base nos dados.'}
-                    </p>
+                    <div className={`text-sm text-gogh-grayDark -mt-1 space-y-2 ${hasExistingAds === true ? '' : ''}`}>
+                      {hasExistingAds === true ? (
+                        <>
+                          <p>Nesta seção: perfil de análise (forma de venda), planejamento de valores (CPA/lucro) e status da campanha.</p>
+                          <p>Use para acompanhar se está dentro da meta.</p>
+                        </>
+                      ) : (
+                        <>
+                          <p>Nesta seção: perfil de análise (forma de venda), valores do negócio, nível de investimento, planejamento de orçamento por fases, calendário com ações por dia e resumo de status.</p>
+                          <p>Use para tomar decisões com base nos dados.</p>
+                        </>
+                      )}
+                    </div>
                     <div className="rounded-lg border-2 border-gogh-yellow/50 bg-gogh-yellow/5 p-3 space-y-2">
                       <p className="text-xs font-semibold text-gogh-black flex items-center gap-1.5">
                         <Target className="w-3.5 h-3.5 text-gogh-yellow" />
                         Perfil de análise (forma de venda)
                       </p>
-                      <p className="text-[11px] text-gogh-grayDark">
-                        Defina como seu negócio vende ou gera resultados. Os campos de preenchimento, métricas e recomendações do Status se adaptam a este perfil.
-                      </p>
+                      <div className="space-y-1.5 text-[11px] text-gogh-grayDark">
+                        <p>Defina como seu negócio vende ou gera resultados.</p>
+                        <p>Os campos de preenchimento, métricas e recomendações do Status se adaptam a este perfil.</p>
+                      </div>
                       <div className="flex flex-wrap gap-2">
                         {(Object.keys(ANALYTICS_PROFILES) as AnalyticsProfileKey[]).map((key) => (
                           <button
@@ -1462,17 +1471,18 @@ export default function AnalyticsPage() {
                         ))}
                       </div>
                     </div>
-                    <p className="text-sm text-gogh-grayDark">
-                      Configure valores do negócio (para o Status usar lucro e CPA) e a estratégia por investimento da campanha.
-                    </p>
+                    <div className="space-y-1.5 text-sm text-gogh-grayDark">
+                      <p>Configure valores do negócio (para o Status usar lucro e CPA) e a estratégia por investimento da campanha.</p>
+                    </div>
                     <div className="rounded-lg border border-gogh-grayLight bg-gogh-beige/20 p-3 space-y-3">
                       <p className="text-xs font-semibold text-gogh-black flex items-center gap-1.5">
                         <DollarSign className="w-3.5 h-3.5 text-gogh-yellow" />
                         Planejamento de valores
                       </p>
-                      <p className="text-xs text-gogh-grayDark">
-                        Não são dados do Meta. Valor da venda e custo por venda para o sistema refletir lucro e recomendações no Status.
-                      </p>
+                      <div className="space-y-1.5 text-xs text-gogh-grayDark">
+                        <p>Não são dados do Meta.</p>
+                        <p>Valor da venda e custo por venda para o sistema refletir lucro e recomendações no Status.</p>
+                      </div>
                       <label className="flex items-center gap-2 cursor-pointer">
                         <input
                           type="checkbox"
@@ -1550,9 +1560,10 @@ export default function AnalyticsPage() {
                       </p>
                     ) : hasExistingAds === true ? (
                       <div className="space-y-4 pt-4 border-t border-gogh-grayLight">
-                        <p className="text-xs text-gogh-grayDark">
-                          Acompanhe o status da campanha abaixo. Use o planejamento de valores (CPA, lucro) para saber se está dentro da meta.
-                        </p>
+                        <div className="space-y-1.5 text-xs text-gogh-grayDark">
+                          <p>Acompanhe o status da campanha abaixo.</p>
+                          <p>Use o planejamento de valores (CPA, lucro) para saber se está dentro da meta.</p>
+                        </div>
                         <Card className="w-full max-w-[280px] py-2 px-2 border border-gogh-grayLight shadow-sm shrink-0">
                           <CardContent className="p-2 space-y-1.5">
                             <p className="text-[11px] font-semibold text-gogh-black flex items-center gap-1">
@@ -1616,9 +1627,10 @@ export default function AnalyticsPage() {
                             <DollarSign className="w-3.5 h-3.5 text-gogh-yellow" />
                             Planejamento de orçamento
                           </p>
-                          <p className="text-xs text-gogh-grayDark mb-2">
-                            Valor que você pretende investir e por quantos dias. <strong>Não altera os dados reais</strong> da campanha — use para planejamento; preencha o valor investido na seção Campanhas com o real.
-                          </p>
+                          <div className="space-y-1.5 text-xs text-gogh-grayDark mb-2">
+                            <p>Valor que você pretende investir e por quantos dias. <strong>Não altera os dados reais</strong> da campanha — use para planejamento.</p>
+                            <p>Preencha o valor investido na seção Campanhas com o real.</p>
+                          </div>
                           <div className="mb-3 rounded-lg border border-gogh-grayLight bg-gogh-beige/20 p-2">
                             <p className="text-[11px] font-medium text-gogh-black mb-1.5">No Meta, como você define o orçamento?</p>
                             <div className="flex flex-wrap gap-3">
@@ -1677,7 +1689,11 @@ export default function AnalyticsPage() {
                             </div>
                           )}
                           <div className="rounded-lg border border-gogh-grayLight bg-white p-3 space-y-2 mb-4">
-                            <p className="text-[11px] text-gogh-grayDark mb-1">Preencha valor e duração da fase; o nível da estratégia e a meta de criativos são definidos pelas fases adicionadas e aparecem no Status. Você pode usar de {MIN_DIAS_FASE} a {MAX_DIAS_FASE} dias — o nível de análise e das recomendações se adapta à maturidade dos dados (dias rodando, impressões, conversões).</p>
+                            <div className="space-y-2 text-[11px] text-gogh-grayDark">
+                              <p>Preencha valor e duração da fase; o nível da estratégia e a meta de criativos são definidos pelas fases adicionadas e aparecem no Status.</p>
+                              <p>Você pode usar de {MIN_DIAS_FASE} a {MAX_DIAS_FASE} dias.</p>
+                              <p>O nível de análise e das recomendações se adapta à maturidade dos dados (dias rodando, impressões, conversões).</p>
+                            </div>
                             <label className="flex items-center gap-2 cursor-pointer mb-2">
                               <input
                                 type="checkbox"
@@ -1735,9 +1751,10 @@ export default function AnalyticsPage() {
                                 )
                               })()}
                             </div>
-                            <p className="text-[10px] text-gogh-grayDark">
-                              Menos dias com mais R$/dia costuma entregar melhor no Meta. Duração livre entre {MIN_DIAS_FASE} e {MAX_DIAS_FASE} dias; recomendações se adaptam à maturidade dos dados.
-                            </p>
+                            <div className="space-y-1 text-[10px] text-gogh-grayDark">
+                              <p>Menos dias com mais R$/dia costuma entregar melhor no Meta.</p>
+                              <p>Duração livre entre {MIN_DIAS_FASE} e {MAX_DIAS_FASE} dias; recomendações se adaptam à maturidade dos dados.</p>
+                            </div>
                           </div>
                           {selectedCampaign?.start_date && (() => {
                             const start = new Date(selectedCampaign.start_date + 'T12:00:00')
