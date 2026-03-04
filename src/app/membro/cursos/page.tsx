@@ -129,22 +129,22 @@ export default function CoursesPage() {
     fetchCourses()
   }, [user, hasActiveSubscription])
 
-  // Quem não tem plano: mostra bloqueio imediatamente (sem esperar carregar cursos)
+  // Quem não tem plano: mostra bloqueio (mesmo layout que Ferramentas, menção Gogh Pro)
   if (!authLoading && !hasActiveSubscription) {
     return (
       <div className="max-w-5xl mx-auto px-3 sm:px-4 space-y-4 sm:space-y-6">
         <div>
           <h1 className="text-lg sm:text-xl font-bold text-gogh-black mb-1">Cursos</h1>
           <p className="text-xs sm:text-sm text-gogh-grayDark">
-            Aprenda novas habilidades com nossos cursos exclusivos.
+            Aprenda novas habilidades com nossos cursos exclusivos do plano Gogh Pro.
           </p>
         </div>
-        <div className="flex items-center justify-center min-h-[280px] rounded-xl bg-white/80 backdrop-blur-sm border border-gogh-grayLight">
-          <div className="text-center p-4 sm:p-6 md:p-8">
+        <div className="flex items-center justify-center min-h-[280px]">
+          <div className="w-full max-w-md mx-auto bg-white rounded-xl border border-gogh-grayLight shadow-sm p-4 sm:p-6 md:p-8 text-center">
             <Lock className="w-16 h-16 text-gogh-grayDark mx-auto mb-4 opacity-50" />
             <h3 className="text-xl font-bold text-gogh-black mb-2">Assine para acessar</h3>
-            <p className="text-gogh-grayDark mb-6 max-w-md mx-auto">
-              Para acessar os cursos é necessário ter uma assinatura ativa.
+            <p className="text-gogh-grayDark mb-6">
+              Para acessar os cursos é necessário o plano Gogh Pro.
             </p>
             <Link
               href="/precos"
@@ -178,48 +178,34 @@ export default function CoursesPage() {
         </p>
       </div>
 
-      {/* Com assinatura mas sem acesso a cursos: upgrade */}
+      {/* Com assinatura mas sem acesso a cursos (ex.: Essencial): card de bloqueio com upgrade */}
       {!hasCourseAccess && hasActiveSubscription && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200 rounded-xl p-6"
-        >
-          <p className="text-amber-800">
-            Os cursos são exclusivos para planos que incluem esse benefício. <Link href="/precos" className="font-medium underline">Ver planos</Link>
-          </p>
-        </motion.div>
-      )}
-
-      {/* Área de cursos com overlay quando tem assinatura mas plano não inclui cursos */}
-      {courses.length > 0 && (
-        <div className={!hasCourseAccess ? 'relative' : ''}>
-          {!hasCourseAccess && hasActiveSubscription && (
-            <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-10 rounded-xl flex items-center justify-center min-h-[280px]">
-              <div className="text-center p-4 sm:p-6 md:p-8">
-                <BookOpen className="w-16 h-16 text-gogh-grayDark mx-auto mb-4 opacity-50" />
-                <h3 className="text-xl font-bold text-gogh-black mb-2">Cursos inclusos no seu plano</h3>
-                <p className="text-gogh-grayDark mb-6 max-w-md mx-auto">
-                  Faça upgrade para um plano que inclua cursos e tenha acesso completo.
-                </p>
-                <Link
-                  href="/precos"
-                  className="inline-flex items-center gap-2 px-6 py-3 bg-gogh-yellow text-gogh-black font-medium rounded-xl hover:bg-gogh-yellow/90 transition-colors"
-                >
-                  Ver planos
-                </Link>
-              </div>
-            </div>
-          )}
-
-          <div className={!hasCourseAccess ? 'pointer-events-none select-none blur-sm opacity-60' : ''}>
-            <CourseSection courses={courses} hasAccess={hasCourseAccess} />
+        <div className="flex items-center justify-center min-h-[280px]">
+          <div className="w-full max-w-md mx-auto bg-white rounded-xl border border-gogh-grayLight shadow-sm p-4 sm:p-6 md:p-8 text-center">
+            <BookOpen className="w-16 h-16 text-gogh-grayDark mx-auto mb-4 opacity-50" />
+            <h3 className="text-xl font-bold text-gogh-black mb-2">Faça upgrade para acessar</h3>
+            <p className="text-gogh-grayDark mb-6">
+              Os cursos são exclusivos do plano Gogh Pro. Faça upgrade do seu plano atual para ter acesso.
+            </p>
+            <Link
+              href="/precos"
+              className="inline-flex items-center gap-2 px-6 py-3 bg-gogh-yellow text-gogh-black font-medium rounded-xl hover:bg-gogh-yellow/90 transition-colors"
+            >
+              Fazer upgrade
+            </Link>
           </div>
         </div>
       )}
 
+      {/* Área de cursos quando tem acesso */}
+      {courses.length > 0 && hasCourseAccess && (
+        <div>
+          <CourseSection courses={courses} hasAccess={hasCourseAccess} />
+        </div>
+      )}
+
       {/* Empty State: só para quem tem assinatura e acesso a cursos, mas ainda não há cursos publicados */}
-      {courses.length === 0 && hasActiveSubscription && (
+      {courses.length === 0 && hasActiveSubscription && hasCourseAccess && (
         <div className="text-center py-12">
           <BookOpen className="w-16 h-16 text-gogh-grayDark mx-auto mb-4" />
           <h3 className="text-lg font-semibold text-gogh-black mb-2">Nenhum curso disponível</h3>

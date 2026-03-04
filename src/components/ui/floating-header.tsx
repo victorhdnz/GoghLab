@@ -342,14 +342,14 @@ export function FloatingHeader({ initialSiteLogo = null, initialSiteName }: Floa
           </NavigationMenu>
         </div>
 
-        <div className="hidden lg:flex flex-shrink-0 items-center gap-2">
-          <Button asChild size="sm" className="rounded-lg">
-            <Link href="/precos" data-tour="nav-plans-desktop">Ver planos</Link>
+        <div className="hidden lg:flex flex-shrink-0 items-center gap-2 flex-nowrap">
+          <Button asChild size="sm" className="h-9 rounded-lg px-4 shrink-0">
+            <Link href="/precos" data-tour="nav-plans-desktop" className="inline-flex items-center justify-center">Ver planos</Link>
           </Button>
           <Link
             href={isAuthenticated ? '/conta' : '/login'}
             data-tour="nav-account-desktop"
-            className="flex items-center justify-center w-9 h-9 rounded-lg text-white/90 hover:bg-white/10 hover:text-white transition-colors"
+            className="flex shrink-0 items-center justify-center w-9 h-9 rounded-lg text-white/90 hover:bg-white/10 hover:text-white transition-colors"
             title={isAuthenticated ? 'Conta' : 'Entrar'}
             aria-label={isAuthenticated ? 'Conta' : 'Entrar'}
           >

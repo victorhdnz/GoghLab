@@ -65,6 +65,11 @@ export default function CheckoutSuccessPage() {
           }
         }
 
+        // Atualizar assinatura no contexto para refletir o plano da última compra (ex.: upgrade Essencial → Pro)
+        if (paymentConfirmed && typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('subscription-updated'))
+        }
+
         hasRedirectedRef.current = true
         setLoading(false)
         router.replace('/conta?tab=plan')

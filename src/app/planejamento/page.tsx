@@ -1111,18 +1111,20 @@ export default function ContentPlanningPage() {
       </div>
 
       {!hasActiveSubscription && (
-        <div className="bg-white/95 backdrop-blur-sm rounded-2xl border border-gogh-grayLight p-4 sm:p-6 md:p-8 max-w-md mx-auto text-center shadow-sm">
-          <Lock className="w-16 h-16 text-gogh-grayDark mx-auto mb-4 opacity-50" />
-          <h3 className="text-xl font-bold text-gogh-black mb-2">Assine para acessar</h3>
-          <p className="text-gogh-grayDark mb-6 max-w-md mx-auto">
-            Para acessar o planejamento e agenda de conteúdo com IA é necessário ter uma assinatura ativa.
-          </p>
-          <Link
-            href="/precos"
-            className="inline-flex items-center gap-2 px-6 py-3 bg-gogh-yellow text-gogh-black font-medium rounded-xl hover:bg-gogh-yellow/90 transition-colors"
-          >
-            Ver planos
-          </Link>
+        <div className="flex items-center justify-center min-h-[280px]">
+          <div className="w-full max-w-md mx-auto bg-white rounded-xl border border-gogh-grayLight shadow-sm p-4 sm:p-6 md:p-8 text-center">
+            <Lock className="w-16 h-16 text-gogh-grayDark mx-auto mb-4 opacity-50" />
+            <h3 className="text-xl font-bold text-gogh-black mb-2">Assine para acessar</h3>
+            <p className="text-gogh-grayDark mb-6">
+              Para acessar o planejamento e agenda de conteúdo com IA é necessário ter uma assinatura ativa.
+            </p>
+            <Link
+              href="/precos"
+              className="inline-flex items-center gap-2 px-6 py-3 bg-gogh-yellow text-gogh-black font-medium rounded-xl hover:bg-gogh-yellow/90 transition-colors"
+            >
+              Ver planos
+            </Link>
+          </div>
         </div>
       )}
 

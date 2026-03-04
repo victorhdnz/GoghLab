@@ -1272,26 +1272,13 @@ export default function AnalyticsPage() {
           </div>
         </div>
 
-        {!hasAccess && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200 rounded-xl p-6"
-          >
-            <p className="text-amber-800">
-              Você precisa de uma assinatura ativa para acessar esta área.{' '}
-              <Link href="/precos" className="font-medium underline">Ver planos</Link>
-            </p>
-          </motion.div>
-        )}
-
         <div className={!hasAccess ? 'relative' : ''}>
           {!hasAccess && (
             <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-10 rounded-xl flex items-center justify-center min-h-[280px]">
-              <div className="text-center p-4 sm:p-6 md:p-8">
+              <div className="w-full max-w-md mx-auto bg-white rounded-xl border border-gogh-grayLight shadow-sm p-4 sm:p-6 md:p-8 text-center">
                 <Lock className="w-16 h-16 text-gogh-grayDark mx-auto mb-4 opacity-50" />
                 <h3 className="text-xl font-bold text-gogh-black mb-2">Assine para acessar</h3>
-                <p className="text-gogh-grayDark mb-6 max-w-md mx-auto">
+                <p className="text-gogh-grayDark mb-6">
                   Para acessar o painel de análise de anúncios e desempenho é necessário ter uma assinatura ativa.
                 </p>
                 <Link
@@ -1611,6 +1598,15 @@ export default function AnalyticsPage() {
                           )}
                           <div className="rounded-lg border border-gogh-grayLight bg-white p-3 space-y-2 mb-4">
                             <p className="text-[11px] text-gogh-grayDark mb-1">Preencha valor e duração da fase; o nível da estratégia e a meta de criativos são definidos pelas fases adicionadas e aparecem no Status.</p>
+                            <label className="flex items-center gap-2 cursor-pointer mb-2">
+                              <input
+                                type="checkbox"
+                                checked={useAutoDiasRecommendation}
+                                onChange={(e) => setUseAutoDiasRecommendation(e.target.checked)}
+                                className="rounded border-gogh-grayLight"
+                              />
+                              <span className="text-[11px] text-gogh-grayDark">Sugerir duração (dias) pela faixa de investimento</span>
+                            </label>
                             <div className="flex flex-wrap gap-2 items-end">
                               <div>
                                 <label className="block text-[11px] text-gogh-grayDark mb-0.5">Valor (R$)</label>
@@ -1634,19 +1630,10 @@ export default function AnalyticsPage() {
                                   placeholder="Ex: 18"
                                   disabled={useAutoDiasRecommendation}
                                   readOnly={useAutoDiasRecommendation}
-                                  title={useAutoDiasRecommendation ? 'Preenchido automaticamente; desmarque a opção abaixo para editar.' : undefined}
+                                  title={useAutoDiasRecommendation ? 'Preenchido automaticamente; desmarque a opção acima para editar.' : undefined}
                                   className={`w-20 border border-gogh-grayLight rounded-lg px-2 py-1 text-xs ${useAutoDiasRecommendation ? 'bg-gogh-grayLight/50 cursor-not-allowed' : ''}`}
                                 />
                               </div>
-                              <label className="flex items-center gap-2 cursor-pointer self-center">
-                                <input
-                                  type="checkbox"
-                                  checked={useAutoDiasRecommendation}
-                                  onChange={(e) => setUseAutoDiasRecommendation(e.target.checked)}
-                                  className="rounded border-gogh-grayLight"
-                                />
-                                <span className="text-[11px] text-gogh-grayDark">Sugerir duração (dias) pela faixa de investimento</span>
-                              </label>
                               {(() => {
                                 const v = parseFloat(String(newPhaseValor).replace(',', '.')) || 0
                                 const d = Math.max(1, Math.floor(parseFloat(String(newPhaseDias).replace(',', '.')) || 0))

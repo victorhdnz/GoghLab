@@ -613,85 +613,28 @@ export default function ToolsPage() {
 
   // Modo público: ver ferramentas sem login; ao tentar usar, pedir login ou assinatura
   const displayToolsForPreview = publicTools.length > 0 ? publicTools : []
-  const renderProSubscriptionRequired = (isLoggedUser: boolean) => (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 space-y-6 sm:space-y-8">
+  const renderProSubscriptionRequired = (_isLoggedUser: boolean) => (
+    <div className="max-w-5xl mx-auto px-3 sm:px-4 space-y-4 sm:space-y-6">
       <div>
-        <h1 className="text-2xl lg:text-3xl font-bold text-gogh-black mb-2">Ferramentas Pro</h1>
-        <p className="text-gogh-grayDark">
-          Acesse as melhores ferramentas de criação incluídas na sua assinatura.
+        <h1 className="text-lg sm:text-xl font-bold text-gogh-black mb-1">Ferramentas Pro</h1>
+        <p className="text-xs sm:text-sm text-gogh-grayDark">
+          Acesse as melhores ferramentas de criação incluídas no plano Gogh Pro.
         </p>
       </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 relative">
-        <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-10 rounded-xl flex items-center justify-center">
-          <div className="text-center p-4 sm:p-6 md:p-8">
-            <Wrench className="w-16 h-16 text-gogh-grayDark mx-auto mb-4 opacity-50" />
-            <h3 className="text-xl font-bold text-gogh-black mb-2">Assine para acessar</h3>
-            <p className="text-gogh-grayDark mb-6 max-w-md mx-auto">
-              Para acessar as ferramentas de criação é necessário ter uma assinatura ativa.
-            </p>
-            <Link
-              href="/precos"
-              className="inline-flex items-center gap-2 px-6 py-3 bg-gogh-yellow text-gogh-black font-medium rounded-xl hover:bg-gogh-yellow/90 transition-colors"
-            >
-              Ver planos
-            </Link>
-          </div>
+      <div className="flex items-center justify-center min-h-[280px]">
+        <div className="w-full max-w-md mx-auto bg-white rounded-xl border border-gogh-grayLight shadow-sm p-4 sm:p-6 md:p-8 text-center">
+          <Wrench className="w-16 h-16 text-gogh-grayDark mx-auto mb-4 opacity-50" />
+          <h3 className="text-xl font-bold text-gogh-black mb-2">Assine para acessar</h3>
+          <p className="text-gogh-grayDark mb-6">
+            Para acessar as ferramentas de criação é necessário o plano Gogh Pro.
+          </p>
+          <Link
+            href="/precos"
+            className="inline-flex items-center gap-2 px-6 py-3 bg-gogh-yellow text-gogh-black font-medium rounded-xl hover:bg-gogh-yellow/90 transition-colors"
+          >
+            Ver planos
+          </Link>
         </div>
-
-        {displayToolsForPreview.length > 0
-          ? displayToolsForPreview.map((t, index) => (
-              <motion.div
-                key={t.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
-                className="bg-white rounded-xl border border-gogh-grayLight shadow-sm overflow-hidden p-6 blur-sm pointer-events-none opacity-60"
-              >
-                <div className="flex items-center gap-4 mb-3">
-                  {t.icon_url ? (
-                    <img src={t.icon_url} alt="" className="w-14 h-14 rounded-xl object-contain" />
-                  ) : (
-                    <div className="w-14 h-14 bg-gogh-yellow/20 rounded-xl flex items-center justify-center">
-                      <Wrench className="w-7 h-7 text-gogh-grayDark" />
-                    </div>
-                  )}
-                  <h3 className="text-xl font-bold text-gogh-black">{t.name}</h3>
-                </div>
-                <p className="text-gogh-grayDark text-sm">{t.description || 'Ferramenta incluída no plano.'}</p>
-              </motion.div>
-            ))
-          : tools.map((tool, index) => (
-              <motion.div
-                key={tool.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
-                className="bg-white rounded-xl border border-gogh-grayLight shadow-sm overflow-hidden blur-sm pointer-events-none opacity-60"
-              >
-                <div className={`bg-gradient-to-r ${tool.color} p-6 text-white`}>
-                  <div className="flex items-center gap-4">
-                    <div className="w-14 h-14 bg-white/20 rounded-xl flex items-center justify-center">
-                      <tool.icon className="w-8 h-8" />
-                    </div>
-                    <div>
-                      <h3 className="text-xl font-bold">{tool.name}</h3>
-                    </div>
-                  </div>
-                </div>
-                <div className="p-6">
-                  <p className="text-gogh-grayDark text-sm mb-4">{tool.description}</p>
-                  <ul className="space-y-2">
-                    {tool.features.map((feature, i) => (
-                      <li key={i} className="flex items-center gap-2 text-sm">
-                        <CheckCircle2 className="w-4 h-4 text-gogh-yellow flex-shrink-0" />
-                        <span className="text-gogh-grayDark">{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </motion.div>
-            ))}
       </div>
     </div>
   )
@@ -708,86 +651,30 @@ export default function ToolsPage() {
   // Acesso às ferramentas: plano tem produtos do tipo ferramenta OU legado (apenas Pro)
   const hasToolsAccess = (toolsFromPlan.length > 0) || (isPro && hasActiveSubscription)
 
-  // Se não for Pro, mostrar tela de bloqueio similar à de cursos
+  // Se não for Pro (ex.: plano Essencial), mostrar tela de bloqueio com opção de upgrade
   if (!hasToolsAccess && hasActiveSubscription) {
     return (
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 space-y-6 sm:space-y-8">
-        {/* Header */}
+      <div className="max-w-5xl mx-auto px-3 sm:px-4 space-y-4 sm:space-y-6">
         <div>
-          <h1 className="text-2xl lg:text-3xl font-bold text-gogh-black mb-2">
-            Ferramentas Pro
-          </h1>
-          <p className="text-gogh-grayDark">
-            Acesse as melhores ferramentas de criação incluídas na sua assinatura.
+          <h1 className="text-lg sm:text-xl font-bold text-gogh-black mb-1">Ferramentas Pro</h1>
+          <p className="text-xs sm:text-sm text-gogh-grayDark">
+            Acesse as melhores ferramentas de criação incluídas no plano Gogh Pro.
           </p>
         </div>
-
-        {/* Banner de Upgrade */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200 rounded-xl p-6"
-        >
-          <p className="text-amber-800">
-            As ferramentas Pro são exclusivas para o plano Pro. <Link href="/precos" className="font-medium underline">Faça upgrade agora</Link>
-          </p>
-        </motion.div>
-
-        {/* Tools Grid com Overlay */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 relative">
-          {/* Overlay de bloqueio */}
-          <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-10 rounded-xl flex items-center justify-center">
-            <div className="text-center p-4 sm:p-6 md:p-8">
-              <Wrench className="w-16 h-16 text-gogh-grayDark mx-auto mb-4 opacity-50" />
-              <h3 className="text-xl font-bold text-gogh-black mb-2">
-                Ferramentas Premium
-              </h3>
-              <p className="text-gogh-grayDark mb-6 max-w-md">
-                Faça upgrade para o plano Pro e tenha acesso às ferramentas premium incluídas na assinatura.
-              </p>
-              <Link
-                href="/precos"
-                className="inline-flex items-center gap-2 px-6 py-3 bg-gogh-yellow text-gogh-black font-medium rounded-xl hover:bg-gogh-yellow/90 transition-colors"
-              >
-                Fazer Upgrade
-              </Link>
-            </div>
-          </div>
-
-          {/* Cards das ferramentas (borrados) */}
-          {tools.map((tool, index) => (
-            <motion.div
-              key={tool.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 0.3, y: 0 }}
-              transition={{ delay: index * 0.1 }}
-              className="bg-white rounded-xl border border-gogh-grayLight shadow-sm overflow-hidden blur-sm pointer-events-none"
+        <div className="flex items-center justify-center min-h-[280px]">
+          <div className="w-full max-w-md mx-auto bg-white rounded-xl border border-gogh-grayLight shadow-sm p-4 sm:p-6 md:p-8 text-center">
+            <Wrench className="w-16 h-16 text-gogh-grayDark mx-auto mb-4 opacity-50" />
+            <h3 className="text-xl font-bold text-gogh-black mb-2">Faça upgrade para acessar</h3>
+            <p className="text-gogh-grayDark mb-6">
+              As ferramentas de criação são exclusivas do plano Gogh Pro. Faça upgrade do seu plano atual para ter acesso.
+            </p>
+            <Link
+              href="/precos"
+              className="inline-flex items-center gap-2 px-6 py-3 bg-gogh-yellow text-gogh-black font-medium rounded-xl hover:bg-gogh-yellow/90 transition-colors"
             >
-              <div className={`bg-gradient-to-r ${tool.color} p-6 text-white`}>
-                <div className="flex items-center gap-4">
-                  <div className="w-14 h-14 bg-white/20 rounded-xl flex items-center justify-center">
-                    <tool.icon className="w-8 h-8" />
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-bold">{tool.name}</h3>
-                  </div>
-                </div>
-              </div>
-              <div className="p-6">
-                <p className="text-gogh-grayDark text-sm mb-4">
-                  {tool.description}
-                </p>
-                <ul className="space-y-2">
-                  {tool.features.map((feature, i) => (
-                    <li key={i} className="flex items-center gap-2 text-sm">
-                      <CheckCircle2 className="w-4 h-4 text-gogh-yellow flex-shrink-0" />
-                      <span className="text-gogh-grayDark">{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </motion.div>
-          ))}
+              Fazer upgrade
+            </Link>
+          </div>
         </div>
       </div>
     )
