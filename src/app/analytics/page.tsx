@@ -251,6 +251,11 @@ export default function AnalyticsPage() {
     const v = localStorage.getItem(ANALYTICS_PROFILE_KEY) as AnalyticsProfileKey | null
     return v && (v === 'venda-site' || v === 'contato-mensagens' || v === 'leads') ? v : 'venda-site'
   })
+  const [savedAnalyticsProfile, setSavedAnalyticsProfile] = useState<AnalyticsProfileKey>(() => {
+    if (typeof window === 'undefined') return 'venda-site'
+    const v = localStorage.getItem(ANALYTICS_PROFILE_KEY) as AnalyticsProfileKey | null
+    return v && (v === 'venda-site' || v === 'contato-mensagens' || v === 'leads') ? v : 'venda-site'
+  })
 
   const buildCampaignSignature = () =>
     JSON.stringify({
@@ -596,6 +601,19 @@ export default function AnalyticsPage() {
   }, [selectedCampaign?.start_date])
 
   const { score, statusGeral, statusAlerts, hasDataForDiagnosis } = useMemo(() => {
+    // Campanha pausada: mostrar estado dedicado em vez de diagnóstico ativo
+    if (selectedCampaign && !selectedCampaign.is_active) {
+      return {
+        score: 0,
+        statusGeral: 'pausada' as const,
+        statusAlerts: [{
+          type: 'warning' as const,
+          action: 'Campanha pausada',
+          details: ['Esta campanha está pausada. Ative-a na seção Campanhas para voltar a rodar os anúncios e ver o diagnóstico completo.'],
+        }] as { type: 'success' | 'warning' | 'danger'; action: string; details: string[] }[],
+        hasDataForDiagnosis: true,
+      }
+    }
     // Só considera que há dados quando existir pelo menos uma métrica dos criativos/campanha
     const hasData =
       impressoesNum > 0 ||
@@ -851,6 +869,7 @@ export default function AnalyticsPage() {
     creatives,
     strategyTier,
     profileLabels,
+    selectedCampaign,
   ])
   const lucroPorVenda = lucroBruto
 
@@ -874,31 +893,34 @@ export default function AnalyticsPage() {
       phaseLabel = 'Dia 1 a 5 — Fase de aprendizado'
       phaseSteps = [
         'Não mexer no orçamento nem nos criativos (fase de aprendizado do algoritmo).',
-        'Atualize os dados da campanha nos próximos dias para acompanhar.',
+        'Deixe o Meta otimizar; alterações agora atrapalham a entrega.',
+        'Atualize os dados da campanha nos próximos dias para acompanhar métricas no painel.',
       ]
     } else if (daysSinceStart <= 9) {
       phase = 'analise-7'
       phaseLabel = 'Dia 7 — Primeira análise'
       phaseSteps = [
-        'Analisar métricas principais: CTR, CPC e CPA.',
-        `Pausar 1 ou 2 piores criativos. Manter pelo menos ${minCreatives} ativos (estratégia para seu investimento).`,
-        'Atualize os dados da campanha para o sistema recomendar próximos passos.',
+        'Analisar métricas principais: CTR (taxa de cliques no link), CPC (custo por clique) e CPA (custo por aquisição).',
+        `Pausar 1 ou 2 piores criativos no Meta. Manter pelo menos ${minCreatives} ativos (meta ${creativesRange} para seu nível de investimento).`,
+        'Desativar os ruins e manter os bons evita desperdício e melhora o resultado.',
+        'Atualize os dados da campanha aqui para o sistema recomendar os próximos passos.',
       ]
     } else if (daysSinceStart <= 17) {
       phase = 'novos-criativos'
       phaseLabel = 'Dia 10 a 14 — Novos criativos'
       phaseSteps = [
-        `Criar 1 ou 2 novos criativos para voltar ao total de ${creativesRange} ativos (estratégia para seu investimento).`,
-        'Isso mantém o algoritmo saudável e evita saturação.',
+        `Criar 1 ou 2 novos criativos para voltar ao total de ${creativesRange} ativos.`,
+        'Repor criativos mantém o algoritmo saudável e evita saturação do público.',
+        'Sempre substituir os fracos por novos; nunca deixar cair para 1 criativo só.',
       ]
     } else {
       phase = 'avaliacao'
       phaseLabel = 'Dia 18+ — Avaliação e modelo contínuo'
       phaseSteps = [
         'Avaliação geral. Se estiver lucrativo: manter rodando, escalar 15–20% ao dia se desejar, ou manter orçamento fixo.',
-        `Manter entre ${minCreatives} e ${maxCreatives} criativos ativos (estratégia para seu investimento).`,
-        'Criar novos criativos para repor e manter ciclo contínuo.',
-        `Não deixar cair para 1 criativo só; ideal ${creativesRange} ativos.`,
+        `Manter entre ${minCreatives} e ${maxCreatives} criativos ativos. Nunca deixar cair para 1 só; ideal ${creativesRange}.`,
+        'Criar novos criativos para repor e manter ciclo contínuo; substituir os fracos pelos bons.',
+        'Modelo contínuo: sempre manter mínimo de criativos ativos e repor os que saturarem.',
       ]
     }
     return { daysSinceStart, phase, phaseLabel, phaseSteps, isPaused, strategyTier }
@@ -924,6 +946,7 @@ export default function AnalyticsPage() {
     savedCreativesSignature.length > 0 &&
     currentCreativesSignature !== savedCreativesSignature
   const isProfileDirty = isCampaignSigDirty || isCreativesDirty
+  const isEstrategiaDirty = isProfileDirty || analyticsProfile !== savedAnalyticsProfile
   const isDadosCampanhaComplete =
     !!selectedCampaignId &&
     creatives.length > 0 &&
@@ -945,7 +968,7 @@ export default function AnalyticsPage() {
     }
     if (sectionId === 'status') return 'bg-white border-gogh-grayLight'
     if (sectionId === 'estrategia') {
-      if (!isProfileDirty) return 'bg-white border-gogh-grayLight'
+      if (!isEstrategiaDirty) return 'bg-white border-gogh-grayLight'
       return isRoiComplete ? 'bg-emerald-50/80 border-emerald-300' : 'bg-red-50/80 border-red-300'
     }
     if (sectionId === 'campanhas') {
@@ -961,8 +984,9 @@ export default function AnalyticsPage() {
   }
 
   const getFieldBorderClass = (sectionId: AnalyticsAccordionId): string => {
-    if (!isProfileDirty) return 'border-gogh-grayLight'
+    if (sectionId === 'estrategia' && !isEstrategiaDirty) return 'border-gogh-grayLight'
     if (sectionId === 'estrategia') return isRoiComplete ? 'border-emerald-400 focus:ring-emerald-200' : 'border-red-300 focus:ring-red-200'
+    if (!isProfileDirty) return 'border-gogh-grayLight'
     return 'border-gogh-grayLight'
   }
 
@@ -1080,7 +1104,7 @@ export default function AnalyticsPage() {
     }
   }
 
-  const canSaveProfile = selectedCampaignId && isRoiComplete && (isProfileDirty || isInicioDirty)
+  const canSaveProfile = selectedCampaignId && isRoiComplete && (isProfileDirty || isInicioDirty || analyticsProfile !== savedAnalyticsProfile)
 
   const handleSaveProfile = async () => {
     if (!selectedCampaignId) return
@@ -1137,9 +1161,10 @@ export default function AnalyticsPage() {
         setSavedCreativesSignature(currentCreativesSignature)
       }
 
-      toast.success('Alterações salvas na campanha')
+      toast.success('Configurações salvas.')
       localStorage.setItem('gogh_analytics_ja_salvou', '1')
       setSavedHasExistingAds(hasExistingAds)
+      setSavedAnalyticsProfile(analyticsProfile)
     } catch (e: any) {
       toast.error(e?.message || 'Erro ao salvar')
     } finally {
@@ -1300,10 +1325,15 @@ export default function AnalyticsPage() {
 
                 {accordionCard(
                   'estrategia',
-                  'Estratégia e planejamento de investimento',
-                  selectedCampaignId && planoOtimizacao.daysSinceStart != null ? `Nível ${strategyTier.label} · Dia ${planoOtimizacao.daysSinceStart}` : 'Planejamento de valores, nível de investimento e plano de otimização',
+                  'Análise, estratégia e planejamento',
+                  selectedCampaignId && planoOtimizacao.daysSinceStart != null
+                    ? `Nível ${strategyTier.label} · Dia ${planoOtimizacao.daysSinceStart} — Perfil, valores, agenda de ações e status`
+                    : 'Perfil de venda, planejamento de valores, orçamento por fases, agenda de ações e status. Tudo para analisar, planejar e decidir.',
                   <TrendingUp className="w-4 h-4 text-gogh-grayDark" />,
                   <div className="pt-3 space-y-4">
+                    <p className="text-sm text-gogh-grayDark -mt-1">
+                      Nesta seção: perfil de análise (forma de venda), valores do negócio, nível de investimento, planejamento de orçamento por fases, calendário com ações por dia e resumo de status. Use para tomar decisões com base nos dados.
+                    </p>
                     <div className="rounded-lg border-2 border-gogh-yellow/50 bg-gogh-yellow/5 p-3 space-y-2">
                       <p className="text-xs font-semibold text-gogh-black flex items-center gap-1.5">
                         <Target className="w-3.5 h-3.5 text-gogh-yellow" />
@@ -1602,10 +1632,10 @@ export default function AnalyticsPage() {
                               return Math.floor((d.getTime() - s.getTime()) / (24 * 60 * 60 * 1000)) + 1
                             }
                             const getMilestoneShort = (dayNum: number): string => {
-                              if (dayNum >= 1 && dayNum <= 5) return 'Aprendizado — Não mexer no orçamento.'
-                              if (dayNum === 7) return '1ª análise — Atualizar dados no painel.'
-                              if (dayNum >= 10 && dayNum <= 14) return `Novos criativos — +1 ou 2 criativos (meta ${strategyTier.minCreatives}–${strategyTier.maxCreatives}).`
-                              if (dayNum >= 18) return `Contínuo — Manter ${strategyTier.minCreatives}–${strategyTier.maxCreatives} criativos; seguir Status.`
+                              if (dayNum >= 1 && dayNum <= 5) return 'Aprendizado — Não mexer no orçamento nem nos criativos.'
+                              if (dayNum === 7) return `1ª análise — Analisar CTR, CPC e CPA; pausar 1 ou 2 piores criativos (manter ≥${strategyTier.minCreatives} ativos).`
+                              if (dayNum >= 10 && dayNum <= 14) return `Novos criativos — +1 ou 2 criativos para voltar a ${strategyTier.minCreatives}–${strategyTier.maxCreatives} ativos; evita saturação.`
+                              if (dayNum >= 18) return `Avaliação — Se lucrativo: manter ou escalar 15–20%/dia; manter ${strategyTier.minCreatives}–${strategyTier.maxCreatives} criativos; repor os fracos.`
                               return ''
                             }
                             const getPhaseForDay = (dayNum: number): number => {
@@ -1618,7 +1648,8 @@ export default function AnalyticsPage() {
                               return budgetPhases.length - 1
                             }
                             return (
-                              <div className="mb-4 flex flex-col items-center">
+                              <div className="mb-4 grid grid-cols-1 lg:grid-cols-[1fr,minmax(240px,280px)] gap-4 items-start">
+                                <div className="flex flex-col items-center min-w-0">
                                 <Card className="w-full max-w-[380px] py-3 border border-gogh-grayLight shadow-sm">
                                   <CardContent className="px-3">
                                     <DayPickerCalendar
@@ -1692,7 +1723,7 @@ export default function AnalyticsPage() {
                                           )}
                                         </div>
                                         {isActionDay(getDayNum(campaignCalendarSelectedDate)!) && (
-                                          <button
+                                            <button
                                             type="button"
                                             onClick={() => campaignCalendarSelectedDate && toggleFilledDate(campaignCalendarSelectedDate)}
                                             className={`text-[10px] font-medium px-1.5 py-0.5 rounded border transition-colors ${filledDatesSet.has(dateToKey(campaignCalendarSelectedDate)) ? 'bg-emerald-100 border-emerald-300 text-emerald-800' : 'bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100'}`}
@@ -1703,6 +1734,63 @@ export default function AnalyticsPage() {
                                       </>
                                     )}
                                   </CardFooter>
+                                </Card>
+                                </div>
+                                <Card className="w-full py-3 border border-gogh-grayLight shadow-sm shrink-0">
+                                  <CardContent className="px-3 space-y-2">
+                                    <p className="text-xs font-semibold text-gogh-black flex items-center gap-1.5">
+                                      <AlertCircle className="w-3.5 h-3.5 text-gogh-grayDark" />
+                                      Status e próximas ações
+                                    </p>
+                                    {selectedCampaign && !selectedCampaign.is_active ? (
+                                      <div className="rounded-lg border border-amber-200 bg-amber-50/80 p-2 text-amber-800 text-[11px]">
+                                        <p className="font-medium">Campanha pausada</p>
+                                        <p className="mt-0.5 opacity-90">Ative na seção Campanhas para rodar e ver o diagnóstico.</p>
+                                      </div>
+                                    ) : !hasDataForDiagnosis ? (
+                                      <p className="text-[11px] text-gogh-grayDark">Preencha os dados na seção <strong>Campanhas</strong> para ver o status e as recomendações.</p>
+                                    ) : (
+                                      <>
+                                        <div className="flex flex-wrap items-center gap-2">
+                                          <span className={`inline-flex items-center gap-1 rounded-lg px-2 py-1 text-sm font-bold ${
+                                            statusGeral === 'saudável' ? 'bg-green-100 text-green-800' :
+                                            statusGeral === 'estável' ? 'bg-blue-100 text-blue-800' :
+                                            statusGeral === 'alerta' ? 'bg-amber-100 text-amber-800' : 'bg-red-100 text-red-800'
+                                          }`}>
+                                            {score}/100
+                                          </span>
+                                          <span className="text-[11px] font-medium text-gogh-black">
+                                            {statusGeral === 'saudável' && 'Saudável'}
+                                            {statusGeral === 'estável' && 'Estável'}
+                                            {statusGeral === 'alerta' && 'Alerta'}
+                                            {statusGeral === 'crítica' && 'Crítica'}
+                                          </span>
+                                        </div>
+                                        {statusAlerts.length > 0 ? (
+                                          <ul className="space-y-1.5 text-[11px]">
+                                            {statusAlerts.slice(0, 3).map((a, i) => (
+                                              <li key={i} className={`rounded border-l-2 pl-1.5 ${
+                                                a.type === 'success' ? 'border-green-500 text-green-800' :
+                                                a.type === 'warning' ? 'border-amber-500 text-amber-800' : 'border-red-500 text-red-800'
+                                              }`}>
+                                                {a.action}
+                                              </li>
+                                            ))}
+                                          </ul>
+                                        ) : null}
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            setAccordionOpen('status')
+                                            setTimeout(() => document.getElementById('analytics-accordion-status')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100)
+                                          }}
+                                          className="text-[11px] font-medium text-gogh-grayDark hover:text-gogh-black underline"
+                                        >
+                                          Ver todas as recomendações
+                                        </button>
+                                      </>
+                                    )}
+                                  </CardContent>
                                 </Card>
                               </div>
                             )
@@ -1894,16 +1982,21 @@ export default function AnalyticsPage() {
                 {accordionCard(
                   'status',
                   'Status e decisões',
-                  hasDataForDiagnosis && statusAlerts.length > 0 ? `Score ${score} · ${statusGeral}` : 'Diagnóstico automático e recomendações',
+                  statusGeral === 'pausada' ? 'Campanha pausada' : hasDataForDiagnosis && statusAlerts.length > 0 ? `Score ${score} · ${statusGeral} · Todas as recomendações` : 'Diagnóstico automático e recomendações',
                   <AlertCircle className="w-4 h-4 text-gogh-grayDark" />,
                   <div className="pt-3 space-y-4">
                     <p className="text-sm text-gogh-grayDark">
-                      O sistema analisa os dados da campanha e da estrutura financeira e retorna um <strong>score (0–100)</strong> e recomendações objetivas. Você não precisa interpretar números — siga as ações sugeridas.
+                      Resumo ao lado da <strong>agenda</strong> (Estratégia). Abaixo, a lista completa de recomendações para seguir as ações sugeridas.
                     </p>
                     {!hasDataForDiagnosis ? (
                       <p className="text-sm text-gogh-grayDark bg-gogh-grayLight/50 rounded-lg p-3">
                         Preencha os dados da campanha na seção <strong>Campanhas</strong> (alcance, impressões, cliques, valor investido, {profileLabels.hintPreencher} em pelo menos um criativo) para ver o diagnóstico. Opcionalmente, preencha o <strong>Planejamento de valores</strong> na seção <strong>Estratégia</strong> para incluir análise de lucro e {profileLabels.custoPorResultadoShort} limite.
                       </p>
+                    ) : statusGeral === 'pausada' ? (
+                      <div className="rounded-lg border border-amber-200 bg-amber-50/80 p-4 text-amber-800">
+                        <p className="text-sm font-medium mb-1">Campanha pausada</p>
+                        <p className="text-xs opacity-90">Esta campanha está pausada. Ative-a na seção <strong>Campanhas</strong> (botão &quot;Ativar&quot;) para voltar a rodar os anúncios e ver o diagnóstico completo. Ao selecionar outra campanha ativa, o Status mostrará o score e as recomendações normalmente.</p>
+                      </div>
                     ) : (
                       <>
                     <div className="flex flex-wrap items-center gap-3">
@@ -2008,13 +2101,13 @@ export default function AnalyticsPage() {
                       </div>
                     )}
                       </>
-                    )}
+                    ))}
                   </div>
                 )}
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-6 mt-6 border-t border-gogh-grayLight">
                   <p className="text-xs text-gogh-grayDark">
                     {selectedCampaignId
-                      ? ((isProfileDirty || isInicioDirty) ? 'Alterações não salvas. Clique em Salvar configurações para gravar.' : 'Configurações salvas.')
+                      ? ((isProfileDirty || isInicioDirty || analyticsProfile !== savedAnalyticsProfile) ? 'Alterações não salvas. Clique em Salvar configurações para gravar.' : 'Configurações salvas.')
                       : 'Selecione uma campanha e preencha os dados para poder salvar.'}
                   </p>
                   <ShinyButton
