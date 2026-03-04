@@ -1353,31 +1353,33 @@ export default function AnalyticsPage() {
     subtitle: string | null,
     icon: React.ReactNode,
     children: React.ReactNode
-  ) => (
-    <div id={`analytics-accordion-${id}`} className={`rounded-lg border transition-colors overflow-hidden ${getAccordionCardClass(id)}`}>
-      <button
-        type="button"
-        onClick={() => toggleAccordion(id)}
-        className="w-full flex items-center justify-between py-2.5 px-3 text-left hover:opacity-90 transition-opacity"
-      >
-        <span className="flex items-center gap-2 text-sm font-semibold text-gogh-black">
-          {icon}
-          {title}
-        </span>
-        {accordionOpen === id ? (
-          <ChevronDown className="w-4 h-4 text-gogh-grayDark shrink-0" />
-        ) : (
-          <ChevronRight className="w-4 h-4 text-gogh-grayDark shrink-0" />
+  ) => {
+    return (
+      <div id={`analytics-accordion-${id}`} className={`rounded-lg border transition-colors overflow-hidden ${getAccordionCardClass(id)}`}>
+        <button
+          type="button"
+          onClick={() => toggleAccordion(id)}
+          className="w-full flex items-center justify-between py-2.5 px-3 text-left hover:opacity-90 transition-opacity"
+        >
+          <span className="flex items-center gap-2 text-sm font-semibold text-gogh-black">
+            {icon}
+            {title}
+          </span>
+          {accordionOpen === id ? (
+            <ChevronDown className="w-4 h-4 text-gogh-grayDark shrink-0" />
+          ) : (
+            <ChevronRight className="w-4 h-4 text-gogh-grayDark shrink-0" />
+          )}
+        </button>
+        {subtitle && accordionOpen !== id && (
+          <p className="px-3 pb-1 text-[7px] text-gogh-grayDark leading-tight">{subtitle}</p>
         )}
-      </button>
-      {subtitle && accordionOpen !== id && (
-        <p className="px-3 pb-1 text-[7px] text-gogh-grayDark leading-tight">{subtitle}</p>
-      )}
-      {accordionOpen === id && (
-        <div className="px-3 pb-3 pt-0 border-t border-gogh-grayLight/50">{children}</div>
-      )}
-    </div>
-  );
+        {accordionOpen === id && (
+          <div className="px-3 pb-3 pt-0 border-t border-gogh-grayLight/50">{children}</div>
+        )}
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gogh-beige via-white to-gogh-beige pb-12 px-4 pt-2 sm:pt-4 md:pt-12">
@@ -1603,12 +1605,32 @@ export default function AnalyticsPage() {
                       )}
                     </div>
                     {hasExistingAds === true ? (
-                      !selectedCampaignId ? (
-                        <p className="text-xs text-gogh-grayDark rounded-lg border border-gogh-grayLight bg-gogh-beige/30 p-3">
-                          Selecione uma campanha na seção <strong>Campanhas</strong> para ver a estratégia e o plano de otimização.
-                        </p>
-                      ) : (
                       <div className="space-y-4 pt-4 border-t border-gogh-grayLight">
+                        {campaigns.length === 0 ? (
+                          <p className="text-xs text-gogh-grayDark rounded-lg border border-gogh-grayLight bg-gogh-beige/30 p-3">
+                            Crie campanhas na seção <strong>Campanhas</strong> para analisar o status de cada uma.
+                          </p>
+                        ) : (
+                          <>
+                            <div className="space-y-1.5">
+                              <p className="text-[11px] font-medium text-gogh-black">Ver análise de:</p>
+                              <div className="flex flex-wrap gap-1.5">
+                                {campaigns.map((c) => (
+                                  <button
+                                    key={c.id}
+                                    type="button"
+                                    onClick={() => setSelectedCampaignId(c.id)}
+                                    className={`rounded-lg border px-2.5 py-1.5 text-[11px] font-medium transition-colors ${selectedCampaignId === c.id ? 'border-gogh-yellow bg-gogh-yellow/20 text-gogh-black' : 'border-gogh-grayLight bg-white text-gogh-grayDark hover:bg-gogh-beige/30'}`}
+                                  >
+                                    {c.name}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                            {!selectedCampaignId ? (
+                              <p className="text-[10px] text-gogh-grayDark">Clique em uma campanha acima para ver o status.</p>
+                            ) : (
+                              <>
                         <div className="space-y-2 text-[7px] text-gogh-grayDark leading-tight">
                           <p>Acompanhe o status da campanha abaixo.</p>
                           <p>Use o planejamento de valores (CPA, lucro) para saber se está dentro da meta.</p>
@@ -1676,8 +1698,12 @@ export default function AnalyticsPage() {
                             )}
                           </CardContent>
                         </Card>
+                              </>
+                            )}
+                          </>
+                        )}
                       </div>
-                    ) : (
+                    ) ) : (
                       <div className="space-y-4">
                         {!selectedCampaignId && (
                           <>
@@ -1705,6 +1731,23 @@ export default function AnalyticsPage() {
                             Defina a data de início da campanha para ver o calendário por dia.
                           </p>
                         )}
+                        {campaigns.length > 0 && (
+                          <div className="space-y-1.5">
+                            <p className="text-[11px] font-medium text-gogh-black">Ver agenda e plano de:</p>
+                            <div className="flex flex-wrap gap-1.5">
+                              {campaigns.map((c) => (
+                                <button
+                                  key={c.id}
+                                  type="button"
+                                  onClick={() => setSelectedCampaignId(c.id)}
+                                  className={`rounded-lg border px-2.5 py-1.5 text-[11px] font-medium transition-colors ${selectedCampaignId === c.id ? 'border-gogh-yellow bg-gogh-yellow/20 text-gogh-black' : 'border-gogh-grayLight bg-white text-gogh-grayDark hover:bg-gogh-beige/30'}`}
+                                >
+                                  {c.name}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                         <div className="border-t border-gogh-grayLight pt-4 mt-4">
                           <p className="text-[11px] font-semibold text-gogh-black mb-1 flex items-center gap-1.5">
                             <DollarSign className="w-3 h-3 text-gogh-yellow" />
@@ -1714,30 +1757,34 @@ export default function AnalyticsPage() {
                             <p>Valor que pretende investir e por quantos dias. <strong>Não altera dados reais</strong> — use para planejamento.</p>
                             <p>Preencha o valor investido na seção Campanhas com o real.</p>
                           </div>
-                          <div className="mb-3 rounded-lg border border-gogh-grayLight bg-gogh-beige/20 p-2">
+                          <div className="mb-3 rounded-lg border border-gogh-grayLight bg-gogh-beige/20 p-2 space-y-2">
                             <p className="text-[11px] font-medium text-gogh-black mb-0.5">No Meta, como você define o orçamento?</p>
-                            <div className="flex flex-wrap gap-2">
-                              <label className="flex items-center gap-2 cursor-pointer">
-                                <input
-                                  type="radio"
-                                  name="budgetTypeMeta"
-                                  checked={budgetTypeMeta === 'cbo'}
-                                  onChange={() => setBudgetTypeMeta('cbo')}
-                                  className="border-gogh-grayLight"
-                                />
-                                <span className="text-[11px] text-gogh-grayDark leading-snug"><strong>CBO</strong> — Campanha (orçamento/dia; Meta distribui)</span>
-                              </label>
-                              <label className="flex items-center gap-2 cursor-pointer">
-                                <input
-                                  type="radio"
-                                  name="budgetTypeMeta"
-                                  checked={budgetTypeMeta === 'abo'}
-                                  onChange={() => setBudgetTypeMeta('abo')}
-                                  className="border-gogh-grayLight"
-                                />
-                                <span className="text-[11px] text-gogh-grayDark leading-snug"><strong>ABO</strong> — Conjunto (orçamento por conjunto; some para o total)</span>
-                              </label>
-                            </div>
+                            <label className="flex gap-2 cursor-pointer items-start rounded border border-transparent p-1.5 transition-colors hover:bg-gogh-beige/30 has-[:checked]:border-gogh-yellow/60 has-[:checked]:bg-gogh-yellow/10">
+                              <input
+                                type="radio"
+                                name="budgetTypeMeta"
+                                checked={budgetTypeMeta === 'cbo'}
+                                onChange={() => setBudgetTypeMeta('cbo')}
+                                className="mt-0.5 border-gogh-grayLight"
+                              />
+                              <div>
+                                <span className="text-[11px] font-medium text-gogh-black leading-snug"><strong>CBO</strong> (Orçamento na Campanha)</span>
+                                <p className="text-[10px] text-gogh-grayDark mt-0.5 leading-snug">A Meta gerencia o orçamento. Ideal para escala, eficiência e automação.</p>
+                              </div>
+                            </label>
+                            <label className="flex gap-2 cursor-pointer items-start rounded border border-transparent p-1.5 transition-colors hover:bg-gogh-beige/30 has-[:checked]:border-gogh-yellow/60 has-[:checked]:bg-gogh-yellow/10">
+                              <input
+                                type="radio"
+                                name="budgetTypeMeta"
+                                checked={budgetTypeMeta === 'abo'}
+                                onChange={() => setBudgetTypeMeta('abo')}
+                                className="mt-0.5 border-gogh-grayLight"
+                              />
+                              <div>
+                                <span className="text-[11px] font-medium text-gogh-black leading-snug"><strong>ABO</strong> (Orçamento no Conjunto de Anúncios)</span>
+                                <p className="text-[10px] text-gogh-grayDark mt-0.5 leading-snug">Você tem controle total. Útil para validar criativos e públicos com verbas específicas.</p>
+                              </div>
+                            </label>
                           </div>
                           <p className="text-[11px] font-medium text-gogh-black mb-1.5 mt-3">Fases</p>
                           {budgetPhases.length > 0 && (
