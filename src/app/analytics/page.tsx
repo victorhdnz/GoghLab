@@ -142,28 +142,43 @@ function isActionDay(dayNum: number): boolean {
 }
 
 // Parâmetros de análise (benchmarks para decisão)
-// Referências 2025: WordStream, Rocket Launch, AdBacklog, Triple Whale — CTR 1,5–2,2%, CPC ~US$0,50–0,70, ROAS ~1,86–1,93x, CVR 1,6–10% por setor
+// Referências 2025: WordStream, Rocket Launch, AdBacklog, Triple Whale — ajustes por prática 2025–2026
 const FREQ_SAUDAVEL = { min: 1.5, max: 2.5 }
 const FREQ_ATENCAO = { min: 2.5, max: 3 }
 const FREQ_SATURACAO = 3
-const FREQ_CRITICO = 4
-const CTR_BOM = 1.5
-const CTR_MEDIO = 1
-const CONV_FORTE = 3
-const CONV_MEDIO = 1.5
-// Só sugerir valor de aumento de investimento a partir do dia 18 (fase de avaliação), evitando recomendação precoce
+const FREQ_CRITICO = 5 // Crítico ≥5 (alinhado com prática 2025: remarketing pode tolerar 5–8)
+const CTR_OTIMO = 2
+const CTR_BOM = 1.2
+const CTR_MEDIO = 0.8
+const CONV_OTIMO = 4
+const CONV_FORTE = 2
+const CONV_MEDIO = 1
+// Escala: conservador dia 18; antecipada quando maturidade ok + conversões ≥ tier (7–15) + CPA ok
 const DIAS_MINIMOS_PARA_SUGERIR_AUMENTO = 18
+// Maturidade de dados: condiciona agressividade das recomendações (não bloqueia; adapta)
+const MATURIDADE = {
+  DIAS_MINIMOS_INSUFICIENTE: 3,
+  IMPRESSOES_MINIMAS_INSUFICIENTE: 1000,
+  CONVERSOES_FASE_INICIAL: 10,
+  CONVERSOES_FASE_OTIMIZACAO: 30,
+} as const
+export type MaturidadeKey = 'dados_insuficientes' | 'fase_inicial' | 'fase_otimizacao' | 'fase_escala'
+// Duração de fase: permitir qualquer duração (1–60); análise se adapta à maturidade
+const MIN_DIAS_FASE = 1
+const MAX_DIAS_FASE = 60
 
 // Ecossistema de estratégia por faixa de investimento: análise e recomendações se adaptam ao capital investido
-// suggestedDailyForPlanning: R$/dia de referência para sugerir "duração em dias" no planejamento (valor total ÷ dias)
+// Inclui conversões mínimas para sugerir escala e tolerância de frequência por tier
 const STRATEGY_TIERS = {
   baixo: {
     label: 'Baixo',
     dailyInvestMax: 49.99,
-    minCreatives: 2,
+    minCreatives: 1,
     maxCreatives: 3,
     description: 'Até ~R$ 50/dia',
     suggestedDailyForPlanning: 35,
+    conversoesMinParaEscala: 15,
+    freqCritico: 4.5,
   },
   medio: {
     label: 'Médio',
@@ -172,14 +187,18 @@ const STRATEGY_TIERS = {
     maxCreatives: 5,
     description: 'R$ 50 a ~R$ 300/dia',
     suggestedDailyForPlanning: 120,
+    conversoesMinParaEscala: 10,
+    freqCritico: 3.5,
   },
   alto: {
     label: 'Alto',
     dailyInvestMax: Infinity,
     minCreatives: 4,
-    maxCreatives: 6,
+    maxCreatives: 8,
     description: 'Acima de ~R$ 300/dia',
     suggestedDailyForPlanning: 350,
+    conversoesMinParaEscala: 7,
+    freqCritico: 3,
   },
 } as const
 
@@ -460,7 +479,8 @@ export default function AnalyticsPage() {
 
   const addBudgetPhase = () => {
     const valor = parseFloat(String(newPhaseValor).replace(',', '.')) || 0
-    const dias = Math.max(1, Math.floor(parseFloat(String(newPhaseDias).replace(',', '.')) || 0))
+    const diasRaw = Math.max(1, Math.floor(parseFloat(String(newPhaseDias).replace(',', '.')) || 0))
+    const dias = Math.max(MIN_DIAS_FASE, Math.min(MAX_DIAS_FASE, diasRaw))
     if (valor <= 0 || !selectedCampaignId) return
     const phase: BudgetPhase = { id: crypto.randomUUID(), valor, dias }
     const next = [...budgetPhases, phase]
@@ -629,13 +649,15 @@ export default function AnalyticsPage() {
     }
   }, [useStrategyFromPhases])
 
-  // Quando "usar recomendação automática" está ligado, preenche duração (dias) conforme o nível da estratégia
+  // Quando "usar recomendação automática" está ligado, preenche duração (dias) conforme o nível da estratégia (clamp 7–21)
   const suggestedDailyForPlanning = STRATEGY_TIERS[strategyTier.tier].suggestedDailyForPlanning
+  const clampDiasFase = (d: number) => Math.max(MIN_DIAS_FASE, Math.min(MAX_DIAS_FASE, d))
   useEffect(() => {
     if (!useAutoDiasRecommendation || !selectedCampaignId) return
     const v = parseFloat(String(newPhaseValor).replace(',', '.')) || 0
     if (v <= 0) return
-    const dias = Math.max(1, Math.round(v / suggestedDailyForPlanning))
+    const diasCalculados = Math.round(v / suggestedDailyForPlanning)
+    const dias = clampDiasFase(Math.max(1, diasCalculados))
     setNewPhaseDias(String(dias))
   }, [useAutoDiasRecommendation, newPhaseValor, selectedCampaignId, suggestedDailyForPlanning])
 
@@ -650,7 +672,7 @@ export default function AnalyticsPage() {
     setCampaignCalendarSelectedDate((prev) => (prev ? prev : start))
   }, [selectedCampaign?.start_date])
 
-  const { score, statusGeral, statusAlerts, hasDataForDiagnosis } = useMemo(() => {
+  const { score, statusGeral, statusAlerts, hasDataForDiagnosis, maturidade, maturidadeLabel } = useMemo(() => {
     // Campanha pausada: mostrar estado dedicado em vez de diagnóstico ativo
     if (selectedCampaign && !selectedCampaign.is_active) {
       return {
@@ -662,66 +684,93 @@ export default function AnalyticsPage() {
           details: ['Esta campanha está pausada. Ative-a na seção Campanhas para voltar a rodar os anúncios e ver o diagnóstico completo.'],
         }] as { type: 'success' | 'warning' | 'danger'; action: string; details: string[] }[],
         hasDataForDiagnosis: true,
+        maturidade: null as MaturidadeKey | null,
+        maturidadeLabel: '',
       }
     }
-    // Só considera que há dados quando existir pelo menos uma métrica dos criativos/campanha
+    // Dados suficientes para diagnóstico (evita análise estatisticamente irrelevante)
     const hasData =
-      impressoesNum > 0 ||
-      valorInvestidoNum > 0 ||
-      comprasNum > 0
+      impressoesNum >= 1000 ||
+      cliquesNum >= 50 ||
+      comprasNum >= 5
     if (!hasData) {
       return {
         score: 0,
         statusGeral: 'sem_dados' as const,
         statusAlerts: [] as { type: 'success' | 'warning' | 'danger'; action: string; details: string[] }[],
         hasDataForDiagnosis: false,
+        maturidade: null as MaturidadeKey | null,
+        maturidadeLabel: '',
       }
     }
     type AlertItem = { type: 'success' | 'warning' | 'danger'; action: string; detail: string }
     const labels = profileLabels
     const alerts: AlertItem[] = []
-    let scoreFreq = 20
-    let scoreCtr = 20
-    let scoreConv = 20
-    let scoreCpa = 20
-    let scoreLucro = 20
+    // Maturidade de dados: condiciona agressividade das recomendações (não bloqueia)
+    const daysSinceStart = selectedCampaign?.start_date
+      ? Math.max(0, Math.floor((Date.now() - new Date(selectedCampaign.start_date + 'T12:00:00').getTime()) / (24 * 60 * 60 * 1000)))
+      : 0
+    const maturidade: MaturidadeKey =
+      daysSinceStart < MATURIDADE.DIAS_MINIMOS_INSUFICIENTE || impressoesNum < MATURIDADE.IMPRESSOES_MINIMAS_INSUFICIENTE
+        ? 'dados_insuficientes'
+        : comprasNum < MATURIDADE.CONVERSOES_FASE_INICIAL
+          ? 'fase_inicial'
+          : comprasNum < MATURIDADE.CONVERSOES_FASE_OTIMIZACAO
+            ? 'fase_otimizacao'
+            : 'fase_escala'
+    const tierConfig = STRATEGY_TIERS[strategyTier.tier]
+    const conversoesMinParaEscala = tierConfig.conversoesMinParaEscala
+    const freqCriticoTier = tierConfig.freqCritico
+    // Pesos por pilar (total 100): Frequência 15, CTR 15, Conversão 20, CPA 25, Lucro 25 — resultado > métrica intermediária
+    const MAX_FREQ = 15
+    const MAX_CTR = 15
+    const MAX_CONV = 20
+    const MAX_CPA = 25
+    const MAX_LUCRO = 25
+    let scoreFreq = MAX_FREQ
+    let scoreCtr = MAX_CTR
+    let scoreConv = MAX_CONV
+    let scoreCpa = MAX_CPA
+    let scoreLucro = MAX_LUCRO
     const { freq, ctrPct, taxaConvPct, cpaCalculado } = metricasCampanha
     const cpaUsado = comprasNum > 0 ? cpaCalculado : 0
     if (alcanceNum > 0 && impressoesNum > 0) {
       const freqStr = freq.toFixed(2).replace('.', ',')
-      if (freq >= FREQ_CRITICO) {
+      if (freq >= freqCriticoTier) {
         scoreFreq = 0
-        alerts.push({ type: 'danger', action: 'Trocar criativo.', detail: `Frequência ${freqStr} → ideal <4` })
-      } else if (freq > FREQ_SATURACAO) {
+        alerts.push({ type: 'danger', action: 'Trocar criativo.', detail: `Frequência ${freqStr} → ideal <${freqCriticoTier} (nível ${strategyTier.label})` })
+      } else if (freq >= freqCriticoTier - 1) {
         scoreFreq = 5
-        alerts.push({ type: 'warning', action: 'Avaliar novo criativo.', detail: `Frequência ${freqStr} → ideal ≤3` })
-      } else if (freq > FREQ_ATENCAO.max) {
+        alerts.push({ type: 'warning', action: 'Avaliar novo criativo.', detail: `Frequência ${freqStr} → ideal <${freqCriticoTier}` })
+      } else if (freq > FREQ_SATURACAO) {
         scoreFreq = 10
-        alerts.push({ type: 'warning', action: 'Acompanhar.', detail: `Frequência ${freqStr} (entre 2,5 e 3)` })
-      } else if (freq >= FREQ_SAUDAVEL.min && freq <= FREQ_SAUDAVEL.max) {
-        scoreFreq = 20
+        alerts.push({ type: 'warning', action: 'Acompanhar.', detail: `Frequência ${freqStr}` })
+      } else if (freq >= FREQ_SAUDAVEL.min) {
+        scoreFreq = MAX_FREQ
       }
     } else {
-      scoreFreq = 20
+      scoreFreq = MAX_FREQ
     }
     if (impressoesNum > 0 && cliquesNum >= 0) {
       const ctrStr = ctrPct.toFixed(2).replace('.', ',')
-      if (ctrPct >= CTR_BOM) scoreCtr = 20
+      if (ctrPct >= CTR_OTIMO) scoreCtr = MAX_CTR
+      else if (ctrPct >= CTR_BOM) scoreCtr = MAX_CTR
       else if (ctrPct >= CTR_MEDIO) {
-        scoreCtr = 12
-        alerts.push({ type: 'warning', action: 'Testar novo criativo.', detail: `CTR ${ctrStr}% → ideal ≥1,5%` })
+        scoreCtr = 8
+        alerts.push({ type: 'warning', action: 'Testar novo criativo.', detail: `CTR ${ctrStr}% → ideal ≥1,2%` })
       } else if (ctrPct > 0) {
-        scoreCtr = 5
-        alerts.push({ type: 'warning', action: 'Testar novo criativo.', detail: `CTR ${ctrStr}% → ideal ≥1%` })
+        scoreCtr = 3
+        alerts.push({ type: 'warning', action: 'Testar novo criativo.', detail: `CTR ${ctrStr}% → ideal ≥0,8%` })
       }
     }
     if (cliquesNum > 0 && comprasNum >= 0) {
       const convStr = taxaConvPct.toFixed(2).replace('.', ',')
-      if (taxaConvPct >= CONV_FORTE) scoreConv = 20
-      else if (taxaConvPct >= CONV_MEDIO) scoreConv = 12
+      if (taxaConvPct >= CONV_OTIMO) scoreConv = MAX_CONV
+      else if (taxaConvPct >= CONV_FORTE) scoreConv = 15
+      else if (taxaConvPct >= CONV_MEDIO) scoreConv = 8
       else if (taxaConvPct > 0) {
-        scoreConv = 5
-        alerts.push({ type: 'warning', action: 'Revisar oferta ou página.', detail: `Conversão ${convStr}% → ideal ≥1,5%` })
+        scoreConv = 3
+        alerts.push({ type: 'warning', action: 'Revisar oferta ou página.', detail: `Conversão ${convStr}% → ideal ≥1%` })
       }
     }
     if (roiEnabled && valorNum > 0) {
@@ -732,10 +781,10 @@ export default function AnalyticsPage() {
         scoreLucro = 0
         alerts.push({ type: 'danger', action: 'Ajustar preço ou custo.', detail: `Lucro ${lucroStr} (prejuízo)` })
       } else if (metaLucroNum > 0 && lucroBruto >= metaLucroNum && !cpaAcimaDoLimite) {
-        scoreLucro = 20
+        scoreLucro = MAX_LUCRO
         alerts.push({ type: 'success', action: 'Dentro da meta.', detail: `Lucro ${lucroStr}` })
       } else if (lucroBruto > 0) {
-        scoreLucro = 15
+        scoreLucro = 18
       }
       if (custoMaxAceitavel > 0 && cpaUsado > 0) {
         const cpaStr = `R$ ${cpaUsado.toFixed(2).replace('.', ',')}`
@@ -753,10 +802,10 @@ export default function AnalyticsPage() {
             detail: `${labels.custoPorResultadoShort} ${cpaStr} > limite ${limiteStr}. Lucro real por venda: ${lucroRealStr}${metaStr}.`,
           })
         } else if (cpaUsado >= custoMaxAceitavel * 0.98) {
-          scoreCpa = 8
+          scoreCpa = 10
           alerts.push({ type: 'warning', action: 'Não escalar.', detail: `${labels.custoPorResultadoShort} ${cpaStr} no limite ${limiteStr}` })
         } else if (cpaUsado < custoMaxAceitavel * 0.8) {
-          scoreCpa = 20
+          scoreCpa = MAX_CPA
           let action: string
           let detail: string
           if (selectedCampaign?.start_date && valorInvestidoNum > 0) {
@@ -766,14 +815,19 @@ export default function AnalyticsPage() {
             start.setHours(0, 0, 0, 0)
             const daysSinceStart = Math.max(1, Math.floor((today.getTime() - start.getTime()) / (24 * 60 * 60 * 1000)))
             const investimentoPorDia = valorInvestidoNum / daysSinceStart
-            if (daysSinceStart >= DIAS_MINIMOS_PARA_SUGERIR_AUMENTO && investimentoPorDia > 0) {
+            const podeEscalarAntecipado = maturidade !== 'dados_insuficientes' && comprasNum >= conversoesMinParaEscala && cpaUsado < custoMaxAceitavel * 0.8
+            const podeEscalarPadrao = daysSinceStart >= DIAS_MINIMOS_PARA_SUGERIR_AUMENTO && investimentoPorDia > 0
+            if ((podeEscalarAntecipado || podeEscalarPadrao) && investimentoPorDia > 0) {
               action = 'Pode escalar.'
               const scaleMin = investimentoPorDia * 0.15
               const scaleMax = investimentoPorDia * 0.2
               detail = `${labels.custoPorResultadoShort} ${cpaStr} < limite ${limiteStr}. Invest. médio/dia: R$ ${investimentoPorDia.toFixed(2).replace('.', ',')}. Pode aumentar R$ ${scaleMin.toFixed(2).replace('.', ',')} a R$ ${scaleMax.toFixed(2).replace('.', ',')}/dia (15–20%).`
-            } else if (daysSinceStart < 7) {
+            } else if (maturidade === 'dados_insuficientes') {
               action = `${labels.custoPorResultadoShort} dentro do limite.`
-              detail = `${labels.custoPorResultadoShort} ${cpaStr} < limite ${limiteStr}. Fase de aprendizado (dia 1–5): não altere o orçamento. A partir do dia 18 o sistema poderá sugerir aumento de investimento.`
+              detail = `${labels.custoPorResultadoShort} ${cpaStr} < limite ${limiteStr}. Dados ainda insuficientes para sugerir escala; evite alterar orçamento.`
+            } else if (comprasNum < conversoesMinParaEscala) {
+              action = `${labels.custoPorResultadoShort} dentro do limite.`
+              detail = `${labels.custoPorResultadoShort} ${cpaStr} < limite ${limiteStr}. Para seu nível (${strategyTier.label}), espere ≥${conversoesMinParaEscala} conversões para o sistema sugerir aumento.`
             } else {
               action = `${labels.custoPorResultadoShort} dentro do limite.`
               detail = `${labels.custoPorResultadoShort} ${cpaStr} < limite ${limiteStr}. A partir do dia ${DIAS_MINIMOS_PARA_SUGERIR_AUMENTO} o sistema sugerirá valor de aumento (15–20% ao dia).`
@@ -784,7 +838,7 @@ export default function AnalyticsPage() {
           }
           alerts.push({ type: 'success', action, detail })
         } else {
-          scoreCpa = 15
+          scoreCpa = 18
         }
       }
     }
@@ -805,14 +859,19 @@ export default function AnalyticsPage() {
         start.setHours(0, 0, 0, 0)
         const daysSinceStart = Math.max(1, Math.floor((today.getTime() - start.getTime()) / (24 * 60 * 60 * 1000)))
         const investimentoPorDia = valorInvestidoNum / daysSinceStart
-        if (daysSinceStart >= DIAS_MINIMOS_PARA_SUGERIR_AUMENTO && investimentoPorDia > 0) {
+        const podeEscalarAntecipado = maturidade !== 'dados_insuficientes' && comprasNum >= conversoesMinParaEscala && custoMaxAceitavel > 0 && cpaUsado < custoMaxAceitavel * 0.8
+        const podeEscalarPadrao = daysSinceStart >= DIAS_MINIMOS_PARA_SUGERIR_AUMENTO && investimentoPorDia > 0
+        if ((podeEscalarAntecipado || podeEscalarPadrao) && investimentoPorDia > 0) {
           action = 'Pode escalar.'
           const scaleMin = investimentoPorDia * 0.15
           const scaleMax = investimentoPorDia * 0.2
           scaleDetail = `Investimento médio por dia: R$ ${investimentoPorDia.toFixed(2).replace('.', ',')}. Pode aumentar em R$ ${scaleMin.toFixed(2).replace('.', ',')} a R$ ${scaleMax.toFixed(2).replace('.', ',')} por dia (15–20%).`
-        } else if (daysSinceStart < 7) {
+        } else if (maturidade === 'dados_insuficientes') {
           action = 'Métricas dentro da meta.'
-          scaleDetail = 'Fase de aprendizado (dia 1–5): não altere o orçamento. A partir do dia 18 o sistema poderá sugerir aumento de investimento.'
+          scaleDetail = 'Dados insuficientes para decisões estratégicas. Evite alterar orçamento ou criativos.'
+        } else if (comprasNum < conversoesMinParaEscala) {
+          action = 'Métricas dentro da meta.'
+          scaleDetail = `Para seu nível (${strategyTier.label}), espere ≥${conversoesMinParaEscala} conversões para o sistema sugerir aumento.`
         } else {
           action = 'Métricas dentro da meta.'
           scaleDetail = `A partir do dia ${DIAS_MINIMOS_PARA_SUGERIR_AUMENTO} o sistema sugerirá valor de aumento (15–20% ao dia).`
@@ -836,11 +895,18 @@ export default function AnalyticsPage() {
     if (statusGeral === 'crítica') {
       alerts.push({ type: 'danger', action: 'Revisar estratégia.', detail: `Score ${scoreFinal} crítico.` })
     }
+    if (maturidade === 'dados_insuficientes') {
+      alerts.push({
+        type: 'warning',
+        action: 'Dados insuficientes para decisões estratégicas.',
+        detail: 'Evite alterar orçamento ou criativos. O nível de análise aumenta conforme mais dias e dados (impressões e conversões).',
+      })
+    }
     // Estratégia por investimento: quantidade de criativos ideal (min/max) conforme tier
     const { minCreatives, maxCreatives, label: tierLabel } = strategyTier
     const activeCreativesCount = creatives.length
     if (activeCreativesCount > 0) {
-      if (activeCreativesCount === 1) {
+      if (activeCreativesCount === 1 && minCreatives > 1) {
         alerts.push({
           type: 'warning',
           action: 'Risco de saturação com 1 criativo.',
@@ -869,16 +935,16 @@ export default function AnalyticsPage() {
         const cFreq = cAlc > 0 ? (cImp / cAlc) : 0
         const cCtrPct = cImp > 0 ? (cCliques / cImp) * 100 : 0
         const name = (cr.name || 'Criativo').trim() || 'Criativo'
-        const underperforming = (cAlc > 0 && cImp > 0 && cFreq >= FREQ_CRITICO) ||
+        const underperforming = (cAlc > 0 && cImp > 0 && cFreq >= freqCriticoTier) ||
           (cAlc > 0 && cImp > 0 && cFreq > FREQ_SATURACAO) ||
           (cImp > 0 && cCtrPct > 0 && cCtrPct < CTR_MEDIO)
-        if (cAlc > 0 && cImp > 0 && cFreq >= FREQ_CRITICO) {
-          alerts.push({ type: 'danger', action: `Trocar o criativo "${name}".`, detail: `Frequência ${cFreq.toFixed(2).replace('.', ',')} → ideal <4` })
-        } else if (cAlc > 0 && cImp > 0 && cFreq > FREQ_SATURACAO) {
-          alerts.push({ type: 'warning', action: `Avaliar novo criativo: "${name}".`, detail: `Frequência ${cFreq.toFixed(2).replace('.', ',')} → ideal ≤3` })
+        if (cAlc > 0 && cImp > 0 && cFreq >= freqCriticoTier) {
+          alerts.push({ type: 'danger', action: `Trocar o criativo "${name}".`, detail: `Frequência ${cFreq.toFixed(2).replace('.', ',')} → ideal <${freqCriticoTier} (nível ${strategyTier.label})` })
+        } else if (cAlc > 0 && cImp > 0 && cFreq >= freqCriticoTier - 1) {
+          alerts.push({ type: 'warning', action: `Avaliar novo criativo: "${name}".`, detail: `Frequência ${cFreq.toFixed(2).replace('.', ',')} → ideal <${freqCriticoTier}` })
         }
         if (cImp > 0 && cCtrPct > 0 && cCtrPct < CTR_MEDIO) {
-          alerts.push({ type: 'warning', action: `Testar novo criativo: "${name}".`, detail: `CTR ${cCtrPct.toFixed(2).replace('.', ',')}% → ideal ≥1%` })
+          alerts.push({ type: 'warning', action: `Testar novo criativo: "${name}".`, detail: `CTR ${cCtrPct.toFixed(2).replace('.', ',')}% → ideal ≥0,8%` })
         }
         if (underperforming) {
           alerts.push({
@@ -902,7 +968,15 @@ export default function AnalyticsPage() {
       }
     }
     const statusAlerts = Array.from(grouped.values())
-    return { score: scoreFinal, statusGeral, statusAlerts, hasDataForDiagnosis: true }
+    const maturidadeLabel =
+      maturidade === 'dados_insuficientes'
+        ? 'Dados insuficientes'
+        : maturidade === 'fase_inicial'
+          ? 'Fase inicial'
+          : maturidade === 'fase_otimizacao'
+            ? 'Fase otimização'
+            : 'Fase escala'
+    return { score: scoreFinal, statusGeral, statusAlerts, hasDataForDiagnosis: true, maturidade, maturidadeLabel }
   }, [
     metricasCampanha,
     roiEnabled,
@@ -1509,6 +1583,11 @@ export default function AnalyticsPage() {
                                     {statusGeral === 'crítica' && 'Crítica'}
                                   </span>
                                 </div>
+                                {maturidadeLabel && (
+                                  <p className="text-[10px] text-gogh-grayDark border-t border-gogh-grayLight/60 pt-1 mt-1">
+                                    Maturidade: <strong>{maturidadeLabel}</strong>
+                                  </p>
+                                )}
                                 {statusAlerts.length > 0 ? (
                                   <ul className="space-y-1 text-[10px]">
                                     {statusAlerts.slice(0, 3).map((a, i) => (
@@ -1598,7 +1677,7 @@ export default function AnalyticsPage() {
                             </div>
                           )}
                           <div className="rounded-lg border border-gogh-grayLight bg-white p-3 space-y-2 mb-4">
-                            <p className="text-[11px] text-gogh-grayDark mb-1">Preencha valor e duração da fase; o nível da estratégia e a meta de criativos são definidos pelas fases adicionadas e aparecem no Status.</p>
+                            <p className="text-[11px] text-gogh-grayDark mb-1">Preencha valor e duração da fase; o nível da estratégia e a meta de criativos são definidos pelas fases adicionadas e aparecem no Status. Você pode usar de {MIN_DIAS_FASE} a {MAX_DIAS_FASE} dias — o nível de análise e das recomendações se adapta à maturidade dos dados (dias rodando, impressões, conversões).</p>
                             <label className="flex items-center gap-2 cursor-pointer mb-2">
                               <input
                                 type="checkbox"
@@ -1625,10 +1704,11 @@ export default function AnalyticsPage() {
                                 <label className="block text-[11px] text-gogh-grayDark mb-0.5">Duração (dias)</label>
                                 <input
                                   type="number"
-                                  min="1"
+                                  min={MIN_DIAS_FASE}
+                                  max={MAX_DIAS_FASE}
                                   value={newPhaseDias}
                                   onChange={(e) => setNewPhaseDias(e.target.value)}
-                                  placeholder="Ex: 18"
+                                  placeholder={`${MIN_DIAS_FASE}–${MAX_DIAS_FASE}`}
                                   disabled={useAutoDiasRecommendation}
                                   readOnly={useAutoDiasRecommendation}
                                   title={useAutoDiasRecommendation ? 'Preenchido automaticamente; desmarque a opção acima para editar.' : undefined}
@@ -1656,7 +1736,7 @@ export default function AnalyticsPage() {
                               })()}
                             </div>
                             <p className="text-[10px] text-gogh-grayDark">
-                              Menos dias com mais R$/dia costuma entregar melhor no Meta.
+                              Menos dias com mais R$/dia costuma entregar melhor no Meta. Duração livre entre {MIN_DIAS_FASE} e {MAX_DIAS_FASE} dias; recomendações se adaptam à maturidade dos dados.
                             </p>
                           </div>
                           {selectedCampaign?.start_date && (() => {
@@ -1835,6 +1915,9 @@ export default function AnalyticsPage() {
                           )}
                           <p className="text-xs text-gogh-black pt-1 border-t border-gogh-grayLight/80">
                             Meta de criativos: <strong>{strategyTier.minCreatives} a {strategyTier.maxCreatives} ativos</strong>
+                          </p>
+                          <p className="text-[10px] text-gogh-grayDark">
+                            Recomendação: 1 criativo para cada 20–30 R$/dia (prática de mercado).
                           </p>
                         </div>
                         ) : (
