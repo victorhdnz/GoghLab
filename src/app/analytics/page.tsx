@@ -75,6 +75,7 @@ interface BudgetPhase {
 }
 
 const BUDGET_PHASES_STORAGE_KEY = 'gogh_analytics_budget_phases'
+const BUDGET_PHASES_DRAFT_KEY = '_draft' // plano sem campanha (estrutura completa: planejar primeiro)
 const BUDGET_TYPE_STORAGE_KEY = 'gogh_analytics_budget_type' // CBO = campanha (por dia na campanha); ABO = conjunto (por conjunto)
 const AUTO_DIAS_RECOMMENDATION_KEY = 'gogh_analytics_auto_dias'
 const USE_STRATEGY_FROM_PHASES_KEY = 'gogh_analytics_use_strategy_from_phases' // quando "já tenho anúncio": true = nível pelas fases, false = nível pelos dados da campanha
@@ -258,6 +259,7 @@ export default function AnalyticsPage() {
   const [campaignCalendarMonth, setCampaignCalendarMonth] = useState<Date>(() => new Date())
   const [campaignCalendarSelectedDate, setCampaignCalendarSelectedDate] = useState<Date | undefined>(undefined)
   const [filledDatesSet, setFilledDatesSet] = useState<Set<string>>(new Set())
+  const [expandedStatusAlert, setExpandedStatusAlert] = useState<{ location: 'status' | 'calendar'; index: number } | null>(null)
   const [hasExistingAds, setHasExistingAds] = useState<boolean | null>(() => {
     if (typeof window === 'undefined') return null
     const v = localStorage.getItem(HAS_EXISTING_ADS_KEY)
@@ -414,19 +416,32 @@ export default function AnalyticsPage() {
   }, [selectedCampaignId, hasAccess])
 
   useEffect(() => {
-    if (typeof window === 'undefined' || !selectedCampaignId) {
-      setBudgetPhases([])
-      return
-    }
+    if (typeof window === 'undefined') return
     try {
       const raw = localStorage.getItem(BUDGET_PHASES_STORAGE_KEY)
       const map = raw ? (JSON.parse(raw) as Record<string, BudgetPhase[]>) : {}
-      const phases = Array.isArray(map[selectedCampaignId]) ? map[selectedCampaignId] : []
-      setBudgetPhases(phases)
+      // Estrutura completa: permitir planejar sem campanha (rascunho); depois ao criar/selecionar campanha, copiar rascunho se a campanha estiver vazia
+      if (hasExistingAds === false) {
+        const storageKey = selectedCampaignId ?? BUDGET_PHASES_DRAFT_KEY
+        let phases = Array.isArray(map[selectedCampaignId ?? BUDGET_PHASES_DRAFT_KEY]) ? map[selectedCampaignId ?? BUDGET_PHASES_DRAFT_KEY] : []
+        if (selectedCampaignId && phases.length === 0 && Array.isArray(map[BUDGET_PHASES_DRAFT_KEY]) && map[BUDGET_PHASES_DRAFT_KEY].length > 0) {
+          phases = map[BUDGET_PHASES_DRAFT_KEY]
+          map[selectedCampaignId] = phases
+          localStorage.setItem(BUDGET_PHASES_STORAGE_KEY, JSON.stringify(map))
+        }
+        setBudgetPhases(phases)
+      } else {
+        if (!selectedCampaignId) {
+          setBudgetPhases([])
+          return
+        }
+        const phases = Array.isArray(map[selectedCampaignId]) ? map[selectedCampaignId] : []
+        setBudgetPhases(phases)
+      }
     } catch {
       setBudgetPhases([])
     }
-  }, [selectedCampaignId])
+  }, [selectedCampaignId, hasExistingAds])
 
   useEffect(() => {
     const camp = selectedCampaignId ? campaigns.find((c) => c.id === selectedCampaignId) : null
@@ -477,33 +492,35 @@ export default function AnalyticsPage() {
     } catch {}
   }
 
+  const budgetPhasesStorageKey = hasExistingAds === false ? (selectedCampaignId ?? BUDGET_PHASES_DRAFT_KEY) : selectedCampaignId
+
   const addBudgetPhase = () => {
     const valor = parseFloat(String(newPhaseValor).replace(',', '.')) || 0
     const diasRaw = Math.max(1, Math.floor(parseFloat(String(newPhaseDias).replace(',', '.')) || 0))
     const dias = Math.max(MIN_DIAS_FASE, Math.min(MAX_DIAS_FASE, diasRaw))
-    if (valor <= 0 || !selectedCampaignId) return
+    if (valor <= 0 || !budgetPhasesStorageKey) return
     const phase: BudgetPhase = { id: crypto.randomUUID(), valor, dias }
     const next = [...budgetPhases, phase]
     setBudgetPhases(next)
-    persistBudgetPhases(selectedCampaignId, next)
+    persistBudgetPhases(budgetPhasesStorageKey, next)
     setNewPhaseValor('')
     setNewPhaseDias('')
     toast.success('Fase de orçamento adicionada')
   }
 
   const removeLastBudgetPhase = () => {
-    if (budgetPhases.length === 0 || !selectedCampaignId) return
+    if (budgetPhases.length === 0 || !budgetPhasesStorageKey) return
     const next = budgetPhases.slice(0, -1)
     setBudgetPhases(next)
-    persistBudgetPhases(selectedCampaignId, next)
+    persistBudgetPhases(budgetPhasesStorageKey, next)
     toast.success('Última fase removida')
   }
 
   const removeBudgetPhaseAt = (index: number) => {
-    if (index < 0 || index >= budgetPhases.length || !selectedCampaignId) return
+    if (index < 0 || index >= budgetPhases.length || !budgetPhasesStorageKey) return
     const next = budgetPhases.filter((_, i) => i !== index)
     setBudgetPhases(next)
-    persistBudgetPhases(selectedCampaignId, next)
+    persistBudgetPhases(budgetPhasesStorageKey, next)
     toast.success('Fase removida')
   }
 
@@ -653,13 +670,13 @@ export default function AnalyticsPage() {
   const suggestedDailyForPlanning = STRATEGY_TIERS[strategyTier.tier].suggestedDailyForPlanning
   const clampDiasFase = (d: number) => Math.max(MIN_DIAS_FASE, Math.min(MAX_DIAS_FASE, d))
   useEffect(() => {
-    if (!useAutoDiasRecommendation || !selectedCampaignId) return
+    if (!useAutoDiasRecommendation || !budgetPhasesStorageKey) return
     const v = parseFloat(String(newPhaseValor).replace(',', '.')) || 0
     if (v <= 0) return
     const diasCalculados = Math.round(v / suggestedDailyForPlanning)
     const dias = clampDiasFase(Math.max(1, diasCalculados))
     setNewPhaseDias(String(dias))
-  }, [useAutoDiasRecommendation, newPhaseValor, selectedCampaignId, suggestedDailyForPlanning])
+  }, [useAutoDiasRecommendation, newPhaseValor, budgetPhasesStorageKey, suggestedDailyForPlanning])
 
   useEffect(() => {
     if (!selectedCampaign?.start_date) {
@@ -1552,11 +1569,12 @@ export default function AnalyticsPage() {
                         </>
                       )}
                     </div>
-                    {!selectedCampaignId ? (
-                      <p className="text-xs text-gogh-grayDark rounded-lg border border-gogh-grayLight bg-gogh-beige/30 p-3">
-                        Selecione uma campanha na seção <strong>Campanhas</strong> para ver a estratégia e o plano de otimização.
-                      </p>
-                    ) : hasExistingAds === true ? (
+                    {hasExistingAds === true ? (
+                      !selectedCampaignId ? (
+                        <p className="text-xs text-gogh-grayDark rounded-lg border border-gogh-grayLight bg-gogh-beige/30 p-3">
+                          Selecione uma campanha na seção <strong>Campanhas</strong> para ver a estratégia e o plano de otimização.
+                        </p>
+                      ) : (
                       <div className="space-y-4 pt-4 border-t border-gogh-grayLight">
                         <div className="space-y-2 text-[7px] text-gogh-grayDark leading-tight">
                           <p>Acompanhe o status da campanha abaixo.</p>
@@ -1593,20 +1611,32 @@ export default function AnalyticsPage() {
                                   </span>
                                 </div>
                                 {maturidadeLabel && (
-                                  <p className="text-[7px] text-gogh-grayDark border-t border-gogh-grayLight/60 pt-1 mt-1">
+                                  <p className="text-[10px] text-gogh-grayDark border-t border-gogh-grayLight/60 pt-1 mt-1">
                                     Maturidade: <strong>{maturidadeLabel}</strong>
                                   </p>
                                 )}
                                 {statusAlerts.length > 0 ? (
-                                  <ul className="space-y-1 text-[8px]">
-                                    {statusAlerts.slice(0, 3).map((a, i) => (
-                                      <li key={i} className={`rounded border-l-2 pl-1 leading-tight ${
-                                        a.type === 'success' ? 'border-green-500 text-green-800' :
-                                        a.type === 'warning' ? 'border-amber-500 text-amber-800' : 'border-red-500 text-red-800'
-                                      }`}>
-                                        {a.action}
-                                      </li>
-                                    ))}
+                                  <ul className="space-y-1 text-[11px]">
+                                    {statusAlerts.slice(0, 3).map((a, i) => {
+                                      const isExpanded = expandedStatusAlert?.location === 'status' && expandedStatusAlert?.index === i
+                                      return (
+                                        <li key={i} className={`rounded border-l-2 pl-1 leading-snug ${
+                                          a.type === 'success' ? 'border-green-500 text-green-800' :
+                                          a.type === 'warning' ? 'border-amber-500 text-amber-800' : 'border-red-500 text-red-800'
+                                        }`}>
+                                          <button
+                                            type="button"
+                                            onClick={() => setExpandedStatusAlert(prev => prev?.location === 'status' && prev?.index === i ? null : { location: 'status', index: i })}
+                                            className="w-full text-left font-medium"
+                                          >
+                                            {a.action}
+                                          </button>
+                                          {isExpanded && a.details?.length > 0 && (
+                                            <p className="mt-0.5 pl-1 text-[10px] opacity-90">{(a.details as string[]).join(' · ')}</p>
+                                          )}
+                                        </li>
+                                      )
+                                    })}
                                   </ul>
                                 ) : null}
                               </>
@@ -1614,12 +1644,18 @@ export default function AnalyticsPage() {
                           </CardContent>
                         </Card>
                       </div>
-                    ) : !selectedCampaign?.start_date || planoOtimizacao.daysSinceStart == null ? (
-                      <p className="text-xs text-gogh-grayDark rounded-lg border border-gogh-grayLight bg-gogh-beige/30 p-3">
-                        Defina a data de início da campanha para calcular o plano de otimização por dia.
-                      </p>
                     ) : (
                       <div className="space-y-4">
+                        {!selectedCampaignId && (
+                          <p className="text-xs text-gogh-grayDark rounded-lg border border-gogh-grayLight bg-gogh-beige/30 p-3">
+                            Planeje as fases abaixo. Depois crie ou selecione uma campanha para ver o calendário e preencher os dados reais ao longo do tempo.
+                          </p>
+                        )}
+                        {selectedCampaignId && selectedCampaign && !selectedCampaign.start_date && (
+                          <p className="text-xs text-gogh-grayDark rounded-lg border border-gogh-grayLight bg-gogh-beige/30 p-3">
+                            Defina a data de início da campanha para ver o calendário por dia.
+                          </p>
+                        )}
                         <div className="border-t border-gogh-grayLight pt-4 mt-4">
                           <p className="text-[11px] font-semibold text-gogh-black mb-1 flex items-center gap-1.5">
                             <DollarSign className="w-3 h-3 text-gogh-yellow" />
@@ -1874,21 +1910,33 @@ export default function AnalyticsPage() {
                                           )}
                                           {isSelectedDayPastOrToday && hasDataForDiagnosis && selectedCampaign?.is_active !== false && statusAlerts.length > 0 && (
                                             <div className="border-t border-gogh-grayLight/60 pt-1.5 mt-1">
-                                              <p className="text-[7px] font-medium text-gogh-black mb-0.5">Análise (dados preenchidos):</p>
-                                              <ul className="space-y-0.5 text-[8px]">
-                                                {statusAlerts.slice(0, 4).map((a, i) => (
-                                                  <li key={i} className={`rounded border-l-2 pl-1 leading-tight ${
-                                                    a.type === 'success' ? 'border-green-500 text-green-800' :
-                                                    a.type === 'warning' ? 'border-amber-500 text-amber-800' : 'border-red-500 text-red-800'
-                                                  }`}>
-                                                    {a.action}
-                                                  </li>
-                                                ))}
+                                              <p className="text-[11px] font-medium text-gogh-black mb-0.5">Análise (dados preenchidos):</p>
+                                              <ul className="space-y-1 text-[11px]">
+                                                {statusAlerts.slice(0, 4).map((a, i) => {
+                                                  const isExpanded = expandedStatusAlert?.location === 'calendar' && expandedStatusAlert?.index === i
+                                                  return (
+                                                    <li key={i} className={`rounded border-l-2 pl-1 leading-snug ${
+                                                      a.type === 'success' ? 'border-green-500 text-green-800' :
+                                                      a.type === 'warning' ? 'border-amber-500 text-amber-800' : 'border-red-500 text-red-800'
+                                                    }`}>
+                                                      <button
+                                                        type="button"
+                                                        onClick={() => setExpandedStatusAlert(prev => prev?.location === 'calendar' && prev?.index === i ? null : { location: 'calendar', index: i })}
+                                                        className="w-full text-left font-medium"
+                                                      >
+                                                        {a.action}
+                                                      </button>
+                                                      {isExpanded && a.details?.length > 0 && (
+                                                        <p className="mt-0.5 pl-1 text-[10px] opacity-90">{(a.details as string[]).join(' · ')}</p>
+                                                      )}
+                                                    </li>
+                                                  )
+                                                })}
                                               </ul>
                                             </div>
                                           )}
                                           {isSelectedDayPastOrToday && !hasDataForDiagnosis && (
-                                            <p className="text-[7px] text-gogh-grayDark border-t border-gogh-grayLight/60 pt-1.5 mt-1">Preencha os dados em Campanhas para ver a análise neste dia.</p>
+                                            <p className="text-[10px] text-gogh-grayDark border-t border-gogh-grayLight/60 pt-1.5 mt-1">Preencha os dados em Campanhas para ver a análise neste dia.</p>
                                           )}
                                         </div>
                                         {isActionDay(getDayNum(campaignCalendarSelectedDate)!) && (
