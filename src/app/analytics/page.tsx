@@ -561,7 +561,7 @@ export default function AnalyticsPage() {
   // Nível da estratégia: por fases (planejamento) ou por dados da campanha (criativos), conforme preferência
   const strategyTier = useMemo(() => {
     const config = STRATEGY_TIERS
-    const r$/dayToTier = (rpd: number): StrategyTierKey => {
+    const rpdToTier = (rpd: number): StrategyTierKey => {
       if (rpd <= config.baixo.dailyInvestMax) return 'baixo'
       if (rpd <= config.medio.dailyInvestMax) return 'medio'
       return 'alto'
@@ -587,13 +587,13 @@ export default function AnalyticsPage() {
       const totalDias = budgetPhases.reduce((s, p) => s + p.dias, 0)
       const mediaPorDia = totalDias > 0 ? totalValor / totalDias : 0
       if (mediaPorDia > 0) {
-        tier = r$/dayToTier(mediaPorDia)
+        tier = rpdToTier(mediaPorDia)
         source = 'phases'
       }
     }
 
     if (source === 'campaign' && investimentoMedioPorDia > 0 && daysSinceStart >= 3) {
-      tier = r$/dayToTier(investimentoMedioPorDia)
+      tier = rpdToTier(investimentoMedioPorDia)
     }
 
     const t = config[tier]
