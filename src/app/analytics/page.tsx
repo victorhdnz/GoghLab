@@ -77,7 +77,55 @@ const BUDGET_TYPE_STORAGE_KEY = 'gogh_analytics_budget_type' // CBO = campanha (
 const AUTO_DIAS_RECOMMENDATION_KEY = 'gogh_analytics_auto_dias'
 const FILLED_DATES_STORAGE_KEY = 'gogh_analytics_dias_preenchidos' // por campanha: { [campaignId]: string[] } (YYYY-MM-DD)
 const HAS_EXISTING_ADS_KEY = 'gogh_analytics_has_existing_ads' // true = já tem anúncio/campanha, false = criar do zero, null = não respondeu
+const ANALYTICS_PROFILE_KEY = 'gogh_analytics_profile' // perfil de análise: forma de venda do cliente (define métricas e status)
 type BudgetTypeMeta = 'cbo' | 'abo'
+
+export type AnalyticsProfileKey = 'venda-site' | 'contato-mensagens' | 'leads'
+const ANALYTICS_PROFILES: Record<AnalyticsProfileKey, { label: string; description: string }> = {
+  'venda-site': { label: 'Venda por site próprio', description: 'E-commerce, loja virtual. Métricas: alcance, impressões, frequência, CTR, cliques no link, CPC, compras, custo por compra, valor usado, valor de conversão das compras diretas no site, ROAS de resultados.' },
+  'contato-mensagens': { label: 'Contato (WhatsApp, mensagens)', description: 'Foco em conversas iniciadas, contatos por mensagem. Use os campos abaixo para conversas por mensagem iniciadas, custo por conversa e valor de conversão.' },
+  'leads': { label: 'Leads', description: 'Captação de leads, formulários. Use os campos abaixo para quantidade de leads, CPL e valor por lead.' },
+}
+
+// Labels das métricas de resultado por perfil (mesmo schema; só mudam rótulos e textos do Status)
+function getProfileMetricLabels(profile: AnalyticsProfileKey): {
+  resultados: string
+  valorConversao: string
+  custoPorResultado: string
+  custoPorResultadoShort: string
+  roasLabel: string
+  hintPreencher: string
+} {
+  switch (profile) {
+    case 'leads':
+      return {
+        resultados: 'Leads',
+        valorConversao: 'Valor por lead (R$)',
+        custoPorResultado: 'Custo por lead (CPL)',
+        custoPorResultadoShort: 'CPL',
+        roasLabel: 'ROAS de resultados',
+        hintPreencher: 'leads',
+      }
+    case 'contato-mensagens':
+      return {
+        resultados: 'Conversas iniciadas',
+        valorConversao: 'Valor de conversão (R$)',
+        custoPorResultado: 'Custo por conversa',
+        custoPorResultadoShort: 'Custo por conversa',
+        roasLabel: 'ROAS de resultados',
+        hintPreencher: 'conversas',
+      }
+    default:
+      return {
+        resultados: 'Compras',
+        valorConversao: 'Valor de conversão das compras diretas no site (R$)',
+        custoPorResultado: 'Custo por compra',
+        custoPorResultadoShort: 'CPA',
+        roasLabel: 'ROAS de resultados',
+        hintPreencher: 'compras',
+      }
+  }
+}
 
 function dateToKey(d: Date): string {
   const y = d.getFullYear()
@@ -91,6 +139,7 @@ function isActionDay(dayNum: number): boolean {
 }
 
 // Parâmetros de análise (benchmarks para decisão)
+// Referências 2025: WordStream, Rocket Launch, AdBacklog, Triple Whale — CTR 1,5–2,2%, CPC ~US$0,50–0,70, ROAS ~1,86–1,93x, CVR 1,6–10% por setor
 const FREQ_SAUDAVEL = { min: 1.5, max: 2.5 }
 const FREQ_ATENCAO = { min: 2.5, max: 3 }
 const FREQ_SATURACAO = 3
@@ -196,6 +245,11 @@ export default function AnalyticsPage() {
     if (v === '1') return true
     if (v === '0') return false
     return null
+  })
+  const [analyticsProfile, setAnalyticsProfile] = useState<AnalyticsProfileKey>(() => {
+    if (typeof window === 'undefined') return 'venda-site'
+    const v = localStorage.getItem(ANALYTICS_PROFILE_KEY) as AnalyticsProfileKey | null
+    return v && (v === 'venda-site' || v === 'contato-mensagens' || v === 'leads') ? v : 'venda-site'
   })
 
   const buildCampaignSignature = () =>
@@ -425,6 +479,12 @@ export default function AnalyticsPage() {
     }
   }, [hasExistingAds])
 
+  useEffect(() => {
+    if (typeof window !== 'undefined') localStorage.setItem(ANALYTICS_PROFILE_KEY, analyticsProfile)
+  }, [analyticsProfile])
+
+  const profileLabels = getProfileMetricLabels(analyticsProfile)
+
   const parseNum = (s: string) => parseFloat(String(s).replace(',', '.')) || 0
   const toNum = (s: string) => (s.trim() ? parseNum(s) : 0)
   const valorNum = toNum(valorVenda)
@@ -550,6 +610,7 @@ export default function AnalyticsPage() {
       }
     }
     type AlertItem = { type: 'success' | 'warning' | 'danger'; action: string; detail: string }
+    const labels = profileLabels
     const alerts: AlertItem[] = []
     let scoreFreq = 20
     let scoreCtr = 20
@@ -613,7 +674,7 @@ export default function AnalyticsPage() {
         const limiteStr = `R$ ${custoMaxAceitavel.toFixed(2).replace('.', ',')}`
         if (cpaUsado > lucroBruto) {
           scoreCpa = 0
-          alerts.push({ type: 'danger', action: 'Não escalar.', detail: `CPA ${cpaStr} > lucro ${lucroStr} (prejuízo por aquisição)` })
+          alerts.push({ type: 'danger', action: 'Não escalar.', detail: `${labels.custoPorResultadoShort} ${cpaStr} > lucro ${lucroStr} (prejuízo por aquisição)` })
         } else if (cpaUsado > custoMaxAceitavel) {
           scoreCpa = 0
           const lucroRealStr = `R$ ${lucroRealPorVenda.toFixed(2).replace('.', ',')}`
@@ -621,11 +682,11 @@ export default function AnalyticsPage() {
           alerts.push({
             type: 'danger',
             action: 'Não escalar.',
-            detail: `CPA ${cpaStr} > limite ${limiteStr}. Lucro real por venda: ${lucroRealStr}${metaStr}.`,
+            detail: `${labels.custoPorResultadoShort} ${cpaStr} > limite ${limiteStr}. Lucro real por venda: ${lucroRealStr}${metaStr}.`,
           })
         } else if (cpaUsado >= custoMaxAceitavel * 0.98) {
           scoreCpa = 8
-          alerts.push({ type: 'warning', action: 'Não escalar.', detail: `CPA ${cpaStr} no limite ${limiteStr}` })
+          alerts.push({ type: 'warning', action: 'Não escalar.', detail: `${labels.custoPorResultadoShort} ${cpaStr} no limite ${limiteStr}` })
         } else if (cpaUsado < custoMaxAceitavel * 0.8) {
           scoreCpa = 20
           let action: string
@@ -641,17 +702,17 @@ export default function AnalyticsPage() {
               action = 'Pode escalar.'
               const scaleMin = investimentoPorDia * 0.15
               const scaleMax = investimentoPorDia * 0.2
-              detail = `CPA ${cpaStr} < limite ${limiteStr}. Invest. médio/dia: R$ ${investimentoPorDia.toFixed(2).replace('.', ',')}. Pode aumentar R$ ${scaleMin.toFixed(2).replace('.', ',')} a R$ ${scaleMax.toFixed(2).replace('.', ',')}/dia (15–20%).`
+              detail = `${labels.custoPorResultadoShort} ${cpaStr} < limite ${limiteStr}. Invest. médio/dia: R$ ${investimentoPorDia.toFixed(2).replace('.', ',')}. Pode aumentar R$ ${scaleMin.toFixed(2).replace('.', ',')} a R$ ${scaleMax.toFixed(2).replace('.', ',')}/dia (15–20%).`
             } else if (daysSinceStart < 7) {
-              action = 'CPA dentro do limite.'
-              detail = `CPA ${cpaStr} < limite ${limiteStr}. Fase de aprendizado (dia 1–5): não altere o orçamento. A partir do dia 18 o sistema poderá sugerir aumento de investimento.`
+              action = `${labels.custoPorResultadoShort} dentro do limite.`
+              detail = `${labels.custoPorResultadoShort} ${cpaStr} < limite ${limiteStr}. Fase de aprendizado (dia 1–5): não altere o orçamento. A partir do dia 18 o sistema poderá sugerir aumento de investimento.`
             } else {
-              action = 'CPA dentro do limite.'
-              detail = `CPA ${cpaStr} < limite ${limiteStr}. A partir do dia ${DIAS_MINIMOS_PARA_SUGERIR_AUMENTO} o sistema sugerirá valor de aumento (15–20% ao dia).`
+              action = `${labels.custoPorResultadoShort} dentro do limite.`
+              detail = `${labels.custoPorResultadoShort} ${cpaStr} < limite ${limiteStr}. A partir do dia ${DIAS_MINIMOS_PARA_SUGERIR_AUMENTO} o sistema sugerirá valor de aumento (15–20% ao dia).`
             }
           } else {
-            action = 'CPA dentro do limite.'
-            detail = `CPA ${cpaStr} < limite ${limiteStr}`
+            action = `${labels.custoPorResultadoShort} dentro do limite.`
+            detail = `${labels.custoPorResultadoShort} ${cpaStr} < limite ${limiteStr}`
           }
           alerts.push({ type: 'success', action, detail })
         } else {
@@ -789,6 +850,7 @@ export default function AnalyticsPage() {
     valorInvestidoNum,
     creatives,
     strategyTier,
+    profileLabels,
   ])
   const lucroPorVenda = lucroBruto
 
@@ -1242,6 +1304,31 @@ export default function AnalyticsPage() {
                   selectedCampaignId && planoOtimizacao.daysSinceStart != null ? `Nível ${strategyTier.label} · Dia ${planoOtimizacao.daysSinceStart}` : 'Planejamento de valores, nível de investimento e plano de otimização',
                   <TrendingUp className="w-4 h-4 text-gogh-grayDark" />,
                   <div className="pt-3 space-y-4">
+                    <div className="rounded-lg border-2 border-gogh-yellow/50 bg-gogh-yellow/5 p-3 space-y-2">
+                      <p className="text-xs font-semibold text-gogh-black flex items-center gap-1.5">
+                        <Target className="w-3.5 h-3.5 text-gogh-yellow" />
+                        Perfil de análise (forma de venda)
+                      </p>
+                      <p className="text-[11px] text-gogh-grayDark">
+                        Defina como seu negócio vende ou gera resultados. Os campos de preenchimento, métricas e recomendações do Status se adaptam a este perfil.
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {(Object.keys(ANALYTICS_PROFILES) as AnalyticsProfileKey[]).map((key) => (
+                          <button
+                            key={key}
+                            type="button"
+                            onClick={() => {
+                              setAnalyticsProfile(key)
+                              if (typeof window !== 'undefined') localStorage.setItem(ANALYTICS_PROFILE_KEY, key)
+                            }}
+                            className={`rounded-xl border-2 px-3 py-2 text-left text-xs transition-colors ${analyticsProfile === key ? 'border-gogh-yellow bg-gogh-yellow/20' : 'border-gogh-grayLight bg-white hover:border-gogh-grayDark/30'}`}
+                          >
+                            <span className="font-medium text-gogh-black block">{ANALYTICS_PROFILES[key].label}</span>
+                            <span className="text-[10px] text-gogh-grayDark line-clamp-2">{ANALYTICS_PROFILES[key].description}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                     <p className="text-sm text-gogh-grayDark">
                       Configure valores do negócio (para o Status usar lucro e CPA) e a estratégia por investimento da campanha.
                     </p>
@@ -1759,8 +1846,8 @@ export default function AnalyticsPage() {
                                       <div><label className="block text-xs text-gogh-grayDark">Impressões</label><input type="number" min="0" value={cr.impressoes ?? ''} onChange={(e) => setCreatives((prev) => prev.map((c) => (c.id === cr.id ? { ...c, impressoes: e.target.value ? Number(e.target.value) : null } : c)))} className="w-full border rounded px-2 py-1 text-sm" /></div>
                                       <div><label className="block text-xs text-gogh-grayDark">Cliques no link</label><input type="number" min="0" value={cr.cliques_link ?? ''} onChange={(e) => setCreatives((prev) => prev.map((c) => (c.id === cr.id ? { ...c, cliques_link: e.target.value ? Number(e.target.value) : null } : c)))} className="w-full border rounded px-2 py-1 text-sm" /></div>
                                       <div><label className="block text-xs text-gogh-grayDark">Valor usado (R$)</label><input type="number" min="0" step="0.01" value={cr.valor_investido ?? ''} onChange={(e) => setCreatives((prev) => prev.map((c) => (c.id === cr.id ? { ...c, valor_investido: e.target.value ? Number(e.target.value) : null } : c)))} className="w-full border rounded px-2 py-1 text-sm" /></div>
-                                      <div><label className="block text-xs text-gogh-grayDark">Compras</label><input type="number" min="0" value={cr.compras ?? ''} onChange={(e) => setCreatives((prev) => prev.map((c) => (c.id === cr.id ? { ...c, compras: e.target.value ? Number(e.target.value) : null } : c)))} className="w-full border rounded px-2 py-1 text-sm" /></div>
-                                      <div><label className="block text-xs text-gogh-grayDark">Valor de conversão (R$)</label><input type="number" min="0" step="0.01" value={cr.valor_total_faturado ?? ''} onChange={(e) => setCreatives((prev) => prev.map((c) => (c.id === cr.id ? { ...c, valor_total_faturado: e.target.value ? Number(e.target.value) : null } : c)))} className="w-full border rounded px-2 py-1 text-sm" /></div>
+                                      <div><label className="block text-xs text-gogh-grayDark">{profileLabels.resultados}</label><input type="number" min="0" value={cr.compras ?? ''} onChange={(e) => setCreatives((prev) => prev.map((c) => (c.id === cr.id ? { ...c, compras: e.target.value ? Number(e.target.value) : null } : c)))} className="w-full border rounded px-2 py-1 text-sm" /></div>
+                                      <div><label className="block text-xs text-gogh-grayDark">{profileLabels.valorConversao}</label><input type="number" min="0" step="0.01" value={cr.valor_total_faturado ?? ''} onChange={(e) => setCreatives((prev) => prev.map((c) => (c.id === cr.id ? { ...c, valor_total_faturado: e.target.value ? Number(e.target.value) : null } : c)))} className="w-full border rounded px-2 py-1 text-sm" /></div>
                                     </div>
                                   </div>
                                 ))}
@@ -1785,12 +1872,12 @@ export default function AnalyticsPage() {
                             <div className="rounded-lg border border-gogh-grayLight bg-gogh-beige/40 p-3">
                               <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-1 text-xs">
                                 {alcanceNum > 0 && impressoesNum > 0 && <div><span className="text-gogh-grayDark">Frequência</span> <span className="font-medium">{metricasCampanha.freq.toFixed(2)}</span></div>}
-                                {impressoesNum > 0 && <div><span className="text-gogh-grayDark">CTR (Taxa de Cliques)</span> <span className="font-medium">{metricasCampanha.ctrPct.toFixed(2)}%</span></div>}
+                                {impressoesNum > 0 && <div><span className="text-gogh-grayDark">CTR (taxa de cliques no link)</span> <span className="font-medium">{metricasCampanha.ctrPct.toFixed(2)}%</span></div>}
                                 {cliquesNum > 0 && <div><span className="text-gogh-grayDark">Conversão</span> <span className="font-medium">{metricasCampanha.taxaConvPct.toFixed(2)}%</span></div>}
                                 {impressoesNum > 0 && valorInvestidoNum > 0 && <div><span className="text-gogh-grayDark">CPM (Custo Por Mil impressões)</span> <span className="font-medium">R$ {metricasCampanha.cpm.toFixed(2)}</span></div>}
-                                {cliquesNum > 0 && valorInvestidoNum > 0 && <div><span className="text-gogh-grayDark">CPC (Custo Por Clique)</span> <span className="font-medium">R$ {metricasCampanha.cpc.toFixed(2)}</span></div>}
-                                {comprasNum > 0 && <div><span className="text-gogh-grayDark">CPA (Custo Por Aquisição)</span> <span className="font-medium">R$ {metricasCampanha.cpaCalculado.toFixed(2)}</span></div>}
-                                {valorInvestidoNum > 0 && valorFaturadoNum > 0 && <div><span className="text-gogh-grayDark">ROAS (Retorno Sobre o Investimento em Anúncios)</span> <span className="font-medium">{metricasCampanha.roas.toFixed(2)}x</span></div>}
+                                {cliquesNum > 0 && valorInvestidoNum > 0 && <div><span className="text-gogh-grayDark">CPC (custo por clique no link)</span> <span className="font-medium">R$ {metricasCampanha.cpc.toFixed(2)}</span></div>}
+                                {comprasNum > 0 && <div><span className="text-gogh-grayDark">{profileLabels.custoPorResultado}</span> <span className="font-medium">R$ {metricasCampanha.cpaCalculado.toFixed(2)}</span></div>}
+                                {valorInvestidoNum > 0 && valorFaturadoNum > 0 && <div><span className="text-gogh-grayDark">{profileLabels.roasLabel}</span> <span className="font-medium">{metricasCampanha.roas.toFixed(2)}x</span></div>}
                               </div>
                             </div>
                           ) : (
@@ -1815,7 +1902,7 @@ export default function AnalyticsPage() {
                     </p>
                     {!hasDataForDiagnosis ? (
                       <p className="text-sm text-gogh-grayDark bg-gogh-grayLight/50 rounded-lg p-3">
-                        Preencha os dados da campanha na seção <strong>Campanhas</strong> (alcance, impressões, cliques, valor investido, compras em pelo menos um criativo) para ver o diagnóstico. Opcionalmente, preencha o <strong>Planejamento de valores</strong> na seção <strong>Estratégia</strong> para incluir análise de lucro e CPA limite.
+                        Preencha os dados da campanha na seção <strong>Campanhas</strong> (alcance, impressões, cliques, valor investido, {profileLabels.hintPreencher} em pelo menos um criativo) para ver o diagnóstico. Opcionalmente, preencha o <strong>Planejamento de valores</strong> na seção <strong>Estratégia</strong> para incluir análise de lucro e {profileLabels.custoPorResultadoShort} limite.
                       </p>
                     ) : (
                       <>
@@ -1856,13 +1943,13 @@ export default function AnalyticsPage() {
                     </div>
                     {statusAlerts.length === 0 ? (
                       <p className="text-sm text-gogh-grayDark bg-gogh-grayLight/50 rounded-lg p-3">
-                        Preencha os dados da campanha na seção <strong>Campanhas</strong> para ver o diagnóstico. Opcionalmente, preencha o <strong>Planejamento de valores</strong> na seção <strong>Estratégia</strong> para incluir análise de lucro e CPA limite.
+                        Preencha os dados da campanha na seção <strong>Campanhas</strong> para ver o diagnóstico. Opcionalmente, preencha o <strong>Planejamento de valores</strong> na seção <strong>Estratégia</strong> para incluir análise de lucro e {profileLabels.custoPorResultadoShort} limite.
                       </p>
                     ) : (
                       <div>
                         <p className="text-xs text-gogh-grayDark mb-2">
                           {roiEnabled && valorNum > 0
-                            ? 'Análise considerando Planejamento de valores (lucro e CPA limite).'
+                            ? `Análise considerando Planejamento de valores (lucro e ${profileLabels.custoPorResultadoShort} limite).`
                             : 'Análise com base nas métricas dos criativos (frequência, CTR, conversão).'}
                         </p>
                         <p className="text-sm font-medium text-gogh-black mb-2">Recomendações:</p>
