@@ -237,10 +237,46 @@ export default function AnalyticsPage() {
   const [newCampaignName, setNewCampaignName] = useState('')
   const [newCampaignStartDate, setNewCampaignStartDate] = useState(() => new Date().toISOString().split('T')[0])
   const [newCampaignBudgetType, setNewCampaignBudgetType] = useState<BudgetTypeMeta>('cbo')
-  const [roiEnabled, setRoiEnabled] = useState(false)
-  const [valorVenda, setValorVenda] = useState<string>('')
-  const [custoVenda, setCustoVenda] = useState<string>('')
-  const [metaLucroPorVenda, setMetaLucroPorVenda] = useState<string>('')
+  const [roiEnabled, setRoiEnabled] = useState(() => {
+    if (typeof window === 'undefined') return false
+    if (localStorage.getItem('analytics_selected_campaign_id')) return false
+    try {
+      const raw = localStorage.getItem(PLANEJAMENTO_VALORES_DRAFT_KEY)
+      if (!raw) return false
+      const d = JSON.parse(raw) as { roiEnabled?: boolean }
+      return d.roiEnabled ?? false
+    } catch { return false }
+  })
+  const [valorVenda, setValorVenda] = useState<string>(() => {
+    if (typeof window === 'undefined') return ''
+    if (localStorage.getItem('analytics_selected_campaign_id')) return ''
+    try {
+      const raw = localStorage.getItem(PLANEJAMENTO_VALORES_DRAFT_KEY)
+      if (!raw) return ''
+      const d = JSON.parse(raw) as { valorVenda?: string }
+      return d.valorVenda ?? ''
+    } catch { return '' }
+  })
+  const [custoVenda, setCustoVenda] = useState<string>(() => {
+    if (typeof window === 'undefined') return ''
+    if (localStorage.getItem('analytics_selected_campaign_id')) return ''
+    try {
+      const raw = localStorage.getItem(PLANEJAMENTO_VALORES_DRAFT_KEY)
+      if (!raw) return ''
+      const d = JSON.parse(raw) as { custoVenda?: string }
+      return d.custoVenda ?? ''
+    } catch { return '' }
+  })
+  const [metaLucroPorVenda, setMetaLucroPorVenda] = useState<string>(() => {
+    if (typeof window === 'undefined') return ''
+    if (localStorage.getItem('analytics_selected_campaign_id')) return ''
+    try {
+      const raw = localStorage.getItem(PLANEJAMENTO_VALORES_DRAFT_KEY)
+      if (!raw) return ''
+      const d = JSON.parse(raw) as { metaLucroPorVenda?: string }
+      return d.metaLucroPorVenda ?? ''
+    } catch { return '' }
+  })
   const [alcance, setAlcance] = useState<string>('')
   const [impressoes, setImpressoes] = useState<string>('')
   const [cliquesLink, setCliquesLink] = useState<string>('')
@@ -782,6 +818,10 @@ setSavedCampaignSignature(
     setCampaignCalendarSelectedDate((prev) => (prev ? prev : start))
   }, [selectedCampaign?.start_date])
 
+  // Status único para ambos os perfis (só análise + estratégia e análise): quando planejamento de valores
+  // está preenchido (roiEnabled + valor/custo), inclui alertas de CPA vs limite e lucro; quando não está,
+  // análise só por frequência, CTR, conversão e meta de criativos. Exibido no card Status (só análise)
+  // e no dia da agenda (estratégia e análise).
   const { score, statusGeral, statusAlerts, hasDataForDiagnosis, maturidade, maturidadeLabel } = useMemo(() => {
     // Campanha pausada: mostrar estado dedicado em vez de diagnóstico ativo
     if (selectedCampaign && !selectedCampaign.is_active) {
@@ -1502,6 +1542,8 @@ setSavedCampaignSignature(
               PLANEJAMENTO_VALORES_DRAFT_KEY,
               JSON.stringify({ roiEnabled, valorVenda, custoVenda, metaLucroPorVenda })
             )
+            // Evitar que, ao recarregar, uma campanha seja restaurada e sobrescreva o rascunho
+            window.localStorage.removeItem('analytics_selected_campaign_id')
           }
           setSavedPlanejamentoDraft({ roiEnabled, valorVenda, custoVenda, metaLucroPorVenda })
           toast.success('Planejamento de valores salvo. Será usado como referência para todas as campanhas.')
