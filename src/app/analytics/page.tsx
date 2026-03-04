@@ -1432,7 +1432,7 @@ export default function AnalyticsPage() {
                     : 'Perfil de venda, planejamento de valores, orçamento por fases, agenda de ações e status. Tudo para analisar, planejar e decidir.',
                   <TrendingUp className="w-4 h-4 text-gogh-grayDark" />,
                   <div className="pt-2 space-y-3">
-                    <div className="text-[7px] text-gogh-grayDark -mt-1 space-y-0.5 leading-tight">
+                    <div className="text-[7px] text-gogh-grayDark -mt-1 space-y-2 leading-tight">
                       {hasExistingAds === true ? (
                         <>
                           <p>Nesta seção: perfil de análise (forma de venda), planejamento de valores (CPA/lucro) e status da campanha.</p>
@@ -1450,7 +1450,7 @@ export default function AnalyticsPage() {
                         <Target className="w-3 h-3 text-gogh-yellow" />
                         Perfil de análise (forma de venda)
                       </p>
-                      <div className="space-y-0.5 text-[7px] text-gogh-grayDark leading-tight">
+                      <div className="space-y-2 text-[7px] text-gogh-grayDark leading-tight">
                         <p>Defina como seu negócio vende ou gera resultados.</p>
                         <p>Campos, métricas e recomendações do Status se adaptam a este perfil.</p>
                       </div>
@@ -1477,7 +1477,7 @@ export default function AnalyticsPage() {
                         <DollarSign className="w-3 h-3 text-gogh-yellow" />
                         Planejamento de valores
                       </p>
-                      <div className="space-y-0.5 text-[7px] text-gogh-grayDark leading-tight">
+                      <div className="space-y-2 text-[7px] text-gogh-grayDark leading-tight">
                         <p>Não são dados do Meta.</p>
                         <p>Valor da venda e custo por venda para lucro e recomendações no Status.</p>
                       </div>
@@ -1558,7 +1558,7 @@ export default function AnalyticsPage() {
                       </p>
                     ) : hasExistingAds === true ? (
                       <div className="space-y-4 pt-4 border-t border-gogh-grayLight">
-                        <div className="space-y-0.5 text-[7px] text-gogh-grayDark leading-tight">
+                        <div className="space-y-2 text-[7px] text-gogh-grayDark leading-tight">
                           <p>Acompanhe o status da campanha abaixo.</p>
                           <p>Use o planejamento de valores (CPA, lucro) para saber se está dentro da meta.</p>
                         </div>
@@ -1625,7 +1625,7 @@ export default function AnalyticsPage() {
                             <DollarSign className="w-3 h-3 text-gogh-yellow" />
                             Planejamento de orçamento
                           </p>
-                          <div className="space-y-0.5 text-[7px] text-gogh-grayDark mb-1.5 leading-tight">
+                          <div className="space-y-2 text-[7px] text-gogh-grayDark mb-1.5 leading-tight">
                             <p>Valor que pretende investir e por quantos dias. <strong>Não altera dados reais</strong> — use para planejamento.</p>
                             <p>Preencha o valor investido na seção Campanhas com o real.</p>
                           </div>
@@ -1687,7 +1687,7 @@ export default function AnalyticsPage() {
                             </div>
                           )}
                           <div className="rounded-lg border border-gogh-grayLight bg-white p-2 space-y-1.5 mb-3">
-                            <div className="space-y-0.5 text-[7px] text-gogh-grayDark leading-tight">
+                            <div className="space-y-2 text-[7px] text-gogh-grayDark leading-tight">
                               <p>Preencha valor e duração da fase; nível e meta de criativos vêm das fases e aparecem no Status.</p>
                               <p>Duração de {MIN_DIAS_FASE} a {MAX_DIAS_FASE} dias. Análise se adapta à maturidade (dias, impressões, conversões).</p>
                             </div>
@@ -1748,7 +1748,7 @@ export default function AnalyticsPage() {
                                 )
                               })()}
                             </div>
-                            <div className="space-y-0.5 text-[7px] text-gogh-grayDark leading-tight">
+                            <div className="space-y-2 text-[7px] text-gogh-grayDark leading-tight">
                               <p>Menos dias com mais R$/dia costuma entregar melhor no Meta.</p>
                               <p>Duração {MIN_DIAS_FASE}–{MAX_DIAS_FASE} dias; recomendações se adaptam à maturidade.</p>
                             </div>
