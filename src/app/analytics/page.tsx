@@ -1358,13 +1358,17 @@ export default function AnalyticsPage() {
                 {accordionCard(
                   'estrategia',
                   'Análise, estratégia e planejamento',
-                  selectedCampaignId && planoOtimizacao.daysSinceStart != null
+                  hasExistingAds === true
+                    ? 'Perfil, planejamento de valores (CPA) e status da campanha.'
+                    : selectedCampaignId && planoOtimizacao.daysSinceStart != null
                     ? `Nível ${strategyTier.label} · Dia ${planoOtimizacao.daysSinceStart} — Perfil, valores, agenda de ações e status`
                     : 'Perfil de venda, planejamento de valores, orçamento por fases, agenda de ações e status. Tudo para analisar, planejar e decidir.',
                   <TrendingUp className="w-4 h-4 text-gogh-grayDark" />,
                   <div className="pt-3 space-y-4">
                     <p className="text-sm text-gogh-grayDark -mt-1">
-                      Nesta seção: perfil de análise (forma de venda), valores do negócio, nível de investimento, planejamento de orçamento por fases, calendário com ações por dia e resumo de status. Use para tomar decisões com base nos dados.
+                      {hasExistingAds === true
+                        ? 'Nesta seção: perfil de análise (forma de venda), planejamento de valores (CPA/lucro) e status da campanha. Use para acompanhar se está dentro da meta.'
+                        : 'Nesta seção: perfil de análise (forma de venda), valores do negócio, nível de investimento, planejamento de orçamento por fases, calendário com ações por dia e resumo de status. Use para tomar decisões com base nos dados.'}
                     </p>
                     <div className="rounded-lg border-2 border-gogh-yellow/50 bg-gogh-yellow/5 p-3 space-y-2">
                       <p className="text-xs font-semibold text-gogh-black flex items-center gap-1.5">
@@ -1477,6 +1481,58 @@ export default function AnalyticsPage() {
                       <p className="text-sm text-gogh-grayDark rounded-lg border border-gogh-grayLight bg-gogh-beige/30 p-4">
                         Selecione uma campanha na seção <strong>Campanhas</strong> para ver a estratégia e o plano de otimização.
                       </p>
+                    ) : hasExistingAds === true ? (
+                      <div className="space-y-4 pt-4 border-t border-gogh-grayLight">
+                        <p className="text-xs text-gogh-grayDark">
+                          Acompanhe o status da campanha abaixo. Use o planejamento de valores (CPA, lucro) para saber se está dentro da meta.
+                        </p>
+                        <Card className="w-full max-w-[280px] py-2 px-2 border border-gogh-grayLight shadow-sm shrink-0">
+                          <CardContent className="p-2 space-y-1.5">
+                            <p className="text-[11px] font-semibold text-gogh-black flex items-center gap-1">
+                              <AlertCircle className="w-3.5 h-3.5 text-gogh-grayDark shrink-0" />
+                              Status
+                            </p>
+                            {selectedCampaign && !selectedCampaign.is_active ? (
+                              <div className="rounded border border-amber-200 bg-amber-50/80 p-1.5 text-amber-800 text-[10px] leading-snug">
+                                <p className="font-medium">Campanha pausada</p>
+                                <p className="mt-0.5 opacity-90">Ative em Campanhas.</p>
+                              </div>
+                            ) : !hasDataForDiagnosis ? (
+                              <p className="text-[10px] text-gogh-grayDark leading-snug">Preencha Campanhas para ver o status.</p>
+                            ) : (
+                              <>
+                                <div className="flex flex-wrap items-center gap-1.5">
+                                  <span className={`inline-flex items-center rounded px-1.5 py-0.5 text-[11px] font-bold ${
+                                    statusGeral === 'saudável' ? 'bg-green-100 text-green-800' :
+                                    statusGeral === 'estável' ? 'bg-blue-100 text-blue-800' :
+                                    statusGeral === 'alerta' ? 'bg-amber-100 text-amber-800' : 'bg-red-100 text-red-800'
+                                  }`}>
+                                    {score}/100
+                                  </span>
+                                  <span className="text-[10px] font-medium text-gogh-black">
+                                    {statusGeral === 'saudável' && 'Saudável'}
+                                    {statusGeral === 'estável' && 'Estável'}
+                                    {statusGeral === 'alerta' && 'Alerta'}
+                                    {statusGeral === 'crítica' && 'Crítica'}
+                                  </span>
+                                </div>
+                                {statusAlerts.length > 0 ? (
+                                  <ul className="space-y-1 text-[10px]">
+                                    {statusAlerts.slice(0, 3).map((a, i) => (
+                                      <li key={i} className={`rounded border-l-2 pl-1 leading-snug ${
+                                        a.type === 'success' ? 'border-green-500 text-green-800' :
+                                        a.type === 'warning' ? 'border-amber-500 text-amber-800' : 'border-red-500 text-red-800'
+                                      }`}>
+                                        {a.action}
+                                      </li>
+                                    ))}
+                                  </ul>
+                                ) : null}
+                              </>
+                            )}
+                          </CardContent>
+                        </Card>
+                      </div>
                     ) : !selectedCampaign?.start_date || planoOtimizacao.daysSinceStart == null ? (
                       <p className="text-sm text-gogh-grayDark rounded-lg border border-gogh-grayLight bg-gogh-beige/30 p-4">
                         Defina a data de início da campanha para calcular o plano de otimização por dia.
