@@ -1813,9 +1813,6 @@ export default function AnalyticsPage() {
                                             Fase em execução: <strong className="text-gogh-black">Fase {currentPhaseNum}</strong>
                                           </p>
                                         )}
-                                        <p className="text-[10px] text-gogh-grayDark border-t border-gogh-grayLight/50 pt-1.5">
-                                          Meta de criativos: <strong className="text-gogh-black">{strategyTier.minCreatives} a {strategyTier.maxCreatives} ativos</strong>
-                                        </p>
                                       </div>
                                     ) : (
                                       <>
@@ -1839,9 +1836,6 @@ export default function AnalyticsPage() {
                                             Fase em execução: <strong className="text-gogh-black">Fase {currentPhaseNum}</strong>
                                           </p>
                                         )}
-                                        <p className="text-[10px] text-gogh-grayDark border-t border-gogh-grayLight/50 pt-1.5">
-                                          Meta de criativos: <strong className="text-gogh-black">{strategyTier.minCreatives} a {strategyTier.maxCreatives} ativos</strong>
-                                        </p>
                                         {statusAlerts.length > 0 ? (
                                           <ul className="space-y-1 text-[10px]">
                                             {statusAlerts.slice(0, 3).map((a, i) => (
@@ -1862,13 +1856,14 @@ export default function AnalyticsPage() {
                             )
                           })()}
                         </div>
+                        {budgetPhases.length > 0 ? (
                         <div className="rounded-lg bg-gogh-grayLight/40 border border-gogh-grayLight p-3 space-y-2 mt-6">
                           <p className="text-xs font-semibold text-gogh-black flex items-center gap-1.5">
                             <TrendingUp className="w-3.5 h-3.5 text-gogh-yellow" />
-                            Estratégia: nível {strategyTier.label}
+                            Estratégia: Nível {strategyTier.label}
                           </p>
                           <p className="text-xs text-gogh-grayDark">
-                            Faixa do nível {strategyTier.label}: <strong>{strategyTier.description}</strong> — referência para meta de criativos e plano de otimização.
+                            Faixa do Nível {strategyTier.label}: <strong>{strategyTier.description}</strong> — referência para meta de criativos e plano de otimização.
                           </p>
                           {strategyTier.investimentoPlanejadoPorDia != null ? (
                             <p className="text-xs text-gogh-black">
@@ -1876,13 +1871,24 @@ export default function AnalyticsPage() {
                             </p>
                           ) : (
                             <p className="text-xs text-gogh-grayDark">
-                              {budgetPhases.length > 0 ? 'Adicione fases acima para o nível ser definido pelo planejamento.' : 'Defina as fases de orçamento acima para o nível da estratégia e o valor/dia refletirem seu planejamento.'}
+                              Adicione fases acima para o nível ser definido pelo planejamento.
                             </p>
                           )}
                           <p className="text-xs text-gogh-black pt-1 border-t border-gogh-grayLight/80">
                             Meta de criativos: <strong>{strategyTier.minCreatives} a {strategyTier.maxCreatives} ativos</strong>
                           </p>
                         </div>
+                        ) : (
+                        <div className="rounded-lg bg-gogh-grayLight/40 border border-gogh-grayLight p-3 space-y-2 mt-6">
+                          <p className="text-xs font-semibold text-gogh-black flex items-center gap-1.5">
+                            <TrendingUp className="w-3.5 h-3.5 text-gogh-yellow" />
+                            Estratégia
+                          </p>
+                          <p className="text-xs text-gogh-grayDark">
+                            Adicione fases de orçamento acima para o nível da estratégia, o valor/dia e a meta de criativos serem definidos.
+                          </p>
+                        </div>
+                        )}
                       </div>
                     )}
                   </div>
