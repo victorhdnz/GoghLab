@@ -1547,19 +1547,6 @@ export default function AnalyticsPage() {
                           <p className="text-xs text-gogh-grayDark mb-2">
                             Valor que você pretende investir e por quantos dias. <strong>Não altera os dados reais</strong> da campanha — use para planejamento; preencha o valor investido na seção Campanhas com o real.
                           </p>
-                          {hasExistingAds === true && (
-                            <label className="flex items-center gap-2 cursor-pointer mb-3 rounded-lg border border-gogh-grayLight bg-white p-2">
-                              <input
-                                type="checkbox"
-                                checked={useStrategyFromPhases}
-                                onChange={(e) => setUseStrategyFromPhases(e.target.checked)}
-                                className="rounded border-gogh-grayLight"
-                              />
-                              <span className="text-[11px] text-gogh-grayDark">
-                                Usar planejamento de orçamento (fases) para definir o nível da estratégia
-                              </span>
-                            </label>
-                          )}
                           <div className="mb-3 rounded-lg border border-gogh-grayLight bg-gogh-beige/20 p-2">
                             <p className="text-[11px] font-medium text-gogh-black mb-1.5">No Meta, como você define o orçamento?</p>
                             <div className="flex flex-wrap gap-3">
