@@ -1315,11 +1315,11 @@ export default function AnalyticsPage() {
                 {accordionCard(
                   'inicio',
                   'Como você está?',
-                  hasExistingAds === true ? 'Já tenho anúncio ou campanha' : hasExistingAds === false ? 'Vou criar do zero' : 'Defina para personalizar o fluxo',
+                  hasExistingAds === true ? 'Foco em análise e status' : hasExistingAds === false ? 'Estratégia, agenda e análise integradas' : 'Defina para personalizar o fluxo',
                   <Target className="w-4 h-4 text-gogh-grayDark" />,
                   <div className="pt-3 space-y-4">
                     <p className="text-sm text-gogh-grayDark">
-                      Assim o painel se adapta: quem já tem anúncio/campanha rodando continua com gestão e análise; quem ainda não tem nada criado segue do planejamento até a criação.
+                      Quem já tem campanhas rodando usa o painel com foco em análise e status para decisões. Quem escolhe o ecossistema completo tem estratégia, agenda e análise trabalhando juntas para as melhores tomadas de decisão em cada momento.
                     </p>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <button
@@ -1330,8 +1330,8 @@ export default function AnalyticsPage() {
                         }}
                         className={`rounded-xl border-2 p-4 text-left transition-colors ${hasExistingAds === true ? 'border-gogh-yellow bg-gogh-yellow/10' : 'border-gogh-grayLight hover:border-gogh-grayLight/80 bg-white'}`}
                       >
-                        <span className="block font-medium text-gogh-black">Já tenho anúncio ou campanha rodando</span>
-                        <span className="block text-xs text-gogh-grayDark mt-0.5">Quero continuar com gestão e análise dos dados.</span>
+                        <span className="block font-medium text-gogh-black">Já tenho campanhas rodando</span>
+                        <span className="block text-xs text-gogh-grayDark mt-0.5">Quero apenas análise e status para decisões, sem recomendações de estratégia.</span>
                       </button>
                       <button
                         type="button"
@@ -1341,8 +1341,8 @@ export default function AnalyticsPage() {
                         }}
                         className={`rounded-xl border-2 p-4 text-left transition-colors ${hasExistingAds === false ? 'border-gogh-yellow bg-gogh-yellow/10' : 'border-gogh-grayLight hover:border-gogh-grayLight/80 bg-white'}`}
                       >
-                        <span className="block font-medium text-gogh-black">Ainda não tenho nada criado</span>
-                        <span className="block text-xs text-gogh-grayDark mt-0.5">Preciso criar estratégia, campanhas e anúncios do zero.</span>
+                        <span className="block font-medium text-gogh-black">Quero estratégia, análise e agenda integradas</span>
+                        <span className="block text-xs text-gogh-grayDark mt-0.5">Auxílio completo para criar e gerir: planejamento, fases, calendário de ações e análises no mesmo fluxo.</span>
                       </button>
                     </div>
                   </div>
@@ -1697,8 +1697,15 @@ export default function AnalyticsPage() {
                             todayDate.setHours(0, 0, 0, 0)
                             const dayNumToday = getDayNum(todayDate)
                             const currentPhaseNum = dayNumToday != null && budgetPhases.length > 0 ? getPhaseForDay(dayNumToday) + 1 : null
+                            const isSelectedDayPastOrToday = campaignCalendarSelectedDate && (() => {
+                              const d = new Date(campaignCalendarSelectedDate)
+                              d.setHours(0, 0, 0, 0)
+                              const t = new Date()
+                              t.setHours(0, 0, 0, 0)
+                              return d.getTime() <= t.getTime()
+                            })()
                             return (
-                              <div className="mb-4 flex flex-col lg:flex-row lg:flex-wrap lg:items-start lg:gap-4 lg:max-w-[620px]">
+                              <div className="mb-4 flex flex-col lg:max-w-[420px]">
                                 <div className="flex flex-col items-center min-w-0 shrink-0">
                                 <Card className="w-full max-w-[380px] py-3 border border-gogh-grayLight shadow-sm">
                                   <CardContent className="px-3">
@@ -1766,10 +1773,28 @@ export default function AnalyticsPage() {
                                     </div>
                                     {budgetPhases.length > 0 && campaignCalendarSelectedDate && getDayNum(campaignCalendarSelectedDate) != null && (
                                       <>
-                                        <div className="rounded-md bg-gogh-beige/30 border border-gogh-grayLight/80 p-1.5 text-[11px] text-gogh-grayDark w-full">
+                                        <div className="rounded-md bg-gogh-beige/30 border border-gogh-grayLight/80 p-1.5 text-[11px] text-gogh-grayDark w-full space-y-1.5">
                                           <p className="font-medium text-gogh-black text-[11px]">Dia {getDayNum(campaignCalendarSelectedDate)} da campanha · Fase {getPhaseForDay(getDayNum(campaignCalendarSelectedDate)!) + 1}</p>
                                           {getMilestoneShort(getDayNum(campaignCalendarSelectedDate)!) && (
                                             <p className="mt-0.5 leading-snug text-[11px]">{getMilestoneShort(getDayNum(campaignCalendarSelectedDate)!)}</p>
+                                          )}
+                                          {isSelectedDayPastOrToday && hasDataForDiagnosis && selectedCampaign?.is_active !== false && statusAlerts.length > 0 && (
+                                            <div className="border-t border-gogh-grayLight/60 pt-1.5 mt-1">
+                                              <p className="text-[10px] font-medium text-gogh-black mb-0.5">Análise (dados preenchidos):</p>
+                                              <ul className="space-y-0.5 text-[10px]">
+                                                {statusAlerts.slice(0, 4).map((a, i) => (
+                                                  <li key={i} className={`rounded border-l-2 pl-1 leading-snug ${
+                                                    a.type === 'success' ? 'border-green-500 text-green-800' :
+                                                    a.type === 'warning' ? 'border-amber-500 text-amber-800' : 'border-red-500 text-red-800'
+                                                  }`}>
+                                                    {a.action}
+                                                  </li>
+                                                ))}
+                                              </ul>
+                                            </div>
+                                          )}
+                                          {isSelectedDayPastOrToday && !hasDataForDiagnosis && (
+                                            <p className="text-[10px] text-gogh-grayDark border-t border-gogh-grayLight/60 pt-1.5 mt-1">Preencha os dados em Campanhas para ver a análise neste dia.</p>
                                           )}
                                         </div>
                                         {isActionDay(getDayNum(campaignCalendarSelectedDate)!) && (
@@ -1786,64 +1811,6 @@ export default function AnalyticsPage() {
                                   </CardFooter>
                                 </Card>
                                 </div>
-                                <Card className="w-full lg:w-[180px] lg:max-w-[180px] py-2 px-2 border border-gogh-grayLight shadow-sm shrink-0">
-                                  <CardContent className="p-2 space-y-1.5">
-                                    <p className="text-[11px] font-semibold text-gogh-black flex items-center gap-1">
-                                      <AlertCircle className="w-3.5 h-3.5 text-gogh-grayDark shrink-0" />
-                                      Status
-                                    </p>
-                                    {selectedCampaign && !selectedCampaign.is_active ? (
-                                      <div className="rounded border border-amber-200 bg-amber-50/80 p-1.5 text-amber-800 text-[10px] leading-snug">
-                                        <p className="font-medium">Campanha pausada</p>
-                                        <p className="mt-0.5 opacity-90">Ative em Campanhas.</p>
-                                      </div>
-                                    ) : !hasDataForDiagnosis ? (
-                                      <div className="space-y-1.5">
-                                        <p className="text-[10px] text-gogh-grayDark leading-snug">Preencha Campanhas para ver o status.</p>
-                                        {currentPhaseNum != null && (
-                                          <p className="text-[10px] text-gogh-grayDark border-t border-gogh-grayLight/50 pt-1.5">
-                                            Fase em execução: <strong className="text-gogh-black">Fase {currentPhaseNum}</strong>
-                                          </p>
-                                        )}
-                                      </div>
-                                    ) : (
-                                      <>
-                                        <div className="flex flex-wrap items-center gap-1.5">
-                                          <span className={`inline-flex items-center rounded px-1.5 py-0.5 text-[11px] font-bold ${
-                                            statusGeral === 'saudável' ? 'bg-green-100 text-green-800' :
-                                            statusGeral === 'estável' ? 'bg-blue-100 text-blue-800' :
-                                            statusGeral === 'alerta' ? 'bg-amber-100 text-amber-800' : 'bg-red-100 text-red-800'
-                                          }`}>
-                                            {score}/100
-                                          </span>
-                                          <span className="text-[10px] font-medium text-gogh-black">
-                                            {statusGeral === 'saudável' && 'Saudável'}
-                                            {statusGeral === 'estável' && 'Estável'}
-                                            {statusGeral === 'alerta' && 'Alerta'}
-                                            {statusGeral === 'crítica' && 'Crítica'}
-                                          </span>
-                                        </div>
-                                        {currentPhaseNum != null && (
-                                          <p className="text-[10px] text-gogh-grayDark border-t border-gogh-grayLight/50 pt-1.5">
-                                            Fase em execução: <strong className="text-gogh-black">Fase {currentPhaseNum}</strong>
-                                          </p>
-                                        )}
-                                        {statusAlerts.length > 0 ? (
-                                          <ul className="space-y-1 text-[10px]">
-                                            {statusAlerts.slice(0, 3).map((a, i) => (
-                                              <li key={i} className={`rounded border-l-2 pl-1 leading-snug ${
-                                                a.type === 'success' ? 'border-green-500 text-green-800' :
-                                                a.type === 'warning' ? 'border-amber-500 text-amber-800' : 'border-red-500 text-red-800'
-                                              }`}>
-                                                {a.action}
-                                              </li>
-                                            ))}
-                                          </ul>
-                                        ) : null}
-                                      </>
-                                    )}
-                                  </CardContent>
-                                </Card>
                               </div>
                             )
                           })()}
