@@ -1490,6 +1490,26 @@ setSavedCampaignSignature(
 
   const handleSaveProfile = async () => {
     if (!selectedCampaignId) {
+      // Salvar apenas Planejamento de valores (venda, custo, lucro): referência para todas as campanhas. CBO/ABO e perfil ficam para quando criar ou selecionar campanha.
+      if (isPlanejamentoDirty) {
+        if (!isRoiComplete && roiEnabled) {
+          toast.error('Marque "Usar planejamento de valores" e preencha o Preço (R$) ou desmarque para salvar.')
+          return
+        }
+        try {
+          if (typeof window !== 'undefined') {
+            localStorage.setItem(
+              PLANEJAMENTO_VALORES_DRAFT_KEY,
+              JSON.stringify({ roiEnabled, valorVenda, custoVenda, metaLucroPorVenda })
+            )
+          }
+          setSavedPlanejamentoDraft({ roiEnabled, valorVenda, custoVenda, metaLucroPorVenda })
+          toast.success('Planejamento de valores salvo. Será usado como referência para todas as campanhas.')
+        } catch (e: any) {
+          toast.error(e?.message || 'Erro ao salvar')
+        }
+        return
+      }
       toast.error('Selecione ou crie uma campanha na seção Campanhas para salvar as alterações.')
       return
     }
