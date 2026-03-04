@@ -404,6 +404,14 @@ export default function AnalyticsPage() {
     toast.success('Última fase removida')
   }
 
+  const removeBudgetPhaseAt = (index: number) => {
+    if (index < 0 || index >= budgetPhases.length || !selectedCampaignId) return
+    const next = budgetPhases.filter((_, i) => i !== index)
+    setBudgetPhases(next)
+    persistBudgetPhases(selectedCampaignId, next)
+    toast.success('Fase removida')
+  }
+
   useEffect(() => {
     if (typeof window !== 'undefined') localStorage.setItem(BUDGET_TYPE_STORAGE_KEY, budgetTypeMeta)
   }, [budgetTypeMeta])
@@ -879,6 +887,8 @@ export default function AnalyticsPage() {
       return isRoiComplete ? 'bg-emerald-50/80 border-emerald-300' : 'bg-red-50/80 border-red-300'
     }
     if (sectionId === 'campanhas') {
+      if (campaignsLoading || creativesLoading || (selectedCampaignId && campaigns.length === 0))
+        return 'bg-white border-gogh-grayLight'
       const campanhasDirty = isProfileDirty
       const campanhasIncomplete = selectedCampaignId && !isDadosCampanhaComplete
       if (campanhasDirty || campanhasIncomplete)
@@ -1001,7 +1011,7 @@ export default function AnalyticsPage() {
     }
   }
 
-  const canSaveProfile = selectedCampaignId && isRoiComplete && isProfileDirty
+  const canSaveProfile = selectedCampaignId && isRoiComplete && (isProfileDirty || isInicioDirty)
 
   const handleSaveProfile = async () => {
     if (!selectedCampaignId) return
@@ -1286,23 +1296,24 @@ export default function AnalyticsPage() {
                             </div>
                           </div>
                           {valorNum > 0 ? (
-                            <div className={`rounded-lg border-2 p-2.5 text-xs ${
+                            <div className={`rounded-md border p-1.5 text-[11px] max-w-full ${
                               lucroPorVenda > 0 ? 'bg-green-50 border-green-200' : lucroPorVenda < 0 ? 'bg-red-50 border-red-200' : 'bg-amber-50 border-amber-200'
                             }`}>
-                              <p className="font-medium text-gogh-black">Lucro/venda: {lucroPorVenda > 0 ? (
+                              <span className="font-medium text-gogh-black">Lucro/venda: </span>
+                              {lucroPorVenda > 0 ? (
                                 <span className="text-green-700">R$ {lucroPorVenda.toFixed(2).replace('.', ',')}</span>
                               ) : lucroPorVenda < 0 ? (
                                 <span className="text-red-700">R$ {lucroPorVenda.toFixed(2).replace('.', ',')}</span>
                               ) : (
                                 <span className="text-amber-700">R$ 0,00</span>
-                              )}</p>
+                              )}
                               {custoMaxAceitavel > 0 && (
-                                <p className="text-gogh-grayDark mt-0.5">CPA máximo aceitável: R$ {custoMaxAceitavel.toFixed(2).replace('.', ',')}</p>
+                                <span className="text-gogh-grayDark ml-1.5">· CPA máx: R$ {custoMaxAceitavel.toFixed(2).replace('.', ',')}</span>
                               )}
                               {lucroPorVenda > 0 && custoMaxAceitavel > 0 && (
-                                <p className="text-green-700 mt-0.5 flex items-center gap-1">
-                                  <CheckCircle2 className="w-3 h-3" /> Mantenha o CPA abaixo de R$ {custoMaxAceitavel.toFixed(2).replace('.', ',')}.
-                                </p>
+                                <span className="text-green-700 ml-1 flex items-center gap-0.5">
+                                  <CheckCircle2 className="w-3 h-3 shrink-0" /> CPA &lt; R$ {custoMaxAceitavel.toFixed(2).replace('.', ',')}
+                                </span>
                               )}
                             </div>
                           ) : (
@@ -1393,11 +1404,20 @@ export default function AnalyticsPage() {
                                   dayOffset = diaFim
                                   const porDia = phase.dias > 0 ? phase.valor / phase.dias : 0
                                   return (
-                                    <div key={phase.id} className="rounded-lg border border-gogh-grayLight bg-gogh-beige/30 px-2.5 py-1.5 text-[11px]">
-                                      <span className="font-medium text-gogh-black">Fase {index + 1}:</span>{' '}
+                                    <div key={phase.id} className="flex items-center justify-between gap-2 rounded-lg border border-gogh-grayLight bg-gogh-beige/30 px-2.5 py-1.5 text-[11px]">
+                                      <span><span className="font-medium text-gogh-black">Fase {index + 1}:</span>{' '}
                                       <span className="text-gogh-grayDark">R$ {phase.valor.toFixed(2).replace('.', ',')} · {phase.dias} dias</span>
                                       <span className="text-gogh-grayDark"> (R$ {porDia.toFixed(2).replace('.', ',')}/dia)</span>
-                                      {startDate && <span className="block text-gogh-grayDark mt-0.5">Dias {diaInicio}–{diaFim}</span>}
+                                      {startDate && <span className="block text-gogh-grayDark mt-0.5">Dias {diaInicio}–{diaFim}</span>}</span>
+                                      <button
+                                        type="button"
+                                        onClick={() => removeBudgetPhaseAt(index)}
+                                        title="Excluir esta fase"
+                                        className="shrink-0 p-1 rounded text-red-600 hover:bg-red-50 transition-colors"
+                                        aria-label="Excluir fase"
+                                      >
+                                        <Trash2 className="w-3.5 h-3.5" />
+                                      </button>
                                     </div>
                                   )
                                 })
@@ -1466,15 +1486,6 @@ export default function AnalyticsPage() {
                                     >
                                       {budgetPhases.length === 0 ? 'Adicionar fase' : 'Adicionar'}
                                     </button>
-                                    {budgetPhases.length > 0 && (
-                                      <button
-                                        type="button"
-                                        onClick={removeLastBudgetPhase}
-                                        className="text-[11px] text-gogh-grayDark hover:text-gogh-black underline"
-                                      >
-                                        Remover última
-                                      </button>
-                                    )}
                                   </>
                                 )
                               })()}
@@ -1488,7 +1499,7 @@ export default function AnalyticsPage() {
                             start.setHours(0, 0, 0, 0)
                             const totalDias = budgetPhases.length > 0
                               ? Math.min(budgetPhases.reduce((s, p) => s + p.dias, 0), 60)
-                              : 0
+                              : 30
                             const endDate = new Date(start)
                             endDate.setDate(endDate.getDate() + totalDias)
                             const getDayNum = (date: Date): number | null => {
@@ -1519,7 +1530,6 @@ export default function AnalyticsPage() {
                             }
                             return (
                               <div className="mb-4 flex flex-col items-center">
-                                <p className="text-[10px] text-gogh-grayDark mb-1.5 text-center">Amarelo = campanha · Verde = atualizar · Verde claro = preenchido</p>
                                 <Card className="w-full max-w-[380px] py-3 border border-gogh-grayLight shadow-sm">
                                   <CardContent className="px-3">
                                     <DayPickerCalendar
@@ -1903,7 +1913,7 @@ export default function AnalyticsPage() {
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-6 mt-6 border-t border-gogh-grayLight">
                   <p className="text-xs text-gogh-grayDark">
                     {selectedCampaignId
-                      ? (isProfileDirty ? 'Alterações não salvas. Clique em Salvar na campanha para gravar.' : 'Dados da campanha salvos.')
+                      ? ((isProfileDirty || isInicioDirty) ? 'Alterações não salvas. Clique em Salvar configurações para gravar.' : 'Configurações salvas.')
                       : 'Selecione uma campanha e preencha os dados para poder salvar.'}
                   </p>
                   <ShinyButton
@@ -1922,7 +1932,7 @@ export default function AnalyticsPage() {
                     ) : (
                       <>
                         <RefreshCw className="w-4 h-4 shrink-0" />
-                        Salvar na campanha
+                        Salvar configurações
                       </>
                     )}
                   </ShinyButton>

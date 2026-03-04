@@ -648,6 +648,20 @@ export default function ContentPlanningPage() {
     const d = new Date()
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
   }, [])
+  useEffect(() => {
+    setPersonalizedVideoEntries((prev) => {
+      const needUpdate = prev.some((e) => !e.date.startsWith(realCurrentMonthKey))
+      if (!needUpdate) return prev
+      const now = new Date()
+      const y = now.getFullYear()
+      const m = now.getMonth()
+      const lastDay = new Date(y, m + 1, 0).getDate()
+      const minDate = `${y}-${String(m + 1).padStart(2, '0')}-01`
+      const todayStr = `${y}-${String(m + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+      const defaultDate = todayStr >= minDate && todayStr <= `${y}-${String(m + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}` ? todayStr : minDate
+      return prev.map((e) => (e.date.startsWith(realCurrentMonthKey) ? e : { ...e, date: defaultDate }))
+    })
+  }, [realCurrentMonthKey])
   const isViewedMonthCurrent = currentMonthKey === realCurrentMonthKey
   const hasAutoPlanGeneratedItemInMonth = useMemo(
     () =>
@@ -1502,20 +1516,29 @@ export default function ContentPlanningPage() {
                 <p className="text-xs text-gogh-grayDark">
                   Para dias em que você já sabe o que quer: descreva o vídeo (tema, estilo, roteiro para voz IA, motion design, etc.). Na geração da agenda, a IA não criará conteúdo automático nesses dias — usará sua descrição.
                 </p>
+                <div className="rounded-lg border border-amber-200 bg-amber-50/80 p-2.5 text-xs text-amber-900">
+                  <p className="font-medium mb-0.5">Válido apenas para o mês da geração</p>
+                  <p className="text-amber-800">
+                    As adições aqui valem somente para o mês em que você gerar a agenda (mês atual). Após gerar ou ao mudar de mês, os campos voltam a ficar em branco — a cada mês você pode definir novos vídeos personalizados para esse mês.
+                  </p>
+                </div>
                 {(() => {
-                  const y = currentMonth.getFullYear()
-                  const m = currentMonth.getMonth()
+                  const now = new Date()
+                  const y = now.getFullYear()
+                  const m = now.getMonth()
                   const lastDay = new Date(y, m + 1, 0).getDate()
                   const minDate = `${y}-${String(m + 1).padStart(2, '0')}-01`
                   const maxDate = `${y}-${String(m + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`
-                  const now = new Date()
-                  const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+                  const todayStr = `${y}-${String(m + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
                   const defaultDateForNew =
-                    now.getFullYear() === y && now.getMonth() === m && todayStr >= minDate && todayStr <= maxDate
-                      ? todayStr
-                      : minDate
+                    todayStr >= minDate && todayStr <= maxDate ? todayStr : minDate
+                  const currentMonthName = now.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })
+                  const isDateInCurrentMonth = (dateStr: string) => dateStr.startsWith(realCurrentMonthKey)
                   return (
                     <>
+                      <p className="text-[11px] text-gogh-grayDark">
+                        Apenas dias do mês atual (<strong>{currentMonthName}</strong>) podem ser selecionados.
+                      </p>
                       <HoverButton
                         type="button"
                         onClick={() => setPersonalizedVideoEntries((prev) => [...prev, { date: defaultDateForNew, instruction: '' }])}
@@ -1534,12 +1557,24 @@ export default function ContentPlanningPage() {
                                   type="date"
                                   min={minDate}
                                   max={maxDate}
-                                  value={entry.date}
-                                  onChange={(e) => setPersonalizedVideoEntries((prev) => {
-                                    const next = [...prev]
-                                    next[idx] = { ...next[idx], date: e.target.value }
-                                    return next
-                                  })}
+                                  value={isDateInCurrentMonth(entry.date) ? entry.date : defaultDateForNew}
+                                  onChange={(e) => {
+                                    const val = e.target.value
+                                    if (!val.startsWith(realCurrentMonthKey)) {
+                                      toast.error(`Só é possível escolher dias do mês atual (${currentMonthName}).`)
+                                      setPersonalizedVideoEntries((prev) => {
+                                        const next = [...prev]
+                                        next[idx] = { ...next[idx], date: defaultDateForNew }
+                                        return next
+                                      })
+                                      return
+                                    }
+                                    setPersonalizedVideoEntries((prev) => {
+                                      const next = [...prev]
+                                      next[idx] = { ...next[idx], date: val }
+                                      return next
+                                    })
+                                  }}
                                   className="px-2 py-1.5 border border-gogh-grayLight rounded text-sm"
                                 />
                                 <button

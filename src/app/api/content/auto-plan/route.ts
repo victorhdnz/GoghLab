@@ -359,6 +359,7 @@ export async function POST(request: Request) {
       )
     }
 
+    // Datas já ocupadas: itens existentes + vídeos personalizados (nessas datas a IA não gera do zero; o front cria itens com a descrição do cliente).
     const occupiedDates = new Set((existingItemsInMonth || []).map((it: any) => it.date))
     for (const pv of personalizedVideos) {
       occupiedDates.add(pv.date)
@@ -403,6 +404,7 @@ export async function POST(request: Request) {
     const fixedCaption = (bodyFixedCaption || (prefs.fixed_structure_caption ?? '')).trim()
     const fixedAdCopy = (bodyFixedAdCopy || (prefs.fixed_structure_ad_copy ?? '')).trim()
     const fixedCover = (bodyFixedCover || (prefs.fixed_structure_cover ?? '')).trim()
+    // Estrutura fixa: aplicada a todos os conteúdos gerados pela IA (roteiro, legenda, ad_copy, capa). Na geração sob demanda (/api/content/generate) também é aplicada a itens personalizados.
     const hasFixedStructures = fixedScript || fixedCaption || fixedAdCopy || fixedCover
     const fixedStructuresBlock = hasFixedStructures
       ? [
