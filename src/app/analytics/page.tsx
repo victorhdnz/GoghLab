@@ -1085,7 +1085,7 @@ export default function AnalyticsPage() {
     valorTotalFaturado,
   ])
   const currentCreativesSignature = useMemo(() => buildCreativesSignature(creatives), [creatives])
-  const isCampaignSigDirty = !!selectedCampaignId && currentCampaignSignature !== savedCampaignSignature
+  const isCampaignSigDirty = !!selectedCampaignId && savedCampaignSignature.length > 0 && currentCampaignSignature !== savedCampaignSignature
   const isCreativesDirty =
     !!selectedCampaignId &&
     creatives.length > 0 &&
@@ -1283,10 +1283,13 @@ export default function AnalyticsPage() {
   }
 
   const hasAnyDirty = isProfileDirty || isInicioDirty || isBudgetTypeDirty || analyticsProfile !== savedAnalyticsProfile
-  const canSaveProfile = !!selectedCampaignId && hasAnyDirty
+  const canSaveProfile = (!!selectedCampaignId && hasAnyDirty) || isEstrategiaDirty
 
   const handleSaveProfile = async () => {
-    if (!selectedCampaignId) return
+    if (!selectedCampaignId) {
+      toast.error('Selecione ou crie uma campanha na seção Campanhas para salvar as alterações.')
+      return
+    }
     if (!isRoiComplete) {
       toast.error('Marque "Usar planejamento de valores" e preencha o Preço (R$) ou desmarque para salvar.')
       return
@@ -1498,13 +1501,13 @@ export default function AnalyticsPage() {
                     <div className="text-xs text-gogh-grayDark -mt-1 space-y-2 leading-snug">
                       {hasExistingAds === true ? (
                         <>
-                          <p>Nesta seção: perfil de análise (forma de venda), planejamento de valores (CPA/lucro) e status da campanha.</p>
-                          <p>Use para acompanhar se está dentro da meta.</p>
+                          <p className="text-xs leading-snug">Nesta seção: perfil de análise (forma de venda), planejamento de valores (CPA/lucro) e status da campanha.</p>
+                          <p className="text-xs leading-snug">Use para acompanhar se está dentro da meta.</p>
                         </>
                       ) : (
                         <>
-                          <p>Nesta seção: perfil de análise (forma de venda), valores do negócio, nível de investimento, planejamento por fases, calendário e resumo de status.</p>
-                          <p>Use para tomar decisões com base nos dados.</p>
+                          <p className="text-xs leading-snug">Nesta seção: perfil de análise (forma de venda), valores do negócio, nível de investimento, planejamento por fases, calendário e resumo de status.</p>
+                          <p className="text-xs leading-snug">Use para tomar decisões com base nos dados.</p>
                         </>
                       )}
                     </div>
@@ -1514,8 +1517,8 @@ export default function AnalyticsPage() {
                         Perfil de análise (forma de venda)
                       </p>
                       <div className="space-y-2 text-xs text-gogh-grayDark leading-snug">
-                        <p>Defina como seu negócio vende ou gera resultados.</p>
-                        <p>Campos, métricas e recomendações do Status se adaptam a este perfil.</p>
+                        <p className="text-xs leading-snug">Defina como seu negócio vende ou gera resultados.</p>
+                        <p className="text-xs leading-snug">Campos, métricas e recomendações do Status se adaptam a este perfil.</p>
                       </div>
                       <div className="flex flex-wrap gap-2">
                         {(Object.keys(ANALYTICS_PROFILES) as AnalyticsProfileKey[]).map((key) => (
@@ -1541,8 +1544,8 @@ export default function AnalyticsPage() {
                         Planejamento de valores
                       </p>
                       <div className="space-y-2 text-xs text-gogh-grayDark leading-snug">
-                        <p>Não são dados do Meta.</p>
-                        <p>Valor da venda e custo por venda para lucro e recomendações no Status.</p>
+                        <p className="text-xs leading-snug">Não são dados do Meta.</p>
+                        <p className="text-xs leading-snug">Valor da venda e custo por venda para lucro e recomendações no Status.</p>
                       </div>
                       <label className="flex items-center gap-2 cursor-pointer">
                         <input
@@ -1643,8 +1646,8 @@ export default function AnalyticsPage() {
                             ) : (
                               <>
                         <div className="space-y-2 text-xs text-gogh-grayDark leading-snug">
-                          <p>Acompanhe o status da campanha abaixo.</p>
-                          <p>Use o planejamento de valores (CPA, lucro) para saber se está dentro da meta.</p>
+                          <p className="text-xs leading-snug">Acompanhe o status da campanha abaixo.</p>
+                          <p className="text-xs leading-snug">Use o planejamento de valores (CPA, lucro) para saber se está dentro da meta.</p>
                         </div>
                         <Card className="w-full max-w-[280px] py-2 px-2 border border-gogh-grayLight shadow-sm shrink-0">
                           <CardContent className="p-2 space-y-1.5">
@@ -1765,8 +1768,8 @@ export default function AnalyticsPage() {
                             Planejamento de orçamento
                           </p>
                           <div className="space-y-2 text-xs text-gogh-grayDark mb-1.5 leading-snug">
-                            <p>Valor que pretende investir e por quantos dias. <strong>Não altera dados reais</strong> — use para planejamento.</p>
-                            <p>Preencha o valor investido na seção Campanhas com o real.</p>
+                            <p className="text-xs leading-snug">Valor que pretende investir e por quantos dias. <strong>Não altera dados reais</strong> — use para planejamento.</p>
+                            <p className="text-xs leading-snug">Preencha o valor investido na seção Campanhas com o real.</p>
                           </div>
                           <div className="mb-3 rounded-lg border border-gogh-grayLight bg-gogh-beige/20 p-2 space-y-2">
                             <p className="text-[11px] font-medium text-gogh-black mb-0.5">No Meta, como você define o orçamento?</p>
@@ -1831,8 +1834,8 @@ export default function AnalyticsPage() {
                           )}
                           <div className="rounded-lg border border-gogh-grayLight bg-white p-2 space-y-1.5 mb-3">
                             <div className="space-y-2 text-xs text-gogh-grayDark leading-snug">
-                              <p>Preencha valor e duração da fase; nível e meta de criativos vêm das fases e aparecem no Status.</p>
-                              <p>Duração de {MIN_DIAS_FASE} a {MAX_DIAS_FASE} dias. Análise se adapta à maturidade (dias, impressões, conversões).</p>
+                              <p className="text-xs leading-snug">Preencha valor e duração da fase; nível e meta de criativos vêm das fases e aparecem no Status.</p>
+                              <p className="text-xs leading-snug">Duração de {MIN_DIAS_FASE} a {MAX_DIAS_FASE} dias. Análise se adapta à maturidade (dias, impressões, conversões).</p>
                             </div>
                             <label className="flex items-center gap-2 cursor-pointer mb-1.5">
                               <input
@@ -1892,8 +1895,8 @@ export default function AnalyticsPage() {
                               })()}
                             </div>
                             <div className="space-y-2 text-xs text-gogh-grayDark leading-snug">
-                              <p>Menos dias com mais R$/dia costuma entregar melhor no Meta.</p>
-                              <p>Duração {MIN_DIAS_FASE}–{MAX_DIAS_FASE} dias; recomendações se adaptam à maturidade.</p>
+                              <p className="text-xs leading-snug">Menos dias com mais R$/dia costuma entregar melhor no Meta.</p>
+                              <p className="text-xs leading-snug">Duração {MIN_DIAS_FASE}–{MAX_DIAS_FASE} dias; recomendações se adaptam à maturidade.</p>
                             </div>
                           </div>
                           {selectedCampaign?.start_date && (() => {
