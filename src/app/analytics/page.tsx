@@ -1081,7 +1081,7 @@ export default function AnalyticsPage() {
     valorTotalFaturado,
   ])
   const currentCreativesSignature = useMemo(() => buildCreativesSignature(creatives), [creatives])
-  const isCampaignSigDirty = !!selectedCampaignId && savedCampaignSignature.length > 0 && currentCampaignSignature !== savedCampaignSignature
+  const isCampaignSigDirty = !!selectedCampaignId && currentCampaignSignature !== savedCampaignSignature
   const isCreativesDirty =
     !!selectedCampaignId &&
     creatives.length > 0 &&
@@ -1277,10 +1277,15 @@ export default function AnalyticsPage() {
     }
   }
 
-  const canSaveProfile = selectedCampaignId && isRoiComplete && (isProfileDirty || isInicioDirty || analyticsProfile !== savedAnalyticsProfile)
+  const hasAnyDirty = isProfileDirty || isInicioDirty || analyticsProfile !== savedAnalyticsProfile
+  const canSaveProfile = !!selectedCampaignId && hasAnyDirty
 
   const handleSaveProfile = async () => {
     if (!selectedCampaignId) return
+    if (!isRoiComplete) {
+      toast.error('Marque "Usar planejamento de valores" e preencha o Preço (R$) ou desmarque para salvar.')
+      return
+    }
     if (creatives.length > 0) {
       const incomplete = creatives.find(
         (c) =>
