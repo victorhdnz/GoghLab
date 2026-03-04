@@ -267,6 +267,13 @@ export default function AnalyticsPage() {
     if (typeof window === 'undefined') return 'cbo'
     return (localStorage.getItem(BUDGET_TYPE_STORAGE_KEY) === 'abo' ? 'abo' : 'cbo') as BudgetTypeMeta
   })
+  // Baseline do rascunho de Planejamento de valores (quando não há campanha) para detectar dirty e acionar card verde / botão salvar
+  const [savedPlanejamentoDraft, setSavedPlanejamentoDraft] = useState<{
+    roiEnabled: boolean
+    valorVenda: string
+    custoVenda: string
+    metaLucroPorVenda: string
+  } | null>(null)
   const [useAutoDiasRecommendation, setUseAutoDiasRecommendation] = useState(() => {
     if (typeof window === 'undefined') return true
     const v = localStorage.getItem(AUTO_DIAS_RECOMMENDATION_KEY)
@@ -429,20 +436,21 @@ export default function AnalyticsPage() {
         setBudgetTypeMeta(bt)
         setSavedBudgetTypeMeta(bt)
         if (typeof window !== 'undefined') localStorage.setItem(BUDGET_TYPE_STORAGE_KEY, bt)
-        setSavedCampaignSignature(
-          JSON.stringify({
-            roi_enabled: c.roi_enabled,
-            valor_venda: c.valor_venda != null ? String(c.valor_venda) : '',
-            custo_venda: c.custo_venda != null ? String(c.custo_venda) : '',
-            meta_lucro_por_venda: c.meta_lucro_por_venda != null ? String(c.meta_lucro_por_venda) : '',
-            alcance: c.alcance != null ? String(c.alcance) : '',
-            impressoes: c.impressoes != null ? String(c.impressoes) : '',
-            cliques_link: c.cliques_link != null ? String(c.cliques_link) : '',
-            valor_investido: c.valor_investido != null ? String(c.valor_investido) : '',
-            compras: c.compras != null ? String(c.compras) : '',
-            valor_total_faturado: c.valor_total_faturado != null ? String(c.valor_total_faturado) : '',
-          })
-        )
+setSavedCampaignSignature(
+        JSON.stringify({
+          roi_enabled: c.roi_enabled,
+          valor_venda: c.valor_venda != null ? String(c.valor_venda) : '',
+          custo_venda: c.custo_venda != null ? String(c.custo_venda) : '',
+          meta_lucro_por_venda: c.meta_lucro_por_venda != null ? String(c.meta_lucro_por_venda) : '',
+          alcance: c.alcance != null ? String(c.alcance) : '',
+          impressoes: c.impressoes != null ? String(c.impressoes) : '',
+          cliques_link: c.cliques_link != null ? String(c.cliques_link) : '',
+          valor_investido: c.valor_investido != null ? String(c.valor_investido) : '',
+          compras: c.compras != null ? String(c.compras) : '',
+          valor_total_faturado: c.valor_total_faturado != null ? String(c.valor_total_faturado) : '',
+        })
+      )
+        setSavedPlanejamentoDraft(null)
         return
       }
     }
@@ -452,12 +460,25 @@ export default function AnalyticsPage() {
         const raw = localStorage.getItem(PLANEJAMENTO_VALORES_DRAFT_KEY)
         if (raw) {
           const d = JSON.parse(raw) as { roiEnabled?: boolean; valorVenda?: string; custoVenda?: string; metaLucroPorVenda?: string }
-          setRoiEnabled(d.roiEnabled ?? false)
-          setValorVenda(d.valorVenda ?? '')
-          setCustoVenda(d.custoVenda ?? '')
-          setMetaLucroPorVenda(d.metaLucroPorVenda ?? '')
+          const loaded = {
+            roiEnabled: d.roiEnabled ?? false,
+            valorVenda: d.valorVenda ?? '',
+            custoVenda: d.custoVenda ?? '',
+            metaLucroPorVenda: d.metaLucroPorVenda ?? '',
+          }
+          setRoiEnabled(loaded.roiEnabled)
+          setValorVenda(loaded.valorVenda)
+          setCustoVenda(loaded.custoVenda)
+          setMetaLucroPorVenda(loaded.metaLucroPorVenda)
+          setSavedPlanejamentoDraft(loaded)
+        } else {
+          setSavedPlanejamentoDraft(null)
         }
-      } catch {}
+      } catch {
+        setSavedPlanejamentoDraft(null)
+      }
+    } else {
+      setSavedPlanejamentoDraft(null)
     }
   }, [mounted, selectedCampaignId, campaigns])
 
@@ -1160,7 +1181,16 @@ export default function AnalyticsPage() {
     currentCreativesSignature !== savedCreativesSignature
   const isProfileDirty = isCampaignSigDirty || isCreativesDirty
   const isBudgetTypeDirty = budgetTypeMeta !== savedBudgetTypeMeta
-  const isEstrategiaDirty = isProfileDirty || isBudgetTypeDirty || analyticsProfile !== savedAnalyticsProfile
+  // Sem campanha: dirty se Planejamento de valores difere do rascunho carregado (ou se há valor e ainda não há baseline)
+  const isPlanejamentoDirty =
+    !selectedCampaignId &&
+    (savedPlanejamentoDraft == null
+      ? roiEnabled || (valorVenda ?? '').trim() !== '' || (custoVenda ?? '').trim() !== '' || (metaLucroPorVenda ?? '').trim() !== ''
+      : roiEnabled !== savedPlanejamentoDraft.roiEnabled ||
+        (valorVenda ?? '') !== savedPlanejamentoDraft.valorVenda ||
+        (custoVenda ?? '') !== savedPlanejamentoDraft.custoVenda ||
+        (metaLucroPorVenda ?? '') !== savedPlanejamentoDraft.metaLucroPorVenda)
+  const isEstrategiaDirty = isProfileDirty || isBudgetTypeDirty || analyticsProfile !== savedAnalyticsProfile || isPlanejamentoDirty
   // Perfil "só análise": exige criativos preenchidos. Perfil "estratégia e análise": não exige (campanha pode ter sido criada pelo planejamento sem dados ainda).
   const isDadosCampanhaComplete =
     hasExistingAds === true
