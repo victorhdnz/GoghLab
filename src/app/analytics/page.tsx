@@ -29,7 +29,7 @@ import { LumaSpin } from '@/components/ui/luma-spin'
 import { ShinyButton } from '@/components/ui/shiny-button'
 import toast from 'react-hot-toast'
 
-type AnalyticsAccordionId = 'inicio' | 'campanhas' | 'roi' | 'status' | 'estrategia'
+type AnalyticsAccordionId = 'inicio' | 'estrategia' | 'campanhas' | 'status'
 
 interface AnalyticsCampaign {
   id: string
@@ -184,6 +184,13 @@ export default function AnalyticsPage() {
   const [campaignCalendarSelectedDate, setCampaignCalendarSelectedDate] = useState<Date | undefined>(undefined)
   const [filledDatesSet, setFilledDatesSet] = useState<Set<string>>(new Set())
   const [hasExistingAds, setHasExistingAds] = useState<boolean | null>(() => {
+    if (typeof window === 'undefined') return null
+    const v = localStorage.getItem(HAS_EXISTING_ADS_KEY)
+    if (v === '1') return true
+    if (v === '0') return false
+    return null
+  })
+  const [savedHasExistingAds, setSavedHasExistingAds] = useState<boolean | null>(() => {
     if (typeof window === 'undefined') return null
     const v = localStorage.getItem(HAS_EXISTING_ADS_KEY)
     if (v === '1') return true
@@ -859,8 +866,18 @@ export default function AnalyticsPage() {
     )
   const isRoiComplete = !roiEnabled || (roiEnabled && (valorVenda ?? '').trim().length > 0)
 
+  const isInicioDirty = hasExistingAds !== savedHasExistingAds
+
   const getAccordionCardClass = (sectionId: AnalyticsAccordionId): string => {
-    if (sectionId === 'inicio' || sectionId === 'status' || sectionId === 'estrategia') return 'bg-white border-gogh-grayLight'
+    if (sectionId === 'inicio') {
+      if (isInicioDirty) return 'bg-emerald-50/80 border-emerald-300'
+      return 'bg-white border-gogh-grayLight'
+    }
+    if (sectionId === 'status') return 'bg-white border-gogh-grayLight'
+    if (sectionId === 'estrategia') {
+      if (!isProfileDirty) return 'bg-white border-gogh-grayLight'
+      return isRoiComplete ? 'bg-emerald-50/80 border-emerald-300' : 'bg-red-50/80 border-red-300'
+    }
     if (sectionId === 'campanhas') {
       const campanhasDirty = isProfileDirty
       const campanhasIncomplete = selectedCampaignId && !isDadosCampanhaComplete
@@ -868,16 +885,12 @@ export default function AnalyticsPage() {
         return isDadosCampanhaComplete ? 'bg-emerald-50/80 border-emerald-300' : 'bg-red-50/80 border-red-300'
       return 'bg-white border-gogh-grayLight'
     }
-    if (!isProfileDirty) return 'bg-white border-gogh-grayLight'
-    if (sectionId === 'roi') {
-      return isRoiComplete ? 'bg-emerald-50/80 border-emerald-300' : 'bg-red-50/80 border-red-300'
-    }
     return 'bg-white border-gogh-grayLight'
   }
 
   const getFieldBorderClass = (sectionId: AnalyticsAccordionId): string => {
     if (!isProfileDirty) return 'border-gogh-grayLight'
-    if (sectionId === 'roi') return isRoiComplete ? 'border-emerald-400 focus:ring-emerald-200' : 'border-red-300 focus:ring-red-200'
+    if (sectionId === 'estrategia') return isRoiComplete ? 'border-emerald-400 focus:ring-emerald-200' : 'border-red-300 focus:ring-red-200'
     return 'border-gogh-grayLight'
   }
 
@@ -1047,6 +1060,7 @@ export default function AnalyticsPage() {
 
       toast.success('Alterações salvas na campanha')
       localStorage.setItem('gogh_analytics_ja_salvou', '1')
+      setSavedHasExistingAds(hasExistingAds)
     } catch (e: any) {
       toast.error(e?.message || 'Erro ao salvar')
     } finally {
@@ -1181,7 +1195,10 @@ export default function AnalyticsPage() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <button
                         type="button"
-                        onClick={() => setHasExistingAds(true)}
+                        onClick={() => {
+                          setHasExistingAds(true)
+                          if (typeof window !== 'undefined') localStorage.setItem(HAS_EXISTING_ADS_KEY, '1')
+                        }}
                         className={`rounded-xl border-2 p-4 text-left transition-colors ${hasExistingAds === true ? 'border-gogh-yellow bg-gogh-yellow/10' : 'border-gogh-grayLight hover:border-gogh-grayLight/80 bg-white'}`}
                       >
                         <span className="block font-medium text-gogh-black">Já tenho anúncio ou campanha rodando</span>
@@ -1189,7 +1206,10 @@ export default function AnalyticsPage() {
                       </button>
                       <button
                         type="button"
-                        onClick={() => setHasExistingAds(false)}
+                        onClick={() => {
+                          setHasExistingAds(false)
+                          if (typeof window !== 'undefined') localStorage.setItem(HAS_EXISTING_ADS_KEY, '0')
+                        }}
                         className={`rounded-xl border-2 p-4 text-left transition-colors ${hasExistingAds === false ? 'border-gogh-yellow bg-gogh-yellow/10' : 'border-gogh-grayLight hover:border-gogh-grayLight/80 bg-white'}`}
                       >
                         <span className="block font-medium text-gogh-black">Ainda não tenho nada criado</span>
@@ -1200,315 +1220,97 @@ export default function AnalyticsPage() {
                 )}
 
                 {accordionCard(
-                  'roi',
-                  'Planejamento de valores',
-                  null,
-                  <DollarSign className="w-4 h-4 text-gogh-grayDark" />,
-                  <div className="pt-3 space-y-4">
-                    <p className="text-sm text-gogh-grayDark">
-                      Não são dados do Meta. Configure o <strong>valor da venda</strong> e o <strong>custo por venda</strong> do seu negócio para o sistema refletir lucro e recomendações no Status.
-                    </p>
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={roiEnabled}
-                        onChange={(e) => setRoiEnabled(e.target.checked)}
-                        className="rounded border-gogh-grayLight"
-                      />
-                      <span className="text-sm font-medium text-gogh-grayDark">Usar planejamento de valores no status (valor da venda, custo, lucro)</span>
-                    </label>
-                    {roiEnabled && (
-                      <>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                          <div>
-                            <label className="block text-sm font-medium text-gogh-grayDark mb-1">Preço do produto/serviço (R$)</label>
-                            <input
-                              type="number"
-                              min="0"
-                              step="0.01"
-                              value={valorVenda}
-                              onChange={(e) => setValorVenda(e.target.value)}
-                              placeholder="Ex: 97"
-                              className={`w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 ${getFieldBorderClass('roi')}`}
-                            />
-                            <p className="text-xs text-gogh-grayDark mt-0.5">Preço que você cobra pelo produto ou serviço.</p>
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gogh-grayDark mb-1">Custo variável por venda (R$)</label>
-                            <input
-                              type="number"
-                              min="0"
-                              step="0.01"
-                              value={custoVenda}
-                              onChange={(e) => setCustoVenda(e.target.value)}
-                              placeholder="0 se não tiver (ex.: serviço sem custo variável)"
-                              className={`w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 ${getFieldBorderClass('roi')}`}
-                            />
-                            <p className="text-xs text-gogh-grayDark mt-0.5">O que você gasta para entregar uma unidade (produto, frete, taxa, etc.). Deixe 0 se não tiver.</p>
-                          </div>
-                          <div className="sm:col-span-2">
-                            <label className="block text-sm font-medium text-gogh-grayDark mb-1">Meta de lucro por venda (R$) — opcional</label>
-                            <input
-                              type="number"
-                              min="0"
-                              step="0.01"
-                              value={metaLucroPorVenda}
-                              onChange={(e) => setMetaLucroPorVenda(e.target.value)}
-                              placeholder="Ex: 20 — lucro mínimo desejado por venda"
-                              className={`w-full border rounded-lg px-3 py-2 text-sm max-w-[240px] focus:ring-2 ${getFieldBorderClass('roi')}`}
-                            />
-                            <p className="text-xs text-gogh-grayDark mt-0.5">Quanto você quer lucrar por venda. O sistema usa isso para calcular o custo máximo aceitável (CPA limite).</p>
-                          </div>
-                        </div>
-                        {valorNum > 0 ? (
-                          <div className="space-y-3">
-                            <div
-                              className={`rounded-xl border-2 p-4 ${
-                                lucroPorVenda > 0
-                                  ? 'bg-green-50 border-green-200'
-                                  : lucroPorVenda < 0
-                                    ? 'bg-red-50 border-red-200'
-                                    : 'bg-amber-50 border-amber-200'
-                              }`}
-                            >
-                              <p className="text-sm font-medium text-gogh-black mb-1">Lucro bruto por venda</p>
-                              <p className="text-lg font-bold">
-                                {lucroPorVenda > 0 ? (
-                                  <span className="text-green-700">R$ {lucroPorVenda.toFixed(2).replace('.', ',')}</span>
-                                ) : lucroPorVenda < 0 ? (
-                                  <span className="text-red-700">R$ {lucroPorVenda.toFixed(2).replace('.', ',')}</span>
-                                ) : (
-                                  <span className="text-amber-700">R$ 0,00</span>
-                                )}
-                              </p>
-                              <p className="text-xs text-gogh-grayDark mt-1">
-                                Preço (R$ {valorNum.toFixed(2).replace('.', ',')}) − Custo variável (R$ {custoNum.toFixed(2).replace('.', ',')})
-                              </p>
-                              {valorNum > 0 && lucroPorVenda > 0 && (
-                                <p className="text-xs text-gogh-grayDark mt-2">
-                                  Margem: {((lucroPorVenda / valorNum) * 100).toFixed(1).replace('.', ',')}%
-                                </p>
-                              )}
-                              {custoMaxAceitavel > 0 && (
-                                <div className="mt-3 pt-3 border-t border-gogh-grayLight/50">
-                                  <p className="text-sm font-medium text-gogh-black">Custo máximo aceitável (CPA)</p>
-                                  <p className="text-base font-bold text-gogh-grayDark">R$ {custoMaxAceitavel.toFixed(2).replace('.', ',')}</p>
-                                  <p className="text-xs text-gogh-grayDark mt-0.5">
-                                    {metaLucroNum > 0
-                                      ? `Máximo que você pode gastar por aquisição e ainda manter a meta de lucro (R$ ${metaLucroNum.toFixed(2).replace('.', ',')}).`
-                                      : 'Máximo que você pode gastar por aquisição sem prejuízo (ponto de equilíbrio).'}
-                                  </p>
-                                </div>
-                              )}
-                              {lucroPorVenda > 0 && (
-                                <p className="text-xs font-medium text-green-700 mt-2 flex items-center gap-1">
-                                  <CheckCircle2 className="w-4 h-4" /> Mantenha o CPA da campanha abaixo de R$ {custoMaxAceitavel.toFixed(2).replace('.', ',')} para operar com margem.
-                                </p>
-                              )}
-                              {lucroPorVenda <= 0 && valorNum > 0 && (
-                                <p className="text-xs font-medium text-amber-700 mt-2 flex items-center gap-1">
-                                  <AlertTriangle className="w-4 h-4" /> Ajuste o preço ou o custo variável para ter lucro por venda.
-                                </p>
-                              )}
-                            </div>
-                          </div>
-                        ) : (
-                          <p className="text-sm text-gogh-grayDark bg-gogh-grayLight/50 rounded-lg p-3">
-                            Preencha o valor da venda para ver o lucro por venda (e o máximo que pode gastar por aquisição sem prejuízo).
-                          </p>
-                        )}
-                      </>
-                    )}
-                  </div>
-                )}
-
-                {accordionCard(
-                  'campanhas',
-                  'Campanhas',
-                  selectedCampaign ? `${selectedCampaign.name} · Início ${selectedCampaign.start_date}` : 'Crie, ative ou pause campanhas',
-                  <Megaphone className="w-4 h-4 text-gogh-grayDark" />,
-                  <div className="pt-3 space-y-4 overflow-hidden">
-                    <div className="flex flex-wrap gap-3 items-end min-w-0">
-                      <div className="flex-1 min-w-0 sm:min-w-[160px]">
-                        <label className="block text-sm font-medium text-gogh-grayDark mb-1">Nova campanha</label>
-                        <input
-                          type="text"
-                          value={newCampaignName}
-                          onChange={(e) => setNewCampaignName(e.target.value)}
-                          placeholder="Nome da campanha"
-                          className="w-full min-w-0 border border-gogh-grayLight rounded-lg px-3 py-2 text-sm"
-                        />
-                      </div>
-                      <div className="min-w-0 max-w-full overflow-hidden basis-32 shrink sm:basis-auto sm:min-w-[140px]">
-                        <label className="block text-sm font-medium text-gogh-grayDark mb-1">Início</label>
-                        <input
-                          type="date"
-                          value={newCampaignStartDate}
-                          onChange={(e) => setNewCampaignStartDate(e.target.value)}
-                          className="w-full min-w-0 max-w-full border border-gogh-grayLight rounded-lg px-3 py-2 text-sm box-border"
-                        />
-                      </div>
-                      <button
-                        type="button"
-                        onClick={handleCreateCampaign}
-                        disabled={campaignsLoading}
-                        className="inline-flex items-center gap-2 px-4 py-2 bg-gogh-yellow text-gogh-black rounded-xl hover:bg-gogh-yellow/90 font-medium text-sm transition-colors shrink-0"
-                      >
-                        <Plus className="w-4 h-4" />
-                        Criar
-                      </button>
-                    </div>
-                    {campaignsLoading ? (
-                      <div className="flex justify-center py-4"><LumaSpin size="sm" /></div>
-                    ) : campaigns.length === 0 ? (
-                      <p className="text-sm text-gogh-grayDark py-2">Nenhuma campanha. Crie uma para organizar métricas e decisões por campanha.</p>
-                    ) : (
-                      <ul className="space-y-2">
-                        {campaigns.map((c) => (
-                          <li
-                            key={c.id}
-                            className={`flex items-center justify-between gap-2 rounded-lg border p-3 transition-colors ${
-                              selectedCampaignId === c.id ? 'border-gogh-yellow bg-gogh-yellow/10' : 'border-gogh-grayLight bg-white'
-                            }`}
-                          >
-                            <button
-                              type="button"
-                              onClick={() => setSelectedCampaignId(c.id)}
-                              className="flex-1 text-left min-w-0"
-                            >
-                              <span className="font-medium text-gogh-black block truncate">{c.name}</span>
-                              <span className="text-xs text-gogh-grayDark">
-                                Início: {c.start_date} · {c.is_active ? 'Ativa' : 'Pausada'}
-                              </span>
-                            </button>
-                            <div className="flex items-center gap-1 shrink-0">
-                              <button
-                                type="button"
-                                onClick={() => handleToggleCampaignActive(c)}
-                                title={c.is_active ? 'Pausar' : 'Ativar'}
-                                className="p-2 rounded-lg text-gogh-grayDark hover:bg-gogh-grayLight"
-                              >
-                                {c.is_active ? <span className="text-xs font-medium text-amber-600">Pausar</span> : <span className="text-xs font-medium text-green-600">Ativar</span>}
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => handleDeleteCampaign(c.id)}
-                                title="Excluir"
-                                className="p-2 rounded-lg text-red-600 hover:bg-red-50"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            </div>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                    {selectedCampaignId && (
-                      <div className="border-t border-gogh-grayLight pt-4 mt-4">
-                        <button
-                          type="button"
-                          onClick={() => setCreativosSubOpen((o) => !o)}
-                          className="w-full flex items-center justify-between gap-2 py-2 px-0 text-left"
-                        >
-                          <span className="text-sm font-semibold text-gogh-black flex items-center gap-2">
-                            <ImageIcon className="w-4 h-4 text-gogh-grayDark" />
-                            Criativos desta campanha
-                            {creatives.length > 0 && (
-                              <span className="text-xs font-normal text-gogh-grayDark">({creatives.length})</span>
-                            )}
-                          </span>
-                          {creativosSubOpen ? <ChevronDown className="w-4 h-4 shrink-0" /> : <ChevronRight className="w-4 h-4 shrink-0" />}
-                        </button>
-                        {creativosSubOpen && (
-                          <div className="pt-3 space-y-3">
-                            {creativesLoading ? (
-                              <div className="flex justify-center py-4"><LumaSpin size="sm" /></div>
-                            ) : creatives.length === 0 ? (
-                              <div className="rounded-lg border border-dashed border-gogh-grayLight bg-gogh-beige/20 p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                                <p className="text-xs text-gogh-grayDark">Adicione cada vídeo ou anúncio e preencha as métricas. Os totais alimentam Dados da campanha e o Status.</p>
-                                <button
-                                  type="button"
-                                  onClick={handleAddCreative}
-                                  disabled={addingCreative}
-                                  className="shrink-0 inline-flex items-center gap-2 px-3 py-2 bg-gogh-yellow text-gogh-black rounded-lg text-sm font-medium hover:bg-gogh-yellow/90"
-                                >
-                                  <Plus className="w-4 h-4" />
-                                  {addingCreative ? '...' : 'Adicionar criativo'}
-                                </button>
-                              </div>
-                            ) : (
-                              <>
-                                {creatives.map((cr) => (
-                                  <div key={cr.id} className="rounded-lg border border-gogh-grayLight bg-white p-3 space-y-2">
-                                    <div className="flex items-center gap-2 flex-wrap">
-                                      <input
-                                        type="text"
-                                        value={cr.name}
-                                        onChange={(e) => setCreatives((prev) => prev.map((c) => (c.id === cr.id ? { ...c, name: e.target.value } : c)))}
-                                        placeholder="Nome do criativo"
-                                        className="flex-1 min-w-[120px] border border-gogh-grayLight rounded-lg px-2 py-1.5 text-sm"
-                                      />
-                                      <button type="button" onClick={() => handleDeleteCreative(cr.id)} className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg" aria-label="Excluir"><Trash2 className="w-4 h-4" /></button>
-                                    </div>
-                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                                      <div><label className="block text-xs text-gogh-grayDark">Alcance</label><input type="number" min="0" value={cr.alcance ?? ''} onChange={(e) => setCreatives((prev) => prev.map((c) => (c.id === cr.id ? { ...c, alcance: e.target.value ? Number(e.target.value) : null } : c)))} className="w-full border rounded px-2 py-1 text-sm" /></div>
-                                      <div><label className="block text-xs text-gogh-grayDark">Impressões</label><input type="number" min="0" value={cr.impressoes ?? ''} onChange={(e) => setCreatives((prev) => prev.map((c) => (c.id === cr.id ? { ...c, impressoes: e.target.value ? Number(e.target.value) : null } : c)))} className="w-full border rounded px-2 py-1 text-sm" /></div>
-                                      <div><label className="block text-xs text-gogh-grayDark">Cliques no link</label><input type="number" min="0" value={cr.cliques_link ?? ''} onChange={(e) => setCreatives((prev) => prev.map((c) => (c.id === cr.id ? { ...c, cliques_link: e.target.value ? Number(e.target.value) : null } : c)))} className="w-full border rounded px-2 py-1 text-sm" /></div>
-                                      <div><label className="block text-xs text-gogh-grayDark">Valor usado (R$)</label><input type="number" min="0" step="0.01" value={cr.valor_investido ?? ''} onChange={(e) => setCreatives((prev) => prev.map((c) => (c.id === cr.id ? { ...c, valor_investido: e.target.value ? Number(e.target.value) : null } : c)))} className="w-full border rounded px-2 py-1 text-sm" /></div>
-                                      <div><label className="block text-xs text-gogh-grayDark">Compras</label><input type="number" min="0" value={cr.compras ?? ''} onChange={(e) => setCreatives((prev) => prev.map((c) => (c.id === cr.id ? { ...c, compras: e.target.value ? Number(e.target.value) : null } : c)))} className="w-full border rounded px-2 py-1 text-sm" /></div>
-                                      <div><label className="block text-xs text-gogh-grayDark">Valor de conversão (R$)</label><input type="number" min="0" step="0.01" value={cr.valor_total_faturado ?? ''} onChange={(e) => setCreatives((prev) => prev.map((c) => (c.id === cr.id ? { ...c, valor_total_faturado: e.target.value ? Number(e.target.value) : null } : c)))} className="w-full border rounded px-2 py-1 text-sm" /></div>
-                                    </div>
-                                  </div>
-                                ))}
-                                <button type="button" onClick={handleAddCreative} disabled={addingCreative} className="inline-flex items-center gap-1.5 px-3 py-2 border border-dashed border-gogh-grayLight rounded-lg text-xs font-medium text-gogh-grayDark hover:bg-gogh-grayLight/30">
-                                  <Plus className="w-3.5 h-3.5" />{addingCreative ? '...' : 'Adicionar criativo'}
-                                </button>
-                              </>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                    {selectedCampaignId && (
-                      <div className="border-t border-gogh-grayLight pt-4 mt-4">
-                        <p className="text-xs font-semibold text-gogh-black mb-0.5 flex items-center gap-1.5">
-                          <ClipboardList className="w-3.5 h-3.5" />
-                          Dados e métricas
-                        </p>
-                        <p className="text-xs text-gogh-grayDark mb-2">Calculados de forma automática a partir dos dados preenchidos nos criativos.</p>
-                        {creatives.length > 0 ? (
-                          (impressoesNum > 0 || cliquesNum > 0 || comprasNum > 0 || valorInvestidoNum > 0) ? (
-                            <div className="rounded-lg border border-gogh-grayLight bg-gogh-beige/40 p-3">
-                              <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-1 text-xs">
-                                {alcanceNum > 0 && impressoesNum > 0 && <div><span className="text-gogh-grayDark">Frequência</span> <span className="font-medium">{metricasCampanha.freq.toFixed(2)}</span></div>}
-                                {impressoesNum > 0 && <div><span className="text-gogh-grayDark">CTR (Taxa de Cliques)</span> <span className="font-medium">{metricasCampanha.ctrPct.toFixed(2)}%</span></div>}
-                                {cliquesNum > 0 && <div><span className="text-gogh-grayDark">Conversão</span> <span className="font-medium">{metricasCampanha.taxaConvPct.toFixed(2)}%</span></div>}
-                                {impressoesNum > 0 && valorInvestidoNum > 0 && <div><span className="text-gogh-grayDark">CPM (Custo Por Mil impressões)</span> <span className="font-medium">R$ {metricasCampanha.cpm.toFixed(2)}</span></div>}
-                                {cliquesNum > 0 && valorInvestidoNum > 0 && <div><span className="text-gogh-grayDark">CPC (Custo Por Clique)</span> <span className="font-medium">R$ {metricasCampanha.cpc.toFixed(2)}</span></div>}
-                                {comprasNum > 0 && <div><span className="text-gogh-grayDark">CPA (Custo Por Aquisição)</span> <span className="font-medium">R$ {metricasCampanha.cpaCalculado.toFixed(2)}</span></div>}
-                                {valorInvestidoNum > 0 && valorFaturadoNum > 0 && <div><span className="text-gogh-grayDark">ROAS (Retorno Sobre o Investimento em Anúncios)</span> <span className="font-medium">{metricasCampanha.roas.toFixed(2)}x</span></div>}
-                              </div>
-                            </div>
-                          ) : (
-                            <p className="text-xs text-gogh-grayDark">Preencha os criativos acima para ver os totais.</p>
-                          )
-                        ) : (
-                          <p className="text-xs text-gogh-grayDark rounded-lg border border-gogh-grayLight bg-gogh-beige/20 p-3">Adicione pelo menos um criativo e preencha os dados para ver os totais e o diagnóstico.</p>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {accordionCard(
                   'estrategia',
                   'Estratégia e planejamento de investimento',
-                  selectedCampaignId && planoOtimizacao.daysSinceStart != null ? `Nível ${strategyTier.label} · Dia ${planoOtimizacao.daysSinceStart}` : 'Nível de investimento, meta de criativos e plano de otimização',
+                  selectedCampaignId && planoOtimizacao.daysSinceStart != null ? `Nível ${strategyTier.label} · Dia ${planoOtimizacao.daysSinceStart}` : 'Planejamento de valores, nível de investimento e plano de otimização',
                   <TrendingUp className="w-4 h-4 text-gogh-grayDark" />,
                   <div className="pt-3 space-y-4">
                     <p className="text-sm text-gogh-grayDark">
-                      Estratégia baseada no investimento da campanha selecionada: nível (Baixo/Médio/Alto), meta de criativos ativos e fases do plano de otimização (aprendizado, análise, novos criativos, contínuo).
+                      Configure valores do negócio (para o Status usar lucro e CPA) e a estratégia por investimento da campanha.
                     </p>
+                    <div className="rounded-lg border border-gogh-grayLight bg-gogh-beige/20 p-3 space-y-3">
+                      <p className="text-xs font-semibold text-gogh-black flex items-center gap-1.5">
+                        <DollarSign className="w-3.5 h-3.5 text-gogh-yellow" />
+                        Planejamento de valores
+                      </p>
+                      <p className="text-xs text-gogh-grayDark">
+                        Não são dados do Meta. Valor da venda e custo por venda para o sistema refletir lucro e recomendações no Status.
+                      </p>
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={roiEnabled}
+                          onChange={(e) => setRoiEnabled(e.target.checked)}
+                          className="rounded border-gogh-grayLight"
+                        />
+                        <span className="text-xs font-medium text-gogh-grayDark">Usar planejamento de valores no status (valor da venda, custo, lucro)</span>
+                      </label>
+                      {roiEnabled && (
+                        <>
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                            <div>
+                              <label className="block text-[11px] font-medium text-gogh-grayDark mb-0.5">Preço (R$)</label>
+                              <input
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                value={valorVenda}
+                                onChange={(e) => setValorVenda(e.target.value)}
+                                placeholder="Ex: 97"
+                                className={`w-full border rounded-lg px-2 py-1.5 text-xs focus:ring-2 ${getFieldBorderClass('estrategia')}`}
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-[11px] font-medium text-gogh-grayDark mb-0.5">Custo por venda (R$)</label>
+                              <input
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                value={custoVenda}
+                                onChange={(e) => setCustoVenda(e.target.value)}
+                                placeholder="0"
+                                className={`w-full border rounded-lg px-2 py-1.5 text-xs focus:ring-2 ${getFieldBorderClass('estrategia')}`}
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-[11px] font-medium text-gogh-grayDark mb-0.5">Meta lucro/venda (R$) — opc.</label>
+                              <input
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                value={metaLucroPorVenda}
+                                onChange={(e) => setMetaLucroPorVenda(e.target.value)}
+                                placeholder="Ex: 20"
+                                className={`w-full border rounded-lg px-2 py-1.5 text-xs focus:ring-2 ${getFieldBorderClass('estrategia')}`}
+                              />
+                            </div>
+                          </div>
+                          {valorNum > 0 ? (
+                            <div className={`rounded-lg border-2 p-2.5 text-xs ${
+                              lucroPorVenda > 0 ? 'bg-green-50 border-green-200' : lucroPorVenda < 0 ? 'bg-red-50 border-red-200' : 'bg-amber-50 border-amber-200'
+                            }`}>
+                              <p className="font-medium text-gogh-black">Lucro/venda: {lucroPorVenda > 0 ? (
+                                <span className="text-green-700">R$ {lucroPorVenda.toFixed(2).replace('.', ',')}</span>
+                              ) : lucroPorVenda < 0 ? (
+                                <span className="text-red-700">R$ {lucroPorVenda.toFixed(2).replace('.', ',')}</span>
+                              ) : (
+                                <span className="text-amber-700">R$ 0,00</span>
+                              )}</p>
+                              {custoMaxAceitavel > 0 && (
+                                <p className="text-gogh-grayDark mt-0.5">CPA máximo aceitável: R$ {custoMaxAceitavel.toFixed(2).replace('.', ',')}</p>
+                              )}
+                              {lucroPorVenda > 0 && custoMaxAceitavel > 0 && (
+                                <p className="text-green-700 mt-0.5 flex items-center gap-1">
+                                  <CheckCircle2 className="w-3 h-3" /> Mantenha o CPA abaixo de R$ {custoMaxAceitavel.toFixed(2).replace('.', ',')}.
+                                </p>
+                              )}
+                            </div>
+                          ) : (
+                            <p className="text-[11px] text-gogh-grayDark">Preencha o preço para ver lucro e CPA máximo.</p>
+                          )}
+                        </>
+                      )}
+                    </div>
                     {!selectedCampaignId ? (
                       <p className="text-sm text-gogh-grayDark rounded-lg border border-gogh-grayLight bg-gogh-beige/30 p-4">
                         Selecione uma campanha na seção <strong>Campanhas</strong> para ver a estratégia e o plano de otimização.
@@ -1801,6 +1603,184 @@ export default function AnalyticsPage() {
                 )}
 
                 {accordionCard(
+                  'campanhas',
+                  'Campanhas',
+                  selectedCampaign ? `${selectedCampaign.name} · Início ${selectedCampaign.start_date}` : 'Crie, ative ou pause campanhas',
+                  <Megaphone className="w-4 h-4 text-gogh-grayDark" />,
+                  <div className="pt-3 space-y-4 overflow-hidden">
+                    <div className="flex flex-wrap gap-3 items-end min-w-0">
+                      <div className="flex-1 min-w-0 sm:min-w-[160px]">
+                        <label className="block text-sm font-medium text-gogh-grayDark mb-1">Nova campanha</label>
+                        <input
+                          type="text"
+                          value={newCampaignName}
+                          onChange={(e) => setNewCampaignName(e.target.value)}
+                          placeholder="Nome da campanha"
+                          className="w-full min-w-0 border border-gogh-grayLight rounded-lg px-3 py-2 text-sm"
+                        />
+                      </div>
+                      <div className="min-w-0 max-w-full overflow-hidden basis-32 shrink sm:basis-auto sm:min-w-[140px]">
+                        <label className="block text-sm font-medium text-gogh-grayDark mb-1">Início</label>
+                        <input
+                          type="date"
+                          value={newCampaignStartDate}
+                          onChange={(e) => setNewCampaignStartDate(e.target.value)}
+                          className="w-full min-w-0 max-w-full border border-gogh-grayLight rounded-lg px-3 py-2 text-sm box-border"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleCreateCampaign}
+                        disabled={campaignsLoading}
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-gogh-yellow text-gogh-black rounded-xl hover:bg-gogh-yellow/90 font-medium text-sm transition-colors shrink-0"
+                      >
+                        <Plus className="w-4 h-4" />
+                        Criar
+                      </button>
+                    </div>
+                    {campaignsLoading ? (
+                      <div className="flex justify-center py-4"><LumaSpin size="sm" /></div>
+                    ) : campaigns.length === 0 ? (
+                      <p className="text-sm text-gogh-grayDark py-2">Nenhuma campanha. Crie uma para organizar métricas e decisões por campanha.</p>
+                    ) : (
+                      <ul className="space-y-2">
+                        {campaigns.map((c) => (
+                          <li
+                            key={c.id}
+                            className={`flex items-center justify-between gap-2 rounded-lg border p-3 transition-colors ${
+                              selectedCampaignId === c.id ? 'border-gogh-yellow bg-gogh-yellow/10' : 'border-gogh-grayLight bg-white'
+                            }`}
+                          >
+                            <button
+                              type="button"
+                              onClick={() => setSelectedCampaignId(c.id)}
+                              className="flex-1 text-left min-w-0"
+                            >
+                              <span className="font-medium text-gogh-black block truncate">{c.name}</span>
+                              <span className="text-xs text-gogh-grayDark">
+                                Início: {c.start_date} · {c.is_active ? 'Ativa' : 'Pausada'}
+                              </span>
+                            </button>
+                            <div className="flex items-center gap-1 shrink-0">
+                              <button
+                                type="button"
+                                onClick={() => handleToggleCampaignActive(c)}
+                                title={c.is_active ? 'Pausar' : 'Ativar'}
+                                className="p-2 rounded-lg text-gogh-grayDark hover:bg-gogh-grayLight"
+                              >
+                                {c.is_active ? <span className="text-xs font-medium text-amber-600">Pausar</span> : <span className="text-xs font-medium text-green-600">Ativar</span>}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteCampaign(c.id)}
+                                title="Excluir"
+                                className="p-2 rounded-lg text-red-600 hover:bg-red-50"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                    {selectedCampaignId && (
+                      <div className="border-t border-gogh-grayLight pt-4 mt-4">
+                        <button
+                          type="button"
+                          onClick={() => setCreativosSubOpen((o) => !o)}
+                          className="w-full flex items-center justify-between gap-2 py-2 px-0 text-left"
+                        >
+                          <span className="text-sm font-semibold text-gogh-black flex items-center gap-2">
+                            <ImageIcon className="w-4 h-4 text-gogh-grayDark" />
+                            Criativos desta campanha
+                            {creatives.length > 0 && (
+                              <span className="text-xs font-normal text-gogh-grayDark">({creatives.length})</span>
+                            )}
+                          </span>
+                          {creativosSubOpen ? <ChevronDown className="w-4 h-4 shrink-0" /> : <ChevronRight className="w-4 h-4 shrink-0" />}
+                        </button>
+                        {creativosSubOpen && (
+                          <div className="pt-3 space-y-3">
+                            {creativesLoading ? (
+                              <div className="flex justify-center py-4"><LumaSpin size="sm" /></div>
+                            ) : creatives.length === 0 ? (
+                              <div className="rounded-lg border border-dashed border-gogh-grayLight bg-gogh-beige/20 p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                                <p className="text-xs text-gogh-grayDark">Adicione cada vídeo ou anúncio e preencha as métricas. Os totais alimentam Dados da campanha e o Status.</p>
+                                <button
+                                  type="button"
+                                  onClick={handleAddCreative}
+                                  disabled={addingCreative}
+                                  className="shrink-0 inline-flex items-center gap-2 px-3 py-2 bg-gogh-yellow text-gogh-black rounded-lg text-sm font-medium hover:bg-gogh-yellow/90"
+                                >
+                                  <Plus className="w-4 h-4" />
+                                  {addingCreative ? '...' : 'Adicionar criativo'}
+                                </button>
+                              </div>
+                            ) : (
+                              <>
+                                {creatives.map((cr) => (
+                                  <div key={cr.id} className="rounded-lg border border-gogh-grayLight bg-white p-3 space-y-2">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                      <input
+                                        type="text"
+                                        value={cr.name}
+                                        onChange={(e) => setCreatives((prev) => prev.map((c) => (c.id === cr.id ? { ...c, name: e.target.value } : c)))}
+                                        placeholder="Nome do criativo"
+                                        className="flex-1 min-w-[120px] border border-gogh-grayLight rounded-lg px-2 py-1.5 text-sm"
+                                      />
+                                      <button type="button" onClick={() => handleDeleteCreative(cr.id)} className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg" aria-label="Excluir"><Trash2 className="w-4 h-4" /></button>
+                                    </div>
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                      <div><label className="block text-xs text-gogh-grayDark">Alcance</label><input type="number" min="0" value={cr.alcance ?? ''} onChange={(e) => setCreatives((prev) => prev.map((c) => (c.id === cr.id ? { ...c, alcance: e.target.value ? Number(e.target.value) : null } : c)))} className="w-full border rounded px-2 py-1 text-sm" /></div>
+                                      <div><label className="block text-xs text-gogh-grayDark">Impressões</label><input type="number" min="0" value={cr.impressoes ?? ''} onChange={(e) => setCreatives((prev) => prev.map((c) => (c.id === cr.id ? { ...c, impressoes: e.target.value ? Number(e.target.value) : null } : c)))} className="w-full border rounded px-2 py-1 text-sm" /></div>
+                                      <div><label className="block text-xs text-gogh-grayDark">Cliques no link</label><input type="number" min="0" value={cr.cliques_link ?? ''} onChange={(e) => setCreatives((prev) => prev.map((c) => (c.id === cr.id ? { ...c, cliques_link: e.target.value ? Number(e.target.value) : null } : c)))} className="w-full border rounded px-2 py-1 text-sm" /></div>
+                                      <div><label className="block text-xs text-gogh-grayDark">Valor usado (R$)</label><input type="number" min="0" step="0.01" value={cr.valor_investido ?? ''} onChange={(e) => setCreatives((prev) => prev.map((c) => (c.id === cr.id ? { ...c, valor_investido: e.target.value ? Number(e.target.value) : null } : c)))} className="w-full border rounded px-2 py-1 text-sm" /></div>
+                                      <div><label className="block text-xs text-gogh-grayDark">Compras</label><input type="number" min="0" value={cr.compras ?? ''} onChange={(e) => setCreatives((prev) => prev.map((c) => (c.id === cr.id ? { ...c, compras: e.target.value ? Number(e.target.value) : null } : c)))} className="w-full border rounded px-2 py-1 text-sm" /></div>
+                                      <div><label className="block text-xs text-gogh-grayDark">Valor de conversão (R$)</label><input type="number" min="0" step="0.01" value={cr.valor_total_faturado ?? ''} onChange={(e) => setCreatives((prev) => prev.map((c) => (c.id === cr.id ? { ...c, valor_total_faturado: e.target.value ? Number(e.target.value) : null } : c)))} className="w-full border rounded px-2 py-1 text-sm" /></div>
+                                    </div>
+                                  </div>
+                                ))}
+                                <button type="button" onClick={handleAddCreative} disabled={addingCreative} className="inline-flex items-center gap-1.5 px-3 py-2 border border-dashed border-gogh-grayLight rounded-lg text-xs font-medium text-gogh-grayDark hover:bg-gogh-grayLight/30">
+                                  <Plus className="w-3.5 h-3.5" />{addingCreative ? '...' : 'Adicionar criativo'}
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    {selectedCampaignId && (
+                      <div className="border-t border-gogh-grayLight pt-4 mt-4">
+                        <p className="text-xs font-semibold text-gogh-black mb-0.5 flex items-center gap-1.5">
+                          <ClipboardList className="w-3.5 h-3.5" />
+                          Dados e métricas
+                        </p>
+                        <p className="text-xs text-gogh-grayDark mb-2">Calculados de forma automática a partir dos dados preenchidos nos criativos.</p>
+                        {creatives.length > 0 ? (
+                          (impressoesNum > 0 || cliquesNum > 0 || comprasNum > 0 || valorInvestidoNum > 0) ? (
+                            <div className="rounded-lg border border-gogh-grayLight bg-gogh-beige/40 p-3">
+                              <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-1 text-xs">
+                                {alcanceNum > 0 && impressoesNum > 0 && <div><span className="text-gogh-grayDark">Frequência</span> <span className="font-medium">{metricasCampanha.freq.toFixed(2)}</span></div>}
+                                {impressoesNum > 0 && <div><span className="text-gogh-grayDark">CTR (Taxa de Cliques)</span> <span className="font-medium">{metricasCampanha.ctrPct.toFixed(2)}%</span></div>}
+                                {cliquesNum > 0 && <div><span className="text-gogh-grayDark">Conversão</span> <span className="font-medium">{metricasCampanha.taxaConvPct.toFixed(2)}%</span></div>}
+                                {impressoesNum > 0 && valorInvestidoNum > 0 && <div><span className="text-gogh-grayDark">CPM (Custo Por Mil impressões)</span> <span className="font-medium">R$ {metricasCampanha.cpm.toFixed(2)}</span></div>}
+                                {cliquesNum > 0 && valorInvestidoNum > 0 && <div><span className="text-gogh-grayDark">CPC (Custo Por Clique)</span> <span className="font-medium">R$ {metricasCampanha.cpc.toFixed(2)}</span></div>}
+                                {comprasNum > 0 && <div><span className="text-gogh-grayDark">CPA (Custo Por Aquisição)</span> <span className="font-medium">R$ {metricasCampanha.cpaCalculado.toFixed(2)}</span></div>}
+                                {valorInvestidoNum > 0 && valorFaturadoNum > 0 && <div><span className="text-gogh-grayDark">ROAS (Retorno Sobre o Investimento em Anúncios)</span> <span className="font-medium">{metricasCampanha.roas.toFixed(2)}x</span></div>}
+                              </div>
+                            </div>
+                          ) : (
+                            <p className="text-xs text-gogh-grayDark">Preencha os criativos acima para ver os totais.</p>
+                          )
+                        ) : (
+                          <p className="text-xs text-gogh-grayDark rounded-lg border border-gogh-grayLight bg-gogh-beige/20 p-3">Adicione pelo menos um criativo e preencha os dados para ver os totais e o diagnóstico.</p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {accordionCard(
                   'status',
                   'Status e decisões',
                   hasDataForDiagnosis && statusAlerts.length > 0 ? `Score ${score} · ${statusGeral}` : 'Diagnóstico automático e recomendações',
@@ -1811,7 +1791,7 @@ export default function AnalyticsPage() {
                     </p>
                     {!hasDataForDiagnosis ? (
                       <p className="text-sm text-gogh-grayDark bg-gogh-grayLight/50 rounded-lg p-3">
-                        Preencha os dados da campanha na seção <strong>Campanhas</strong> (alcance, impressões, cliques, valor investido, compras em pelo menos um criativo) para ver o diagnóstico. Opcionalmente, preencha o <strong>Planejamento de valores</strong> para incluir análise de lucro e CPA limite.
+                        Preencha os dados da campanha na seção <strong>Campanhas</strong> (alcance, impressões, cliques, valor investido, compras em pelo menos um criativo) para ver o diagnóstico. Opcionalmente, preencha o <strong>Planejamento de valores</strong> na seção <strong>Estratégia</strong> para incluir análise de lucro e CPA limite.
                       </p>
                     ) : (
                       <>
@@ -1852,7 +1832,7 @@ export default function AnalyticsPage() {
                     </div>
                     {statusAlerts.length === 0 ? (
                       <p className="text-sm text-gogh-grayDark bg-gogh-grayLight/50 rounded-lg p-3">
-                        Preencha os dados da campanha na seção <strong>Campanhas</strong> para ver o diagnóstico. Opcionalmente, preencha o <strong>Planejamento de valores</strong> para incluir análise de lucro e CPA limite.
+                        Preencha os dados da campanha na seção <strong>Campanhas</strong> para ver o diagnóstico. Opcionalmente, preencha o <strong>Planejamento de valores</strong> na seção <strong>Estratégia</strong> para incluir análise de lucro e CPA limite.
                       </p>
                     ) : (
                       <div>
