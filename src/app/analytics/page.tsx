@@ -1310,7 +1310,7 @@ export default function AnalyticsPage() {
         onClick={() => toggleAccordion(id)}
         className="w-full flex items-center justify-between py-2.5 px-3 text-left hover:opacity-90 transition-opacity"
       >
-        <span className="flex items-center gap-2 text-base font-semibold text-gogh-black">
+        <span className="flex items-center gap-2 text-sm font-semibold text-gogh-black">
           {icon}
           {title}
         </span>
@@ -1321,7 +1321,7 @@ export default function AnalyticsPage() {
         )}
       </button>
       {subtitle && accordionOpen !== id && (
-        <p className="px-3 pb-2 text-xs text-gogh-grayDark">{subtitle}</p>
+        <p className="px-3 pb-1.5 text-[11px] text-gogh-grayDark">{subtitle}</p>
       )}
       {accordionOpen === id && (
         <div className="px-3 pb-3 pt-0 border-t border-gogh-grayLight/50">{children}</div>
@@ -1343,7 +1343,7 @@ export default function AnalyticsPage() {
               <BarChart3 className="w-6 h-6 text-gogh-yellow" />
               Gogh Analytics Ads
             </h1>
-            <p className="text-sm text-gogh-grayDark mt-0.5">Análise de anúncios e desempenho</p>
+            <p className="text-xs text-gogh-grayDark mt-0.5">Análise de anúncios e desempenho</p>
           </div>
         </div>
 
@@ -1382,8 +1382,8 @@ export default function AnalyticsPage() {
             {hasAccess && mounted && (
               <section className="p-4 sm:p-6">
                 <div className="mb-4">
-                  <h2 className="text-base sm:text-lg font-semibold text-gogh-black">Painel de campanhas</h2>
-                  <p className="text-xs text-gogh-grayDark mt-0.5">Preencha os dados das campanhas e acompanhe métricas, custos e recomendações.</p>
+                  <h2 className="text-sm sm:text-base font-semibold text-gogh-black">Painel de campanhas</h2>
+                  <p className="text-[11px] text-gogh-grayDark mt-0.5">Preencha os dados das campanhas e acompanhe métricas, custos e recomendações.</p>
                 </div>
                 <div className="space-y-2">
                 {accordionCard(
@@ -1391,8 +1391,8 @@ export default function AnalyticsPage() {
                   'Como você está?',
                   hasExistingAds === true ? 'Foco em análise e status' : hasExistingAds === false ? 'Estratégia, agenda e análise integradas' : 'Defina para personalizar o fluxo',
                   <Target className="w-4 h-4 text-gogh-grayDark" />,
-                  <div className="pt-3 space-y-4">
-                    <p className="text-sm text-gogh-grayDark">
+                  <div className="pt-2 space-y-3">
+                    <p className="text-xs text-gogh-grayDark">
                       Quem já tem campanhas rodando usa o painel com foco em análise e status para decisões. Quem escolhe o ecossistema completo tem estratégia, agenda e análise trabalhando juntas para as melhores tomadas de decisão em cada momento.
                     </p>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -1405,7 +1405,7 @@ export default function AnalyticsPage() {
                         className={`rounded-xl border-2 p-4 text-left transition-colors ${hasExistingAds === true ? 'border-gogh-yellow bg-gogh-yellow/10' : 'border-gogh-grayLight hover:border-gogh-grayLight/80 bg-white'}`}
                       >
                         <span className="block font-medium text-gogh-black">Já tenho campanhas rodando</span>
-                        <span className="block text-xs text-gogh-grayDark mt-0.5">Quero apenas análise e status para decisões, sem recomendações de estratégia.</span>
+                        <span className="block text-[11px] text-gogh-grayDark mt-0.5">Quero apenas análise e status para decisões, sem recomendações de estratégia.</span>
                       </button>
                       <button
                         type="button"
@@ -1416,7 +1416,7 @@ export default function AnalyticsPage() {
                         className={`rounded-xl border-2 p-4 text-left transition-colors ${hasExistingAds === false ? 'border-gogh-yellow bg-gogh-yellow/10' : 'border-gogh-grayLight hover:border-gogh-grayLight/80 bg-white'}`}
                       >
                         <span className="block font-medium text-gogh-black">Quero estratégia, análise e agenda integradas</span>
-                        <span className="block text-xs text-gogh-grayDark mt-0.5">Auxílio completo para criar e gerir: planejamento, fases, calendário de ações e análises no mesmo fluxo.</span>
+                        <span className="block text-[11px] text-gogh-grayDark mt-0.5">Auxílio completo para criar e gerir: planejamento, fases, calendário de ações e análises no mesmo fluxo.</span>
                       </button>
                     </div>
                   </div>
@@ -1431,8 +1431,8 @@ export default function AnalyticsPage() {
                     ? `Nível ${strategyTier.label} · Dia ${planoOtimizacao.daysSinceStart} — Perfil, valores, agenda de ações e status`
                     : 'Perfil de venda, planejamento de valores, orçamento por fases, agenda de ações e status. Tudo para analisar, planejar e decidir.',
                   <TrendingUp className="w-4 h-4 text-gogh-grayDark" />,
-                  <div className="pt-3 space-y-4">
-                    <div className={`text-sm text-gogh-grayDark -mt-1 space-y-2 ${hasExistingAds === true ? '' : ''}`}>
+                  <div className="pt-2 space-y-3">
+                    <div className="text-xs text-gogh-grayDark -mt-1 space-y-1.5">
                       {hasExistingAds === true ? (
                         <>
                           <p>Nesta seção: perfil de análise (forma de venda), planejamento de valores (CPA/lucro) e status da campanha.</p>
@@ -1445,14 +1445,14 @@ export default function AnalyticsPage() {
                         </>
                       )}
                     </div>
-                    <div className="rounded-lg border-2 border-gogh-yellow/50 bg-gogh-yellow/5 p-3 space-y-2">
-                      <p className="text-xs font-semibold text-gogh-black flex items-center gap-1.5">
-                        <Target className="w-3.5 h-3.5 text-gogh-yellow" />
+                    <div className="rounded-lg border-2 border-gogh-yellow/50 bg-gogh-yellow/5 p-2.5 space-y-1.5">
+                      <p className="text-[11px] font-semibold text-gogh-black flex items-center gap-1.5">
+                        <Target className="w-3 h-3 text-gogh-yellow" />
                         Perfil de análise (forma de venda)
                       </p>
-                      <div className="space-y-1.5 text-[11px] text-gogh-grayDark">
+                      <div className="space-y-1 text-[11px] text-gogh-grayDark">
                         <p>Defina como seu negócio vende ou gera resultados.</p>
-                        <p>Os campos de preenchimento, métricas e recomendações do Status se adaptam a este perfil.</p>
+                        <p>Os campos, métricas e recomendações do Status se adaptam a este perfil.</p>
                       </div>
                       <div className="flex flex-wrap gap-2">
                         {(Object.keys(ANALYTICS_PROFILES) as AnalyticsProfileKey[]).map((key) => (
@@ -1463,7 +1463,7 @@ export default function AnalyticsPage() {
                               setAnalyticsProfile(key)
                               if (typeof window !== 'undefined') localStorage.setItem(ANALYTICS_PROFILE_KEY, key)
                             }}
-                            className={`rounded-xl border-2 px-3 py-2 text-left text-xs transition-colors ${analyticsProfile === key ? 'border-gogh-yellow bg-gogh-yellow/20' : 'border-gogh-grayLight bg-white hover:border-gogh-grayDark/30'}`}
+                            className={`rounded-xl border-2 px-2.5 py-1.5 text-left text-[11px] transition-colors ${analyticsProfile === key ? 'border-gogh-yellow bg-gogh-yellow/20' : 'border-gogh-grayLight bg-white hover:border-gogh-grayDark/30'}`}
                           >
                             <span className="font-medium text-gogh-black block">{ANALYTICS_PROFILES[key].label}</span>
                             <span className="text-[10px] text-gogh-grayDark line-clamp-2">{ANALYTICS_PROFILES[key].description}</span>
@@ -1471,15 +1471,13 @@ export default function AnalyticsPage() {
                         ))}
                       </div>
                     </div>
-                    <div className="space-y-1.5 text-sm text-gogh-grayDark">
-                      <p>Configure valores do negócio (para o Status usar lucro e CPA) e a estratégia por investimento da campanha.</p>
-                    </div>
-                    <div className="rounded-lg border border-gogh-grayLight bg-gogh-beige/20 p-3 space-y-3">
-                      <p className="text-xs font-semibold text-gogh-black flex items-center gap-1.5">
-                        <DollarSign className="w-3.5 h-3.5 text-gogh-yellow" />
+                    <p className="text-[11px] text-gogh-grayDark">Configure valores do negócio (para o Status usar lucro e CPA) e a estratégia por investimento da campanha.</p>
+                    <div className="rounded-lg border border-gogh-grayLight bg-gogh-beige/20 p-2.5 space-y-2">
+                      <p className="text-[11px] font-semibold text-gogh-black flex items-center gap-1.5">
+                        <DollarSign className="w-3 h-3 text-gogh-yellow" />
                         Planejamento de valores
                       </p>
-                      <div className="space-y-1.5 text-xs text-gogh-grayDark">
+                      <div className="space-y-1 text-[11px] text-gogh-grayDark">
                         <p>Não são dados do Meta.</p>
                         <p>Valor da venda e custo por venda para o sistema refletir lucro e recomendações no Status.</p>
                       </div>
@@ -1490,7 +1488,7 @@ export default function AnalyticsPage() {
                           onChange={(e) => setRoiEnabled(e.target.checked)}
                           className="rounded border-gogh-grayLight"
                         />
-                        <span className="text-xs font-medium text-gogh-grayDark">Usar planejamento de valores no status (valor da venda, custo, lucro)</span>
+                        <span className="text-[11px] font-medium text-gogh-grayDark">Usar planejamento de valores no status (valor da venda, custo, lucro)</span>
                       </label>
                       {roiEnabled && (
                         <>
@@ -1555,12 +1553,12 @@ export default function AnalyticsPage() {
                       )}
                     </div>
                     {!selectedCampaignId ? (
-                      <p className="text-sm text-gogh-grayDark rounded-lg border border-gogh-grayLight bg-gogh-beige/30 p-4">
+                      <p className="text-xs text-gogh-grayDark rounded-lg border border-gogh-grayLight bg-gogh-beige/30 p-3">
                         Selecione uma campanha na seção <strong>Campanhas</strong> para ver a estratégia e o plano de otimização.
                       </p>
                     ) : hasExistingAds === true ? (
                       <div className="space-y-4 pt-4 border-t border-gogh-grayLight">
-                        <div className="space-y-1.5 text-xs text-gogh-grayDark">
+                        <div className="space-y-1 text-[11px] text-gogh-grayDark">
                           <p>Acompanhe o status da campanha abaixo.</p>
                           <p>Use o planejamento de valores (CPA, lucro) para saber se está dentro da meta.</p>
                         </div>
@@ -1617,23 +1615,23 @@ export default function AnalyticsPage() {
                         </Card>
                       </div>
                     ) : !selectedCampaign?.start_date || planoOtimizacao.daysSinceStart == null ? (
-                      <p className="text-sm text-gogh-grayDark rounded-lg border border-gogh-grayLight bg-gogh-beige/30 p-4">
+                      <p className="text-xs text-gogh-grayDark rounded-lg border border-gogh-grayLight bg-gogh-beige/30 p-3">
                         Defina a data de início da campanha para calcular o plano de otimização por dia.
                       </p>
                     ) : (
                       <div className="space-y-4">
                         <div className="border-t border-gogh-grayLight pt-4 mt-4">
-                          <p className="text-xs font-semibold text-gogh-black mb-1 flex items-center gap-1.5">
-                            <DollarSign className="w-3.5 h-3.5 text-gogh-yellow" />
+                          <p className="text-[11px] font-semibold text-gogh-black mb-1 flex items-center gap-1.5">
+                            <DollarSign className="w-3 h-3 text-gogh-yellow" />
                             Planejamento de orçamento
                           </p>
-                          <div className="space-y-1.5 text-xs text-gogh-grayDark mb-2">
+                          <div className="space-y-1 text-[11px] text-gogh-grayDark mb-2">
                             <p>Valor que você pretende investir e por quantos dias. <strong>Não altera os dados reais</strong> da campanha — use para planejamento.</p>
                             <p>Preencha o valor investido na seção Campanhas com o real.</p>
                           </div>
                           <div className="mb-3 rounded-lg border border-gogh-grayLight bg-gogh-beige/20 p-2">
-                            <p className="text-[11px] font-medium text-gogh-black mb-1.5">No Meta, como você define o orçamento?</p>
-                            <div className="flex flex-wrap gap-3">
+                            <p className="text-[11px] font-medium text-gogh-black mb-1">No Meta, como você define o orçamento?</p>
+                            <div className="flex flex-wrap gap-2">
                               <label className="flex items-center gap-2 cursor-pointer">
                                 <input
                                   type="radio"
@@ -1642,7 +1640,7 @@ export default function AnalyticsPage() {
                                   onChange={() => setBudgetTypeMeta('cbo')}
                                   className="border-gogh-grayLight"
                                 />
-                                <span className="text-xs text-gogh-grayDark"><strong>CBO</strong> — Campanha (orçamento por dia na campanha; o Meta distribui entre conjuntos)</span>
+                                <span className="text-[11px] text-gogh-grayDark"><strong>CBO</strong> — Campanha (orçamento por dia; Meta distribui entre conjuntos)</span>
                               </label>
                               <label className="flex items-center gap-2 cursor-pointer">
                                 <input
@@ -1652,7 +1650,7 @@ export default function AnalyticsPage() {
                                   onChange={() => setBudgetTypeMeta('abo')}
                                   className="border-gogh-grayLight"
                                 />
-                                <span className="text-xs text-gogh-grayDark"><strong>ABO</strong> — Conjunto de anúncios (orçamento por conjunto; some os valores para o total planejado)</span>
+                                <span className="text-[11px] text-gogh-grayDark"><strong>ABO</strong> — Conjunto (orçamento por conjunto; some para o total)</span>
                               </label>
                             </div>
                           </div>
@@ -1689,10 +1687,9 @@ export default function AnalyticsPage() {
                             </div>
                           )}
                           <div className="rounded-lg border border-gogh-grayLight bg-white p-3 space-y-2 mb-4">
-                            <div className="space-y-2 text-[11px] text-gogh-grayDark">
-                              <p>Preencha valor e duração da fase; o nível da estratégia e a meta de criativos são definidos pelas fases adicionadas e aparecem no Status.</p>
-                              <p>Você pode usar de {MIN_DIAS_FASE} a {MAX_DIAS_FASE} dias.</p>
-                              <p>O nível de análise e das recomendações se adapta à maturidade dos dados (dias rodando, impressões, conversões).</p>
+                            <div className="space-y-1.5 text-[11px] text-gogh-grayDark">
+                              <p>Preencha valor e duração da fase; nível e meta de criativos vêm das fases e aparecem no Status.</p>
+                              <p>Duração de {MIN_DIAS_FASE} a {MAX_DIAS_FASE} dias. A análise se adapta à maturidade (dias, impressões, conversões).</p>
                             </div>
                             <label className="flex items-center gap-2 cursor-pointer mb-2">
                               <input
@@ -1751,9 +1748,9 @@ export default function AnalyticsPage() {
                                 )
                               })()}
                             </div>
-                            <div className="space-y-1 text-[10px] text-gogh-grayDark">
+                            <div className="space-y-0.5 text-[10px] text-gogh-grayDark">
                               <p>Menos dias com mais R$/dia costuma entregar melhor no Meta.</p>
-                              <p>Duração livre entre {MIN_DIAS_FASE} e {MAX_DIAS_FASE} dias; recomendações se adaptam à maturidade dos dados.</p>
+                              <p>Duração {MIN_DIAS_FASE}–{MAX_DIAS_FASE} dias; recomendações se adaptam à maturidade.</p>
                             </div>
                           </div>
                           {selectedCampaign?.start_date && (() => {
@@ -1913,24 +1910,24 @@ export default function AnalyticsPage() {
                           })()}
                         </div>
                         {budgetPhases.length > 0 ? (
-                        <div className="rounded-lg bg-gogh-grayLight/40 border border-gogh-grayLight p-3 space-y-2 mt-6">
-                          <p className="text-xs font-semibold text-gogh-black flex items-center gap-1.5">
-                            <TrendingUp className="w-3.5 h-3.5 text-gogh-yellow" />
+                        <div className="rounded-lg bg-gogh-grayLight/40 border border-gogh-grayLight p-2.5 space-y-1.5 mt-4">
+                          <p className="text-[11px] font-semibold text-gogh-black flex items-center gap-1.5">
+                            <TrendingUp className="w-3 h-3 text-gogh-yellow" />
                             Estratégia: Nível {strategyTier.label}
                           </p>
-                          <p className="text-xs text-gogh-grayDark">
+                          <p className="text-[11px] text-gogh-grayDark">
                             Faixa do Nível {strategyTier.label}: <strong>{strategyTier.description}</strong> — referência para meta de criativos e plano de otimização.
                           </p>
                           {strategyTier.investimentoPlanejadoPorDia != null ? (
-                            <p className="text-xs text-gogh-black">
+                            <p className="text-[11px] text-gogh-black">
                               Investimento planejado (fases): <strong>R$ {strategyTier.investimentoPlanejadoPorDia.toFixed(2).replace('.', ',')}/dia</strong>
                             </p>
                           ) : (
-                            <p className="text-xs text-gogh-grayDark">
+                            <p className="text-[11px] text-gogh-grayDark">
                               Adicione fases acima para o nível ser definido pelo planejamento.
                             </p>
                           )}
-                          <p className="text-xs text-gogh-black pt-1 border-t border-gogh-grayLight/80">
+                          <p className="text-[11px] text-gogh-black pt-1 border-t border-gogh-grayLight/80">
                             Meta de criativos: <strong>{strategyTier.minCreatives} a {strategyTier.maxCreatives} ativos</strong>
                           </p>
                           <p className="text-[10px] text-gogh-grayDark">
@@ -1938,13 +1935,13 @@ export default function AnalyticsPage() {
                           </p>
                         </div>
                         ) : (
-                        <div className="rounded-lg bg-gogh-grayLight/40 border border-gogh-grayLight p-3 space-y-2 mt-6">
-                          <p className="text-xs font-semibold text-gogh-black flex items-center gap-1.5">
-                            <TrendingUp className="w-3.5 h-3.5 text-gogh-yellow" />
+                        <div className="rounded-lg bg-gogh-grayLight/40 border border-gogh-grayLight p-2.5 space-y-1.5 mt-4">
+                          <p className="text-[11px] font-semibold text-gogh-black flex items-center gap-1.5">
+                            <TrendingUp className="w-3 h-3 text-gogh-yellow" />
                             Estratégia
                           </p>
-                          <p className="text-xs text-gogh-grayDark">
-                            Adicione fases de orçamento acima para o nível da estratégia, o valor/dia e a meta de criativos serem definidos.
+                          <p className="text-[11px] text-gogh-grayDark">
+                            Adicione fases acima para o nível, valor/dia e meta de criativos serem definidos.
                           </p>
                         </div>
                         )}
@@ -1958,10 +1955,10 @@ export default function AnalyticsPage() {
                   'Campanhas',
                   selectedCampaign ? `${selectedCampaign.name} · Início ${selectedCampaign.start_date}` : 'Crie, ative ou pause campanhas',
                   <Megaphone className="w-4 h-4 text-gogh-grayDark" />,
-                  <div className="pt-3 space-y-4 overflow-hidden">
+                  <div className="pt-2 space-y-3 overflow-hidden">
                     <div className="flex flex-wrap gap-3 items-end min-w-0">
                       <div className="flex-1 min-w-0 sm:min-w-[160px]">
-                        <label className="block text-sm font-medium text-gogh-grayDark mb-1">Nova campanha</label>
+                        <label className="block text-xs font-medium text-gogh-grayDark mb-1">Nova campanha</label>
                         <input
                           type="text"
                           value={newCampaignName}
@@ -1971,19 +1968,19 @@ export default function AnalyticsPage() {
                         />
                       </div>
                       <div className="min-w-0 max-w-full overflow-hidden basis-32 shrink sm:basis-auto sm:min-w-[140px]">
-                        <label className="block text-sm font-medium text-gogh-grayDark mb-1">Início</label>
+                        <label className="block text-xs font-medium text-gogh-grayDark mb-1">Início</label>
                         <input
                           type="date"
                           value={newCampaignStartDate}
                           onChange={(e) => setNewCampaignStartDate(e.target.value)}
-                          className="w-full min-w-0 max-w-full border border-gogh-grayLight rounded-lg px-3 py-2 text-sm box-border"
+                          className="w-full min-w-0 max-w-full border border-gogh-grayLight rounded-lg px-2.5 py-1.5 text-xs box-border"
                         />
                       </div>
                       <button
                         type="button"
                         onClick={handleCreateCampaign}
                         disabled={campaignsLoading}
-                        className="inline-flex items-center gap-2 px-4 py-2 bg-gogh-yellow text-gogh-black rounded-xl hover:bg-gogh-yellow/90 font-medium text-sm transition-colors shrink-0"
+                        className="inline-flex items-center gap-2 px-3 py-1.5 bg-gogh-yellow text-gogh-black rounded-xl hover:bg-gogh-yellow/90 font-medium text-xs transition-colors shrink-0"
                       >
                         <Plus className="w-4 h-4" />
                         Criar
@@ -1992,7 +1989,7 @@ export default function AnalyticsPage() {
                     {campaignsLoading ? (
                       <div className="flex justify-center py-4"><LumaSpin size="sm" /></div>
                     ) : campaigns.length === 0 ? (
-                      <p className="text-sm text-gogh-grayDark py-2">Nenhuma campanha. Crie uma para organizar métricas e decisões por campanha.</p>
+                      <p className="text-xs text-gogh-grayDark py-1.5">Nenhuma campanha. Crie uma para organizar métricas e decisões por campanha.</p>
                     ) : (
                       <ul className="space-y-2">
                         {campaigns.map((c) => (
@@ -2041,7 +2038,7 @@ export default function AnalyticsPage() {
                           onClick={() => setCreativosSubOpen((o) => !o)}
                           className="w-full flex items-center justify-between gap-2 py-2 px-0 text-left"
                         >
-                          <span className="text-sm font-semibold text-gogh-black flex items-center gap-2">
+                          <span className="text-xs font-semibold text-gogh-black flex items-center gap-2">
                             <ImageIcon className="w-4 h-4 text-gogh-grayDark" />
                             Criativos desta campanha
                             {creatives.length > 0 && (
@@ -2061,7 +2058,7 @@ export default function AnalyticsPage() {
                                   type="button"
                                   onClick={handleAddCreative}
                                   disabled={addingCreative}
-                                  className="shrink-0 inline-flex items-center gap-2 px-3 py-2 bg-gogh-yellow text-gogh-black rounded-lg text-sm font-medium hover:bg-gogh-yellow/90"
+                                  className="shrink-0 inline-flex items-center gap-2 px-2.5 py-1.5 bg-gogh-yellow text-gogh-black rounded-lg text-xs font-medium hover:bg-gogh-yellow/90"
                                 >
                                   <Plus className="w-4 h-4" />
                                   {addingCreative ? '...' : 'Adicionar criativo'}
