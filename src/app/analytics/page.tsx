@@ -592,17 +592,22 @@ export default function AnalyticsPage() {
       }
     }
 
-    if (source === 'campaign' && investimentoMedioPorDia > 0 && daysSinceStart >= 3) {
+    // Só usa dados da campanha/criativos para o nível quando o perfil for "já tem anúncio" (que não vê esta seção aqui)
+    if (hasExistingAds !== false && source === 'campaign' && investimentoMedioPorDia > 0 && daysSinceStart >= 3) {
       tier = rpdToTier(investimentoMedioPorDia)
     }
 
     const t = config[tier]
+    const totalValorPhases = budgetPhases.reduce((s, p) => s + p.valor, 0)
+    const totalDiasPhases = budgetPhases.reduce((s, p) => s + p.dias, 0)
+    const mediaPlanejadaPorDia = totalDiasPhases > 0 ? totalValorPhases / totalDiasPhases : null
     return {
       tier,
       source,
       investimentoMedioPorDia: source === 'campaign' && investimentoMedioPorDia > 0 ? investimentoMedioPorDia : null,
-      investimentoPlanejadoPorDia: source === 'phases' && budgetPhases.length > 0
-        ? budgetPhases.reduce((s, p) => s + p.valor, 0) / Math.max(1, budgetPhases.reduce((s, p) => s + p.dias, 0))
+      // No fluxo "criar do zero" espelhamos só o planejamento (fases); valor planejado quando houver fases
+      investimentoPlanejadoPorDia: (source === 'phases' || hasExistingAds === false) && budgetPhases.length > 0 && mediaPlanejadaPorDia != null
+        ? mediaPlanejadaPorDia
         : null,
       minCreatives: t.minCreatives,
       maxCreatives: t.maxCreatives,
@@ -1605,15 +1610,7 @@ export default function AnalyticsPage() {
                             </div>
                           )}
                           <div className="rounded-lg border border-gogh-grayLight bg-white p-3 space-y-2 mb-4">
-                            <label className="flex items-center gap-2 cursor-pointer">
-                              <input
-                                type="checkbox"
-                                checked={useAutoDiasRecommendation}
-                                onChange={(e) => setUseAutoDiasRecommendation(e.target.checked)}
-                                className="rounded border-gogh-grayLight"
-                              />
-                              <span className="text-[11px] text-gogh-grayDark">Preencher duração (dias) automaticamente pelo nível {strategyTier.label}</span>
-                            </label>
+                            <p className="text-[11px] text-gogh-grayDark mb-1">Preencha valor e duração da fase; o nível da estratégia e a meta de criativos são definidos pelas fases adicionadas e aparecem no Status.</p>
                             <div className="flex flex-wrap gap-2 items-end">
                               <div>
                                 <label className="block text-[11px] text-gogh-grayDark mb-0.5">Valor (R$)</label>
@@ -1637,10 +1634,19 @@ export default function AnalyticsPage() {
                                   placeholder="Ex: 18"
                                   disabled={useAutoDiasRecommendation}
                                   readOnly={useAutoDiasRecommendation}
-                                  title={useAutoDiasRecommendation ? 'Preenchido automaticamente pelo nível; desmarque a opção acima para editar.' : undefined}
+                                  title={useAutoDiasRecommendation ? 'Preenchido automaticamente; desmarque a opção abaixo para editar.' : undefined}
                                   className={`w-20 border border-gogh-grayLight rounded-lg px-2 py-1 text-xs ${useAutoDiasRecommendation ? 'bg-gogh-grayLight/50 cursor-not-allowed' : ''}`}
                                 />
                               </div>
+                              <label className="flex items-center gap-2 cursor-pointer self-center">
+                                <input
+                                  type="checkbox"
+                                  checked={useAutoDiasRecommendation}
+                                  onChange={(e) => setUseAutoDiasRecommendation(e.target.checked)}
+                                  className="rounded border-gogh-grayLight"
+                                />
+                                <span className="text-[11px] text-gogh-grayDark">Sugerir duração (dias) pela faixa de investimento</span>
+                              </label>
                               {(() => {
                                 const v = parseFloat(String(newPhaseValor).replace(',', '.')) || 0
                                 const d = Math.max(1, Math.floor(parseFloat(String(newPhaseDias).replace(',', '.')) || 0))
@@ -1708,6 +1714,10 @@ export default function AnalyticsPage() {
                               }
                               return budgetPhases.length - 1
                             }
+                            const todayDate = new Date()
+                            todayDate.setHours(0, 0, 0, 0)
+                            const dayNumToday = getDayNum(todayDate)
+                            const currentPhaseNum = dayNumToday != null && budgetPhases.length > 0 ? getPhaseForDay(dayNumToday) + 1 : null
                             return (
                               <div className="mb-4 flex flex-col lg:flex-row lg:flex-wrap lg:items-start lg:gap-4 lg:max-w-[620px]">
                                 <div className="flex flex-col items-center min-w-0 shrink-0">
@@ -1809,7 +1819,17 @@ export default function AnalyticsPage() {
                                         <p className="mt-0.5 opacity-90">Ative em Campanhas.</p>
                                       </div>
                                     ) : !hasDataForDiagnosis ? (
-                                      <p className="text-[10px] text-gogh-grayDark leading-snug">Preencha Campanhas para ver o status.</p>
+                                      <div className="space-y-1.5">
+                                        <p className="text-[10px] text-gogh-grayDark leading-snug">Preencha Campanhas para ver o status.</p>
+                                        {currentPhaseNum != null && (
+                                          <p className="text-[10px] text-gogh-grayDark border-t border-gogh-grayLight/50 pt-1.5">
+                                            Fase em execução: <strong className="text-gogh-black">Fase {currentPhaseNum}</strong>
+                                          </p>
+                                        )}
+                                        <p className="text-[10px] text-gogh-grayDark border-t border-gogh-grayLight/50 pt-1.5">
+                                          Meta de criativos: <strong className="text-gogh-black">{strategyTier.minCreatives} a {strategyTier.maxCreatives} ativos</strong>
+                                        </p>
+                                      </div>
                                     ) : (
                                       <>
                                         <div className="flex flex-wrap items-center gap-1.5">
@@ -1827,6 +1847,14 @@ export default function AnalyticsPage() {
                                             {statusGeral === 'crítica' && 'Crítica'}
                                           </span>
                                         </div>
+                                        {currentPhaseNum != null && (
+                                          <p className="text-[10px] text-gogh-grayDark border-t border-gogh-grayLight/50 pt-1.5">
+                                            Fase em execução: <strong className="text-gogh-black">Fase {currentPhaseNum}</strong>
+                                          </p>
+                                        )}
+                                        <p className="text-[10px] text-gogh-grayDark border-t border-gogh-grayLight/50 pt-1.5">
+                                          Meta de criativos: <strong className="text-gogh-black">{strategyTier.minCreatives} a {strategyTier.maxCreatives} ativos</strong>
+                                        </p>
                                         {statusAlerts.length > 0 ? (
                                           <ul className="space-y-1 text-[10px]">
                                             {statusAlerts.slice(0, 3).map((a, i) => (
@@ -1855,17 +1883,13 @@ export default function AnalyticsPage() {
                           <p className="text-xs text-gogh-grayDark">
                             Faixa do nível {strategyTier.label}: <strong>{strategyTier.description}</strong> — referência para meta de criativos e plano de otimização.
                           </p>
-                          {strategyTier.source === 'phases' && strategyTier.investimentoPlanejadoPorDia != null ? (
+                          {strategyTier.investimentoPlanejadoPorDia != null ? (
                             <p className="text-xs text-gogh-black">
                               Investimento planejado (fases): <strong>R$ {strategyTier.investimentoPlanejadoPorDia.toFixed(2).replace('.', ',')}/dia</strong>
                             </p>
-                          ) : strategyTier.investimentoMedioPorDia != null ? (
-                            <p className="text-xs text-gogh-black">
-                              Investimento real (dados da campanha): <strong>R$ {strategyTier.investimentoMedioPorDia.toFixed(2).replace('.', ',')}/dia</strong>
-                            </p>
                           ) : (
                             <p className="text-xs text-gogh-grayDark">
-                              {budgetPhases.length > 0 ? 'Adicione fases acima para o nível ser definido pelo planejamento.' : 'Preencha os dados da campanha (seção Campanhas) por 3+ dias ou use as fases acima para definir o nível.'}
+                              {budgetPhases.length > 0 ? 'Adicione fases acima para o nível ser definido pelo planejamento.' : 'Defina as fases de orçamento acima para o nível da estratégia e o valor/dia refletirem seu planejamento.'}
                             </p>
                           )}
                           <p className="text-xs text-gogh-black pt-1 border-t border-gogh-grayLight/80">
