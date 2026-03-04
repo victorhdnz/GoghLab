@@ -239,6 +239,7 @@ export default function AnalyticsPage() {
   const [creatives, setCreatives] = useState<AnalyticsCreative[]>([])
   const [creativesLoading, setCreativesLoading] = useState(false)
   const [addingCreative, setAddingCreative] = useState(false)
+  const [creatingCampaignFromPlanning, setCreatingCampaignFromPlanning] = useState(false)
   const [creativosSubOpen, setCreativosSubOpen] = useState(false)
   const [budgetPhases, setBudgetPhases] = useState<BudgetPhase[]>([])
   const [newPhaseValor, setNewPhaseValor] = useState('')
@@ -1173,6 +1174,38 @@ export default function AnalyticsPage() {
     }
   }
 
+  // Estrutura completa: criar campanha a partir do planejamento (espelha fases; criativos/dados o cliente preenche quando for o momento)
+  const handleCreateCampaignFromPlanning = async () => {
+    const today = new Date()
+    const name = `Campanha ${today.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })}`
+    const start_date = today.toISOString().split('T')[0]
+    setCreatingCampaignFromPlanning(true)
+    try {
+      const res = await fetch('/api/analytics/campaigns', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ name, start_date }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Erro ao criar')
+      setCampaigns((prev) => [data.campaign, ...prev])
+      setSelectedCampaignId(data.campaign.id)
+      const crRes = await fetch(`/api/analytics/campaigns/${data.campaign.id}/creatives`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ name: 'Criativo 1' }),
+      })
+      if (crRes.ok) await loadCreatives(data.campaign.id)
+      toast.success('Campanha criada a partir do planejamento. As fases foram vinculadas. Adicione criativos e preencha os dados quando for o momento.')
+    } catch (e: any) {
+      toast.error(e?.message || 'Erro ao criar campanha')
+    } finally {
+      setCreatingCampaignFromPlanning(false)
+    }
+  }
+
   const handleToggleCampaignActive = async (campaign: AnalyticsCampaign) => {
     try {
       const res = await fetch(`/api/analytics/campaigns/${campaign.id}`, {
@@ -1647,9 +1680,25 @@ export default function AnalyticsPage() {
                     ) : (
                       <div className="space-y-4">
                         {!selectedCampaignId && (
-                          <p className="text-xs text-gogh-grayDark rounded-lg border border-gogh-grayLight bg-gogh-beige/30 p-3">
-                            Planeje as fases abaixo. Depois crie ou selecione uma campanha para ver o calendário e preencher os dados reais ao longo do tempo.
-                          </p>
+                          <>
+                            <p className="text-xs text-gogh-grayDark rounded-lg border border-gogh-grayLight bg-gogh-beige/30 p-3">
+                              Planeje as fases abaixo. Depois crie ou selecione uma campanha para ver o calendário e preencher os dados reais ao longo do tempo.
+                            </p>
+                            {budgetPhases.length > 0 && (
+                              <button
+                                type="button"
+                                onClick={handleCreateCampaignFromPlanning}
+                                disabled={creatingCampaignFromPlanning}
+                                className="inline-flex items-center gap-2 px-3 py-2 bg-gogh-yellow text-gogh-black rounded-xl hover:bg-gogh-yellow/90 font-medium text-xs transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                              >
+                                {creatingCampaignFromPlanning ? (
+                                  <>Criando...</>
+                                ) : (
+                                  <><Plus className="w-4 h-4" />Criar campanha a partir do planejamento</>
+                                )}
+                              </button>
+                            )}
+                          </>
                         )}
                         {selectedCampaignId && selectedCampaign && !selectedCampaign.start_date && (
                           <p className="text-xs text-gogh-grayDark rounded-lg border border-gogh-grayLight bg-gogh-beige/30 p-3">
