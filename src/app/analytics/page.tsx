@@ -228,8 +228,9 @@ export default function AnalyticsPage() {
     return (localStorage.getItem(BUDGET_TYPE_STORAGE_KEY) === 'abo' ? 'abo' : 'cbo') as BudgetTypeMeta
   })
   const [useAutoDiasRecommendation, setUseAutoDiasRecommendation] = useState(() => {
-    if (typeof window === 'undefined') return false
-    return localStorage.getItem(AUTO_DIAS_RECOMMENDATION_KEY) === '1'
+    if (typeof window === 'undefined') return true
+    const v = localStorage.getItem(AUTO_DIAS_RECOMMENDATION_KEY)
+    return v !== '0' // padrão: marcado (automático); só fica desmarcado se o usuário salvou '0'
   })
   const [useStrategyFromPhases, setUseStrategyFromPhases] = useState(() => {
     if (typeof window === 'undefined') return false
@@ -1605,7 +1606,7 @@ export default function AnalyticsPage() {
                                 onChange={(e) => setUseAutoDiasRecommendation(e.target.checked)}
                                 className="rounded border-gogh-grayLight"
                               />
-                              <span className="text-[11px] text-gogh-grayDark">Sugerir duração (dias) pela faixa de investimento</span>
+                              <span className="text-[11px] text-gogh-grayDark">Duração automática (sugerida pelo investimento)</span>
                             </label>
                             <div className="flex flex-wrap gap-2 items-end">
                               <div>
@@ -1642,15 +1643,6 @@ export default function AnalyticsPage() {
                                 return (
                                   <>
                                     {v > 0 && d > 0 && <span className="text-[11px] text-gogh-grayDark">≈ R$ {porDia.toFixed(2).replace('.', ',')}/dia</span>}
-                                    {v > 0 && !useAutoDiasRecommendation && suggestedDias > 0 && (
-                                      <button
-                                        type="button"
-                                        onClick={() => setNewPhaseDias(String(suggestedDias))}
-                                        className="text-[11px] text-gogh-grayDark hover:text-gogh-black underline"
-                                      >
-                                        Sugestão: {suggestedDias} dias
-                                      </button>
-                                    )}
                                     <button
                                       type="button"
                                       onClick={addBudgetPhase}
