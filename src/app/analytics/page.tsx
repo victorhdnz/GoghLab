@@ -1987,25 +1987,9 @@ setSavedCampaignSignature(
                     ) : (
                       <div className="space-y-4">
                         {!selectedCampaignId && (
-                          <>
-                            <p className="text-xs text-gogh-grayDark rounded-lg border border-gogh-grayLight bg-gogh-beige/30 p-3">
-                              Planeje as fases abaixo. Depois crie ou selecione uma campanha para ver o calendário e preencher os dados reais ao longo do tempo.
-                            </p>
-                            {budgetPhases.length > 0 && (
-                              <button
-                                type="button"
-                                onClick={handleCreateCampaignFromPlanning}
-                                disabled={creatingCampaignFromPlanning}
-                                className="inline-flex items-center gap-2 px-3 py-2 bg-gogh-yellow text-gogh-black rounded-xl hover:bg-gogh-yellow/90 font-medium text-xs transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
-                              >
-                                {creatingCampaignFromPlanning ? (
-                                  <>Criando...</>
-                                ) : (
-                                  <><Plus className="w-4 h-4" />Criar campanha a partir do planejamento</>
-                                )}
-                              </button>
-                            )}
-                          </>
+                          <p className="text-xs text-gogh-grayDark rounded-lg border border-gogh-grayLight bg-gogh-beige/30 p-3">
+                            Planeje as fases abaixo. Depois crie ou selecione uma campanha para ver o calendário e preencher os dados reais ao longo do tempo.
+                          </p>
                         )}
                         {selectedCampaignId && selectedCampaign && !selectedCampaign.start_date && (
                           <p className="text-xs text-gogh-grayDark rounded-lg border border-gogh-grayLight bg-gogh-beige/30 p-3">
@@ -2172,6 +2156,22 @@ setSavedCampaignSignature(
                               <p className="text-xs leading-snug">Duração {MIN_DIAS_FASE}–{MAX_DIAS_FASE} dias; recomendações se adaptam à maturidade.</p>
                             </div>
                           </div>
+                          {!selectedCampaignId && budgetPhases.length > 0 && (
+                            <div className="mt-3">
+                              <button
+                                type="button"
+                                onClick={handleCreateCampaignFromPlanning}
+                                disabled={creatingCampaignFromPlanning}
+                                className="inline-flex items-center gap-2 px-3 py-2 bg-gogh-yellow text-gogh-black rounded-xl hover:bg-gogh-yellow/90 font-medium text-xs transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                              >
+                                {creatingCampaignFromPlanning ? (
+                                  <>Criando...</>
+                                ) : (
+                                  <><Plus className="w-4 h-4" />Criar campanha a partir do planejamento</>
+                                )}
+                              </button>
+                            </div>
+                          )}
                           {selectedCampaign?.start_date && (() => {
                             const start = new Date(selectedCampaign.start_date + 'T12:00:00')
                             start.setHours(0, 0, 0, 0)
