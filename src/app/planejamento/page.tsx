@@ -1524,7 +1524,7 @@ export default function ContentPlanningPage() {
                 <p className="text-xs text-gogh-grayDark">
                   Para dias em que você já sabe o que quer: descreva o vídeo (tema, estilo, roteiro para voz IA, motion design, etc.). Na geração da agenda, a IA não criará conteúdo automático nesses dias — usará sua descrição.
                 </p>
-                <div className="rounded-lg border border-amber-200 bg-amber-50/80 p-2.5 text-xs text-amber-900">
+                <div className="rounded-lg border border-amber-200 bg-amber-50/80 px-2 py-1.5 text-[11px] text-amber-900 leading-snug">
                   <p className="font-medium mb-0.5">Válido apenas para o mês da geração</p>
                   <p className="text-amber-800">
                     As adições aqui valem somente para o mês em que você gerar a agenda (mês atual). Após gerar ou ao mudar de mês, os campos voltam a ficar em branco — a cada mês você pode definir novos vídeos personalizados para esse mês.

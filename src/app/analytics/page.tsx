@@ -77,6 +77,7 @@ interface BudgetPhase {
 const BUDGET_PHASES_STORAGE_KEY = 'gogh_analytics_budget_phases'
 const BUDGET_TYPE_STORAGE_KEY = 'gogh_analytics_budget_type' // CBO = campanha (por dia na campanha); ABO = conjunto (por conjunto)
 const AUTO_DIAS_RECOMMENDATION_KEY = 'gogh_analytics_auto_dias'
+const USE_STRATEGY_FROM_PHASES_KEY = 'gogh_analytics_use_strategy_from_phases' // quando "já tenho anúncio": true = nível pelas fases, false = nível pelos dados da campanha
 const FILLED_DATES_STORAGE_KEY = 'gogh_analytics_dias_preenchidos' // por campanha: { [campaignId]: string[] } (YYYY-MM-DD)
 const HAS_EXISTING_ADS_KEY = 'gogh_analytics_has_existing_ads' // true = já tem anúncio/campanha, false = criar do zero, null = não respondeu
 const ANALYTICS_PROFILE_KEY = 'gogh_analytics_profile' // perfil de análise: forma de venda do cliente (define métricas e status)
@@ -229,6 +230,10 @@ export default function AnalyticsPage() {
   const [useAutoDiasRecommendation, setUseAutoDiasRecommendation] = useState(() => {
     if (typeof window === 'undefined') return false
     return localStorage.getItem(AUTO_DIAS_RECOMMENDATION_KEY) === '1'
+  })
+  const [useStrategyFromPhases, setUseStrategyFromPhases] = useState(() => {
+    if (typeof window === 'undefined') return false
+    return localStorage.getItem(USE_STRATEGY_FROM_PHASES_KEY) === '1'
   })
   const [campaignCalendarMonth, setCampaignCalendarMonth] = useState<Date>(() => new Date())
   const [campaignCalendarSelectedDate, setCampaignCalendarSelectedDate] = useState<Date | undefined>(undefined)
@@ -553,9 +558,15 @@ export default function AnalyticsPage() {
     return { freq, ctrPct, taxaConvPct, cpc, cpaCalculado, roas, cpm }
   }, [alcanceNum, impressoesNum, cliquesNum, valorInvestidoNum, comprasNum, valorFaturadoNum])
 
-  // Estratégia adaptada ao investimento: tier definido pelo investimento médio/dia (após 3+ dias) ou padrão "médio"
+  // Nível da estratégia: por fases (planejamento) ou por dados da campanha (criativos), conforme preferência
   const strategyTier = useMemo(() => {
     const config = STRATEGY_TIERS
+    const r$/dayToTier = (rpd: number): StrategyTierKey => {
+      if (rpd <= config.baixo.dailyInvestMax) return 'baixo'
+      if (rpd <= config.medio.dailyInvestMax) return 'medio'
+      return 'alto'
+    }
+
     let investimentoMedioPorDia = 0
     let daysSinceStart = 0
     if (selectedCampaign?.start_date && valorInvestidoNum > 0) {
@@ -566,28 +577,51 @@ export default function AnalyticsPage() {
       daysSinceStart = Math.max(0, Math.floor((today.getTime() - start.getTime()) / (24 * 60 * 60 * 1000)))
       investimentoMedioPorDia = valorInvestidoNum / Math.max(1, daysSinceStart)
     }
+
+    const usePhasesForTier = hasExistingAds === false || (hasExistingAds === true && useStrategyFromPhases)
     let tier: StrategyTierKey = 'medio'
-    if (investimentoMedioPorDia > 0 && daysSinceStart >= 3) {
-      if (investimentoMedioPorDia <= config.baixo.dailyInvestMax) tier = 'baixo'
-      else if (investimentoMedioPorDia <= config.medio.dailyInvestMax) tier = 'medio'
-      else tier = 'alto'
+    let source: 'phases' | 'campaign' = 'campaign'
+
+    if (usePhasesForTier && budgetPhases.length > 0) {
+      const totalValor = budgetPhases.reduce((s, p) => s + p.valor, 0)
+      const totalDias = budgetPhases.reduce((s, p) => s + p.dias, 0)
+      const mediaPorDia = totalDias > 0 ? totalValor / totalDias : 0
+      if (mediaPorDia > 0) {
+        tier = r$/dayToTier(mediaPorDia)
+        source = 'phases'
+      }
     }
+
+    if (source === 'campaign' && investimentoMedioPorDia > 0 && daysSinceStart >= 3) {
+      tier = r$/dayToTier(investimentoMedioPorDia)
+    }
+
     const t = config[tier]
     return {
       tier,
-      investimentoMedioPorDia: investimentoMedioPorDia > 0 ? investimentoMedioPorDia : null,
+      source,
+      investimentoMedioPorDia: source === 'campaign' && investimentoMedioPorDia > 0 ? investimentoMedioPorDia : null,
+      investimentoPlanejadoPorDia: source === 'phases' && budgetPhases.length > 0
+        ? budgetPhases.reduce((s, p) => s + p.valor, 0) / Math.max(1, budgetPhases.reduce((s, p) => s + p.dias, 0))
+        : null,
       minCreatives: t.minCreatives,
       maxCreatives: t.maxCreatives,
       label: t.label,
       description: t.description,
     }
-  }, [selectedCampaign?.start_date, selectedCampaign, valorInvestidoNum])
+  }, [selectedCampaign?.start_date, selectedCampaign, valorInvestidoNum, hasExistingAds, useStrategyFromPhases, budgetPhases])
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
       localStorage.setItem(AUTO_DIAS_RECOMMENDATION_KEY, useAutoDiasRecommendation ? '1' : '0')
     }
   }, [useAutoDiasRecommendation])
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(USE_STRATEGY_FROM_PHASES_KEY, useStrategyFromPhases ? '1' : '0')
+    }
+  }, [useStrategyFromPhases])
 
   // Quando "usar recomendação automática" está ligado, preenche duração (dias) conforme o nível da estratégia
   const suggestedDailyForPlanning = STRATEGY_TIERS[strategyTier.tier].suggestedDailyForPlanning
@@ -1449,33 +1483,6 @@ export default function AnalyticsPage() {
                       </p>
                     ) : (
                       <div className="space-y-4">
-                        <div className="rounded-lg bg-gogh-grayLight/40 border border-gogh-grayLight p-3 space-y-2">
-                          <p className="text-xs font-semibold text-gogh-black flex items-center gap-1.5">
-                            <TrendingUp className="w-3.5 h-3.5 text-gogh-yellow" />
-                            Estratégia: nível {strategyTier.label}
-                          </p>
-                          <p className="text-xs text-gogh-grayDark">
-                            Faixa do nível {strategyTier.label}: <strong>{strategyTier.description}</strong> — referência para meta de criativos e plano de otimização.
-                          </p>
-                          {strategyTier.investimentoMedioPorDia != null ? (
-                            <p className="text-xs text-gogh-black">
-                              Investimento real (dados da campanha): <strong>R$ {strategyTier.investimentoMedioPorDia.toFixed(2).replace('.', ',')}/dia</strong>
-                            </p>
-                          ) : (
-                            <p className="text-xs text-gogh-grayDark">
-                              Investimento real: preencha os dados da campanha (seção Campanhas) por 3+ dias para o nível ser ajustado ao que você está gastando.
-                            </p>
-                          )}
-                          {budgetPhases.length > 0 && budgetPhases[0].dias > 0 && (
-                            <p className="text-xs text-gogh-black border-t border-gogh-grayLight/80 pt-1">
-                              Investimento planejado (1ª fase): <strong>R$ {(budgetPhases[0].valor / budgetPhases[0].dias).toFixed(2).replace('.', ',')}/dia</strong> por {budgetPhases[0].dias} dias
-                            </p>
-                          )}
-                          <p className="text-xs text-gogh-black pt-1 border-t border-gogh-grayLight/80">
-                            Meta de criativos: <strong>{strategyTier.minCreatives} a {strategyTier.maxCreatives} ativos</strong>
-                          </p>
-                        </div>
-
                         <div className="border-t border-gogh-grayLight pt-4 mt-4">
                           <p className="text-xs font-semibold text-gogh-black mb-1 flex items-center gap-1.5">
                             <DollarSign className="w-3.5 h-3.5 text-gogh-yellow" />
@@ -1484,6 +1491,19 @@ export default function AnalyticsPage() {
                           <p className="text-xs text-gogh-grayDark mb-2">
                             Valor que você pretende investir e por quantos dias. <strong>Não altera os dados reais</strong> da campanha — use para planejamento; preencha o valor investido na seção Campanhas com o real.
                           </p>
+                          {hasExistingAds === true && (
+                            <label className="flex items-center gap-2 cursor-pointer mb-3 rounded-lg border border-gogh-grayLight bg-white p-2">
+                              <input
+                                type="checkbox"
+                                checked={useStrategyFromPhases}
+                                onChange={(e) => setUseStrategyFromPhases(e.target.checked)}
+                                className="rounded border-gogh-grayLight"
+                              />
+                              <span className="text-[11px] text-gogh-grayDark">
+                                Usar planejamento de orçamento (fases) para definir o nível da estratégia
+                              </span>
+                            </label>
+                          )}
                           <div className="mb-3 rounded-lg border border-gogh-grayLight bg-gogh-beige/20 p-2">
                             <p className="text-[11px] font-medium text-gogh-black mb-1.5">No Meta, como você define o orçamento?</p>
                             <div className="flex flex-wrap gap-3">
@@ -1785,6 +1805,33 @@ export default function AnalyticsPage() {
                           })()}
                         </div>
                       </div>
+
+                        <div className="rounded-lg bg-gogh-grayLight/40 border border-gogh-grayLight p-3 space-y-2 mt-6">
+                          <p className="text-xs font-semibold text-gogh-black flex items-center gap-1.5">
+                            <TrendingUp className="w-3.5 h-3.5 text-gogh-yellow" />
+                            Estratégia: nível {strategyTier.label}
+                          </p>
+                          <p className="text-xs text-gogh-grayDark">
+                            Faixa do nível {strategyTier.label}: <strong>{strategyTier.description}</strong> — referência para meta de criativos e plano de otimização.
+                          </p>
+                          {strategyTier.source === 'phases' && strategyTier.investimentoPlanejadoPorDia != null ? (
+                            <p className="text-xs text-gogh-black">
+                              Investimento planejado (fases): <strong>R$ {strategyTier.investimentoPlanejadoPorDia.toFixed(2).replace('.', ',')}/dia</strong>
+                            </p>
+                          ) : strategyTier.investimentoMedioPorDia != null ? (
+                            <p className="text-xs text-gogh-black">
+                              Investimento real (dados da campanha): <strong>R$ {strategyTier.investimentoMedioPorDia.toFixed(2).replace('.', ',')}/dia</strong>
+                            </p>
+                          ) : (
+                            <p className="text-xs text-gogh-grayDark">
+                              {budgetPhases.length > 0 ? 'Adicione fases acima para o nível ser definido pelo planejamento.' : 'Preencha os dados da campanha (seção Campanhas) por 3+ dias ou use as fases acima para definir o nível.'}
+                            </p>
+                          )}
+                          <p className="text-xs text-gogh-black pt-1 border-t border-gogh-grayLight/80">
+                            Meta de criativos: <strong>{strategyTier.minCreatives} a {strategyTier.maxCreatives} ativos</strong>
+                          </p>
+                        </div>
+                      </div>
                     )}
                   </div>
                 )}
@@ -1967,12 +2014,7 @@ export default function AnalyticsPage() {
                   </div>
                 )}
 
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-6 mt-6 border-t border-gogh-grayLight">
-                  <p className="text-xs text-gogh-grayDark">
-                    {selectedCampaignId
-                      ? ((isProfileDirty || isInicioDirty || analyticsProfile !== savedAnalyticsProfile) ? 'Alterações não salvas. Clique em Salvar configurações para gravar.' : 'Configurações salvas.')
-                      : 'Selecione uma campanha e preencha os dados para poder salvar.'}
-                  </p>
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-end gap-3 pt-6 mt-6 border-t border-gogh-grayLight">
                   <ShinyButton
                     type="button"
                     onClick={handleSaveProfile}
