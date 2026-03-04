@@ -38,11 +38,13 @@ export async function POST(request: Request) {
     if (!name) return NextResponse.json({ error: 'name é obrigatório' }, { status: 400 })
 
     const startDate = typeof body.start_date === 'string' ? body.start_date : new Date().toISOString().split('T')[0]
+    const budgetTypeMeta = body.budget_type_meta === 'abo' ? 'abo' : 'cbo'
     const payload: Record<string, unknown> = {
       user_id: user.id,
       name,
       start_date: startDate,
       is_active: body.is_active !== false,
+      budget_type_meta: budgetTypeMeta,
       valor_venda: body.valor_venda != null ? Number(body.valor_venda) : null,
       custo_venda: body.custo_venda != null ? Number(body.custo_venda) : null,
       custo_por_aquisicao: body.custo_por_aquisicao != null ? Number(body.custo_por_aquisicao) : null,

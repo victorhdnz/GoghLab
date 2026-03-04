@@ -47,7 +47,7 @@ export async function getSiteSeoData(): Promise<SiteSeoData> {
   const title = row?.site_title || `${name} - Criatividade guiada por tecnologia`
   const description =
     row?.site_description ||
-    'Plataforma com agentes de IA, cursos de edição, ferramentas (Canva, CapCut) e prompts para criação de conteúdo. Assinatura com tudo incluso.'
+    'Gogh Lab - Criatividade guiada por tecnologia'
   const logo = row?.site_logo || null
   const instagramUrl = row?.instagram_url || null
   const contactEmail = row?.contact_email || null

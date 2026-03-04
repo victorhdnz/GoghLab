@@ -4,7 +4,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: 'Gogh Lab',
     short_name: 'Gogh Lab',
-    description: 'Planejamento de conteúdo com IA, roteiros de vídeo, legendas e hashtags para redes sociais.',
+    description: 'Gogh Lab - Criatividade guiada por tecnologia',
     start_url: '/',
     display: 'standalone',
     background_color: '#ffffff',

@@ -5,7 +5,7 @@ export const dynamic = 'force-dynamic'
 
 export async function PATCH(
   request: Request,
-  { params }: { params: Promise<{ id: string; creativeId: string }> }
+  { params }: { params: Promise<{ id: string; adSetId: string }> }
 ) {
   try {
     const supabase = createRouteHandlerClient()
@@ -14,8 +14,8 @@ export async function PATCH(
     } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
 
-    const { id: campaignId, creativeId } = await params
-    if (!campaignId || !creativeId) return NextResponse.json({ error: 'id e creativeId são obrigatórios' }, { status: 400 })
+    const { id: campaignId, adSetId } = await params
+    if (!campaignId || !adSetId) return NextResponse.json({ error: 'id e adSetId são obrigatórios' }, { status: 400 })
 
     const { data: campaign } = await (supabase as any)
       .from('analytics_campaigns')
@@ -28,37 +28,31 @@ export async function PATCH(
 
     const body = await request.json().catch(() => ({}))
     const updates: Record<string, unknown> = {}
-    if (typeof body.name === 'string') updates.name = body.name.trim() || 'Criativo'
-    if (body.alcance != null) updates.alcance = Number(body.alcance)
-    if (body.impressoes != null) updates.impressoes = Number(body.impressoes)
-    if (body.cliques_link != null) updates.cliques_link = Number(body.cliques_link)
-    if (body.valor_investido != null) updates.valor_investido = Number(body.valor_investido)
-    if (body.compras != null) updates.compras = Number(body.compras)
-    if (body.valor_total_faturado != null) updates.valor_total_faturado = Number(body.valor_total_faturado)
-    if (body.ad_set_id !== undefined) updates.ad_set_id = body.ad_set_id === null || body.ad_set_id === '' ? null : body.ad_set_id
+    if (typeof body.name === 'string') updates.name = body.name.trim() || 'Conjunto'
+    if (typeof body.sort_order === 'number') updates.sort_order = body.sort_order
 
     if (Object.keys(updates).length === 0) {
       return NextResponse.json({ error: 'Nenhum campo para atualizar' }, { status: 400 })
     }
 
-    const { data: creative, error } = await (supabase as any)
-      .from('analytics_creatives')
+    const { data: adSet, error } = await (supabase as any)
+      .from('analytics_ad_sets')
       .update(updates)
-      .eq('id', creativeId)
+      .eq('id', adSetId)
       .eq('campaign_id', campaignId)
       .select('*')
       .single()
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-    return NextResponse.json({ creative })
+    return NextResponse.json({ adSet })
   } catch (e: any) {
-    return NextResponse.json({ error: e?.message ?? 'Erro ao atualizar criativo' }, { status: 500 })
+    return NextResponse.json({ error: e?.message ?? 'Erro ao atualizar conjunto' }, { status: 500 })
   }
 }
 
 export async function DELETE(
   _request: Request,
-  { params }: { params: Promise<{ id: string; creativeId: string }> }
+  { params }: { params: Promise<{ id: string; adSetId: string }> }
 ) {
   try {
     const supabase = createRouteHandlerClient()
@@ -67,8 +61,8 @@ export async function DELETE(
     } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
 
-    const { id: campaignId, creativeId } = await params
-    if (!campaignId || !creativeId) return NextResponse.json({ error: 'id e creativeId são obrigatórios' }, { status: 400 })
+    const { id: campaignId, adSetId } = await params
+    if (!campaignId || !adSetId) return NextResponse.json({ error: 'id e adSetId são obrigatórios' }, { status: 400 })
 
     const { data: campaign } = await (supabase as any)
       .from('analytics_campaigns')
@@ -80,14 +74,14 @@ export async function DELETE(
     if (!campaign) return NextResponse.json({ error: 'Campanha não encontrada' }, { status: 404 })
 
     const { error } = await (supabase as any)
-      .from('analytics_creatives')
+      .from('analytics_ad_sets')
       .delete()
-      .eq('id', creativeId)
+      .eq('id', adSetId)
       .eq('campaign_id', campaignId)
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
     return NextResponse.json({ ok: true })
   } catch (e: any) {
-    return NextResponse.json({ error: e?.message ?? 'Erro ao excluir criativo' }, { status: 500 })
+    return NextResponse.json({ error: e?.message ?? 'Erro ao excluir conjunto' }, { status: 500 })
   }
 }

@@ -59,8 +59,8 @@ async function getSiteDescription(): Promise<string> {
     console.error('Erro ao buscar descrição do site:', error)
   }
 
-  // Descrição padrão caso não encontre no banco
-  return 'Planejamento de conteúdo com IA: agenda de vídeos, roteiros, legendas e hashtags para creators e empresas.'
+  // Descrição padrão caso não encontre no banco (usada em meta e ao compartilhar o site)
+  return 'Gogh Lab - Criatividade guiada por tecnologia'
 }
 
 // Função para buscar nome do site do banco de dados
@@ -141,7 +141,7 @@ async function getSiteTitle(): Promise<string | null> {
       }
       // Se não tiver site_title, usar site_name + sufixo
       if (fallbackDataTyped?.site_name) {
-        return `${fallbackDataTyped.site_name} - Planejamento e criação de conteúdo com IA`
+        return `${fallbackDataTyped.site_name} - Criatividade guiada por tecnologia`
       }
     }
 
@@ -150,13 +150,13 @@ async function getSiteTitle(): Promise<string | null> {
     }
     // Se não tiver site_title, usar site_name + sufixo padrão
     if (dataTyped?.site_name) {
-      return `${dataTyped.site_name} - Planejamento e criação de conteúdo com IA`
+      return `${dataTyped.site_name} - Criatividade guiada por tecnologia`
     }
   } catch (error) {
     console.error('Erro ao buscar título do site:', error)
   }
 
-  return 'Gogh Lab - Planejamento e criação de conteúdo com IA'
+  return 'Gogh Lab - Criatividade guiada por tecnologia'
 }
 
 // Função para buscar logo do site do banco de dados

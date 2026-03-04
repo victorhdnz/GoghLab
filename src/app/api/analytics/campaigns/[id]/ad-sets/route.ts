@@ -27,15 +27,16 @@ export async function GET(
     if (!campaign) return NextResponse.json({ error: 'Campanha não encontrada' }, { status: 404 })
 
     const { data, error } = await (supabase as any)
-      .from('analytics_creatives')
+      .from('analytics_ad_sets')
       .select('*')
       .eq('campaign_id', campaignId)
+      .order('sort_order', { ascending: true })
       .order('created_at', { ascending: true })
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-    return NextResponse.json({ creatives: data ?? [] })
+    return NextResponse.json({ adSets: data ?? [] })
   } catch (e: any) {
-    return NextResponse.json({ error: e?.message ?? 'Erro ao listar criativos' }, { status: 500 })
+    return NextResponse.json({ error: e?.message ?? 'Erro ao listar conjuntos' }, { status: 500 })
   }
 }
 
@@ -61,40 +62,32 @@ export async function POST(
       .single()
 
     if (!campaign) return NextResponse.json({ error: 'Campanha não encontrada' }, { status: 404 })
+    if (campaign.budget_type_meta !== 'abo') {
+      return NextResponse.json({ error: 'Conjuntos de anúncios só existem em campanhas ABO' }, { status: 400 })
+    }
 
     const body = await request.json().catch(() => ({}))
-    const name = typeof body.name === 'string' ? body.name.trim() || 'Criativo' : 'Criativo'
+    const name = typeof body.name === 'string' ? body.name.trim() || 'Conjunto' : 'Conjunto'
 
-    const budgetType = campaign.budget_type_meta === 'abo' ? 'abo' : 'cbo'
-    const payload: Record<string, unknown> = {
-      campaign_id: campaignId,
-      name,
-    }
-    if (budgetType === 'abo') {
-      const adSetId = typeof body.ad_set_id === 'string' ? body.ad_set_id.trim() || null : null
-      if (!adSetId) return NextResponse.json({ error: 'Em campanha ABO é obrigatório informar ad_set_id' }, { status: 400 })
-      const { data: adSet } = await (supabase as any).from('analytics_ad_sets').select('id').eq('id', adSetId).eq('campaign_id', campaignId).single()
-      if (!adSet) return NextResponse.json({ error: 'Conjunto não encontrado ou não pertence à campanha' }, { status: 400 })
-      payload.ad_set_id = adSetId
-    } else {
-      payload.ad_set_id = null
-    }
-    if (body.alcance != null) payload.alcance = Number(body.alcance)
-    if (body.impressoes != null) payload.impressoes = Number(body.impressoes)
-    if (body.cliques_link != null) payload.cliques_link = Number(body.cliques_link)
-    if (body.valor_investido != null) payload.valor_investido = Number(body.valor_investido)
-    if (body.compras != null) payload.compras = Number(body.compras)
-    if (body.valor_total_faturado != null) payload.valor_total_faturado = Number(body.valor_total_faturado)
+    const { data: existing } = await (supabase as any)
+      .from('analytics_ad_sets')
+      .select('sort_order')
+      .eq('campaign_id', campaignId)
+      .order('sort_order', { ascending: false })
+      .limit(1)
+      .single()
 
-    const { data: creative, error } = await (supabase as any)
-      .from('analytics_creatives')
-      .insert(payload)
+    const sortOrder = existing?.sort_order != null ? Number(existing.sort_order) + 1 : 0
+
+    const { data: adSet, error } = await (supabase as any)
+      .from('analytics_ad_sets')
+      .insert({ campaign_id: campaignId, name, sort_order: sortOrder })
       .select('*')
       .single()
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-    return NextResponse.json({ creative })
+    return NextResponse.json({ adSet })
   } catch (e: any) {
-    return NextResponse.json({ error: e?.message ?? 'Erro ao criar criativo' }, { status: 500 })
+    return NextResponse.json({ error: e?.message ?? 'Erro ao criar conjunto' }, { status: 500 })
   }
 }

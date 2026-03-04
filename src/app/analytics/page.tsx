@@ -36,6 +36,7 @@ interface AnalyticsCampaign {
   name: string
   start_date: string
   is_active: boolean
+  budget_type_meta?: 'cbo' | 'abo' | null
   valor_venda: number | null
   custo_venda: number | null
   custo_por_aquisicao: number | null
@@ -53,9 +54,19 @@ interface AnalyticsCampaign {
   updated_at: string
 }
 
+interface AnalyticsAdSet {
+  id: string
+  campaign_id: string
+  name: string
+  sort_order: number
+  created_at: string
+  updated_at: string
+}
+
 interface AnalyticsCreative {
   id: string
   campaign_id: string
+  ad_set_id: string | null
   name: string
   alcance: number | null
   impressoes: number | null
@@ -224,6 +235,7 @@ export default function AnalyticsPage() {
   const [campaignsLoading, setCampaignsLoading] = useState(false)
   const [newCampaignName, setNewCampaignName] = useState('')
   const [newCampaignStartDate, setNewCampaignStartDate] = useState(() => new Date().toISOString().split('T')[0])
+  const [newCampaignBudgetType, setNewCampaignBudgetType] = useState<BudgetTypeMeta>('cbo')
   const [roiEnabled, setRoiEnabled] = useState(false)
   const [valorVenda, setValorVenda] = useState<string>('')
   const [custoVenda, setCustoVenda] = useState<string>('')
@@ -238,6 +250,8 @@ export default function AnalyticsPage() {
   const [savedCreativesSignature, setSavedCreativesSignature] = useState<string>('')
   const [creatives, setCreatives] = useState<AnalyticsCreative[]>([])
   const [creativesLoading, setCreativesLoading] = useState(false)
+  const [adSets, setAdSets] = useState<AnalyticsAdSet[]>([])
+  const [adSetsLoading, setAdSetsLoading] = useState(false)
   const [addingCreative, setAddingCreative] = useState(false)
   const [creatingCampaignFromPlanning, setCreatingCampaignFromPlanning] = useState(false)
   const [creativosSubOpen, setCreativosSubOpen] = useState(false)
@@ -324,6 +338,7 @@ export default function AnalyticsPage() {
     JSON.stringify(
       list.map((c) => ({
         id: c.id,
+        ad_set_id: c.ad_set_id ?? null,
         name: (c.name ?? '').trim(),
         alcance: c.alcance ?? '',
         impressoes: c.impressoes ?? '',
@@ -350,6 +365,21 @@ export default function AnalyticsPage() {
       setSavedCreativesSignature('')
     } finally {
       setCreativesLoading(false)
+    }
+  }
+
+  const loadAdSets = async (campaignId: string) => {
+    if (!hasAccess) return
+    try {
+      setAdSetsLoading(true)
+      const res = await fetch(`/api/analytics/campaigns/${campaignId}/ad-sets`, { credentials: 'include' })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Erro ao carregar conjuntos')
+      setAdSets(data.adSets || [])
+    } catch (e: any) {
+      setAdSets([])
+    } finally {
+      setAdSetsLoading(false)
     }
   }
 
@@ -393,6 +423,10 @@ export default function AnalyticsPage() {
         setSavedAnalyticsProfile(c.analytics_profile)
         if (typeof window !== 'undefined') localStorage.setItem(ANALYTICS_PROFILE_KEY, c.analytics_profile)
       }
+      const bt = c.budget_type_meta === 'abo' ? 'abo' : 'cbo'
+      setBudgetTypeMeta(bt)
+      setSavedBudgetTypeMeta(bt)
+      if (typeof window !== 'undefined') localStorage.setItem(BUDGET_TYPE_STORAGE_KEY, bt)
       setSavedCampaignSignature(
         JSON.stringify({
           roi_enabled: c.roi_enabled,
@@ -414,11 +448,15 @@ export default function AnalyticsPage() {
     if (!selectedCampaignId || !hasAccess) {
       setCreatives([])
       setSavedCreativesSignature('')
+      setAdSets([])
       return
     }
     setCreativosSubOpen(true)
     loadCreatives(selectedCampaignId)
-  }, [selectedCampaignId, hasAccess])
+    const camp = campaigns.find((c) => c.id === selectedCampaignId)
+    if (camp?.budget_type_meta === 'abo') loadAdSets(selectedCampaignId)
+    else setAdSets([])
+  }, [selectedCampaignId, hasAccess, campaigns])
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -1158,7 +1196,7 @@ export default function AnalyticsPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ name, start_date: newCampaignStartDate }),
+        body: JSON.stringify({ name, start_date: newCampaignStartDate, budget_type_meta: newCampaignBudgetType }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Erro ao criar')
@@ -1166,13 +1204,33 @@ export default function AnalyticsPage() {
       setSelectedCampaignId(data.campaign.id)
       setNewCampaignName('')
       setNewCampaignStartDate(new Date().toISOString().split('T')[0])
-      const crRes = await fetch(`/api/analytics/campaigns/${data.campaign.id}/creatives`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ name: 'Criativo 1' }),
-      })
-      if (crRes.ok) await loadCreatives(data.campaign.id)
+      if (newCampaignBudgetType === 'abo') {
+        const asRes = await fetch(`/api/analytics/campaigns/${data.campaign.id}/ad-sets`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ name: 'Conjunto 1' }),
+        })
+        const asData = asRes.ok ? await asRes.json() : null
+        if (asData?.adSet) {
+          const crRes = await fetch(`/api/analytics/campaigns/${data.campaign.id}/creatives`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ name: 'Criativo 1', ad_set_id: asData.adSet.id }),
+          })
+          if (crRes.ok) await loadCreatives(data.campaign.id)
+          await loadAdSets(data.campaign.id)
+        }
+      } else {
+        const crRes = await fetch(`/api/analytics/campaigns/${data.campaign.id}/creatives`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ name: 'Criativo 1' }),
+        })
+        if (crRes.ok) await loadCreatives(data.campaign.id)
+      }
       toast.success('Campanha criada. Preencha os dados do criativo.')
     } catch (e: any) {
       toast.error(e?.message || 'Erro ao criar campanha')
@@ -1190,19 +1248,39 @@ export default function AnalyticsPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ name, start_date }),
+        body: JSON.stringify({ name, start_date, budget_type_meta: budgetTypeMeta }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Erro ao criar')
       setCampaigns((prev) => [data.campaign, ...prev])
       setSelectedCampaignId(data.campaign.id)
-      const crRes = await fetch(`/api/analytics/campaigns/${data.campaign.id}/creatives`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ name: 'Criativo 1' }),
-      })
-      if (crRes.ok) await loadCreatives(data.campaign.id)
+      if (budgetTypeMeta === 'abo') {
+        const asRes = await fetch(`/api/analytics/campaigns/${data.campaign.id}/ad-sets`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ name: 'Conjunto 1' }),
+        })
+        const asData = asRes.ok ? await asRes.json() : null
+        if (asData?.adSet) {
+          const crRes = await fetch(`/api/analytics/campaigns/${data.campaign.id}/creatives`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ name: 'Criativo 1', ad_set_id: asData.adSet.id }),
+          })
+          if (crRes.ok) await loadCreatives(data.campaign.id)
+          await loadAdSets(data.campaign.id)
+        }
+      } else {
+        const crRes = await fetch(`/api/analytics/campaigns/${data.campaign.id}/creatives`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ name: 'Criativo 1' }),
+        })
+        if (crRes.ok) await loadCreatives(data.campaign.id)
+      }
       toast.success('Campanha criada a partir do planejamento. As fases foram vinculadas. Adicione criativos e preencha os dados quando for o momento.')
     } catch (e: any) {
       toast.error(e?.message || 'Erro ao criar campanha')
@@ -1235,23 +1313,28 @@ export default function AnalyticsPage() {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Erro ao excluir')
       setCampaigns((prev) => prev.filter((c) => c.id !== id))
-      if (selectedCampaignId === id) setSelectedCampaignId(null)
-      setCreatives([])
+      if (selectedCampaignId === id) {
+        setSelectedCampaignId(null)
+        setCreatives([])
+        setAdSets([])
+      }
       toast.success('Campanha excluída')
     } catch (e: any) {
       toast.error(e?.message || 'Erro ao excluir')
     }
   }
 
-  const handleAddCreative = async () => {
+  const handleAddCreative = async (adSetId?: string | null) => {
     if (!selectedCampaignId) return
     setAddingCreative(true)
     try {
+      const body: Record<string, unknown> = { name: `Criativo ${creatives.length + 1}` }
+      if (adSetId) body.ad_set_id = adSetId
       const res = await fetch(`/api/analytics/campaigns/${selectedCampaignId}/creatives`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ name: `Criativo ${creatives.length + 1}` }),
+        body: JSON.stringify(body),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Erro ao criar criativo')
@@ -1261,6 +1344,44 @@ export default function AnalyticsPage() {
       toast.error(e?.message || 'Erro ao adicionar criativo')
     } finally {
       setAddingCreative(false)
+    }
+  }
+
+  const [addingAdSet, setAddingAdSet] = useState(false)
+  const handleAddAdSet = async () => {
+    if (!selectedCampaignId) return
+    setAddingAdSet(true)
+    try {
+      const res = await fetch(`/api/analytics/campaigns/${selectedCampaignId}/ad-sets`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ name: `Conjunto ${adSets.length + 1}` }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Erro ao criar conjunto')
+      setAdSets((prev) => [...prev, data.adSet])
+      toast.success('Conjunto adicionado. Adicione criativos dentro dele.')
+    } catch (e: any) {
+      toast.error(e?.message || 'Erro ao adicionar conjunto')
+    } finally {
+      setAddingAdSet(false)
+    }
+  }
+
+  const handleDeleteAdSet = async (adSetId: string) => {
+    if (!selectedCampaignId || !confirm('Excluir este conjunto? Os criativos dentro dele também serão excluídos.')) return
+    try {
+      const res = await fetch(`/api/analytics/campaigns/${selectedCampaignId}/ad-sets/${adSetId}`, { method: 'DELETE', credentials: 'include' })
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.error || 'Erro ao excluir')
+      }
+      setAdSets((prev) => prev.filter((a) => a.id !== adSetId))
+      setCreatives((prev) => prev.filter((c) => c.ad_set_id !== adSetId))
+      toast.success('Conjunto excluído')
+    } catch (e: any) {
+      toast.error(e?.message || 'Erro ao excluir conjunto')
     }
   }
 
@@ -1646,7 +1767,7 @@ export default function AnalyticsPage() {
                             ) : (
                               <>
                         <div className="space-y-2 text-xs text-gogh-grayDark leading-snug">
-                          <p className="text-xs leading-snug">Acompanhe o status da campanha abaixo.</p>
+                          <p className="text-xs leading-snug">Acompanhe o status da campanha abaixo.{selectedCampaign?.budget_type_meta === 'abo' && ' Em ABO, os totais e o status são da campanha (soma de todos os conjuntos).'}</p>
                           <p className="text-xs leading-snug">Use o planejamento de valores (CPA, lucro) para saber se está dentro da meta.</p>
                         </div>
                         <Card className="w-full max-w-[280px] py-2 px-2 border border-gogh-grayLight shadow-sm shrink-0">
@@ -1772,33 +1893,39 @@ export default function AnalyticsPage() {
                             <p className="text-xs leading-snug">Preencha o valor investido na seção Campanhas com o real.</p>
                           </div>
                           <div className="mb-3 rounded-lg border border-gogh-grayLight bg-gogh-beige/20 p-2 space-y-2">
-                            <p className="text-[11px] font-medium text-gogh-black mb-0.5">No Meta, como você define o orçamento?</p>
-                            <label className="flex gap-2 cursor-pointer items-start rounded border border-transparent p-1.5 transition-colors hover:bg-gogh-beige/30 has-[:checked]:border-gogh-yellow/60 has-[:checked]:bg-gogh-yellow/10">
-                              <input
-                                type="radio"
-                                name="budgetTypeMeta"
-                                checked={budgetTypeMeta === 'cbo'}
-                                onChange={() => setBudgetTypeMeta('cbo')}
-                                className="mt-0.5 border-gogh-grayLight"
-                              />
-                              <div>
-                                <span className="text-[11px] font-medium text-gogh-black leading-snug"><strong>CBO</strong> (Orçamento na Campanha)</span>
-                                <p className="text-[10px] text-gogh-grayDark mt-0.5 leading-snug">A Meta gerencia o orçamento. Ideal para escala, eficiência e automação.</p>
-                              </div>
-                            </label>
-                            <label className="flex gap-2 cursor-pointer items-start rounded border border-transparent p-1.5 transition-colors hover:bg-gogh-beige/30 has-[:checked]:border-gogh-yellow/60 has-[:checked]:bg-gogh-yellow/10">
-                              <input
-                                type="radio"
-                                name="budgetTypeMeta"
-                                checked={budgetTypeMeta === 'abo'}
-                                onChange={() => setBudgetTypeMeta('abo')}
-                                className="mt-0.5 border-gogh-grayLight"
-                              />
-                              <div>
-                                <span className="text-[11px] font-medium text-gogh-black leading-snug"><strong>ABO</strong> (Orçamento no Conjunto de Anúncios)</span>
-                                <p className="text-[10px] text-gogh-grayDark mt-0.5 leading-snug">Você tem controle total. Útil para validar criativos e públicos com verbas específicas.</p>
-                              </div>
-                            </label>
+                            {!selectedCampaignId ? (
+                              <>
+                                <p className="text-[11px] font-medium text-gogh-black mb-0.5">No Meta, como você define o orçamento?</p>
+                                <label className="flex gap-2 cursor-pointer items-start rounded border border-transparent p-1.5 transition-colors hover:bg-gogh-beige/30 has-[:checked]:border-gogh-yellow/60 has-[:checked]:bg-gogh-yellow/10">
+                                  <input
+                                    type="radio"
+                                    name="budgetTypeMeta"
+                                    checked={budgetTypeMeta === 'cbo'}
+                                    onChange={() => setBudgetTypeMeta('cbo')}
+                                    className="mt-0.5 border-gogh-grayLight"
+                                  />
+                                  <div>
+                                    <span className="text-[11px] font-medium text-gogh-black leading-snug"><strong>CBO</strong> (Orçamento na Campanha)</span>
+                                    <p className="text-[10px] text-gogh-grayDark mt-0.5 leading-snug">A Meta gerencia o orçamento. Ideal para escala, eficiência e automação.</p>
+                                  </div>
+                                </label>
+                                <label className="flex gap-2 cursor-pointer items-start rounded border border-transparent p-1.5 transition-colors hover:bg-gogh-beige/30 has-[:checked]:border-gogh-yellow/60 has-[:checked]:bg-gogh-yellow/10">
+                                  <input
+                                    type="radio"
+                                    name="budgetTypeMeta"
+                                    checked={budgetTypeMeta === 'abo'}
+                                    onChange={() => setBudgetTypeMeta('abo')}
+                                    className="mt-0.5 border-gogh-grayLight"
+                                  />
+                                  <div>
+                                    <span className="text-[11px] font-medium text-gogh-black leading-snug"><strong>ABO</strong> (Orçamento no Conjunto de Anúncios)</span>
+                                    <p className="text-[10px] text-gogh-grayDark mt-0.5 leading-snug">Você tem controle total. Útil para validar criativos e públicos com verbas específicas.</p>
+                                  </div>
+                                </label>
+                              </>
+                            ) : (
+                              <p className="text-[11px] text-gogh-grayDark">Estratégia: <strong className="text-gogh-black">{selectedCampaign?.budget_type_meta === 'abo' ? 'ABO' : 'CBO'}</strong> (definida na criação da campanha)</p>
+                            )}
                           </div>
                           <p className="text-[11px] font-medium text-gogh-black mb-1.5 mt-3">Fases</p>
                           {budgetPhases.length > 0 && (
@@ -2114,35 +2241,49 @@ export default function AnalyticsPage() {
                   selectedCampaign ? `${selectedCampaign.name} · Início ${selectedCampaign.start_date}` : 'Crie, ative ou pause campanhas',
                   <Megaphone className="w-4 h-4 text-gogh-grayDark" />,
                   <div className="pt-2 space-y-3 overflow-hidden">
-                    <div className="flex flex-wrap gap-3 items-end min-w-0">
-                      <div className="flex-1 min-w-0 sm:min-w-[160px]">
-                        <label className="block text-xs font-medium text-gogh-grayDark mb-1">Nova campanha</label>
-                        <input
-                          type="text"
-                          value={newCampaignName}
-                          onChange={(e) => setNewCampaignName(e.target.value)}
-                          placeholder="Nome da campanha"
-                          className="w-full min-w-0 border border-gogh-grayLight rounded-lg px-3 py-2 text-sm"
-                        />
-                      </div>
-                      <div className="min-w-0 max-w-full overflow-hidden basis-32 shrink sm:basis-auto sm:min-w-[140px]">
-                        <label className="block text-xs font-medium text-gogh-grayDark mb-1">Início</label>
-                        <input
-                          type="date"
-                          value={newCampaignStartDate}
-                          onChange={(e) => setNewCampaignStartDate(e.target.value)}
-                          className="w-full min-w-0 max-w-full border border-gogh-grayLight rounded-lg px-2.5 py-1.5 text-xs box-border"
-                        />
-                      </div>
-                      <button
+                    <div className="space-y-3">
+                      <div className="flex flex-wrap gap-3 items-end min-w-0">
+                        <div className="flex-1 min-w-0 sm:min-w-[160px]">
+                          <label className="block text-xs font-medium text-gogh-grayDark mb-1">Nova campanha</label>
+                          <input
+                            type="text"
+                            value={newCampaignName}
+                            onChange={(e) => setNewCampaignName(e.target.value)}
+                            placeholder="Nome da campanha"
+                            className="w-full min-w-0 border border-gogh-grayLight rounded-lg px-3 py-2 text-sm"
+                          />
+                        </div>
+                        <div className="min-w-0 max-w-full overflow-hidden basis-32 shrink sm:basis-auto sm:min-w-[140px]">
+                          <label className="block text-xs font-medium text-gogh-grayDark mb-1">Início</label>
+                          <input
+                            type="date"
+                            value={newCampaignStartDate}
+                            onChange={(e) => setNewCampaignStartDate(e.target.value)}
+                            className="w-full min-w-0 max-w-full border border-gogh-grayLight rounded-lg px-2.5 py-1.5 text-xs box-border"
+                          />
+                        </div>
+                        <button
                         type="button"
                         onClick={handleCreateCampaign}
                         disabled={campaignsLoading}
                         className="inline-flex items-center gap-2 px-3 py-1.5 bg-gogh-yellow text-gogh-black rounded-xl hover:bg-gogh-yellow/90 font-medium text-xs transition-colors shrink-0"
                       >
                         <Plus className="w-4 h-4" />
-                        Criar
-                      </button>
+                          Criar
+                        </button>
+                      </div>
+                      <div className="flex flex-wrap gap-2 items-center">
+                        <span className="text-[11px] font-medium text-gogh-grayDark">Estratégia:</span>
+                        <label className="flex items-center gap-1.5 cursor-pointer">
+                          <input type="radio" name="newCampaignBudgetType" checked={newCampaignBudgetType === 'cbo'} onChange={() => setNewCampaignBudgetType('cbo')} className="border-gogh-grayLight" />
+                          <span className="text-xs text-gogh-black">CBO</span>
+                        </label>
+                        <label className="flex items-center gap-1.5 cursor-pointer">
+                          <input type="radio" name="newCampaignBudgetType" checked={newCampaignBudgetType === 'abo'} onChange={() => setNewCampaignBudgetType('abo')} className="border-gogh-grayLight" />
+                          <span className="text-xs text-gogh-black">ABO</span>
+                        </label>
+                        <span className="text-[10px] text-gogh-grayDark">(CBO: criativos na campanha; ABO: conjuntos + criativos)</span>
+                      </div>
                     </div>
                     {campaignsLoading ? (
                       <div className="flex justify-center py-4"><LumaSpin size="sm" /></div>
@@ -2198,33 +2339,88 @@ export default function AnalyticsPage() {
                         >
                           <span className="text-xs font-semibold text-gogh-black flex items-center gap-2">
                             <ImageIcon className="w-4 h-4 text-gogh-grayDark" />
-                            Criativos desta campanha
-                            {creatives.length > 0 && (
+                            {selectedCampaign?.budget_type_meta === 'abo' ? 'Conjuntos e criativos' : 'Criativos desta campanha'}
+                            {selectedCampaign?.budget_type_meta === 'abo' ? (
+                              <span className="text-xs font-normal text-gogh-grayDark">({adSets.length} conjuntos · {creatives.length} criativos)</span>
+                            ) : creatives.length > 0 ? (
                               <span className="text-xs font-normal text-gogh-grayDark">({creatives.length})</span>
-                            )}
+                            ) : null}
                           </span>
                           {creativosSubOpen ? <ChevronDown className="w-4 h-4 shrink-0" /> : <ChevronRight className="w-4 h-4 shrink-0" />}
                         </button>
                         {creativosSubOpen && (
                           <div className="pt-3 space-y-3">
-                            {creativesLoading ? (
+                            {selectedCampaign?.budget_type_meta === 'abo' ? (
+                              <>
+                                {adSetsLoading ? (
+                                  <div className="flex justify-center py-4"><LumaSpin size="sm" /></div>
+                                ) : (
+                                  <>
+                                    <div className="flex flex-wrap items-center justify-between gap-2">
+                                      <p className="text-xs text-gogh-grayDark">Conjuntos de anúncios (ABO). Adicione criativos dentro de cada conjunto.</p>
+                                      <button type="button" onClick={handleAddAdSet} disabled={addingAdSet} className="inline-flex items-center gap-2 px-2.5 py-1.5 bg-gogh-yellow text-gogh-black rounded-lg text-xs font-medium hover:bg-gogh-yellow/90">
+                                        <Plus className="w-4 h-4" />{addingAdSet ? '...' : 'Adicionar conjunto'}
+                                      </button>
+                                    </div>
+                                    {adSets.length === 0 ? (
+                                      <p className="text-xs text-gogh-grayDark rounded-lg border border-dashed border-gogh-grayLight bg-gogh-beige/20 p-3">Nenhum conjunto. Clique em &quot;Adicionar conjunto&quot; para começar.</p>
+                                    ) : (
+                                      <div className="space-y-4">
+                                        {adSets.map((adSet) => {
+                                          const creativesInSet = creatives.filter((c) => c.ad_set_id === adSet.id)
+                                          return (
+                                            <div key={adSet.id} className="rounded-lg border-2 border-gogh-grayLight bg-gogh-beige/10 p-3 space-y-2">
+                                              <div className="flex items-center justify-between gap-2">
+                                                <span className="text-xs font-semibold text-gogh-black">{adSet.name}</span>
+                                                <div className="flex items-center gap-1">
+                                                  <button type="button" onClick={() => handleAddCreative(adSet.id)} disabled={addingCreative} className="inline-flex items-center gap-1 px-2 py-1 text-xs bg-gogh-yellow/80 text-gogh-black rounded hover:bg-gogh-yellow">
+                                                    <Plus className="w-3 h-3" />{addingCreative ? '...' : 'Criativo'}
+                                                  </button>
+                                                  <button type="button" onClick={() => handleDeleteAdSet(adSet.id)} className="p-1 text-red-600 hover:bg-red-50 rounded" aria-label="Excluir conjunto"><Trash2 className="w-4 h-4" /></button>
+                                                </div>
+                                              </div>
+                                              {creativesInSet.length === 0 ? (
+                                                <p className="text-[11px] text-gogh-grayDark">Nenhum criativo neste conjunto.</p>
+                                              ) : (
+                                                <div className="space-y-2 pl-2 border-l-2 border-gogh-grayLight">
+                                                  {creativesInSet.map((cr) => (
+                                                    <div key={cr.id} className="rounded-lg border border-gogh-grayLight bg-white p-2 space-y-2">
+                                                      <div className="flex items-center gap-2 flex-wrap">
+                                                        <input type="text" value={cr.name} onChange={(e) => setCreatives((prev) => prev.map((c) => (c.id === cr.id ? { ...c, name: e.target.value } : c)))} placeholder="Nome do criativo" className="flex-1 min-w-[100px] border border-gogh-grayLight rounded px-2 py-1 text-sm" />
+                                                        <button type="button" onClick={() => handleDeleteCreative(cr.id)} className="p-1 text-red-600 hover:bg-red-50 rounded" aria-label="Excluir"><Trash2 className="w-3.5 h-3.5" /></button>
+                                                      </div>
+                                                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                                        <div><label className="block text-[10px] text-gogh-grayDark">Alcance</label><input type="number" min="0" value={cr.alcance ?? ''} onChange={(e) => setCreatives((prev) => prev.map((c) => (c.id === cr.id ? { ...c, alcance: e.target.value ? Number(e.target.value) : null } : c)))} className="w-full border rounded px-2 py-1 text-xs" /></div>
+                                                        <div><label className="block text-[10px] text-gogh-grayDark">Impressões</label><input type="number" min="0" value={cr.impressoes ?? ''} onChange={(e) => setCreatives((prev) => prev.map((c) => (c.id === cr.id ? { ...c, impressoes: e.target.value ? Number(e.target.value) : null } : c)))} className="w-full border rounded px-2 py-1 text-xs" /></div>
+                                                        <div><label className="block text-[10px] text-gogh-grayDark">Cliques</label><input type="number" min="0" value={cr.cliques_link ?? ''} onChange={(e) => setCreatives((prev) => prev.map((c) => (c.id === cr.id ? { ...c, cliques_link: e.target.value ? Number(e.target.value) : null } : c)))} className="w-full border rounded px-2 py-1 text-xs" /></div>
+                                                        <div><label className="block text-[10px] text-gogh-grayDark">Valor (R$)</label><input type="number" min="0" step="0.01" value={cr.valor_investido ?? ''} onChange={(e) => setCreatives((prev) => prev.map((c) => (c.id === cr.id ? { ...c, valor_investido: e.target.value ? Number(e.target.value) : null } : c)))} className="w-full border rounded px-2 py-1 text-xs" /></div>
+                                                        <div><label className="block text-[10px] text-gogh-grayDark">{profileLabels.resultados}</label><input type="number" min="0" value={cr.compras ?? ''} onChange={(e) => setCreatives((prev) => prev.map((c) => (c.id === cr.id ? { ...c, compras: e.target.value ? Number(e.target.value) : null } : c)))} className="w-full border rounded px-2 py-1 text-xs" /></div>
+                                                        <div><label className="block text-[10px] text-gogh-grayDark">{profileLabels.valorConversao}</label><input type="number" min="0" step="0.01" value={cr.valor_total_faturado ?? ''} onChange={(e) => setCreatives((prev) => prev.map((c) => (c.id === cr.id ? { ...c, valor_total_faturado: e.target.value ? Number(e.target.value) : null } : c)))} className="w-full border rounded px-2 py-1 text-xs" /></div>
+                                                      </div>
+                                                    </div>
+                                                  ))}
+                                                </div>
+                                              )}
+                                            </div>
+                                          )
+                                        })}
+                                      </div>
+                                    )}
+                                  </>
+                                )}
+                              </>
+                            ) : creativesLoading ? (
                               <div className="flex justify-center py-4"><LumaSpin size="sm" /></div>
                             ) : creatives.length === 0 ? (
                               <div className="rounded-lg border border-dashed border-gogh-grayLight bg-gogh-beige/20 p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                                 <p className="text-xs text-gogh-grayDark">Adicione cada vídeo ou anúncio e preencha as métricas. Os totais alimentam Dados da campanha e o Status.</p>
-                                <button
-                                  type="button"
-                                  onClick={handleAddCreative}
-                                  disabled={addingCreative}
-                                  className="shrink-0 inline-flex items-center gap-2 px-2.5 py-1.5 bg-gogh-yellow text-gogh-black rounded-lg text-xs font-medium hover:bg-gogh-yellow/90"
-                                >
-                                  <Plus className="w-4 h-4" />
-                                  {addingCreative ? '...' : 'Adicionar criativo'}
+                                <button type="button" onClick={() => handleAddCreative()} disabled={addingCreative} className="shrink-0 inline-flex items-center gap-2 px-2.5 py-1.5 bg-gogh-yellow text-gogh-black rounded-lg text-xs font-medium hover:bg-gogh-yellow/90">
+                                  <Plus className="w-4 h-4" />{addingCreative ? '...' : 'Adicionar criativo'}
                                 </button>
                               </div>
                             ) : (
                               <>
-                                {creatives.map((cr) => (
+                                {creatives.filter((c) => !c.ad_set_id).map((cr) => (
                                   <div key={cr.id} className="rounded-lg border border-gogh-grayLight bg-white p-3 space-y-2">
                                     <div className="flex items-center gap-2 flex-wrap">
                                       <input
@@ -2246,7 +2442,7 @@ export default function AnalyticsPage() {
                                     </div>
                                   </div>
                                 ))}
-                                <button type="button" onClick={handleAddCreative} disabled={addingCreative} className="inline-flex items-center gap-1.5 px-3 py-2 border border-dashed border-gogh-grayLight rounded-lg text-xs font-medium text-gogh-grayDark hover:bg-gogh-grayLight/30">
+                                <button type="button" onClick={() => handleAddCreative()} disabled={addingCreative} className="inline-flex items-center gap-1.5 px-3 py-2 border border-dashed border-gogh-grayLight rounded-lg text-xs font-medium text-gogh-grayDark hover:bg-gogh-grayLight/30">
                                   <Plus className="w-3.5 h-3.5" />{addingCreative ? '...' : 'Adicionar criativo'}
                                 </button>
                               </>
@@ -2261,7 +2457,11 @@ export default function AnalyticsPage() {
                           <ClipboardList className="w-3.5 h-3.5" />
                           Dados e métricas
                         </p>
-                        <p className="text-xs text-gogh-grayDark mb-2">Calculados de forma automática a partir dos dados preenchidos nos criativos.</p>
+                        <p className="text-xs text-gogh-grayDark mb-2">
+                          {selectedCampaign?.budget_type_meta === 'abo'
+                            ? 'Totais da campanha (soma de todos os conjuntos e criativos). Preencha os criativos em cada conjunto para ver métricas e Status.'
+                            : 'Calculados de forma automática a partir dos dados preenchidos nos criativos.'}
+                        </p>
                         {creatives.length > 0 ? (
                           (impressoesNum > 0 || cliquesNum > 0 || comprasNum > 0 || valorInvestidoNum > 0) ? (
                             <div className="rounded-lg border border-gogh-grayLight bg-gogh-beige/40 p-3">
