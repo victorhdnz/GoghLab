@@ -1703,7 +1703,7 @@ export default function AnalyticsPage() {
                           </>
                         )}
                       </div>
-                    ) ) : (
+                    ) : (
                       <div className="space-y-4">
                         {!selectedCampaignId && (
                           <>
