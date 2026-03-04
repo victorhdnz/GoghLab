@@ -908,6 +908,13 @@ export default function AnalyticsPage() {
     setAccordionOpen((prev) => (prev === id ? null : id))
   }
 
+  useEffect(() => {
+    if (accordionOpen) {
+      const el = document.getElementById(`analytics-accordion-${accordionOpen}`)
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  }, [accordionOpen])
+
   const handleCreateCampaign = async () => {
     const name = newCampaignName.trim()
     if (!name) {
@@ -1085,7 +1092,7 @@ export default function AnalyticsPage() {
     icon: React.ReactNode,
     children: React.ReactNode
   ) => (
-    <div className={`rounded-lg border transition-colors overflow-hidden ${getAccordionCardClass(id)}`}>
+    <div id={`analytics-accordion-${id}`} className={`rounded-lg border transition-colors overflow-hidden ${getAccordionCardClass(id)}`}>
       <button
         type="button"
         onClick={() => toggleAccordion(id)}
@@ -1309,11 +1316,6 @@ export default function AnalyticsPage() {
                               )}
                               {custoMaxAceitavel > 0 && (
                                 <span className="text-gogh-grayDark ml-1.5">· CPA máx: R$ {custoMaxAceitavel.toFixed(2).replace('.', ',')}</span>
-                              )}
-                              {lucroPorVenda > 0 && custoMaxAceitavel > 0 && (
-                                <span className="text-green-700 ml-1 flex items-center gap-0.5">
-                                  <CheckCircle2 className="w-3 h-3 shrink-0" /> CPA &lt; R$ {custoMaxAceitavel.toFixed(2).replace('.', ',')}
-                                </span>
                               )}
                             </div>
                           ) : (
@@ -1547,7 +1549,7 @@ export default function AnalyticsPage() {
                                         e.setHours(0, 0, 0, 0)
                                         return d < s || d >= e
                                       }}
-                                      modifiers={{
+                                      modifiers={budgetPhases.length > 0 ? {
                                         inCampaign: (date) => {
                                           const n = getDayNum(date)
                                           return n != null && !isActionDay(n)
@@ -1560,12 +1562,12 @@ export default function AnalyticsPage() {
                                           const n = getDayNum(date)
                                           return n != null && isActionDay(n) && filledDatesSet.has(dateToKey(date))
                                         },
-                                      }}
-                                      modifiersClassNames={{
+                                      } : {}}
+                                      modifiersClassNames={budgetPhases.length > 0 ? {
                                         inCampaign: '[&>button]:bg-gogh-yellow/35 [&>button]:text-gogh-black [&>button]:shadow-[inset_0_0_0_1px_rgba(247,201,72,0.5)]',
                                         actionDay: '[&>button]:bg-emerald-500/50 [&>button]:text-gogh-black [&>button]:shadow-[inset_0_0_0_1px_rgba(16,185,129,0.6)]',
                                         actionDayFilled: '[&>button]:bg-emerald-400/70 [&>button]:text-white [&>button]:shadow-[inset_0_0_0_1px_rgba(52,211,153,0.9)]',
-                                      }}
+                                      } : {}}
                                       classNames={{
                                         day_button: '!size-7',
                                         day: '!size-7 !px-0',
@@ -1582,10 +1584,10 @@ export default function AnalyticsPage() {
                                         ? campaignCalendarSelectedDate.toLocaleDateString('pt-BR', { day: 'numeric', month: 'short', year: 'numeric' })
                                         : 'Selecione um dia'}
                                     </div>
-                                    {campaignCalendarSelectedDate && getDayNum(campaignCalendarSelectedDate) != null && (
+                                    {budgetPhases.length > 0 && campaignCalendarSelectedDate && getDayNum(campaignCalendarSelectedDate) != null && (
                                       <>
                                         <div className="rounded-md bg-gogh-beige/30 border border-gogh-grayLight/80 p-1.5 text-[11px] text-gogh-grayDark w-full">
-                                          <p className="font-medium text-gogh-black text-[11px]">Dia {getDayNum(campaignCalendarSelectedDate)} da campanha{budgetPhases.length > 0 ? ` · Fase ${getPhaseForDay(getDayNum(campaignCalendarSelectedDate)!) + 1}` : ''}</p>
+                                          <p className="font-medium text-gogh-black text-[11px]">Dia {getDayNum(campaignCalendarSelectedDate)} da campanha · Fase {getPhaseForDay(getDayNum(campaignCalendarSelectedDate)!) + 1}</p>
                                           {getMilestoneShort(getDayNum(campaignCalendarSelectedDate)!) && (
                                             <p className="mt-0.5 leading-snug text-[11px]">{getMilestoneShort(getDayNum(campaignCalendarSelectedDate)!)}</p>
                                           )}
