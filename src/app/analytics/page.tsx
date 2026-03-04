@@ -1915,22 +1915,22 @@ export default function AnalyticsPage() {
                             <TrendingUp className="w-3 h-3 text-gogh-yellow" />
                             Estratégia: Nível {strategyTier.label}
                           </p>
-                          <p className="text-[7px] text-gogh-grayDark leading-tight">
+                          <p className="text-[11px] text-gogh-grayDark leading-snug">
                             Faixa do Nível {strategyTier.label}: <strong>{strategyTier.description}</strong> — referência para meta de criativos e plano.
                           </p>
                           {strategyTier.investimentoPlanejadoPorDia != null ? (
-                            <p className="text-[7px] text-gogh-black leading-tight">
+                            <p className="text-[11px] text-gogh-black leading-snug">
                               Investimento planejado (fases): <strong>R$ {strategyTier.investimentoPlanejadoPorDia.toFixed(2).replace('.', ',')}/dia</strong>
                             </p>
                           ) : (
-                            <p className="text-[7px] text-gogh-grayDark leading-tight">
+                            <p className="text-[11px] text-gogh-grayDark leading-snug">
                               Adicione fases acima para o nível ser definido pelo planejamento.
                             </p>
                           )}
-                          <p className="text-[7px] text-gogh-black pt-1 border-t border-gogh-grayLight/80 leading-tight">
+                          <p className="text-[11px] text-gogh-black pt-1 border-t border-gogh-grayLight/80 leading-snug">
                             Meta de criativos: <strong>{strategyTier.minCreatives} a {strategyTier.maxCreatives} ativos</strong>
                           </p>
-                          <p className="text-[7px] text-gogh-grayDark leading-tight">
+                          <p className="text-[11px] text-gogh-grayDark leading-snug">
                             Recomendação: 1 criativo para cada 20–30 R$/dia (prática de mercado).
                           </p>
                         </div>
@@ -1940,7 +1940,7 @@ export default function AnalyticsPage() {
                             <TrendingUp className="w-3 h-3 text-gogh-yellow" />
                             Estratégia
                           </p>
-                          <p className="text-[7px] text-gogh-grayDark leading-tight">
+                          <p className="text-[11px] text-gogh-grayDark leading-snug">
                             Adicione fases acima para o nível, valor/dia e meta de criativos serem definidos.
                           </p>
                         </div>
