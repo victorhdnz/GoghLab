@@ -1405,7 +1405,7 @@ export default function AnalyticsPage() {
                         className={`rounded-xl border-2 p-4 text-left transition-colors ${hasExistingAds === true ? 'border-gogh-yellow bg-gogh-yellow/10' : 'border-gogh-grayLight hover:border-gogh-grayLight/80 bg-white'}`}
                       >
                         <span className="block font-medium text-gogh-black">Já tenho campanhas rodando</span>
-                        <span className="block text-[8px] text-gogh-grayDark mt-0.5 leading-tight">Quero apenas análise e status para decisões, sem recomendações de estratégia.</span>
+                        <span className="block text-[11px] text-gogh-grayDark mt-0.5 leading-snug">Quero apenas análise e status para decisões, sem recomendações de estratégia.</span>
                       </button>
                       <button
                         type="button"
@@ -1416,7 +1416,7 @@ export default function AnalyticsPage() {
                         className={`rounded-xl border-2 p-4 text-left transition-colors ${hasExistingAds === false ? 'border-gogh-yellow bg-gogh-yellow/10' : 'border-gogh-grayLight hover:border-gogh-grayLight/80 bg-white'}`}
                       >
                         <span className="block font-medium text-gogh-black">Quero estratégia, análise e agenda integradas</span>
-                        <span className="block text-[8px] text-gogh-grayDark mt-0.5 leading-tight">Auxílio completo para criar e gerir: planejamento, fases, calendário e análises no mesmo fluxo.</span>
+                        <span className="block text-[11px] text-gogh-grayDark mt-0.5 leading-snug">Auxílio completo para criar e gerir: planejamento, fases, calendário e análises no mesmo fluxo.</span>
                       </button>
                     </div>
                   </div>
@@ -1450,7 +1450,7 @@ export default function AnalyticsPage() {
                         <Target className="w-3 h-3 text-gogh-yellow" />
                         Perfil de análise (forma de venda)
                       </p>
-                      <div className="space-y-0.5 text-[8px] text-gogh-grayDark leading-tight">
+                      <div className="space-y-0.5 text-[11px] text-gogh-grayDark leading-snug">
                         <p>Defina como seu negócio vende ou gera resultados.</p>
                         <p>Campos, métricas e recomendações do Status se adaptam a este perfil.</p>
                       </div>
@@ -1466,7 +1466,7 @@ export default function AnalyticsPage() {
                             className={`rounded-xl border-2 px-2.5 py-1.5 text-left text-[11px] transition-colors ${analyticsProfile === key ? 'border-gogh-yellow bg-gogh-yellow/20' : 'border-gogh-grayLight bg-white hover:border-gogh-grayDark/30'}`}
                           >
                             <span className="font-medium text-gogh-black block">{ANALYTICS_PROFILES[key].label}</span>
-                            <span className="text-[8px] text-gogh-grayDark line-clamp-2">{ANALYTICS_PROFILES[key].description}</span>
+                            <span className="text-[11px] text-gogh-grayDark line-clamp-2">{ANALYTICS_PROFILES[key].description}</span>
                           </button>
                         ))}
                       </div>
@@ -1477,7 +1477,7 @@ export default function AnalyticsPage() {
                         <DollarSign className="w-3 h-3 text-gogh-yellow" />
                         Planejamento de valores
                       </p>
-                      <div className="space-y-0.5 text-[8px] text-gogh-grayDark leading-tight">
+                      <div className="space-y-0.5 text-[11px] text-gogh-grayDark leading-snug">
                         <p>Não são dados do Meta.</p>
                         <p>Valor da venda e custo por venda para lucro e recomendações no Status.</p>
                       </div>
@@ -1488,7 +1488,7 @@ export default function AnalyticsPage() {
                           onChange={(e) => setRoiEnabled(e.target.checked)}
                           className="rounded border-gogh-grayLight"
                         />
-                        <span className="text-[8px] font-medium text-gogh-grayDark leading-tight">Usar planejamento de valores no status (venda, custo, lucro)</span>
+                        <span className="text-[11px] font-medium text-gogh-grayDark leading-snug">Usar planejamento de valores no status (venda, custo, lucro)</span>
                       </label>
                       {roiEnabled && (
                         <>
@@ -1630,7 +1630,7 @@ export default function AnalyticsPage() {
                             <p>Preencha o valor investido na seção Campanhas com o real.</p>
                           </div>
                           <div className="mb-3 rounded-lg border border-gogh-grayLight bg-gogh-beige/20 p-2">
-                            <p className="text-[8px] font-medium text-gogh-black mb-0.5">No Meta, como você define o orçamento?</p>
+                            <p className="text-[11px] font-medium text-gogh-black mb-0.5">No Meta, como você define o orçamento?</p>
                             <div className="flex flex-wrap gap-2">
                               <label className="flex items-center gap-2 cursor-pointer">
                                 <input
@@ -1640,7 +1640,7 @@ export default function AnalyticsPage() {
                                   onChange={() => setBudgetTypeMeta('cbo')}
                                   className="border-gogh-grayLight"
                                 />
-                                <span className="text-[8px] text-gogh-grayDark leading-tight"><strong>CBO</strong> — Campanha (orçamento/dia; Meta distribui)</span>
+                                <span className="text-[11px] text-gogh-grayDark leading-snug"><strong>CBO</strong> — Campanha (orçamento/dia; Meta distribui)</span>
                               </label>
                               <label className="flex items-center gap-2 cursor-pointer">
                                 <input
@@ -1650,7 +1650,7 @@ export default function AnalyticsPage() {
                                   onChange={() => setBudgetTypeMeta('abo')}
                                   className="border-gogh-grayLight"
                                 />
-                                <span className="text-[8px] text-gogh-grayDark leading-tight"><strong>ABO</strong> — Conjunto (orçamento por conjunto; some para o total)</span>
+                                <span className="text-[11px] text-gogh-grayDark leading-snug"><strong>ABO</strong> — Conjunto (orçamento por conjunto; some para o total)</span>
                               </label>
                             </div>
                           </div>
@@ -1698,7 +1698,7 @@ export default function AnalyticsPage() {
                                 onChange={(e) => setUseAutoDiasRecommendation(e.target.checked)}
                                 className="rounded border-gogh-grayLight"
                               />
-                              <span className="text-[8px] text-gogh-grayDark leading-tight">Duração automática (sugerida pelo investimento)</span>
+                              <span className="text-[11px] text-gogh-grayDark leading-snug">Duração automática (sugerida pelo investimento)</span>
                             </label>
                             <div className="flex flex-wrap gap-2 items-end">
                               <div>
