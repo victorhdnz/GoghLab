@@ -1804,8 +1804,6 @@ export default function AnalyticsPage() {
                             )
                           })()}
                         </div>
-                      </div>
-
                         <div className="rounded-lg bg-gogh-grayLight/40 border border-gogh-grayLight p-3 space-y-2 mt-6">
                           <p className="text-xs font-semibold text-gogh-black flex items-center gap-1.5">
                             <TrendingUp className="w-3.5 h-3.5 text-gogh-yellow" />
