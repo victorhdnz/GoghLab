@@ -127,9 +127,9 @@ export default function AccountPage() {
 
   useEffect(() => {
     if (profile) {
-      setFullName(profile.full_name || '')
+      setFullName(profile.full_name?.trim() || user?.email?.split('@')[0] || '')
     }
-  }, [profile])
+  }, [profile, user?.email])
 
   // Abrir aba Plano e rolar até #usage quando o link for /conta#usage
   useEffect(() => {
@@ -343,6 +343,26 @@ export default function AccountPage() {
     { id: 'profile' as TabType, label: 'Perfil', icon: User },
     { id: 'plan' as TabType, label: 'Plano & Uso', icon: CreditCard },
   ]
+
+  // Evitar mostrar "Gratuito" ou nome em branco enquanto perfil/assinatura ainda estão carregando
+  const dataStillLoading = user && profile === null
+
+  if (dataStillLoading) {
+    return (
+      <div className="max-w-4xl mx-auto px-3 sm:px-4">
+        <div className="text-center mb-8">
+          <h1 className="text-2xl lg:text-3xl font-bold text-gogh-black mb-2">Minha Conta</h1>
+          <p className="text-gogh-grayDark">Gerencie suas informações pessoais e plano</p>
+        </div>
+        <div className="flex items-center justify-center min-h-[320px]">
+          <div className="text-center">
+            <LumaSpin size="default" className="mx-auto mb-4" />
+            <p className="text-gogh-grayDark">Carregando seus dados...</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="max-w-4xl mx-auto px-3 sm:px-4">

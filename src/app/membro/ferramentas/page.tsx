@@ -618,35 +618,23 @@ export default function ToolsPage() {
       <div>
         <h1 className="text-2xl lg:text-3xl font-bold text-gogh-black mb-2">Ferramentas Pro</h1>
         <p className="text-gogh-grayDark">
-          Acesse as melhores ferramentas de criação incluídas na assinatura Gogh Pro.
+          Acesse as melhores ferramentas de criação incluídas na sua assinatura.
         </p>
       </div>
-
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200 rounded-xl p-6"
-      >
-        <p className="text-amber-800">
-          {isLoggedUser
-            ? <>Para solicitar e usar as ferramentas, assine o plano Gogh Pro. <Link href="/precos" className="font-medium underline">Assinar Gogh Pro</Link></>
-            : <>Você precisa assinar o plano Gogh Pro para acessar esta área. <Link href="/precos" className="font-medium underline">Assinar Gogh Pro</Link></>}
-        </p>
-      </motion.div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 relative">
         <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-10 rounded-xl flex items-center justify-center">
           <div className="text-center p-4 sm:p-6 md:p-8">
             <Wrench className="w-16 h-16 text-gogh-grayDark mx-auto mb-4 opacity-50" />
-            <h3 className="text-xl font-bold text-gogh-black mb-2">Ferramentas Premium</h3>
-            <p className="text-gogh-grayDark mb-6 max-w-md">
-              Assine o plano Gogh Pro para ter acesso às ferramentas premium incluídas na assinatura.
+            <h3 className="text-xl font-bold text-gogh-black mb-2">Assine para acessar</h3>
+            <p className="text-gogh-grayDark mb-6 max-w-md mx-auto">
+              Para acessar as ferramentas de criação é necessário ter uma assinatura ativa.
             </p>
             <Link
               href="/precos"
               className="inline-flex items-center gap-2 px-6 py-3 bg-gogh-yellow text-gogh-black font-medium rounded-xl hover:bg-gogh-yellow/90 transition-colors"
             >
-              Assinar Gogh Pro
+              Ver planos
             </Link>
           </div>
         </div>

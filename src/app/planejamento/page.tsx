@@ -3,12 +3,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useRouter, useSearchParams } from 'next/navigation'
+import Link from 'next/link'
 import { LumaSpin } from '@/components/ui/luma-spin'
 import { Button } from '@/components/ui/button'
 import { RainbowButton } from '@/components/ui/rainbow-button'
 import { ShinyButton } from '@/components/ui/shiny-button'
 import { HoverButton } from '@/components/ui/hover-button'
-import { Calendar as CalendarIcon, FileText, Type, Clock, ImageIcon, Megaphone, RefreshCw, Sparkles, Plus, X, CheckCircle2, Circle, ChevronDown, ChevronRight, Trash2 } from 'lucide-react'
+import { Calendar as CalendarIcon, FileText, Type, Clock, ImageIcon, Megaphone, RefreshCw, Sparkles, Plus, X, CheckCircle2, Circle, ChevronDown, ChevronRight, Trash2, Lock } from 'lucide-react'
 import { Calendar } from '@/components/ui/calendar'
 import { CalendarWithEventSlots } from '@/components/ui/calendar-with-event-slots'
 import { Modal } from '@/components/ui/Modal'
@@ -1111,17 +1112,17 @@ export default function ContentPlanningPage() {
 
       {!hasActiveSubscription && (
         <div className="bg-white/95 backdrop-blur-sm rounded-2xl border border-gogh-grayLight p-4 sm:p-6 md:p-8 max-w-md mx-auto text-center shadow-sm">
-          <CalendarIcon className="w-16 h-16 text-gogh-grayDark mx-auto mb-4 opacity-50" />
-          <h3 className="text-xl font-bold text-gogh-black mb-2">Gogh Agenda IA</h3>
-          <p className="text-gogh-grayDark mb-6">
-            Para acessar o Gogh Agenda IA é necessário assinar um plano.
+          <Lock className="w-16 h-16 text-gogh-grayDark mx-auto mb-4 opacity-50" />
+          <h3 className="text-xl font-bold text-gogh-black mb-2">Assine para acessar</h3>
+          <p className="text-gogh-grayDark mb-6 max-w-md mx-auto">
+            Para acessar o planejamento e agenda de conteúdo com IA é necessário ter uma assinatura ativa.
           </p>
-          <a
+          <Link
             href="/precos"
             className="inline-flex items-center gap-2 px-6 py-3 bg-gogh-yellow text-gogh-black font-medium rounded-xl hover:bg-gogh-yellow/90 transition-colors"
           >
-            Assinar um plano
-          </a>
+            Ver planos
+          </Link>
         </div>
       )}
 

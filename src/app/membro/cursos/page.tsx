@@ -8,7 +8,8 @@ import {
   BookOpen, 
   Play, 
   Video,
-  Palette
+  Palette,
+  Lock
 } from 'lucide-react'
 import { LumaSpin } from '@/components/ui/luma-spin'
 import Link from 'next/link'
@@ -74,10 +75,14 @@ export default function CoursesPage() {
     checkPlanProducts()
   }, [subscription?.plan_id, supabase])
 
+  // Só busca cursos quando o usuário tem assinatura ativa; quem não tem plano vê o bloqueio imediatamente
   useEffect(() => {
+    if (!user || !hasActiveSubscription) {
+      setLoading(false)
+      return
+    }
     const fetchCourses = async () => {
       try {
-        // Primeiro, buscar apenas os cursos para verificar se há algum
         const { data: coursesData, error: coursesError } = await (supabase as any)
           .from('courses')
           .select('*')
@@ -122,7 +127,36 @@ export default function CoursesPage() {
     }
 
     fetchCourses()
-  }, [user])
+  }, [user, hasActiveSubscription])
+
+  // Quem não tem plano: mostra bloqueio imediatamente (sem esperar carregar cursos)
+  if (!authLoading && !hasActiveSubscription) {
+    return (
+      <div className="max-w-5xl mx-auto px-3 sm:px-4 space-y-4 sm:space-y-6">
+        <div>
+          <h1 className="text-lg sm:text-xl font-bold text-gogh-black mb-1">Cursos</h1>
+          <p className="text-xs sm:text-sm text-gogh-grayDark">
+            Aprenda novas habilidades com nossos cursos exclusivos.
+          </p>
+        </div>
+        <div className="flex items-center justify-center min-h-[280px] rounded-xl bg-white/80 backdrop-blur-sm border border-gogh-grayLight">
+          <div className="text-center p-4 sm:p-6 md:p-8">
+            <Lock className="w-16 h-16 text-gogh-grayDark mx-auto mb-4 opacity-50" />
+            <h3 className="text-xl font-bold text-gogh-black mb-2">Assine para acessar</h3>
+            <p className="text-gogh-grayDark mb-6 max-w-md mx-auto">
+              Para acessar os cursos é necessário ter uma assinatura ativa.
+            </p>
+            <Link
+              href="/precos"
+              className="inline-flex items-center gap-2 px-6 py-3 bg-gogh-yellow text-gogh-black font-medium rounded-xl hover:bg-gogh-yellow/90 transition-colors"
+            >
+              Ver planos
+            </Link>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   if (authLoading || loading) {
     return (
@@ -137,52 +171,42 @@ export default function CoursesPage() {
 
   return (
     <div className="max-w-5xl mx-auto px-3 sm:px-4 space-y-4 sm:space-y-6">
-      {/* Header */}
       <div>
-        <h1 className="text-lg sm:text-xl font-bold text-gogh-black mb-1">
-          Cursos
-        </h1>
+        <h1 className="text-lg sm:text-xl font-bold text-gogh-black mb-1">Cursos</h1>
         <p className="text-xs sm:text-sm text-gogh-grayDark">
           Aprenda novas habilidades com nossos cursos exclusivos.
         </p>
       </div>
 
-      {/* Uma única mensagem geral de restrição (estilo ferramentas) */}
-      {(!hasCourseAccess || !hasActiveSubscription) && (
+      {/* Com assinatura mas sem acesso a cursos: upgrade */}
+      {!hasCourseAccess && hasActiveSubscription && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200 rounded-xl p-6"
         >
           <p className="text-amber-800">
-            {!hasActiveSubscription
-              ? <>Você precisa assinar o plano Gogh Pro para acessar os cursos. <Link href="/precos" className="font-medium underline">Assinar Gogh Pro</Link></>
-              : <>Os cursos são exclusivos para o plano Pro. <Link href="/precos" className="font-medium underline">Faça upgrade agora</Link></>
-            }
+            Os cursos são exclusivos para planos que incluem esse benefício. <Link href="/precos" className="font-medium underline">Ver planos</Link>
           </p>
         </motion.div>
       )}
 
-      {/* Área de cursos com um único overlay geral quando sem acesso */}
+      {/* Área de cursos com overlay quando tem assinatura mas plano não inclui cursos */}
       {courses.length > 0 && (
         <div className={!hasCourseAccess ? 'relative' : ''}>
-          {!hasCourseAccess && (
+          {!hasCourseAccess && hasActiveSubscription && (
             <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-10 rounded-xl flex items-center justify-center min-h-[280px]">
               <div className="text-center p-4 sm:p-6 md:p-8">
                 <BookOpen className="w-16 h-16 text-gogh-grayDark mx-auto mb-4 opacity-50" />
-                <h3 className="text-xl font-bold text-gogh-black mb-2">
-                  {!hasActiveSubscription ? 'Assine o Gogh Pro para acessar' : 'Cursos Exclusivos do Plano Pro'}
-                </h3>
+                <h3 className="text-xl font-bold text-gogh-black mb-2">Cursos inclusos no seu plano</h3>
                 <p className="text-gogh-grayDark mb-6 max-w-md mx-auto">
-                  {!hasActiveSubscription
-                    ? 'Para acessar os cursos é necessário assinar o plano Gogh Pro.'
-                    : 'Faça upgrade para o plano Pro e tenha acesso completo a todos os nossos cursos de Canva e CapCut.'}
+                  Faça upgrade para um plano que inclua cursos e tenha acesso completo.
                 </p>
                 <Link
                   href="/precos"
                   className="inline-flex items-center gap-2 px-6 py-3 bg-gogh-yellow text-gogh-black font-medium rounded-xl hover:bg-gogh-yellow/90 transition-colors"
                 >
-                  {!hasActiveSubscription ? 'Assinar Gogh Pro' : 'Fazer Upgrade'}
+                  Ver planos
                 </Link>
               </div>
             </div>
@@ -194,16 +218,12 @@ export default function CoursesPage() {
         </div>
       )}
 
-      {/* Empty State */}
-      {courses.length === 0 && (
+      {/* Empty State: só para quem tem assinatura e acesso a cursos, mas ainda não há cursos publicados */}
+      {courses.length === 0 && hasActiveSubscription && (
         <div className="text-center py-12">
           <BookOpen className="w-16 h-16 text-gogh-grayDark mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-gogh-black mb-2">
-            Nenhum curso disponível
-          </h3>
-          <p className="text-gogh-grayDark">
-            Os cursos estão sendo preparados. Volte em breve!
-          </p>
+          <h3 className="text-lg font-semibold text-gogh-black mb-2">Nenhum curso disponível</h3>
+          <p className="text-gogh-grayDark">Os cursos estão sendo preparados. Volte em breve!</p>
         </div>
       )}
     </div>

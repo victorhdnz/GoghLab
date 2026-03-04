@@ -1734,30 +1734,30 @@ export default function AnalyticsPage() {
                                   </CardFooter>
                                 </Card>
                                 </div>
-                                <Card className="w-full lg:w-[140px] lg:max-w-[140px] py-1.5 px-1.5 border border-gogh-grayLight shadow-sm shrink-0">
-                                  <CardContent className="p-1.5 space-y-1">
-                                    <p className="text-[9px] font-semibold text-gogh-black flex items-center gap-0.5">
-                                      <AlertCircle className="w-2.5 h-2.5 text-gogh-grayDark shrink-0" />
+                                <Card className="w-full lg:w-[180px] lg:max-w-[180px] py-2 px-2 border border-gogh-grayLight shadow-sm shrink-0">
+                                  <CardContent className="p-2 space-y-1.5">
+                                    <p className="text-[11px] font-semibold text-gogh-black flex items-center gap-1">
+                                      <AlertCircle className="w-3.5 h-3.5 text-gogh-grayDark shrink-0" />
                                       Status
                                     </p>
                                     {selectedCampaign && !selectedCampaign.is_active ? (
-                                      <div className="rounded border border-amber-200 bg-amber-50/80 p-1 text-amber-800 text-[9px] leading-snug">
+                                      <div className="rounded border border-amber-200 bg-amber-50/80 p-1.5 text-amber-800 text-[10px] leading-snug">
                                         <p className="font-medium">Campanha pausada</p>
                                         <p className="mt-0.5 opacity-90">Ative em Campanhas.</p>
                                       </div>
                                     ) : !hasDataForDiagnosis ? (
-                                      <p className="text-[8px] text-gogh-grayDark leading-snug">Preencha Campanhas para ver o status.</p>
+                                      <p className="text-[10px] text-gogh-grayDark leading-snug">Preencha Campanhas para ver o status.</p>
                                     ) : (
                                       <>
-                                        <div className="flex flex-wrap items-center gap-1">
-                                          <span className={`inline-flex items-center rounded px-1 py-0.5 text-[9px] font-bold ${
+                                        <div className="flex flex-wrap items-center gap-1.5">
+                                          <span className={`inline-flex items-center rounded px-1.5 py-0.5 text-[11px] font-bold ${
                                             statusGeral === 'saudável' ? 'bg-green-100 text-green-800' :
                                             statusGeral === 'estável' ? 'bg-blue-100 text-blue-800' :
                                             statusGeral === 'alerta' ? 'bg-amber-100 text-amber-800' : 'bg-red-100 text-red-800'
                                           }`}>
                                             {score}/100
                                           </span>
-                                          <span className="text-[8px] font-medium text-gogh-black">
+                                          <span className="text-[10px] font-medium text-gogh-black">
                                             {statusGeral === 'saudável' && 'Saudável'}
                                             {statusGeral === 'estável' && 'Estável'}
                                             {statusGeral === 'alerta' && 'Alerta'}
@@ -1765,9 +1765,9 @@ export default function AnalyticsPage() {
                                           </span>
                                         </div>
                                         {statusAlerts.length > 0 ? (
-                                          <ul className="space-y-0.5 text-[8px]">
+                                          <ul className="space-y-1 text-[10px]">
                                             {statusAlerts.slice(0, 3).map((a, i) => (
-                                              <li key={i} className={`rounded border-l-2 pl-0.5 leading-tight ${
+                                              <li key={i} className={`rounded border-l-2 pl-1 leading-snug ${
                                                 a.type === 'success' ? 'border-green-500 text-green-800' :
                                                 a.type === 'warning' ? 'border-amber-500 text-amber-800' : 'border-red-500 text-red-800'
                                               }`}>
@@ -1835,7 +1835,7 @@ export default function AnalyticsPage() {
                           <li
                             key={c.id}
                             className={`flex items-center justify-between gap-2 rounded-lg border p-3 transition-colors ${
-                              selectedCampaignId === c.id ? 'border-gogh-yellow bg-gogh-yellow/10' : 'border-gogh-grayLight bg-white'
+                              selectedCampaignId === c.id ? 'border-gogh-yellow bg-white' : 'border-gogh-grayLight bg-white'
                             }`}
                           >
                             <button
