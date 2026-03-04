@@ -229,6 +229,9 @@ export async function generateMetadata(): Promise<Metadata> {
     title: siteTitle,
     description: siteDescription,
     alternates: { canonical: siteUrl },
+    verification: {
+      google: 'DHpKiP3yik63fKeeWsaNh3_g7CY_Orue8ZdPQ4_Roho',
+    },
     keywords: [
       'Gogh Lab',
       siteName,
