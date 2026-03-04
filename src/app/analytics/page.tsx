@@ -87,6 +87,7 @@ interface BudgetPhase {
 
 const BUDGET_PHASES_STORAGE_KEY = 'gogh_analytics_budget_phases'
 const BUDGET_PHASES_DRAFT_KEY = '_draft' // plano sem campanha (estrutura completa: planejar primeiro)
+const PLANEJAMENTO_VALORES_DRAFT_KEY = 'gogh_analytics_planejamento_valores_draft' // ROI/valores quando não há campanha selecionada
 const BUDGET_TYPE_STORAGE_KEY = 'gogh_analytics_budget_type' // CBO = campanha (por dia na campanha); ABO = conjunto (por conjunto)
 const AUTO_DIAS_RECOMMENDATION_KEY = 'gogh_analytics_auto_dias'
 const USE_STRATEGY_FROM_PHASES_KEY = 'gogh_analytics_use_strategy_from_phases' // quando "já tenho anúncio": true = nível pelas fases, false = nível pelos dados da campanha
@@ -401,48 +402,75 @@ export default function AnalyticsPage() {
   }, [mounted, campaigns, selectedCampaignId])
 
   useEffect(() => {
-    if (!mounted || !selectedCampaignId || !campaigns.length) return
-    const c = campaigns.find((x) => x.id === selectedCampaignId)
-    if (c) {
-      setRoiEnabled(c.roi_enabled)
-      setValorVenda(c.valor_venda != null ? String(c.valor_venda) : '')
-      setCustoVenda(c.custo_venda != null ? String(c.custo_venda) : '')
-      setMetaLucroPorVenda(c.meta_lucro_por_venda != null ? String(c.meta_lucro_por_venda) : '')
-      setAlcance(c.alcance != null ? String(c.alcance) : '')
-      setImpressoes(c.impressoes != null ? String(c.impressoes) : '')
-      setCliquesLink(c.cliques_link != null ? String(c.cliques_link) : '')
-      setValorInvestido(c.valor_investido != null ? String(c.valor_investido) : '')
-      setCompras(c.compras != null ? String(c.compras) : '')
-      setValorTotalFaturado(c.valor_total_faturado != null ? String(c.valor_total_faturado) : '')
-      if (c.has_existing_ads === true || c.has_existing_ads === false) {
-        setHasExistingAds(c.has_existing_ads)
-        if (typeof window !== 'undefined') localStorage.setItem(HAS_EXISTING_ADS_KEY, c.has_existing_ads ? '1' : '0')
+    if (!mounted) return
+    if (selectedCampaignId && campaigns.length > 0) {
+      const c = campaigns.find((x) => x.id === selectedCampaignId)
+      if (c) {
+        setRoiEnabled(c.roi_enabled)
+        setValorVenda(c.valor_venda != null ? String(c.valor_venda) : '')
+        setCustoVenda(c.custo_venda != null ? String(c.custo_venda) : '')
+        setMetaLucroPorVenda(c.meta_lucro_por_venda != null ? String(c.meta_lucro_por_venda) : '')
+        setAlcance(c.alcance != null ? String(c.alcance) : '')
+        setImpressoes(c.impressoes != null ? String(c.impressoes) : '')
+        setCliquesLink(c.cliques_link != null ? String(c.cliques_link) : '')
+        setValorInvestido(c.valor_investido != null ? String(c.valor_investido) : '')
+        setCompras(c.compras != null ? String(c.compras) : '')
+        setValorTotalFaturado(c.valor_total_faturado != null ? String(c.valor_total_faturado) : '')
+        if (c.has_existing_ads === true || c.has_existing_ads === false) {
+          setHasExistingAds(c.has_existing_ads)
+          if (typeof window !== 'undefined') localStorage.setItem(HAS_EXISTING_ADS_KEY, c.has_existing_ads ? '1' : '0')
+        }
+        if (c.analytics_profile === 'venda-site' || c.analytics_profile === 'contato-mensagens' || c.analytics_profile === 'leads') {
+          setAnalyticsProfile(c.analytics_profile)
+          setSavedAnalyticsProfile(c.analytics_profile)
+          if (typeof window !== 'undefined') localStorage.setItem(ANALYTICS_PROFILE_KEY, c.analytics_profile)
+        }
+        const bt = c.budget_type_meta === 'abo' ? 'abo' : 'cbo'
+        setBudgetTypeMeta(bt)
+        setSavedBudgetTypeMeta(bt)
+        if (typeof window !== 'undefined') localStorage.setItem(BUDGET_TYPE_STORAGE_KEY, bt)
+        setSavedCampaignSignature(
+          JSON.stringify({
+            roi_enabled: c.roi_enabled,
+            valor_venda: c.valor_venda != null ? String(c.valor_venda) : '',
+            custo_venda: c.custo_venda != null ? String(c.custo_venda) : '',
+            meta_lucro_por_venda: c.meta_lucro_por_venda != null ? String(c.meta_lucro_por_venda) : '',
+            alcance: c.alcance != null ? String(c.alcance) : '',
+            impressoes: c.impressoes != null ? String(c.impressoes) : '',
+            cliques_link: c.cliques_link != null ? String(c.cliques_link) : '',
+            valor_investido: c.valor_investido != null ? String(c.valor_investido) : '',
+            compras: c.compras != null ? String(c.compras) : '',
+            valor_total_faturado: c.valor_total_faturado != null ? String(c.valor_total_faturado) : '',
+          })
+        )
+        return
       }
-      if (c.analytics_profile === 'venda-site' || c.analytics_profile === 'contato-mensagens' || c.analytics_profile === 'leads') {
-        setAnalyticsProfile(c.analytics_profile)
-        setSavedAnalyticsProfile(c.analytics_profile)
-        if (typeof window !== 'undefined') localStorage.setItem(ANALYTICS_PROFILE_KEY, c.analytics_profile)
-      }
-      const bt = c.budget_type_meta === 'abo' ? 'abo' : 'cbo'
-      setBudgetTypeMeta(bt)
-      setSavedBudgetTypeMeta(bt)
-      if (typeof window !== 'undefined') localStorage.setItem(BUDGET_TYPE_STORAGE_KEY, bt)
-      setSavedCampaignSignature(
-        JSON.stringify({
-          roi_enabled: c.roi_enabled,
-          valor_venda: c.valor_venda != null ? String(c.valor_venda) : '',
-          custo_venda: c.custo_venda != null ? String(c.custo_venda) : '',
-          meta_lucro_por_venda: c.meta_lucro_por_venda != null ? String(c.meta_lucro_por_venda) : '',
-          alcance: c.alcance != null ? String(c.alcance) : '',
-          impressoes: c.impressoes != null ? String(c.impressoes) : '',
-          cliques_link: c.cliques_link != null ? String(c.cliques_link) : '',
-          valor_investido: c.valor_investido != null ? String(c.valor_investido) : '',
-          compras: c.compras != null ? String(c.compras) : '',
-          valor_total_faturado: c.valor_total_faturado != null ? String(c.valor_total_faturado) : '',
-        })
-      )
+    }
+    // Nenhuma campanha selecionada: restaurar Planejamento de valores do rascunho (ex.: após excluir campanha)
+    if (typeof window !== 'undefined') {
+      try {
+        const raw = localStorage.getItem(PLANEJAMENTO_VALORES_DRAFT_KEY)
+        if (raw) {
+          const d = JSON.parse(raw) as { roiEnabled?: boolean; valorVenda?: string; custoVenda?: string; metaLucroPorVenda?: string }
+          setRoiEnabled(d.roiEnabled ?? false)
+          setValorVenda(d.valorVenda ?? '')
+          setCustoVenda(d.custoVenda ?? '')
+          setMetaLucroPorVenda(d.metaLucroPorVenda ?? '')
+        }
+      } catch {}
     }
   }, [mounted, selectedCampaignId, campaigns])
+
+  // Persistir Planejamento de valores quando não há campanha selecionada (para manter ao excluir e ao editar sem campanha)
+  useEffect(() => {
+    if (typeof window === 'undefined' || selectedCampaignId) return
+    try {
+      localStorage.setItem(
+        PLANEJAMENTO_VALORES_DRAFT_KEY,
+        JSON.stringify({ roiEnabled, valorVenda, custoVenda, metaLucroPorVenda })
+      )
+    } catch {}
+  }, [selectedCampaignId, roiEnabled, valorVenda, custoVenda, metaLucroPorVenda])
 
   useEffect(() => {
     if (!selectedCampaignId || !hasAccess) {
@@ -470,6 +498,7 @@ export default function AnalyticsPage() {
         if (selectedCampaignId && phases.length === 0 && Array.isArray(map[BUDGET_PHASES_DRAFT_KEY]) && map[BUDGET_PHASES_DRAFT_KEY].length > 0) {
           phases = map[BUDGET_PHASES_DRAFT_KEY]
           map[selectedCampaignId] = phases
+          map[BUDGET_PHASES_DRAFT_KEY] = [] // limpar rascunho para que, ao excluir a campanha, as fases não reapareçam
           localStorage.setItem(BUDGET_PHASES_STORAGE_KEY, JSON.stringify(map))
         }
         setBudgetPhases(phases)
@@ -1132,16 +1161,19 @@ export default function AnalyticsPage() {
   const isProfileDirty = isCampaignSigDirty || isCreativesDirty
   const isBudgetTypeDirty = budgetTypeMeta !== savedBudgetTypeMeta
   const isEstrategiaDirty = isProfileDirty || isBudgetTypeDirty || analyticsProfile !== savedAnalyticsProfile
+  // Perfil "só análise": exige criativos preenchidos. Perfil "estratégia e análise": não exige (campanha pode ter sido criada pelo planejamento sem dados ainda).
   const isDadosCampanhaComplete =
-    !!selectedCampaignId &&
-    creatives.length > 0 &&
-    creatives.every(
-      (c) =>
-        (c.name ?? '').trim().length > 0 &&
-        [c.alcance, c.impressoes, c.cliques_link, c.valor_investido, c.compras, c.valor_total_faturado].every(
-          (v) => v != null
+    hasExistingAds === true
+      ? !!selectedCampaignId &&
+        creatives.length > 0 &&
+        creatives.every(
+          (c) =>
+            (c.name ?? '').trim().length > 0 &&
+            [c.alcance, c.impressoes, c.cliques_link, c.valor_investido, c.compras, c.valor_total_faturado].every(
+              (v) => v != null
+            )
         )
-    )
+      : true
   const isRoiComplete = !roiEnabled || (roiEnabled && (valorVenda ?? '').trim().length > 0)
 
   const isInicioDirty = hasExistingAds !== savedHasExistingAds
@@ -1312,12 +1344,32 @@ export default function AnalyticsPage() {
       const res = await fetch(`/api/analytics/campaigns/${id}`, { method: 'DELETE', credentials: 'include' })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Erro ao excluir')
-      setCampaigns((prev) => prev.filter((c) => c.id !== id))
       if (selectedCampaignId === id) {
+        // Salvar Planejamento de valores no rascunho antes de limpar, para manter ao excluir a campanha
+        if (typeof window !== 'undefined') {
+          try {
+            localStorage.setItem(
+              PLANEJAMENTO_VALORES_DRAFT_KEY,
+              JSON.stringify({ roiEnabled, valorVenda, custoVenda, metaLucroPorVenda })
+            )
+          } catch {}
+        }
+        // Remover fases da campanha excluída do localStorage e carregar apenas o rascunho (evitar que "Fase 1" continue aparecendo)
+        if (typeof window !== 'undefined') {
+          try {
+            const raw = localStorage.getItem(BUDGET_PHASES_STORAGE_KEY)
+            const map = raw ? (JSON.parse(raw) as Record<string, BudgetPhase[]>) : {}
+            delete map[id]
+            const draftPhases = Array.isArray(map[BUDGET_PHASES_DRAFT_KEY]) ? map[BUDGET_PHASES_DRAFT_KEY] : []
+            localStorage.setItem(BUDGET_PHASES_STORAGE_KEY, JSON.stringify(map))
+            setBudgetPhases(draftPhases)
+          } catch {}
+        }
         setSelectedCampaignId(null)
         setCreatives([])
         setAdSets([])
       }
+      setCampaigns((prev) => prev.filter((c) => c.id !== id))
       toast.success('Campanha excluída')
     } catch (e: any) {
       toast.error(e?.message || 'Erro ao excluir')
@@ -1415,7 +1467,8 @@ export default function AnalyticsPage() {
       toast.error('Marque "Usar planejamento de valores" e preencha o Preço (R$) ou desmarque para salvar.')
       return
     }
-    if (creatives.length > 0) {
+    // Só análise: exige todos os criativos preenchidos. Estratégia e análise: pode salvar sem preencher criativos (ex.: campanha recém-criada pelo planejamento).
+    if (hasExistingAds === true && creatives.length > 0) {
       const incomplete = creatives.find(
         (c) =>
           !(c.name ?? '').trim() ||
@@ -1817,9 +1870,10 @@ export default function AnalyticsPage() {
                                           <button
                                             type="button"
                                             onClick={() => setExpandedStatusAlert(prev => prev?.location === 'status' && prev?.index === i ? null : { location: 'status', index: i })}
-                                            className="w-full text-left font-medium"
+                                            className="w-full text-left font-medium flex items-center gap-1"
                                           >
-                                            {a.action}
+                                            {isExpanded ? <ChevronDown className="w-3.5 h-3.5 shrink-0 text-gogh-grayDark" /> : <ChevronRight className="w-3.5 h-3.5 shrink-0 text-gogh-grayDark" />}
+                                            <span className="flex-1">{a.action}</span>
                                           </button>
                                           {isExpanded && a.details?.length > 0 && (
                                             <p className="mt-0.5 pl-1 text-[10px] opacity-90">{(a.details as string[]).join(' · ')}</p>
@@ -2159,9 +2213,10 @@ export default function AnalyticsPage() {
                                                       <button
                                                         type="button"
                                                         onClick={() => setExpandedStatusAlert(prev => prev?.location === 'calendar' && prev?.index === i ? null : { location: 'calendar', index: i })}
-                                                        className="w-full text-left font-medium"
+                                                        className="w-full text-left font-medium flex items-center gap-1"
                                                       >
-                                                        {a.action}
+                                                        {isExpanded ? <ChevronDown className="w-3.5 h-3.5 shrink-0 text-gogh-grayDark" /> : <ChevronRight className="w-3.5 h-3.5 shrink-0 text-gogh-grayDark" />}
+                                                        <span className="flex-1">{a.action}</span>
                                                       </button>
                                                       {isExpanded && a.details?.length > 0 && (
                                                         <p className="mt-0.5 pl-1 text-[10px] opacity-90">{(a.details as string[]).join(' · ')}</p>
