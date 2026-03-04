@@ -150,8 +150,9 @@ function dateToKey(d: Date): string {
   return `${y}-${m}-${day}`
 }
 
+// Um único dia por tipo de ação, para não repetir a mesma mensagem em vários dias seguidos
 function isActionDay(dayNum: number): boolean {
-  return dayNum === 7 || (dayNum >= 10 && dayNum <= 14) || dayNum >= 18
+  return dayNum === 1 || dayNum === 7 || dayNum === 10 || dayNum === 18
 }
 
 // Parâmetros de análise (benchmarks para decisão)
@@ -2230,11 +2231,12 @@ setSavedCampaignSignature(
                               if (d < s || d >= e) return null
                               return Math.floor((d.getTime() - s.getTime()) / (24 * 60 * 60 * 1000)) + 1
                             }
+                            // Cada ação aparece só no primeiro dia da janela, para não repetir a mesma mensagem vários dias seguidos
                             const getMilestoneShort = (dayNum: number): string => {
-                              if (dayNum >= 1 && dayNum <= 5) return 'Aprendizado — Não mexer no orçamento nem nos criativos.'
+                              if (dayNum === 1) return 'Aprendizado — Não mexer no orçamento nem nos criativos.'
                               if (dayNum === 7) return `1ª análise — Analisar CTR, CPC e CPA; pausar 1 ou 2 piores criativos (manter ≥${strategyTier.minCreatives} ativos).`
-                              if (dayNum >= 10 && dayNum <= 14) return `Novos criativos — +1 ou 2 criativos para voltar a ${strategyTier.minCreatives}–${strategyTier.maxCreatives} ativos; evita saturação.`
-                              if (dayNum >= 18) return `Avaliação — Se lucrativo: manter ou escalar 15–20%/dia; manter ${strategyTier.minCreatives}–${strategyTier.maxCreatives} criativos; repor os fracos.`
+                              if (dayNum === 10) return `Novos criativos — +1 ou 2 criativos para voltar a ${strategyTier.minCreatives}–${strategyTier.maxCreatives} ativos; evita saturação.`
+                              if (dayNum === 18) return `Avaliação — Se lucrativo: manter ou escalar 15–20%/dia; manter ${strategyTier.minCreatives}–${strategyTier.maxCreatives} criativos; repor os fracos.`
                               return ''
                             }
                             const getPhaseForDay = (dayNum: number): number => {
