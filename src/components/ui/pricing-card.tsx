@@ -240,6 +240,8 @@ export const PricingComponent: React.FC<PricingComponentProps> = ({
           : plan.priceAnnually / 12
         const priceSuffix = billingCycle === 'monthly' ? '/mês' : '/ano'
 
+        // Com 2 planos: cards lado a lado sem sobreposição (sem x, scale igual, z-index igual)
+        const isTwoPlans = plans.length === 2
         return (
           <motion.div
             key={plan.id}
@@ -247,10 +249,10 @@ export const PricingComponent: React.FC<PricingComponentProps> = ({
             whileInView={
               isDesktop
                 ? {
-                    y: isFeatured ? -20 : 0,
+                    y: isTwoPlans ? 0 : (isFeatured ? -20 : 0),
                     opacity: 1,
-                    x: index === plans.length - 1 ? -30 : index === 0 ? 30 : 0,
-                    scale: index === 0 || index === plans.length - 1 ? 0.94 : 1,
+                    x: isTwoPlans ? 0 : (index === plans.length - 1 ? -30 : index === 0 ? 30 : 0),
+                    scale: isTwoPlans ? 1 : (index === 0 || index === plans.length - 1 ? 0.94 : 1),
                   }
                 : {}
             }
@@ -265,9 +267,9 @@ export const PricingComponent: React.FC<PricingComponentProps> = ({
             }}
             className={cn(
               'flex flex-col relative',
-              !isFeatured && 'mt-5',
-              index === 0 && 'origin-right',
-              index === plans.length - 1 && 'origin-left',
+              !isFeatured && !isTwoPlans && 'mt-5',
+              index === 0 && !isTwoPlans && 'origin-right',
+              index === plans.length - 1 && !isTwoPlans && 'origin-left',
               plans.length >= 3 && index === 1 ? 'z-10' : 'z-0',
             )}
           >
@@ -277,7 +279,8 @@ export const PricingComponent: React.FC<PricingComponentProps> = ({
               "bg-white/70 dark:bg-white/75 backdrop-blur-xl border border-white/50 dark:border-white/30",
               "shadow-[0_8px_32px_rgba(0,0,0,0.06)] hover:shadow-[0_12px_40px_rgba(0,0,0,0.1)]",
               "transform hover:scale-[1.01] md:hover:-translate-y-0.5",
-              isFeatured && "ring-2 ring-[#F7C948] shadow-xl md:scale-[1.02] hover:scale-[1.03] md:hover:-translate-y-1 border-[#F7C948]/70 bg-white/80 dark:bg-white/85"
+              isFeatured && "ring-2 ring-[#F7C948] shadow-xl border-[#F7C948]/70 bg-white/80 dark:bg-white/85",
+              isFeatured && !isTwoPlans && "md:scale-[1.02] hover:scale-[1.03] md:hover:-translate-y-1"
             )}
           >
             <CardHeader className="p-6 pb-4">

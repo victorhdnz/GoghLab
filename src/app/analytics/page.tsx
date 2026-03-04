@@ -47,6 +47,8 @@ interface AnalyticsCampaign {
   compras?: number | null
   valor_total_faturado?: number | null
   meta_lucro_por_venda?: number | null
+  has_existing_ads?: boolean | null
+  analytics_profile?: string | null
   created_at: string
   updated_at: string
 }
@@ -183,8 +185,8 @@ const STRATEGY_TIERS = {
 export type StrategyTierKey = keyof typeof STRATEGY_TIERS
 
 export default function AnalyticsPage() {
-  const { isAuthenticated, loading: authLoading, hasActiveSubscription, isPro } = useAuth()
-  const hasAccess = isAuthenticated && isPro
+  const { isAuthenticated, loading: authLoading, hasActiveSubscription } = useAuth()
+  const hasAccess = isAuthenticated && hasActiveSubscription
 
   const [mounted, setMounted] = useState(false)
   const [accordionOpen, setAccordionOpen] = useState<AnalyticsAccordionId | null>(null)
@@ -350,6 +352,15 @@ export default function AnalyticsPage() {
       setValorInvestido(c.valor_investido != null ? String(c.valor_investido) : '')
       setCompras(c.compras != null ? String(c.compras) : '')
       setValorTotalFaturado(c.valor_total_faturado != null ? String(c.valor_total_faturado) : '')
+      if (c.has_existing_ads === true || c.has_existing_ads === false) {
+        setHasExistingAds(c.has_existing_ads)
+        if (typeof window !== 'undefined') localStorage.setItem(HAS_EXISTING_ADS_KEY, c.has_existing_ads ? '1' : '0')
+      }
+      if (c.analytics_profile === 'venda-site' || c.analytics_profile === 'contato-mensagens' || c.analytics_profile === 'leads') {
+        setAnalyticsProfile(c.analytics_profile)
+        setSavedAnalyticsProfile(c.analytics_profile)
+        if (typeof window !== 'undefined') localStorage.setItem(ANALYTICS_PROFILE_KEY, c.analytics_profile)
+      }
       setSavedCampaignSignature(
         JSON.stringify({
           roi_enabled: c.roi_enabled,
@@ -1125,6 +1136,8 @@ export default function AnalyticsPage() {
         custo_venda: custoVenda ? parseNum(custoVenda) : null,
         meta_lucro_por_venda: metaLucroPorVenda ? parseNum(metaLucroPorVenda) : null,
         custo_por_aquisicao: comprasNum > 0 ? metricasCampanha.cpaCalculado : null,
+        has_existing_ads: hasExistingAds,
+        analytics_profile: analyticsProfile,
       }
       const res = await fetch(`/api/analytics/campaigns/${selectedCampaignId}`, {
         method: 'PATCH',
@@ -1227,17 +1240,8 @@ export default function AnalyticsPage() {
             className="bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200 rounded-xl p-6"
           >
             <p className="text-amber-800">
-              {!hasActiveSubscription ? (
-                <>
-                  Você precisa assinar o plano Gogh Pro para acessar esta área.{' '}
-                  <Link href="/precos" className="font-medium underline">Assinar Gogh Pro</Link>
-                </>
-              ) : (
-                <>
-                  O painel de análise está disponível apenas para o plano Pro.{' '}
-                  <Link href="/precos" className="font-medium underline">Faça upgrade agora</Link>
-                </>
-              )}
+              Você precisa de uma assinatura ativa para acessar esta área.{' '}
+              <Link href="/precos" className="font-medium underline">Ver planos</Link>
             </p>
           </motion.div>
         )}
@@ -1247,19 +1251,15 @@ export default function AnalyticsPage() {
             <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-10 rounded-xl flex items-center justify-center min-h-[280px]">
               <div className="text-center p-4 sm:p-6 md:p-8">
                 <Lock className="w-16 h-16 text-gogh-grayDark mx-auto mb-4 opacity-50" />
-                <h3 className="text-xl font-bold text-gogh-black mb-2">
-                  {!hasActiveSubscription ? 'Assine o Gogh Pro para acessar' : 'Gogh Analytics Ads é exclusivo do Plano Pro'}
-                </h3>
+                <h3 className="text-xl font-bold text-gogh-black mb-2">Assine para acessar</h3>
                 <p className="text-gogh-grayDark mb-6 max-w-md mx-auto">
-                  {!hasActiveSubscription
-                    ? 'Para acessar o painel de análise de anúncios e desempenho é necessário assinar o plano Gogh Pro.'
-                    : 'Faça upgrade para o plano Pro e tenha acesso ao painel de métricas e desempenho.'}
+                  Para acessar o painel de análise de anúncios e desempenho é necessário ter uma assinatura ativa.
                 </p>
                 <Link
                   href="/precos"
                   className="inline-flex items-center gap-2 px-6 py-3 bg-gogh-yellow text-gogh-black font-medium rounded-xl hover:bg-gogh-yellow/90 transition-colors"
                 >
-                  {!hasActiveSubscription ? 'Assinar Gogh Pro' : 'Fazer Upgrade'}
+                  Ver planos
                 </Link>
               </div>
             </div>
@@ -1267,9 +1267,9 @@ export default function AnalyticsPage() {
 
           <div className={!hasAccess ? 'pointer-events-none select-none blur-sm opacity-60' : ''}>
             {!hasAccess && (
-              <div className="bg-white rounded-2xl border border-gogh-grayLight p-6 sm:p-8 shadow-sm">
+              <div className="p-6 sm:p-8">
                 <p className="text-gogh-grayDark">
-                  Painel de análise de anúncios e métricas de desempenho (conteúdo disponível para assinantes Gogh Pro).
+                  Painel de análise de anúncios e métricas de desempenho (disponível para assinantes).
                 </p>
               </div>
             )}
@@ -1279,7 +1279,7 @@ export default function AnalyticsPage() {
               </div>
             )}
             {hasAccess && mounted && (
-              <section className="bg-white rounded-2xl border border-gogh-grayLight p-4 sm:p-6">
+              <section className="p-4 sm:p-6">
                 <div className="mb-4">
                   <h2 className="text-base sm:text-lg font-semibold text-gogh-black">Painel de campanhas</h2>
                   <p className="text-xs text-gogh-grayDark mt-0.5">Preencha os dados das campanhas e acompanhe métricas, custos e recomendações.</p>
@@ -1724,9 +1724,9 @@ export default function AnalyticsPage() {
                                             <button
                                             type="button"
                                             onClick={() => campaignCalendarSelectedDate && toggleFilledDate(campaignCalendarSelectedDate)}
-                                            className={`text-[10px] font-medium px-1.5 py-0.5 rounded border transition-colors ${filledDatesSet.has(dateToKey(campaignCalendarSelectedDate)) ? 'bg-emerald-100 border-emerald-300 text-emerald-800' : 'bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100'}`}
+                                            className={`text-[9px] font-medium px-1 py-0.5 rounded border transition-colors ${filledDatesSet.has(dateToKey(campaignCalendarSelectedDate)) ? 'bg-emerald-100 border-emerald-300 text-emerald-800' : 'bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100'}`}
                                           >
-                                            {filledDatesSet.has(dateToKey(campaignCalendarSelectedDate)) ? '✓ Preenchido' : 'Marcar como preenchido'}
+                                            {filledDatesSet.has(dateToKey(campaignCalendarSelectedDate)) ? '✓ Preenchido' : 'Marcar preenchido'}
                                           </button>
                                         )}
                                       </>
@@ -1734,30 +1734,30 @@ export default function AnalyticsPage() {
                                   </CardFooter>
                                 </Card>
                                 </div>
-                                <Card className="w-full lg:w-[200px] lg:max-w-[200px] py-2 px-2 border border-gogh-grayLight shadow-sm shrink-0">
-                                  <CardContent className="p-2 space-y-1.5">
-                                    <p className="text-[11px] font-semibold text-gogh-black flex items-center gap-1">
-                                      <AlertCircle className="w-3 h-3 text-gogh-grayDark shrink-0" />
-                                      Status e próximas ações
+                                <Card className="w-full lg:w-[140px] lg:max-w-[140px] py-1.5 px-1.5 border border-gogh-grayLight shadow-sm shrink-0">
+                                  <CardContent className="p-1.5 space-y-1">
+                                    <p className="text-[9px] font-semibold text-gogh-black flex items-center gap-0.5">
+                                      <AlertCircle className="w-2.5 h-2.5 text-gogh-grayDark shrink-0" />
+                                      Status
                                     </p>
                                     {selectedCampaign && !selectedCampaign.is_active ? (
-                                      <div className="rounded border border-amber-200 bg-amber-50/80 p-1.5 text-amber-800 text-[10px] leading-snug">
+                                      <div className="rounded border border-amber-200 bg-amber-50/80 p-1 text-amber-800 text-[9px] leading-snug">
                                         <p className="font-medium">Campanha pausada</p>
-                                        <p className="mt-0.5 opacity-90">Ative na seção Campanhas para rodar e ver o diagnóstico.</p>
+                                        <p className="mt-0.5 opacity-90">Ative em Campanhas.</p>
                                       </div>
                                     ) : !hasDataForDiagnosis ? (
-                                      <p className="text-[10px] text-gogh-grayDark leading-snug">Preencha os dados na seção <strong>Campanhas</strong> para ver o status.</p>
+                                      <p className="text-[8px] text-gogh-grayDark leading-snug">Preencha Campanhas para ver o status.</p>
                                     ) : (
                                       <>
-                                        <div className="flex flex-wrap items-center gap-1.5">
-                                          <span className={`inline-flex items-center rounded px-1.5 py-0.5 text-xs font-bold ${
+                                        <div className="flex flex-wrap items-center gap-1">
+                                          <span className={`inline-flex items-center rounded px-1 py-0.5 text-[9px] font-bold ${
                                             statusGeral === 'saudável' ? 'bg-green-100 text-green-800' :
                                             statusGeral === 'estável' ? 'bg-blue-100 text-blue-800' :
                                             statusGeral === 'alerta' ? 'bg-amber-100 text-amber-800' : 'bg-red-100 text-red-800'
                                           }`}>
                                             {score}/100
                                           </span>
-                                          <span className="text-[10px] font-medium text-gogh-black">
+                                          <span className="text-[8px] font-medium text-gogh-black">
                                             {statusGeral === 'saudável' && 'Saudável'}
                                             {statusGeral === 'estável' && 'Estável'}
                                             {statusGeral === 'alerta' && 'Alerta'}
@@ -1765,9 +1765,9 @@ export default function AnalyticsPage() {
                                           </span>
                                         </div>
                                         {statusAlerts.length > 0 ? (
-                                          <ul className="space-y-1 text-[10px]">
+                                          <ul className="space-y-0.5 text-[8px]">
                                             {statusAlerts.slice(0, 3).map((a, i) => (
-                                              <li key={i} className={`rounded border-l-2 pl-1 ${
+                                              <li key={i} className={`rounded border-l-2 pl-0.5 leading-tight ${
                                                 a.type === 'success' ? 'border-green-500 text-green-800' :
                                                 a.type === 'warning' ? 'border-amber-500 text-amber-800' : 'border-red-500 text-red-800'
                                               }`}>

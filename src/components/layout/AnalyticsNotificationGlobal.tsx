@@ -36,13 +36,13 @@ function persistDismissed(values: Set<string>) {
 export function AnalyticsNotificationGlobal() {
   const pathname = usePathname()
   const router = useRouter()
-  const { isAuthenticated, isPro } = useAuth()
+  const { isAuthenticated, hasActiveSubscription } = useAuth()
   const slotContext = useGlobalNotificationSlot()
   const [notification, setNotification] = useState<NotificationItem | null>(null)
 
   const isDashboard = pathname.startsWith('/dashboard')
   const isAnalyticsPage = pathname === '/analytics'
-  const shouldRun = isAuthenticated && isPro && !isDashboard && !isAnalyticsPage
+  const shouldRun = isAuthenticated && hasActiveSubscription && !isDashboard && !isAnalyticsPage
 
   useEffect(() => {
     if (!shouldRun) {

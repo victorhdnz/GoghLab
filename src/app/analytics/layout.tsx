@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
   title: 'Gogh Analytics Ads | Gogh Lab',
-  description: 'Painel de análise de anúncios e desempenho para assinantes Gogh Pro.',
+  description: 'Painel de análise de anúncios e desempenho para assinantes.',
   robots: {
     index: false,
     follow: false,

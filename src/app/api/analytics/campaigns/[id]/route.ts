@@ -30,6 +30,12 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     if (body.compras != null) updates.compras = Number(body.compras)
     if (body.valor_total_faturado != null) updates.valor_total_faturado = Number(body.valor_total_faturado)
     if (body.meta_lucro_por_venda != null) updates.meta_lucro_por_venda = Number(body.meta_lucro_por_venda)
+    if (typeof body.has_existing_ads === 'boolean') updates.has_existing_ads = body.has_existing_ads
+    if (body.has_existing_ads === null) updates.has_existing_ads = null
+    if (typeof body.analytics_profile === 'string') {
+      const v = body.analytics_profile.trim()
+      updates.analytics_profile = (v === 'venda-site' || v === 'contato-mensagens' || v === 'leads') ? v : null
+    }
 
     if (Object.keys(updates).length === 0) {
       return NextResponse.json({ error: 'Nenhum campo para atualizar' }, { status: 400 })

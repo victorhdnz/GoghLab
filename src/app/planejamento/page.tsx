@@ -1095,7 +1095,8 @@ export default function ContentPlanningPage() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-5 pb-8 sm:pt-8 sm:pb-10 lg:pt-14 lg:pb-12 space-y-5 sm:space-y-8 relative">
+    <div className="min-h-screen bg-gradient-to-br from-gogh-beige via-white to-gogh-beige pb-12 px-4 pt-2 sm:pt-4 md:pt-12">
+    <div className="max-w-5xl mx-auto space-y-5 sm:space-y-8 relative">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-gogh-black flex items-center gap-2">
@@ -1125,7 +1126,7 @@ export default function ContentPlanningPage() {
       )}
 
       <div className={!hasActiveSubscription ? 'relative pointer-events-none select-none blur-sm opacity-60 space-y-5 sm:space-y-8' : 'space-y-5 sm:space-y-8'}>
-      <section id="perfil-marca" className="bg-white rounded-2xl border border-gogh-grayLight p-4 sm:p-6">
+      <section id="perfil-marca" className="p-4 sm:p-6 pb-8 border-b border-gogh-grayLight/25">
         <div className="flex items-center justify-between gap-3 mb-6">
           <div>
             <h2 className="text-base sm:text-lg font-semibold text-gogh-black">
@@ -1645,7 +1646,7 @@ export default function ContentPlanningPage() {
         )}
       </section>
 
-      <section className="bg-white rounded-2xl border border-gogh-grayLight p-4 sm:p-6">
+      <section className="p-4 sm:p-6">
         <div className="mb-3">
           <h2 className="text-base sm:text-lg font-semibold text-gogh-black">
             Calendário de conteúdo
@@ -2100,6 +2101,7 @@ export default function ContentPlanningPage() {
           </div>
         )}
       </Modal>
+    </div>
     </div>
   )
 }
