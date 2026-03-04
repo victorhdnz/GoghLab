@@ -150,10 +150,9 @@ function dateToKey(d: Date): string {
   return `${y}-${m}-${day}`
 }
 
-// Um único dia por tipo de ação; adapta ao total de dias do plano; tier alto pode ter 1ª análise no dia 5
+// Dias que exigem ação (preenchimento/análise): verde + "Marcar preenchido". Dia 1 (Aprendizado) não é ação, só orientação.
 function isActionDay(dayNum: number, totalDays?: number, tier?: 'baixo' | 'medio' | 'alto'): boolean {
   const total = totalDays ?? 30
-  if (dayNum === 1) return true
   if (tier === 'alto' && dayNum === 5 && total >= 5) return true // 1ª análise antecipada para orçamento alto
   if (dayNum === 7 && total >= 7 && tier !== 'alto') return true // 1ª análise para medio/baixo
   if (dayNum === 10 && total >= 10) return true
@@ -2400,7 +2399,7 @@ export default function AnalyticsPage() {
                                           {getMilestoneShort(getDayNum(campaignCalendarSelectedDate)!) && (
                                             <p className="mt-0.5 leading-tight text-[11px]">{getMilestoneShort(getDayNum(campaignCalendarSelectedDate)!)}</p>
                                           )}
-                                          {isSelectedDayPastOrToday && hasDataForDiagnosis && selectedCampaign?.is_active !== false && statusAlerts.length > 0 && (
+                                          {isSelectedDayPastOrToday && hasDataForDiagnosis && selectedCampaign?.is_active !== false && statusAlerts.length > 0 && isActionDay(getDayNum(campaignCalendarSelectedDate)!, totalDias, strategyTier.tier) && (
                                             <div className="border-t border-gogh-grayLight/60 pt-1.5 mt-1">
                                               <p className="text-[11px] font-medium text-gogh-black mb-0.5">Análise (dados preenchidos):</p>
                                               <ul className="space-y-1 text-[11px]">
@@ -2429,7 +2428,7 @@ export default function AnalyticsPage() {
                                             </div>
                                           )}
                                           {isSelectedDayPastOrToday && !hasDataForDiagnosis && (
-                                            <p className="text-[10px] text-gogh-grayDark border-t border-gogh-grayLight/60 pt-1.5 mt-1">Preencha os dados em Campanhas para ver a análise neste dia.</p>
+                                            <p className="text-[10px] text-gogh-grayDark border-t border-gogh-grayLight/60 pt-1.5 mt-1">Preencha os dados em Campanhas para ver a análise neste dia. Com os dados preenchidos, aparecerão aqui as <strong>ações exatas</strong> (qual criativo pausar ou trocar; em ABO, qual conjunto ajustar).</p>
                                           )}
                                         </div>
                                         {isActionDay(getDayNum(campaignCalendarSelectedDate)!, totalDias, strategyTier.tier) && (
