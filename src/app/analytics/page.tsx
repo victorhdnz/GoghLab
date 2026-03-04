@@ -29,7 +29,7 @@ import { LumaSpin } from '@/components/ui/luma-spin'
 import { ShinyButton } from '@/components/ui/shiny-button'
 import toast from 'react-hot-toast'
 
-type AnalyticsAccordionId = 'inicio' | 'estrategia' | 'campanhas' | 'status'
+type AnalyticsAccordionId = 'inicio' | 'estrategia' | 'campanhas'
 
 interface AnalyticsCampaign {
   id: string
@@ -213,7 +213,6 @@ export default function AnalyticsPage() {
   const [valorTotalFaturado, setValorTotalFaturado] = useState<string>('')
   const [savedCampaignSignature, setSavedCampaignSignature] = useState<string>('')
   const [savedCreativesSignature, setSavedCreativesSignature] = useState<string>('')
-  const [expandedRecommendationIndex, setExpandedRecommendationIndex] = useState<number | null>(null)
   const [creatives, setCreatives] = useState<AnalyticsCreative[]>([])
   const [creativesLoading, setCreativesLoading] = useState(false)
   const [addingCreative, setAddingCreative] = useState(false)
@@ -966,7 +965,6 @@ export default function AnalyticsPage() {
       if (isInicioDirty) return 'bg-emerald-50/80 border-emerald-300'
       return 'bg-white border-gogh-grayLight'
     }
-    if (sectionId === 'status') return 'bg-white border-gogh-grayLight'
     if (sectionId === 'estrategia') {
       if (!isEstrategiaDirty) return 'bg-white border-gogh-grayLight'
       return isRoiComplete ? 'bg-emerald-50/80 border-emerald-300' : 'bg-red-50/80 border-red-300'
@@ -1648,8 +1646,8 @@ export default function AnalyticsPage() {
                               return budgetPhases.length - 1
                             }
                             return (
-                              <div className="mb-4 grid grid-cols-1 lg:grid-cols-[1fr,minmax(240px,280px)] gap-4 items-start">
-                                <div className="flex flex-col items-center min-w-0">
+                              <div className="mb-4 flex flex-col lg:flex-row lg:flex-wrap lg:items-start lg:gap-4 lg:max-w-[620px]">
+                                <div className="flex flex-col items-center min-w-0 shrink-0">
                                 <Card className="w-full max-w-[380px] py-3 border border-gogh-grayLight shadow-sm">
                                   <CardContent className="px-3">
                                     <DayPickerCalendar
@@ -1736,30 +1734,30 @@ export default function AnalyticsPage() {
                                   </CardFooter>
                                 </Card>
                                 </div>
-                                <Card className="w-full py-3 border border-gogh-grayLight shadow-sm shrink-0">
-                                  <CardContent className="px-3 space-y-2">
-                                    <p className="text-xs font-semibold text-gogh-black flex items-center gap-1.5">
-                                      <AlertCircle className="w-3.5 h-3.5 text-gogh-grayDark" />
+                                <Card className="w-full lg:w-[200px] lg:max-w-[200px] py-2 px-2 border border-gogh-grayLight shadow-sm shrink-0">
+                                  <CardContent className="p-2 space-y-1.5">
+                                    <p className="text-[11px] font-semibold text-gogh-black flex items-center gap-1">
+                                      <AlertCircle className="w-3 h-3 text-gogh-grayDark shrink-0" />
                                       Status e próximas ações
                                     </p>
                                     {selectedCampaign && !selectedCampaign.is_active ? (
-                                      <div className="rounded-lg border border-amber-200 bg-amber-50/80 p-2 text-amber-800 text-[11px]">
+                                      <div className="rounded border border-amber-200 bg-amber-50/80 p-1.5 text-amber-800 text-[10px] leading-snug">
                                         <p className="font-medium">Campanha pausada</p>
                                         <p className="mt-0.5 opacity-90">Ative na seção Campanhas para rodar e ver o diagnóstico.</p>
                                       </div>
                                     ) : !hasDataForDiagnosis ? (
-                                      <p className="text-[11px] text-gogh-grayDark">Preencha os dados na seção <strong>Campanhas</strong> para ver o status e as recomendações.</p>
+                                      <p className="text-[10px] text-gogh-grayDark leading-snug">Preencha os dados na seção <strong>Campanhas</strong> para ver o status.</p>
                                     ) : (
                                       <>
-                                        <div className="flex flex-wrap items-center gap-2">
-                                          <span className={`inline-flex items-center gap-1 rounded-lg px-2 py-1 text-sm font-bold ${
+                                        <div className="flex flex-wrap items-center gap-1.5">
+                                          <span className={`inline-flex items-center rounded px-1.5 py-0.5 text-xs font-bold ${
                                             statusGeral === 'saudável' ? 'bg-green-100 text-green-800' :
                                             statusGeral === 'estável' ? 'bg-blue-100 text-blue-800' :
                                             statusGeral === 'alerta' ? 'bg-amber-100 text-amber-800' : 'bg-red-100 text-red-800'
                                           }`}>
                                             {score}/100
                                           </span>
-                                          <span className="text-[11px] font-medium text-gogh-black">
+                                          <span className="text-[10px] font-medium text-gogh-black">
                                             {statusGeral === 'saudável' && 'Saudável'}
                                             {statusGeral === 'estável' && 'Estável'}
                                             {statusGeral === 'alerta' && 'Alerta'}
@@ -1767,9 +1765,9 @@ export default function AnalyticsPage() {
                                           </span>
                                         </div>
                                         {statusAlerts.length > 0 ? (
-                                          <ul className="space-y-1.5 text-[11px]">
+                                          <ul className="space-y-1 text-[10px]">
                                             {statusAlerts.slice(0, 3).map((a, i) => (
-                                              <li key={i} className={`rounded border-l-2 pl-1.5 ${
+                                              <li key={i} className={`rounded border-l-2 pl-1 ${
                                                 a.type === 'success' ? 'border-green-500 text-green-800' :
                                                 a.type === 'warning' ? 'border-amber-500 text-amber-800' : 'border-red-500 text-red-800'
                                               }`}>
@@ -1778,16 +1776,6 @@ export default function AnalyticsPage() {
                                             ))}
                                           </ul>
                                         ) : null}
-                                        <button
-                                          type="button"
-                                          onClick={() => {
-                                            setAccordionOpen('status')
-                                            setTimeout(() => document.getElementById('analytics-accordion-status')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100)
-                                          }}
-                                          className="text-[11px] font-medium text-gogh-grayDark hover:text-gogh-black underline"
-                                        >
-                                          Ver todas as recomendações
-                                        </button>
                                       </>
                                     )}
                                   </CardContent>
@@ -1979,131 +1967,6 @@ export default function AnalyticsPage() {
                   </div>
                 )}
 
-                {accordionCard(
-                  'status',
-                  'Status e decisões',
-                  statusGeral === 'pausada' ? 'Campanha pausada' : hasDataForDiagnosis && statusAlerts.length > 0 ? `Score ${score} · ${statusGeral} · Todas as recomendações` : 'Diagnóstico automático e recomendações',
-                  <AlertCircle className="w-4 h-4 text-gogh-grayDark" />,
-                  <div className="pt-3 space-y-4">
-                    <p className="text-sm text-gogh-grayDark">
-                      Resumo ao lado da <strong>agenda</strong> (Estratégia). Abaixo, a lista completa de recomendações para seguir as ações sugeridas.
-                    </p>
-                    {!hasDataForDiagnosis ? (
-                      <p className="text-sm text-gogh-grayDark bg-gogh-grayLight/50 rounded-lg p-3">
-                        Preencha os dados da campanha na seção <strong>Campanhas</strong> (alcance, impressões, cliques, valor investido, {profileLabels.hintPreencher} em pelo menos um criativo) para ver o diagnóstico. Opcionalmente, preencha o <strong>Planejamento de valores</strong> na seção <strong>Estratégia</strong> para incluir análise de lucro e {profileLabels.custoPorResultadoShort} limite.
-                      </p>
-                    ) : statusGeral === 'pausada' ? (
-                      <div className="rounded-lg border border-amber-200 bg-amber-50/80 p-4 text-amber-800">
-                        <p className="text-sm font-medium mb-1">Campanha pausada</p>
-                        <p className="text-xs opacity-90">Esta campanha está pausada. Ative-a na seção <strong>Campanhas</strong> (botão &quot;Ativar&quot;) para voltar a rodar os anúncios e ver o diagnóstico completo. Ao selecionar outra campanha ativa, o Status mostrará o score e as recomendações normalmente.</p>
-                      </div>
-                    ) : (
-                      <>
-                    <div className="flex flex-wrap items-center gap-3">
-                      <div
-                        className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 font-bold text-lg ${
-                          statusGeral === 'saudável'
-                            ? 'bg-green-100 text-green-800'
-                            : statusGeral === 'estável'
-                              ? 'bg-blue-100 text-blue-800'
-                              : statusGeral === 'alerta'
-                                ? 'bg-amber-100 text-amber-800'
-                                : 'bg-red-100 text-red-800'
-                        }`}
-                      >
-                        <span className="text-2xl tabular-nums">{score}</span>
-                        <span>/ 100</span>
-                      </div>
-                      <div className="text-sm">
-                        <span className="text-gogh-grayDark">Status: </span>
-                        <span
-                          className={`font-semibold ${
-                            statusGeral === 'saudável'
-                              ? 'text-green-700'
-                              : statusGeral === 'estável'
-                                ? 'text-blue-700'
-                                : statusGeral === 'alerta'
-                                  ? 'text-amber-700'
-                                  : 'text-red-700'
-                          }`}
-                        >
-                          {statusGeral === 'saudável' && 'Campanha saudável — Escalar'}
-                          {statusGeral === 'estável' && 'Estável — Otimizar'}
-                          {statusGeral === 'alerta' && 'Em alerta — Ajustar criativo ou público'}
-                          {statusGeral === 'crítica' && 'Crítica — Revisar estratégia'}
-                        </span>
-                      </div>
-                    </div>
-                    {statusAlerts.length === 0 ? (
-                      <p className="text-sm text-gogh-grayDark bg-gogh-grayLight/50 rounded-lg p-3">
-                        Preencha os dados da campanha na seção <strong>Campanhas</strong> para ver o diagnóstico. Opcionalmente, preencha o <strong>Planejamento de valores</strong> na seção <strong>Estratégia</strong> para incluir análise de lucro e {profileLabels.custoPorResultadoShort} limite.
-                      </p>
-                    ) : (
-                      <div>
-                        <p className="text-xs text-gogh-grayDark mb-2">
-                          {roiEnabled && valorNum > 0
-                            ? `Análise considerando Planejamento de valores (lucro e ${profileLabels.custoPorResultadoShort} limite).`
-                            : 'Análise com base nas métricas dos criativos (frequência, CTR, conversão).'}
-                        </p>
-                        <p className="text-sm font-medium text-gogh-black mb-2">Recomendações:</p>
-                        <p className="text-xs text-gogh-grayDark mb-2">Clique na ação para ver o detalhe dos índices (atual → ideal).</p>
-                        <ul className="space-y-2">
-                          {statusAlerts.map((a, i) => {
-                            const isExpanded = expandedRecommendationIndex === i
-                            return (
-                              <li
-                                key={i}
-                                className={`rounded-lg border text-sm overflow-hidden ${
-                                  a.type === 'success'
-                                    ? 'bg-green-50 border-green-200 text-green-800'
-                                    : a.type === 'warning'
-                                      ? 'bg-amber-50 border-amber-200 text-amber-800'
-                                      : 'bg-red-50 border-red-200 text-red-800'
-                                }`}
-                              >
-                                <button
-                                  type="button"
-                                  onClick={() => setExpandedRecommendationIndex((prev) => (prev === i ? null : i))}
-                                  className="w-full flex items-center gap-2 p-3 text-left hover:opacity-90 transition-opacity"
-                                >
-                                  {a.type === 'success' ? (
-                                    <CheckCircle2 className="w-5 h-5 shrink-0" />
-                                  ) : (
-                                    <AlertTriangle className="w-5 h-5 shrink-0" />
-                                  )}
-                                  <span className="flex-1 font-medium">{a.action}</span>
-                                  {isExpanded ? (
-                                    <ChevronDown className="w-4 h-4 shrink-0" />
-                                  ) : (
-                                    <ChevronRight className="w-4 h-4 shrink-0" />
-                                  )}
-                                </button>
-                                {isExpanded && (
-                                  <div className="px-3 pb-3 pt-0 border-t border-current/20 space-y-1">
-                                    {a.details.map((d, j) => {
-                                      const lines = (d || '').split(/(?<=\.)\s+/).map((s) => s.trim()).filter(Boolean)
-                                      return (
-                                        <div key={j} className="space-y-1 pt-2 first:pt-2">
-                                          {lines.map((line, k) => (
-                                            <p key={k} className="text-xs opacity-90">
-                                              {line}
-                                            </p>
-                                          ))}
-                                        </div>
-                                      )
-                                    })}
-                                  </div>
-                                )}
-                              </li>
-                            )
-                          })}
-                        </ul>
-                      </div>
-                    )}
-                      </>
-                    )}
-                  </div>
-                )}
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-6 mt-6 border-t border-gogh-grayLight">
                   <p className="text-xs text-gogh-grayDark">
                     {selectedCampaignId
