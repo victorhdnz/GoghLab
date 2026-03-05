@@ -150,13 +150,19 @@ function dateToKey(d: Date): string {
   return `${y}-${m}-${day}`
 }
 
+// Intervalo entre dias de revisão após o dia 18 (longo prazo)
+const INTERVALO_REVISAO_DIAS = 7
+
 // Dias que exigem ação (preenchimento/análise): verde + "Marcar preenchido". Dia 1 (Aprendizado) não é ação, só orientação.
+// Inclui revisões recorrentes (18+7, 18+14, ...) para planos longos.
 function isActionDay(dayNum: number, totalDays?: number, tier?: 'baixo' | 'medio' | 'alto'): boolean {
   const total = totalDays ?? 30
   if (tier === 'alto' && dayNum === 5 && total >= 5) return true // 1ª análise antecipada para orçamento alto
   if (dayNum === 7 && total >= 7 && tier !== 'alto') return true // 1ª análise para medio/baixo
   if (dayNum === 10 && total >= 10) return true
   if (total >= 18 && dayNum === 18) return true
+  // Revisões a cada 7 dias após o dia 18 (25, 32, 39...) — estratégia de longo prazo
+  if (total > 18 && dayNum > 18 && (dayNum - 18) % INTERVALO_REVISAO_DIAS === 0 && dayNum <= total) return true
   if (total < 18 && dayNum === total) return true // último dia do plano = avaliação
   return false
 }
@@ -2091,7 +2097,7 @@ export default function AnalyticsPage() {
                       <div className="space-y-4">
                         {!selectedCampaignId && (
                           <p className="text-xs text-gogh-grayDark rounded-lg border border-gogh-grayLight bg-gogh-beige/30 p-3">
-                            Planeje as fases abaixo. Depois crie ou selecione uma campanha para ver o calendário e preencher os dados reais ao longo do tempo.
+                            Planeje as fases abaixo. Depois crie ou selecione uma campanha para ver o calendário e preencher os dados reais ao longo do tempo. A análise e a estratégia seguem enquanto você adicionar fases e preencher nos dias de ação — visão de longo prazo, sem limite.
                           </p>
                         )}
                         {selectedCampaignId && selectedCampaign && !selectedCampaign.start_date && (
@@ -2279,7 +2285,7 @@ export default function AnalyticsPage() {
                             const start = new Date(selectedCampaign.start_date + 'T12:00:00')
                             start.setHours(0, 0, 0, 0)
                             const totalDias = budgetPhases.length > 0
-                              ? Math.min(budgetPhases.reduce((s, p) => s + p.dias, 0), 60)
+                              ? budgetPhases.reduce((s, p) => s + p.dias, 0)
                               : 30
                             const endDate = new Date(start)
                             endDate.setDate(endDate.getDate() + totalDias)
@@ -2293,8 +2299,11 @@ export default function AnalyticsPage() {
                               if (d < s || d >= e) return null
                               return Math.floor((d.getTime() - s.getTime()) / (24 * 60 * 60 * 1000)) + 1
                             }
-                            // Cada ação em um único dia; tier alto: 1ª análise no dia 5; medio/baixo: dia 7
-                            const getMilestoneShort = (dayNum: number): string => {
+                            // Mensagens por dia: "Nesse dia você vai preencher..." (futuro) ou "Preencha os dados hoje para..." (hoje/passado).
+                            const getMilestoneShort = (dayNum: number, isPastOrToday: boolean): string => {
+                              const preencherAgora = 'Preencha os dados hoje para '
+                              const preencherDepois = 'Nesse dia você vai preencher os dados para '
+                              const prefix = isPastOrToday ? preencherAgora : preencherDepois
                               const planoMuitoCurto = totalDias <= MIN_DIAS_PLANO_PARA_ESTRATEGIA
                               if (planoMuitoCurto) {
                                 if (dayNum === 1) return 'Plano curto — Poucos dias não dão tempo para o Meta entregar nem para decisões (pausar/trocar criativo). Use para teste; depois planeje uma fase com mais dias (7+ ideal) para análise e resultado.'
@@ -2302,11 +2311,17 @@ export default function AnalyticsPage() {
                                 return ''
                               }
                               if (dayNum === 1) return 'Aprendizado — Não mexer no orçamento nem nos criativos.'
-                              if (strategyTier.tier === 'alto' && dayNum === 5 && totalDias >= 5) return `1ª análise — Analisar CTR, CPC e CPA; pausar 1 ou 2 piores criativos (manter ≥${strategyTier.minCreatives} ativos).`
-                              if (dayNum === 7 && totalDias >= 7 && strategyTier.tier !== 'alto') return `1ª análise — Analisar CTR, CPC e CPA; pausar 1 ou 2 piores criativos (manter ≥${strategyTier.minCreatives} ativos).`
-                              if (dayNum === 10 && totalDias >= 10) return `Novos criativos — +1 ou 2 criativos para voltar a ${strategyTier.minCreatives}–${strategyTier.maxCreatives} ativos; evita saturação.`
-                              if (dayNum === 18 && totalDias >= 18) return `Avaliação — Se lucrativo: manter ou escalar 15%/dia (até 20% se CPA bem abaixo do limite); manter ${strategyTier.minCreatives}–${strategyTier.maxCreatives} criativos; repor os fracos.`
-                              if (dayNum === totalDias && totalDias < 18 && totalDias > 0) return `Avaliação (último dia) — Analisar resultado do plano; se lucrativo, manter ou escalar; manter ${strategyTier.minCreatives}–${strategyTier.maxCreatives} criativos.`
+                              // 1ª análise
+                              if (strategyTier.tier === 'alto' && dayNum === 5 && totalDias >= 5) return `${prefix}fazer a 1ª análise e ver exatamente quais criativos pausar (mantendo pelo menos ${strategyTier.minCreatives} ativos).`
+                              if (dayNum === 7 && totalDias >= 7 && strategyTier.tier !== 'alto') return `${prefix}fazer a 1ª análise e ver exatamente quais criativos pausar (mantendo pelo menos ${strategyTier.minCreatives} ativos).`
+                              // Dia 10
+                              if (dayNum === 10 && totalDias >= 10) return `${prefix}avaliar se é hora de adicionar novos criativos e evitar saturação (meta: ${strategyTier.minCreatives} a ${strategyTier.maxCreatives} ativos).`
+                              // Dia 18
+                              if (dayNum === 18 && totalDias >= 18) return `${prefix}avaliar resultado e ver se pode escalar, manter ou ajustar criativos (recomendações exatas aparecem ao preencher).`
+                              // Revisões de longo prazo (25, 32, 39...)
+                              if (totalDias > 18 && dayNum > 18 && (dayNum - 18) % INTERVALO_REVISAO_DIAS === 0 && dayNum <= totalDias) return `${prefix}uma revisão de acompanhamento e ver as recomendações (manter, escalar ou ajustar criativos).`
+                              // Último dia em planos curtos
+                              if (dayNum === totalDias && totalDias < 18 && totalDias > 0) return `${prefix}avaliar o resultado do plano e ver se pode manter, escalar ou ajustar (meta: ${strategyTier.minCreatives}–${strategyTier.maxCreatives} criativos ativos).`
                               return ''
                             }
                             const getPhaseForDay = (dayNum: number): number => {
@@ -2400,8 +2415,8 @@ export default function AnalyticsPage() {
                                       <>
                                         <div className="rounded-md bg-gogh-beige/30 border border-gogh-grayLight/80 p-1.5 text-[11px] text-gogh-grayDark w-full space-y-1.5">
                                           <p className="font-medium text-gogh-black text-[11px]">Dia {getDayNum(campaignCalendarSelectedDate)} da campanha · Fase {getPhaseForDay(getDayNum(campaignCalendarSelectedDate)!) + 1}</p>
-                                          {getMilestoneShort(getDayNum(campaignCalendarSelectedDate)!) && (
-                                            <p className="mt-0.5 leading-tight text-[11px]">{getMilestoneShort(getDayNum(campaignCalendarSelectedDate)!)}</p>
+                                          {getMilestoneShort(getDayNum(campaignCalendarSelectedDate)!, !!isSelectedDayPastOrToday) && (
+                                            <p className="mt-0.5 leading-tight text-[11px]">{getMilestoneShort(getDayNum(campaignCalendarSelectedDate)!, !!isSelectedDayPastOrToday)}</p>
                                           )}
                                           {isSelectedDayPastOrToday && hasDataForDiagnosis && selectedCampaign?.is_active !== false && statusAlerts.length > 0 && isActionDay(getDayNum(campaignCalendarSelectedDate)!, totalDias, strategyTier.tier) && (
                                             <div className="border-t border-gogh-grayLight/60 pt-1.5 mt-1">
@@ -2432,7 +2447,7 @@ export default function AnalyticsPage() {
                                             </div>
                                           )}
                                           {isSelectedDayPastOrToday && !hasDataForDiagnosis && isActionDay(getDayNum(campaignCalendarSelectedDate)!, totalDias, strategyTier.tier) && (
-                                            <p className="text-[10px] text-gogh-grayDark border-t border-gogh-grayLight/60 pt-1.5 mt-1">Preencha os dados em Campanhas para ver a análise neste dia. Com os dados preenchidos, aparecerão aqui as <strong>ações exatas</strong> (qual criativo pausar ou trocar; em ABO, qual conjunto ajustar).</p>
+                                            <p className="text-[10px] text-gogh-grayDark border-t border-gogh-grayLight/60 pt-1.5 mt-1">Preencha os dados na aba Campanhas para que as <strong>recomendações exatas</strong> apareçam aqui (qual criativo pausar ou trocar; em ABO, qual conjunto ajustar).</p>
                                           )}
                                         </div>
                                         {isActionDay(getDayNum(campaignCalendarSelectedDate)!, totalDias, strategyTier.tier) && (
@@ -2461,6 +2476,9 @@ export default function AnalyticsPage() {
                           </p>
                           <p className="text-[11px] text-gogh-grayDark leading-snug">
                             Faixa do Nível {strategyTier.label}: <strong>{strategyTier.description}</strong> — referência para meta de criativos e plano.
+                          </p>
+                          <p className="text-[10px] text-gogh-grayDark leading-snug italic">
+                            Visão macro: adicione fases quando quiser; dias de ação e recomendações (pausar criativo, novos criativos, escalar) continuam se adequando ao investimento e aos dados.
                           </p>
                           {strategyTier.investimentoPlanejadoPorDia != null ? (
                             <p className="text-[11px] text-gogh-black leading-snug">
