@@ -617,7 +617,7 @@ export function HomepageSections({
       {installTutorialModal && (() => {
         const isYouTube = !!getYouTubeId(installTutorialModal.url)
         const containerClasses = isYouTube ? getYouTubeContainerClasses(installTutorialModal.url) : null
-        const embedUrl = isYouTube ? getYouTubeEmbedUrl(installTutorialModal.url, true, true) : null
+        const embedUrl = isYouTube ? getYouTubeEmbedUrl(installTutorialModal.url, true, false) : null
         return (
           <div
             className={`fixed inset-0 z-[9999] bg-black/70 flex items-center justify-center px-4 pt-20 pb-24 sm:pt-24 sm:pb-28 transition-opacity duration-150 ${installModalClosing ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
