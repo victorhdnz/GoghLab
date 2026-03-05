@@ -8,7 +8,7 @@ Ao acessar e utilizar o site e os serviços do Gogh Lab, você concorda com este
 
 ## 2. Descrição dos Serviços
 
-O Gogh Lab oferece homepage de apresentação da plataforma, página dedicada de planos e preços (/precos), área de membros com agentes e recursos de IA, ferramentas profissionais integradas ao plano, cursos e criação com IA. O uso efetivo dos recursos que exijam assinatura está condicionado à contratação de um plano e aos Termos de Assinatura e Planos.
+O Gogh Lab oferece homepage de apresentação da plataforma, página dedicada de planos e preços (/precos), área de membros com agentes e recursos de IA, ferramentas profissionais integradas ao plano, cursos e criação com IA. Inclui também o módulo de Análise e Estratégia (Analytics) para planejamento e acompanhamento de campanhas de anúncios: os dados são informados pelo usuário; recomendações e status são meramente indicativos e não constituem assessoria profissional nem garantia de resultado; o usuário é responsável pelas decisões e pelo uso dos dados. O uso efetivo dos recursos que exijam assinatura está condicionado à contratação de um plano e aos Termos de Assinatura e Planos.
 
 ## 3. Uso Adequado
 

@@ -123,6 +123,7 @@ O Gogh Lab oferece:
 - **Homepage e divulgação**: o site apresenta a plataforma, cases e informações. Os planos e preços estão disponíveis em página dedicada (/precos).
 - **Área de membros**: após login e, quando aplicável, assinatura ativa, o usuário acessa agentes e recursos de IA (chat), ferramentas profissionais integradas ao plano, cursos e outros recursos do plano contratado.
 - **Criação com IA**: funcionalidades de geração de conteúdo (texto, imagens, vídeos, roteiros, etc.) sujeitas aos limites do plano e à política de uso.
+- **Módulo de Análise e Estratégia (Analytics)**: ferramenta de planejamento e acompanhamento de campanhas de anúncios (ex.: Meta Ads). Os dados de campanhas, criativos, investimento e métricas são informados pelo próprio usuário na plataforma; as recomendações, status e sugestões (incluindo CPA, pausar criativos, escalar, etc.) são meramente indicativas e não constituem assessoria profissional, consultoria de mídia paga nem garantia de resultado. O usuário é exclusivamente responsável pelas decisões tomadas em suas campanhas e pelo uso dos dados que inserir. O Gogh Lab não se responsabiliza por resultados, prejuízos ou decisões baseadas no uso do módulo.
 
 O uso efetivo de recursos que exijam assinatura está condicionado à contratação de um plano e ao cumprimento dos Termos de Assinatura e Planos.
 
@@ -294,6 +295,8 @@ Para questões relacionadas a estes termos ou à proteção de dados, entre em c
 ## 1. Aceitação dos Termos
 
 Ao assinar qualquer plano de assinatura da plataforma Gogh Lab, você concorda expressamente com os termos e condições estabelecidos neste documento. A contratação de qualquer plano implica na aceitação integral e irrestrita de todas as cláusulas aqui dispostas, bem como dos limites de uso e condições específicas de cada plano.
+
+**Natureza da contratação:** Ao contratar um plano pago, você está ciente de que se trata de uma **assinatura** com **cobrança recorrente**. No momento da contratação, você poderá escolher entre **cobrança mensal** ou **cobrança anual**, conforme as opções exibidas na página de planos (/precos). A cobrança será efetuada automaticamente no início de cada período (mensal ou anual, conforme a opção escolhida), no método de pagamento cadastrado, até que você cancele. Não se aplica compra avulsa ou pagamento único por período indefinido; o serviço é prestado sob regime de assinatura.
 
 ## 2. Planos de Assinatura
 
