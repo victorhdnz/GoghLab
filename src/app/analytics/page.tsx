@@ -472,8 +472,8 @@ export default function AnalyticsPage() {
   useEffect(() => {
     if (!mounted) return
     if (selectedCampaignId && campaigns.length > 0) {
-      const c = campaigns.find((x) => x.id === selectedCampaignId)
-      if (c) {
+    const c = campaigns.find((x) => x.id === selectedCampaignId)
+    if (c) {
         // Planejamento de valores é índice geral: sempre preferir localStorage (nunca desmarcar ao trocar/criar/excluir campanha)
         let roiEnabledVal = false
         let valorVendaVal = ''
@@ -503,12 +503,12 @@ export default function AnalyticsPage() {
         setValorVenda(valorVendaVal)
         setCustoVenda(custoVendaVal)
         setMetaLucroPorVenda(metaLucroVal)
-        setAlcance(c.alcance != null ? String(c.alcance) : '')
-        setImpressoes(c.impressoes != null ? String(c.impressoes) : '')
-        setCliquesLink(c.cliques_link != null ? String(c.cliques_link) : '')
-        setValorInvestido(c.valor_investido != null ? String(c.valor_investido) : '')
-        setCompras(c.compras != null ? String(c.compras) : '')
-        setValorTotalFaturado(c.valor_total_faturado != null ? String(c.valor_total_faturado) : '')
+      setAlcance(c.alcance != null ? String(c.alcance) : '')
+      setImpressoes(c.impressoes != null ? String(c.impressoes) : '')
+      setCliquesLink(c.cliques_link != null ? String(c.cliques_link) : '')
+      setValorInvestido(c.valor_investido != null ? String(c.valor_investido) : '')
+      setCompras(c.compras != null ? String(c.compras) : '')
+      setValorTotalFaturado(c.valor_total_faturado != null ? String(c.valor_total_faturado) : '')
         if (c.has_existing_ads === true || c.has_existing_ads === false) {
           setHasExistingAds(c.has_existing_ads)
           if (typeof window !== 'undefined') localStorage.setItem(HAS_EXISTING_ADS_KEY, c.has_existing_ads ? '1' : '0')
@@ -522,20 +522,20 @@ export default function AnalyticsPage() {
         setBudgetTypeMeta(bt)
         setSavedBudgetTypeMeta(bt)
         if (typeof window !== 'undefined') localStorage.setItem(BUDGET_TYPE_STORAGE_KEY, bt)
-        setSavedCampaignSignature(
-          JSON.stringify({
+      setSavedCampaignSignature(
+        JSON.stringify({
             roi_enabled: roiEnabledVal,
             valor_venda: valorVendaVal,
             custo_venda: custoVendaVal,
             meta_lucro_por_venda: metaLucroVal,
-            alcance: c.alcance != null ? String(c.alcance) : '',
-            impressoes: c.impressoes != null ? String(c.impressoes) : '',
-            cliques_link: c.cliques_link != null ? String(c.cliques_link) : '',
-            valor_investido: c.valor_investido != null ? String(c.valor_investido) : '',
-            compras: c.compras != null ? String(c.compras) : '',
-            valor_total_faturado: c.valor_total_faturado != null ? String(c.valor_total_faturado) : '',
-          })
-        )
+          alcance: c.alcance != null ? String(c.alcance) : '',
+          impressoes: c.impressoes != null ? String(c.impressoes) : '',
+          cliques_link: c.cliques_link != null ? String(c.cliques_link) : '',
+          valor_investido: c.valor_investido != null ? String(c.valor_investido) : '',
+          compras: c.compras != null ? String(c.compras) : '',
+          valor_total_faturado: c.valor_total_faturado != null ? String(c.valor_total_faturado) : '',
+        })
+      )
         setSavedPlanejamentoDraft(null)
         return
       }
@@ -614,8 +614,8 @@ export default function AnalyticsPage() {
           setBudgetPhases([])
           return
         }
-        const phases = Array.isArray(map[selectedCampaignId]) ? map[selectedCampaignId] : []
-        setBudgetPhases(phases)
+      const phases = Array.isArray(map[selectedCampaignId]) ? map[selectedCampaignId] : []
+      setBudgetPhases(phases)
       }
     } catch {
       setBudgetPhases([])
@@ -1345,14 +1345,14 @@ export default function AnalyticsPage() {
   const isDadosCampanhaComplete =
     hasExistingAds === true
       ? !!selectedCampaignId &&
-        creatives.length > 0 &&
-        creatives.every(
-          (c) =>
-            (c.name ?? '').trim().length > 0 &&
-            [c.alcance, c.impressoes, c.cliques_link, c.valor_investido, c.compras, c.valor_total_faturado].every(
-              (v) => v != null
-            )
+    creatives.length > 0 &&
+    creatives.every(
+      (c) =>
+        (c.name ?? '').trim().length > 0 &&
+        [c.alcance, c.impressoes, c.cliques_link, c.valor_investido, c.compras, c.valor_total_faturado].every(
+          (v) => v != null
         )
+    )
       : true
   const isRoiComplete = !roiEnabled || (roiEnabled && (valorVenda ?? '').trim().length > 0)
 
@@ -1439,13 +1439,13 @@ export default function AnalyticsPage() {
           await loadAdSets(data.campaign.id)
         }
       } else {
-        const crRes = await fetch(`/api/analytics/campaigns/${data.campaign.id}/creatives`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify({ name: 'Criativo 1' }),
-        })
-        if (crRes.ok) await loadCreatives(data.campaign.id)
+      const crRes = await fetch(`/api/analytics/campaigns/${data.campaign.id}/creatives`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ name: 'Criativo 1' }),
+      })
+      if (crRes.ok) await loadCreatives(data.campaign.id)
       }
       toast.success('Campanha criada. Preencha os dados do criativo.')
     } catch (e: any) {
@@ -1550,7 +1550,7 @@ export default function AnalyticsPage() {
           } catch {}
         }
         setSelectedCampaignId(null)
-        setCreatives([])
+      setCreatives([])
         setAdSets([])
       }
       setCampaigns((prev) => prev.filter((c) => c.id !== id))
@@ -1750,29 +1750,29 @@ export default function AnalyticsPage() {
   ) => {
     return (
       <div id={`analytics-accordion-${id}`} className={`rounded-xl border-2 transition-colors overflow-hidden ${getAccordionCardClass(id)}`}>
-        <button
-          type="button"
-          onClick={() => toggleAccordion(id)}
+      <button
+        type="button"
+        onClick={() => toggleAccordion(id)}
           className="w-full flex items-center justify-between py-4 px-4 sm:py-4 sm:px-5 text-left hover:opacity-90 transition-opacity min-h-[52px] sm:min-h-[56px]"
-        >
+      >
           <span className="flex items-center gap-2.5 text-base font-semibold text-gogh-black">
-            {icon}
-            {title}
-          </span>
-          {accordionOpen === id ? (
+          {icon}
+          {title}
+        </span>
+        {accordionOpen === id ? (
             <ChevronDown className="w-5 h-5 text-gogh-grayDark shrink-0" />
-          ) : (
+        ) : (
             <ChevronRight className="w-5 h-5 text-gogh-grayDark shrink-0" />
-          )}
-        </button>
-        {subtitle && accordionOpen !== id && (
+        )}
+      </button>
+      {subtitle && accordionOpen !== id && (
           <p className="px-4 sm:px-5 pb-4 pt-0 text-xs text-gogh-grayDark leading-snug">{subtitle}</p>
-        )}
-        {accordionOpen === id && (
+      )}
+      {accordionOpen === id && (
           <div className="px-4 sm:px-5 pb-4 pt-2 border-t border-gogh-grayLight/50">{children}</div>
-        )}
-      </div>
-    )
+      )}
+    </div>
+  )
   }
 
   return (
@@ -1927,77 +1927,77 @@ export default function AnalyticsPage() {
                         <p className="text-xs leading-snug">Não são dados do Meta.</p>
                         <p className="text-xs leading-snug">Valor da venda e custo por venda para lucro e recomendações no Status.</p>
                       </div>
-                      <label className="flex items-center gap-2 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={roiEnabled}
-                          onChange={(e) => setRoiEnabled(e.target.checked)}
-                          className="rounded border-gogh-grayLight"
-                        />
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={roiEnabled}
+                        onChange={(e) => setRoiEnabled(e.target.checked)}
+                        className="rounded border-gogh-grayLight"
+                      />
                         <span className="text-[11px] font-medium text-gogh-grayDark leading-snug">Usar planejamento de valores no status (venda, custo, lucro)</span>
-                      </label>
-                      {roiEnabled && (
-                        <>
+                    </label>
+                    {roiEnabled && (
+                      <>
                           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                            <div>
+                          <div>
                               <label className="block text-[11px] font-medium text-gogh-grayDark mb-0.5">Preço (R$)</label>
-                              <input
-                                type="number"
-                                min="0"
-                                step="0.01"
-                                value={valorVenda}
-                                onChange={(e) => setValorVenda(e.target.value)}
-                                placeholder="Ex: 97"
+                            <input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              value={valorVenda}
+                              onChange={(e) => setValorVenda(e.target.value)}
+                              placeholder="Ex: 97"
                                 className={`w-full border rounded-lg px-2 py-1.5 text-xs focus:ring-2 ${getFieldBorderClass('estrategia')}`}
-                              />
-                            </div>
-                            <div>
+                            />
+                          </div>
+                          <div>
                               <label className="block text-[11px] font-medium text-gogh-grayDark mb-0.5">Custo por venda (R$)</label>
-                              <input
-                                type="number"
-                                min="0"
-                                step="0.01"
-                                value={custoVenda}
-                                onChange={(e) => setCustoVenda(e.target.value)}
+                            <input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              value={custoVenda}
+                              onChange={(e) => setCustoVenda(e.target.value)}
                                 placeholder="0"
                                 className={`w-full border rounded-lg px-2 py-1.5 text-xs focus:ring-2 ${getFieldBorderClass('estrategia')}`}
-                              />
-                            </div>
+                            />
+                          </div>
                             <div>
                               <label className="block text-[11px] font-medium text-gogh-grayDark mb-0.5">Meta lucro/venda (R$) — opc.</label>
-                              <input
-                                type="number"
-                                min="0"
-                                step="0.01"
-                                value={metaLucroPorVenda}
-                                onChange={(e) => setMetaLucroPorVenda(e.target.value)}
+                            <input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              value={metaLucroPorVenda}
+                              onChange={(e) => setMetaLucroPorVenda(e.target.value)}
                                 placeholder="Ex: 20"
                                 className={`w-full border rounded-lg px-2 py-1.5 text-xs focus:ring-2 ${getFieldBorderClass('estrategia')}`}
-                              />
-                            </div>
+                            />
                           </div>
-                          {valorNum > 0 ? (
+                        </div>
+                        {valorNum > 0 ? (
                             <div className={`rounded-md border p-1.5 text-[11px] max-w-full ${
                               lucroPorVenda > 0 ? 'bg-green-50 border-green-200' : lucroPorVenda < 0 ? 'bg-red-50 border-red-200' : 'bg-amber-50 border-amber-200'
                             }`}>
                               <span className="font-medium text-gogh-black">Lucro/venda: </span>
-                              {lucroPorVenda > 0 ? (
-                                <span className="text-green-700">R$ {lucroPorVenda.toFixed(2).replace('.', ',')}</span>
-                              ) : lucroPorVenda < 0 ? (
-                                <span className="text-red-700">R$ {lucroPorVenda.toFixed(2).replace('.', ',')}</span>
-                              ) : (
-                                <span className="text-amber-700">R$ 0,00</span>
+                                {lucroPorVenda > 0 ? (
+                                  <span className="text-green-700">R$ {lucroPorVenda.toFixed(2).replace('.', ',')}</span>
+                                ) : lucroPorVenda < 0 ? (
+                                  <span className="text-red-700">R$ {lucroPorVenda.toFixed(2).replace('.', ',')}</span>
+                                ) : (
+                                  <span className="text-amber-700">R$ 0,00</span>
                               )}
                               {custoMaxAceitavel > 0 && (
                                 <span className="text-gogh-grayDark ml-1.5">· CPA máx: R$ {custoMaxAceitavel.toFixed(2).replace('.', ',')}</span>
                               )}
-                            </div>
-                          ) : (
+                          </div>
+                        ) : (
                             <p className="text-xs text-gogh-grayDark leading-snug">Preencha o preço para ver lucro e CPA máximo.</p>
-                          )}
-                        </>
-                      )}
-                    </div>
+                        )}
+                      </>
+                    )}
+                  </div>
                     {hasExistingAds === true ? (
                       <div className="space-y-4 pt-4 border-t border-gogh-grayLight">
                         {campaigns.length === 0 ? (
@@ -2009,15 +2009,15 @@ export default function AnalyticsPage() {
                             <div className="space-y-1.5">
                               <p className="text-[11px] font-medium text-gogh-black">Ver análise de:</p>
                               <div className="flex flex-wrap gap-1.5">
-                                {campaigns.map((c) => (
-                                  <button
+                        {campaigns.map((c) => (
+                            <button
                                     key={c.id}
-                                    type="button"
-                                    onClick={() => setSelectedCampaignId(c.id)}
+                              type="button"
+                              onClick={() => setSelectedCampaignId(c.id)}
                                     className={`rounded-lg border px-2.5 py-1.5 text-[11px] font-medium transition-colors ${selectedCampaignId === c.id ? 'border-gogh-yellow bg-gogh-yellow/20 text-gogh-black' : 'border-gogh-grayLight bg-white text-gogh-grayDark hover:bg-gogh-beige/30'}`}
-                                  >
+                            >
                                     {c.name}
-                                  </button>
+                            </button>
                                 ))}
                               </div>
                             </div>
@@ -2028,7 +2028,7 @@ export default function AnalyticsPage() {
                         <div className="space-y-2 text-xs text-gogh-grayDark leading-snug">
                           <p className="text-xs leading-snug">Acompanhe o status da campanha abaixo.{selectedCampaign?.budget_type_meta === 'abo' && ' Em ABO, os totais e o status são da campanha (soma de todos os conjuntos).'}</p>
                           <p className="text-xs leading-snug">Use o planejamento de valores (CPA, lucro) para saber se está dentro da meta.</p>
-                        </div>
+                                    </div>
                         <Card className="w-full max-w-[280px] py-2 px-2 border border-gogh-grayLight shadow-sm shrink-0">
                           <CardContent className="p-2 space-y-1.5">
                             <p className="text-[11px] font-semibold text-gogh-black flex items-center gap-1">
@@ -2039,7 +2039,7 @@ export default function AnalyticsPage() {
                               <div className="rounded border border-amber-200 bg-amber-50/80 p-1.5 text-amber-800 text-[8px] leading-tight">
                                 <p className="font-medium">Campanha pausada</p>
                                 <p className="mt-0.5 opacity-90">Ative em Campanhas.</p>
-                              </div>
+                                    </div>
                             ) : !hasDataForDiagnosis ? (
                               <p className="text-xs text-gogh-grayDark leading-snug">Preencha Campanhas para ver o status.</p>
                             ) : (
@@ -2058,7 +2058,7 @@ export default function AnalyticsPage() {
                                     {statusGeral === 'alerta' && 'Alerta'}
                                     {statusGeral === 'crítica' && 'Crítica'}
                                   </span>
-                                </div>
+                                  </div>
                                 {maturidadeLabel && (
                                   <p className="text-[10px] text-gogh-grayDark border-t border-gogh-grayLight/60 pt-1 mt-1">
                                     Maturidade: <strong>{maturidadeLabel}</strong>
@@ -2080,7 +2080,7 @@ export default function AnalyticsPage() {
                                           >
                                             {isExpanded ? <ChevronDown className="w-3.5 h-3.5 shrink-0 text-gogh-grayDark" /> : <ChevronRight className="w-3.5 h-3.5 shrink-0 text-gogh-grayDark" />}
                                             <span className="flex-1">{a.action}</span>
-                                          </button>
+                                </button>
                                           {isExpanded && a.details?.length > 0 && (
                                             <p className="mt-0.5 pl-1 text-[10px] opacity-90">{(a.details as string[]).join(' · ')}</p>
                                           )}
@@ -2097,19 +2097,19 @@ export default function AnalyticsPage() {
                             )}
                           </>
                         )}
-                      </div>
+                            </div>
                     ) : (
                       <div className="space-y-4">
                         {!selectedCampaignId && (
                           <p className="text-xs text-gogh-grayDark rounded-lg border border-gogh-grayLight bg-gogh-beige/30 p-3">
                             Planeje as fases abaixo. Depois crie ou selecione uma campanha para ver o calendário e preencher os dados reais ao longo do tempo. A análise e a estratégia seguem enquanto você adicionar fases e preencher nos dias de ação — visão de longo prazo, sem limite.
-                          </p>
-                        )}
+                            </p>
+                          )}
                         {selectedCampaignId && selectedCampaign && !selectedCampaign.start_date && (
                           <p className="text-xs text-gogh-grayDark rounded-lg border border-gogh-grayLight bg-gogh-beige/30 p-3">
                             Defina a data de início da campanha para ver o calendário por dia.
-                          </p>
-                        )}
+                            </p>
+                          )}
                         {campaigns.length > 0 && (
                           <div className="space-y-1.5">
                             <p className="text-[11px] font-medium text-gogh-black">Ver agenda e plano de:</p>
@@ -2124,7 +2124,7 @@ export default function AnalyticsPage() {
                                   {c.name}
                                 </button>
                               ))}
-                            </div>
+                        </div>
                           </div>
                         )}
                         <div className="border-t border-gogh-grayLight pt-4 mt-4">
@@ -2141,31 +2141,31 @@ export default function AnalyticsPage() {
                               <>
                                 <p className="text-[11px] font-medium text-gogh-black mb-0.5">No Meta, como você define o orçamento?</p>
                                 <label className="flex gap-2 cursor-pointer items-start rounded border border-transparent p-1.5 transition-colors hover:bg-gogh-beige/30 has-[:checked]:border-gogh-yellow/60 has-[:checked]:bg-gogh-yellow/10">
-                                  <input
-                                    type="radio"
-                                    name="budgetTypeMeta"
-                                    checked={budgetTypeMeta === 'cbo'}
-                                    onChange={() => setBudgetTypeMeta('cbo')}
+                                <input
+                                  type="radio"
+                                  name="budgetTypeMeta"
+                                  checked={budgetTypeMeta === 'cbo'}
+                                  onChange={() => setBudgetTypeMeta('cbo')}
                                     className="mt-0.5 border-gogh-grayLight"
-                                  />
+                                />
                                   <div>
                                     <span className="text-[11px] font-medium text-gogh-black leading-snug"><strong>CBO</strong> (Orçamento na Campanha)</span>
                                     <p className="text-[10px] text-gogh-grayDark mt-0.5 leading-snug">A Meta gerencia o orçamento. Ideal para escala, eficiência e automação.</p>
                                   </div>
-                                </label>
+                              </label>
                                 <label className="flex gap-2 cursor-pointer items-start rounded border border-transparent p-1.5 transition-colors hover:bg-gogh-beige/30 has-[:checked]:border-gogh-yellow/60 has-[:checked]:bg-gogh-yellow/10">
-                                  <input
-                                    type="radio"
-                                    name="budgetTypeMeta"
-                                    checked={budgetTypeMeta === 'abo'}
-                                    onChange={() => setBudgetTypeMeta('abo')}
+                                <input
+                                  type="radio"
+                                  name="budgetTypeMeta"
+                                  checked={budgetTypeMeta === 'abo'}
+                                  onChange={() => setBudgetTypeMeta('abo')}
                                     className="mt-0.5 border-gogh-grayLight"
-                                  />
+                                />
                                   <div>
                                     <span className="text-[11px] font-medium text-gogh-black leading-snug"><strong>ABO</strong> (Orçamento no Conjunto de Anúncios)</span>
                                     <p className="text-[10px] text-gogh-grayDark mt-0.5 leading-snug">Você tem controle total. Útil para validar criativos e públicos com verbas específicas.</p>
                                   </div>
-                                </label>
+                              </label>
                               </>
                             ) : (
                               <p className="text-[11px] text-gogh-grayDark">Estratégia: <strong className="text-gogh-black">{selectedCampaign?.budget_type_meta === 'abo' ? 'ABO' : 'CBO'}</strong> (definida na criação da campanha)</p>
@@ -2268,7 +2268,7 @@ export default function AnalyticsPage() {
                             <div className="space-y-2 text-xs text-gogh-grayDark leading-snug">
                               <p className="text-xs leading-snug">Menos dias com mais R$/dia costuma entregar melhor no Meta.</p>
                               <p className="text-xs leading-snug">Duração {MIN_DIAS_FASE}–{MAX_DIAS_FASE} dias; recomendações se adaptam à maturidade.</p>
-                            </div>
+                          </div>
                           </div>
                           {!selectedCampaignId && budgetPhases.length > 0 && (
                             <div className="mt-3">
@@ -2392,13 +2392,13 @@ export default function AnalyticsPage() {
                                         },
                                         ...(budgetPhases.length > 0 ? {
                                           inCampaign: (date: Date) => {
-                                            const n = getDayNum(date)
+                                          const n = getDayNum(date)
                                             return n != null && !isActionDay(n, totalDias, strategyTier.tier)
-                                          },
+                                        },
                                           actionDay: (date: Date) => {
-                                            const n = getDayNum(date)
+                                          const n = getDayNum(date)
                                             return n != null && isActionDay(n, totalDias, strategyTier.tier) && !filledDatesSet.has(dateToKey(date))
-                                          },
+                                        },
                                           actionDayFilled: (date: Date) => {
                                             const n = getDayNum(date)
                                             return n != null && isActionDay(n, totalDias, strategyTier.tier) && filledDatesSet.has(dateToKey(date))
@@ -2408,9 +2408,9 @@ export default function AnalyticsPage() {
                                       modifiersClassNames={{
                                         dayPassed: '[&>button]:line-through [&>button]:opacity-65',
                                         ...(budgetPhases.length > 0 ? {
-                                          inCampaign: '[&>button]:bg-gogh-yellow/35 [&>button]:text-gogh-black [&>button]:shadow-[inset_0_0_0_1px_rgba(247,201,72,0.5)]',
-                                          actionDay: '[&>button]:bg-emerald-500/50 [&>button]:text-gogh-black [&>button]:shadow-[inset_0_0_0_1px_rgba(16,185,129,0.6)]',
-                                          actionDayFilled: '[&>button]:bg-emerald-400/70 [&>button]:text-white [&>button]:shadow-[inset_0_0_0_1px_rgba(52,211,153,0.9)]',
+                                        inCampaign: '[&>button]:bg-gogh-yellow/35 [&>button]:text-gogh-black [&>button]:shadow-[inset_0_0_0_1px_rgba(247,201,72,0.5)]',
+                                        actionDay: '[&>button]:bg-emerald-500/50 [&>button]:text-gogh-black [&>button]:shadow-[inset_0_0_0_1px_rgba(16,185,129,0.6)]',
+                                        actionDayFilled: '[&>button]:bg-emerald-400/70 [&>button]:text-white [&>button]:shadow-[inset_0_0_0_1px_rgba(52,211,153,0.9)]',
                                         } : {}),
                                       }}
                                       classNames={{
@@ -2462,7 +2462,7 @@ export default function AnalyticsPage() {
                                                   )
                                                 })}
                                               </ul>
-                                            </div>
+                                        </div>
                                           )}
                                           {isSelectedDayPastOrToday && !hasDataForDiagnosis && isActionDay(getDayNum(campaignCalendarSelectedDate)!, totalDias, strategyTier.tier) && getDayNum(campaignCalendarSelectedDate) !== 1 && (
                                             <p className="text-[10px] text-gogh-grayDark border-t border-gogh-grayLight/60 pt-1 mt-1 leading-snug">
@@ -2471,7 +2471,7 @@ export default function AnalyticsPage() {
                                           )}
                                         </div>
                                         {isActionDay(getDayNum(campaignCalendarSelectedDate)!, totalDias, strategyTier.tier) && (
-                                            <button
+                                          <button
                                             type="button"
                                             onClick={() => campaignCalendarSelectedDate && toggleFilledDate(campaignCalendarSelectedDate)}
                                             className={`text-[8px] font-medium px-1 py-0.5 rounded border transition-colors ${filledDatesSet.has(dateToKey(campaignCalendarSelectedDate)) ? 'bg-emerald-100 border-emerald-300 text-emerald-800' : 'bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100'}`}
@@ -2589,23 +2589,23 @@ export default function AnalyticsPage() {
                           <span className="text-xs text-gogh-black">ABO</span>
                         </label>
                         <span className="text-[10px] text-gogh-grayDark">(CBO: criativos na campanha; ABO: conjuntos + criativos)</span>
-                      </div>
+                    </div>
                     </div>
                     {campaignsLoading ? (
                       <div className="flex justify-center py-4"><LumaSpin size="sm" /></div>
                     ) : campaigns.length === 0 ? (
                       <p className="text-xs text-gogh-grayDark py-1.5">Nenhuma campanha. Crie uma para organizar métricas e decisões por campanha.</p>
                     ) : (
-                      <ul className="space-y-2">
+                        <ul className="space-y-2">
                         {campaigns.map((c) => (
                           <li
                             key={c.id}
                             className={`flex items-center justify-between gap-2 rounded-lg border p-3 transition-colors ${
                               selectedCampaignId === c.id ? 'border-gogh-yellow bg-white' : 'border-gogh-grayLight bg-white'
-                            }`}
-                          >
-                            <button
-                              type="button"
+                                }`}
+                              >
+                                <button
+                                  type="button"
                               onClick={() => setSelectedCampaignId(c.id)}
                               className="flex-1 text-left min-w-0"
                             >
@@ -2666,7 +2666,7 @@ export default function AnalyticsPage() {
                                       <p className="text-xs text-gogh-grayDark">Conjuntos de anúncios (ABO). Adicione criativos dentro de cada conjunto.</p>
                                       <button type="button" onClick={handleAddAdSet} disabled={addingAdSet} className="inline-flex items-center gap-2 px-2.5 py-1.5 bg-gogh-yellow text-gogh-black rounded-lg text-xs font-medium hover:bg-gogh-yellow/90">
                                         <Plus className="w-4 h-4" />{addingAdSet ? '...' : 'Adicionar conjunto'}
-                                      </button>
+                                </button>
                                     </div>
                                     {adSets.length === 0 ? (
                                       <p className="text-xs text-gogh-grayDark rounded-lg border border-dashed border-gogh-grayLight bg-gogh-beige/20 p-3">Nenhum conjunto. Clique em &quot;Adicionar conjunto&quot; para começar.</p>
@@ -2674,7 +2674,7 @@ export default function AnalyticsPage() {
                                       <div className="space-y-4">
                                         {adSets.map((adSet) => {
                                           const creativesInSet = creatives.filter((c) => c.ad_set_id === adSet.id)
-                                          return (
+                                      return (
                                             <div key={adSet.id} className="rounded-lg border-2 border-gogh-grayLight bg-gogh-beige/10 p-3 space-y-2">
                                               <div className="flex items-center justify-between gap-2">
                                                 <span className="text-xs font-semibold text-gogh-black">{adSet.name}</span>
@@ -2683,7 +2683,7 @@ export default function AnalyticsPage() {
                                                     <Plus className="w-3 h-3" />{addingCreative ? '...' : 'Criativo'}
                                                   </button>
                                                   <button type="button" onClick={() => handleDeleteAdSet(adSet.id)} className="p-1 text-red-600 hover:bg-red-50 rounded" aria-label="Excluir conjunto"><Trash2 className="w-4 h-4" /></button>
-                                                </div>
+                                        </div>
                                               </div>
                                               {creativesInSet.length === 0 ? (
                                                 <p className="text-[11px] text-gogh-grayDark">Nenhum criativo neste conjunto.</p>
@@ -2705,15 +2705,15 @@ export default function AnalyticsPage() {
                                                       </div>
                                                     </div>
                                                   ))}
-                                                </div>
-                                              )}
-                                            </div>
-                                          )
-                                        })}
-                                      </div>
-                                    )}
-                                  </>
+                                  </div>
                                 )}
+                                            </div>
+                            )
+                          })}
+                      </div>
+                    )}
+                      </>
+                    )}
                               </>
                             ) : creativesLoading ? (
                               <div className="flex justify-center py-4"><LumaSpin size="sm" /></div>
@@ -2723,7 +2723,7 @@ export default function AnalyticsPage() {
                                 <button type="button" onClick={() => handleAddCreative()} disabled={addingCreative} className="shrink-0 inline-flex items-center gap-2 px-2.5 py-1.5 bg-gogh-yellow text-gogh-black rounded-lg text-xs font-medium hover:bg-gogh-yellow/90">
                                   <Plus className="w-4 h-4" />{addingCreative ? '...' : 'Adicionar criativo'}
                                 </button>
-                              </div>
+                  </div>
                             ) : (
                               <>
                                 {creatives.filter((c) => !c.ad_set_id).map((cr) => (

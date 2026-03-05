@@ -584,13 +584,16 @@ export async function POST(request: Request) {
         cta: adCta,
       }
       const recommendedTimeReason = (rawItem?.recommended_time_reason || '').toString().trim() || null
+      const captionFinal = fixedCaption
+        ? (captionRaw || '').replace(/\r/g, '').trim() || null
+        : (formatCaptionForReadability(captionRaw) || null)
       payloads.push({
         user_id: user.id,
         date,
         status: 'generated',
         topic,
         script: formatScriptForReadability(scriptRaw) || null,
-        caption: formatCaptionForReadability(captionRaw) || null,
+        caption: captionFinal,
         hashtags: normalizeHashtags(hashtagsRaw) || null,
         cover_prompt: coverTextOptions.length ? coverTextOptions.join('\n') : null,
         time: /^\d{1,2}:\d{2}$/.test(recommendedTime) ? `${recommendedTime}:00+00` : null,

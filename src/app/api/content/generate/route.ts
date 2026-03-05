@@ -670,7 +670,10 @@ export async function POST(request: Request) {
     }
 
     const script = formatScriptForReadability(scriptRaw)
-    const caption = formatCaptionForReadability(captionRaw)
+    // Com bloco fixo de legenda, preservar quebras de linha exatas (intro + bloco fixo); sem bloco fixo, formatar normalmente
+    const caption = fixedCaption
+      ? (captionRaw || '').replace(/\r/g, '').trim()
+      : formatCaptionForReadability(captionRaw)
     const hashtags = normalizeHashtags(hashtagsRaw)
     const recommendedTime = (parsed.recommended_time ?? '').toString().trim()
     const recommendedTimeReason = (parsed.recommended_time_reason ?? '').toString().trim() || null
