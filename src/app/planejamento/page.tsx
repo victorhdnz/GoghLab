@@ -1549,14 +1549,23 @@ export default function ContentPlanningPage() {
                       <p className="text-[11px] text-gogh-grayDark">
                         Apenas dias do mês atual (<strong>{currentMonthName}</strong>) podem ser selecionados.
                       </p>
-                      <HoverButton
-                        type="button"
-                        onClick={() => setPersonalizedVideoEntries((prev) => [...prev, { date: defaultDateForNew, instruction: '' }])}
-                        className="h-9 px-3 text-sm border border-gogh-grayLight rounded-lg"
-                      >
-                        <Plus className="w-4 h-4 mr-1" />
-                        Adicionar vídeo personalizado
-                      </HoverButton>
+                      {hasAutoPlanUsedThisMonth ? (
+                        <div className="rounded-lg border border-gogh-grayLight bg-gogh-grayLight/30 px-3 py-2.5 text-sm text-gogh-grayDark">
+                          <p className="font-medium text-gogh-black">Agenda deste mês já gerada</p>
+                          <p className="text-xs mt-0.5">
+                            Você poderá adicionar vídeos personalizados novamente no próximo mês, ao gerar a nova agenda.
+                          </p>
+                        </div>
+                      ) : (
+                        <HoverButton
+                          type="button"
+                          onClick={() => setPersonalizedVideoEntries((prev) => [...prev, { date: defaultDateForNew, instruction: '' }])}
+                          className="h-9 px-3 text-sm border border-gogh-grayLight rounded-lg"
+                        >
+                          <Plus className="w-4 h-4 mr-1" />
+                          Adicionar vídeo personalizado
+                        </HoverButton>
+                      )}
                       {personalizedVideoEntries.length > 0 && (
                         <div className="space-y-3">
                           {personalizedVideoEntries.map((entry, idx) => (

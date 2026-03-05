@@ -36,6 +36,49 @@ function stripHashtags(value: string) {
   return value.replace(/#[\p{L}\p{N}_]+/gu, '').replace(/\s+/g, ' ').trim()
 }
 
+function extractHashtagsFromText(value: string) {
+  return normalizeHashtags(value || '')
+}
+
+function applyFixedScript(script: string, fixedScript: string): string {
+  const s = (script || '').trim()
+  const f = (fixedScript || '').trim()
+  if (!f) return s
+  const sNorm = s.replace(/\s+/g, ' ').trim()
+  const fNorm = f.replace(/\s+/g, ' ').trim()
+  if (sNorm.endsWith(fNorm) || sNorm.includes(fNorm.slice(-40))) return s
+  return s ? `${s}\n\n${f}` : f
+}
+
+function applyFixedCaption(
+  caption: string,
+  hashtagsFromAi: string,
+  fixedCaption: string
+): { caption: string; hashtags: string } {
+  const intro = stripHashtags((caption || '').trim())
+  const fixed = (fixedCaption || '').trim()
+  if (!fixed) return { caption: intro, hashtags: hashtagsFromAi }
+  const fixedHashtags = extractHashtagsFromText(fixed)
+  const finalCaption = intro ? `${intro}\n\n${fixed}` : fixed
+  return { caption: finalCaption, hashtags: fixedHashtags || hashtagsFromAi }
+}
+
+function applyFixedAdCopy(
+  body: string | null,
+  cta: string | null,
+  fixedAdCopy: string
+): { body: string | null; cta: string | null } {
+  const fixed = (fixedAdCopy || '').trim()
+  if (!fixed) return { body, cta }
+  const b = (body || '').trim()
+  const c = (cta || '').trim()
+  const fNorm = fixed.replace(/\s+/g, ' ')
+  if (b && b.replace(/\s+/g, ' ').endsWith(fNorm)) return { body, cta }
+  if (c && c.replace(/\s+/g, ' ').endsWith(fNorm)) return { body, cta }
+  const newBody = b ? `${b}\n\n${fixed}` : fixed
+  return { body: newBody, cta: c }
+}
+
 function stripDecorativeEmojis(value: string) {
   return value.replace(/[\p{Extended_Pictographic}\uFE0F]/gu, '').replace(/\s{2,}/g, ' ').trim()
 }
@@ -408,10 +451,10 @@ export async function POST(request: Request) {
     const hasFixedStructures = fixedScript || fixedCaption || fixedAdCopy || fixedCover
     const fixedStructuresBlock = hasFixedStructures
       ? [
-          'Elementos fixos que o cliente quer repetir (incluir quando fizer sentido, mantendo formato):',
-          fixedScript ? `- Roteiro (script):\n${fixedScript}` : null,
-          fixedCaption ? `- Legenda do video:\n${fixedCaption}` : null,
-          fixedAdCopy ? `- Legenda do anuncio (ad copy):\n${fixedAdCopy}` : null,
+          'ESTRUTURAS FIXAS OBRIGATORIAS (em TODOS os videos, EXATAMENTE como escrito):',
+          fixedScript ? `- Roteiro (script): terminar SEMPRE com este bloco no final:\n${fixedScript}` : null,
+          fixedCaption ? `- Legenda do video: apos o texto do tema, colocar este bloco EXATAMENTE no final; usar APENAS as hashtags deste bloco, nao adicionar outras:\n${fixedCaption}` : null,
+          fixedAdCopy ? `- Legenda do anuncio (ad copy): terminar SEMPRE com este bloco no final:\n${fixedAdCopy}` : null,
           fixedCover ? `- Texto de capa:\n${fixedCover}` : null,
         ]
           .filter(Boolean)
@@ -442,21 +485,21 @@ export async function POST(request: Request) {
         {
           role: 'system',
           content:
-            'Voce e estrategista senior de conteudo e roteirista. Gere planos completos, com alta legibilidade visual e sem repetir temas.',
+            'Voce e estrategista senior de conteudo e roteirista. Gere roteiros com qualidade e ritmo de video: cada secao desenvolvida de verdade (argumentos, exemplos, emocao), criando conexao e desejo, sem ser raso e sem enrolar — e video, nao aula. Planos completos, com alta legibilidade visual. Prefira temas ou abordagens diferentes; a mesma vertente pode ser reutilizada se desenvolvida de forma distinta (outro angulo, exemplos ou roteiro).',
         },
         {
           role: 'user',
           content:
             `Perfil:\n${profileSummary || '(sem detalhes)'}\n\n` +
             `Datas para gerar: ${selectedDates.join(', ')}\n` +
-            `Temas ja existentes para evitar duplicacao: ${existingTopics.length ? existingTopics.join(' | ') : '(nenhum)'}\n\n` +
+            `Temas ja usados (prefira abordagens diferentes; pode reutilizar a mesma vertente se desenvolver de forma distinta): ${existingTopics.length ? existingTopics.join(' | ') : '(nenhum)'}\n\n` +
             `Objetivo principal detectado: ${primaryGoal || 'não informado'}\n` +
             `Diretriz de CTA obrigatória: ${ctaInstruction}\n\n` +
             'REGRAS OBRIGATORIAS:\n' +
             (hasFixedStructures
-              ? '- Use os elementos fixos indicados no perfil em cada tipo de conteudo correspondente: o que esta em "Roteiro" no script, o que esta em "Legenda do video" na caption, o que esta em "Legenda do anuncio" no ad_copy (headline/body/cta), o que esta em "Texto de capa" nas cover_text_options. Mantenha o formato (emojis e texto) quando incluir. Nao use tema ou titulo fixo — cada video deve ter tema proprio.\n'
+              ? '- OBRIGATORIO: em TODOS os itens use os elementos fixos EXATAMENTE como escritos no perfil: no script termine SEMPRE com o bloco fixo de roteiro; na caption coloque o bloco fixo da legenda no final e use SOMENTE as hashtags do bloco fixo (nao invente outras); no ad_copy termine com o bloco fixo. Mantenha formato, emojis e texto iguais. Cada video deve ter tema proprio; so os blocos fixos se repetem.\n'
               : '') +
-            '- Cada roteiro precisa ter profundidade: suficiente para 1:20 a 1:30 de video (entre 230 e 320 palavras). Desenvolva cada bloco com conteudo de verdade, mas de forma equilibrada — evite blocos curtos demais e tambem blocos gigantes ou repetitivos.\n' +
+            '- QUALIDADE DO ROTEIRO (obrigatorio): Desenvolva cada bloco com conteudo de verdade — argumentos, exemplos ou emocao que criem conexao e desejo. Evite texto raso e blocos de uma ou duas frases genericas. E um video, nao uma aula: transmita o que precisa e gere impacto sem enrolar; o espectador nao pode achar o video longo demais nem ter preguica de assistir. Priorize desenvolvimento com qualidade e ritmo, nao quantidade de texto. Nao repita ideias.\n' +
             scriptStrategy.promptInstruction +
             '- Use emoji APENAS no inicio do titulo de cada bloco. Nao use emoji no final de frases e nem no corpo do texto.\n' +
             '- A legenda deve vir sem hashtags no corpo, com 2 a 3 paragrafos curtos e espaco entre paragrafos.\n' +
@@ -466,9 +509,9 @@ export async function POST(request: Request) {
             '- Para cada item: recommended_time e recommended_time_reason devem ser resultado de analise real: considere o nicho, o publico-alvo (idade e objetivos) e o dia da semana da data daquele item; recomende o melhor horario de postagem (HH:MM) para esse publico naquele dia, com justificativa breve, e varie os horarios entre os itens quando fizer sentido.\n\n' +
             'Retorne SOMENTE JSON valido no formato:\n' +
             '{ "items": [\n' +
-            `  { "date": "YYYY-MM-DD", "topic": "...", "script": "roteiro desenvolvido (230–320 palavras) com blocos e quebras de linha na ordem: ${scriptStrategy.steps.join(' -> ')}; cada bloco com 2 a 4 frases de desenvolvimento, sem exagerar", "caption": "legenda com pelo menos 1 emoji em ponto estrategico (destaque que faca sentido com o tema) e paragrafos separados (sem hashtags no texto)", "hashtags": "...", "recommended_time": "HH:MM", "recommended_time_reason": "...", "cover_text_options": ["...", "...", "..."], "ad_copy": { "headline": "...", "body": "texto persuasivo; pode 1 emoji estrategico para destaque", "cta": "..." } }\n` +
+            `  { "date": "YYYY-MM-DD", "topic": "...", "script": "roteiro bem desenvolvido: cada bloco na ordem ${scriptStrategy.steps.join(' -> ')} com qualidade e ritmo de video (nao aula — transmitir e gerar desejo sem enrolar); evite blocos curtos ou genericos e evite enrolacao", "caption": "legenda com pelo menos 1 emoji em ponto estrategico (destaque que faca sentido com o tema) e paragrafos separados (sem hashtags no texto)", "hashtags": "...", "recommended_time": "HH:MM", "recommended_time_reason": "...", "cover_text_options": ["...", "...", "..."], "ad_copy": { "headline": "...", "body": "texto persuasivo; pode 1 emoji estrategico para destaque", "cta": "..." } }\n` +
             ']}\n' +
-            `A lista deve conter EXATAMENTE ${selectedDates.length} itens, com uma data unica para cada item, sem repetir tema.`,
+            `A lista deve conter EXATAMENTE ${selectedDates.length} itens, com uma data unica para cada item. Evite duplicar o mesmo tema com o mesmo enfoque; a mesma vertente pode ser reaproveitada com outro angulo ou desenvolvimento.`,
         },
       ],
     })
@@ -494,7 +537,8 @@ export async function POST(request: Request) {
 
     const aiItems = Array.isArray(parsed?.items) ? parsed.items : []
     const selectedSet = new Set(selectedDates)
-    const usedTopics = new Set(existingTopics.map((topic) => normalizeTopicKey(topic)))
+    // Dentro da mesma geração, evita dois itens com o mesmo tema; não bloqueia reutilizar vertente já usada em outros meses
+    const usedTopicsInBatch = new Set<string>()
     const payloads: any[] = []
 
     for (const rawItem of aiItems) {
@@ -504,20 +548,35 @@ export async function POST(request: Request) {
       const topic = (rawItem?.topic || '').toString().trim()
       if (!topic) continue
       const key = normalizeTopicKey(topic)
-      if (usedTopics.has(key)) continue
-      usedTopics.add(key)
+      if (usedTopicsInBatch.has(key)) continue
+      usedTopicsInBatch.add(key)
 
       const recommendedTime = (rawItem?.recommended_time || '').toString().trim()
-      const scriptRaw = (rawItem?.script || '').toString().trim()
-      const captionRaw = (rawItem?.caption || '').toString().trim()
-      const hashtagsRaw = (rawItem?.hashtags || '').toString().trim()
+      let scriptRaw = (rawItem?.script || '').toString().trim()
+      let captionRaw = (rawItem?.caption || '').toString().trim()
+      let hashtagsRaw = (rawItem?.hashtags || '').toString().trim()
+      let adBody = (rawItem?.ad_copy?.body || '').toString().trim() || null
+      let adCta = (rawItem?.ad_copy?.cta || '').toString().trim() || null
+
+      if (fixedScript) scriptRaw = applyFixedScript(scriptRaw, fixedScript)
+      if (fixedCaption) {
+        const applied = applyFixedCaption(captionRaw, hashtagsRaw, fixedCaption)
+        captionRaw = applied.caption
+        hashtagsRaw = applied.hashtags
+      }
+      if (fixedAdCopy) {
+        const applied = applyFixedAdCopy(adBody, adCta, fixedAdCopy)
+        adBody = applied.body
+        adCta = applied.cta
+      }
+
       const coverTextOptions = Array.isArray(rawItem?.cover_text_options)
         ? rawItem.cover_text_options.map((opt: unknown) => String(opt || '').trim()).filter(Boolean).slice(0, 3)
         : []
       const adCopy = {
         headline: (rawItem?.ad_copy?.headline || '').toString().trim() || null,
-        body: (rawItem?.ad_copy?.body || '').toString().trim() || null,
-        cta: (rawItem?.ad_copy?.cta || '').toString().trim() || null,
+        body: adBody,
+        cta: adCta,
       }
       const recommendedTimeReason = (rawItem?.recommended_time_reason || '').toString().trim() || null
       payloads.push({
@@ -527,7 +586,7 @@ export async function POST(request: Request) {
         topic,
         script: formatScriptForReadability(scriptRaw) || null,
         caption: formatCaptionForReadability(captionRaw) || null,
-        hashtags: normalizeHashtags(`${hashtagsRaw} ${captionRaw}`) || null,
+        hashtags: normalizeHashtags(hashtagsRaw) || null,
         cover_prompt: coverTextOptions.length ? coverTextOptions.join('\n') : null,
         time: /^\d{1,2}:\d{2}$/.test(recommendedTime) ? `${recommendedTime}:00+00` : null,
         meta: {

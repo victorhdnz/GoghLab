@@ -47,8 +47,56 @@ function normalizeHashtags(value: string) {
   return Array.from(new Set(tags)).join(' ')
 }
 
+/** Extrai apenas as hashtags de um texto (ex.: bloco fixo de legenda) para usar como lista única. */
+function extractHashtagsFromText(value: string) {
+  return normalizeHashtags(value || '')
+}
+
 function stripHashtags(value: string) {
   return value.replace(/#[\p{L}\p{N}_]+/gu, '').replace(/\s+/g, ' ').trim()
+}
+
+/** Garante que o roteiro termine com o bloco fixo de CTA; se não terminar, anexa. */
+function applyFixedScript(script: string, fixedScript: string): string {
+  const s = (script || '').trim()
+  const f = (fixedScript || '').trim()
+  if (!f) return s
+  const sNorm = s.replace(/\s+/g, ' ').trim()
+  const fNorm = f.replace(/\s+/g, ' ').trim()
+  if (sNorm.endsWith(fNorm) || sNorm.includes(fNorm.slice(-40))) return s
+  return s ? `${s}\n\n${f}` : f
+}
+
+/** Garante que a legenda termine com o bloco fixo e que as hashtags sejam só as do bloco fixo. */
+function applyFixedCaption(
+  caption: string,
+  hashtagsFromAi: string,
+  fixedCaption: string
+): { caption: string; hashtags: string } {
+  const intro = stripHashtags((caption || '').trim())
+  const fixed = (fixedCaption || '').trim()
+  if (!fixed) return { caption: intro, hashtags: hashtagsFromAi }
+  const fixedHashtags = extractHashtagsFromText(fixed)
+  // Sempre anexar o bloco fixo ao final para garantir que apareça exatamente como configurado
+  const finalCaption = intro ? `${intro}\n\n${fixed}` : fixed
+  return { caption: finalCaption, hashtags: fixedHashtags || hashtagsFromAi }
+}
+
+/** Garante que o texto do anúncio (body ou cta) termine com o bloco fixo. */
+function applyFixedAdCopy(
+  body: string | null,
+  cta: string | null,
+  fixedAdCopy: string
+): { body: string | null; cta: string | null } {
+  const fixed = (fixedAdCopy || '').trim()
+  if (!fixed) return { body, cta }
+  const b = (body || '').trim()
+  const c = (cta || '').trim()
+  const fNorm = fixed.replace(/\s+/g, ' ')
+  if (b && b.replace(/\s+/g, ' ').endsWith(fNorm)) return { body, cta }
+  if (c && c.replace(/\s+/g, ' ').endsWith(fNorm)) return { body, cta }
+  const newBody = b ? `${b}\n\n${fixed}` : fixed
+  return { body: newBody, cta: c }
 }
 
 function stripDecorativeEmojis(value: string) {
@@ -323,7 +371,6 @@ export async function POST(request: Request) {
     const existingTopics = ((existingTopicsRows || []) as Array<{ topic?: unknown }>)
       .map((row) => (row.topic || '').toString().trim())
       .filter((topic: string) => Boolean(topic))
-    const existingTopicKeys = new Set(existingTopics.map((topic) => normalizeTopicKey(topic)))
 
     // Deduz créditos antes da geração para manter a regra global (manual e Stripe)
     const supabaseAdmin = createSupabaseAdmin() as any
@@ -493,7 +540,7 @@ export async function POST(request: Request) {
     if (fixedAdCopy) fixedParts.push(`Legenda do anúncio:\n${fixedAdCopy}`)
     if (fixedCover) fixedParts.push(`Texto de capa:\n${fixedCover}`)
     const fixedStructuresBlock = fixedParts.length
-      ? `Elementos fixos a incluir quando fizer sentido:\n\n${fixedParts.join('\n\n')}`
+      ? `ESTRUTURAS FIXAS OBRIGATÓRIAS (em TODOS os vídeos, EXATAMENTE como escrito abaixo):\n\n${fixedParts.join('\n\n')}\n\nRegra: no roteiro, termine SEMPRE com o bloco fixo de CTA. Na legenda, após seu texto sobre o tema, coloque o bloco fixo da legenda EXATAMENTE (incluindo emojis e quebras de linha); use APENAS as hashtags do bloco fixo, não adicione outras. No texto do anúncio, termine com o bloco fixo exatamente como escrito.`
       : null
     const profileSummary = [
       profile.business_name && `Nome do projeto/empresa: ${profile.business_name}`,
@@ -516,17 +563,18 @@ export async function POST(request: Request) {
     const dateInfo = item.date ? `Data planejada: ${item.date}.` : ''
 
     const regenerateInstruction = (body.regenerateInstruction || '').toString().trim()
+    const isPersonalizedTopic = Boolean(topic && mode !== 'regenerate')
     const userInstruction = mode === 'regenerate'
       ? `Gere uma NOVA estrutura completa para este vídeo, com tema diferente do tema atual "${topic || 'sem tema'}". Não repita ideias já usadas e mantenha aderência ao perfil do cliente.${regenerateInstruction ? `\n\nAjustes solicitados pelo cliente para esta regeneração: ${regenerateInstruction}` : ''}`
-      : topic
-        ? `Gere conteúdo para o seguinte tema específico: "${topic}".`
+      : isPersonalizedTopic
+        ? `Este vídeo é PERSONALIZADO: o tema, a vertente e o conteúdo devem ser EXATAMENTE o que o usuário pediu. Não invente outro tema nem genérico. Tema/título obrigatório a seguir em todo o roteiro, legenda e anúncio:\n\n"${topic}"`
         : 'Sugira um tema relevante para o nicho e gere o conteúdo completo com base nesse tema sugerido.'
 
     const messages = [
       {
         role: 'system' as const,
         content:
-          'Você é um estrategista e roteirista sênior de conteúdo para redes sociais. Gere conteúdo pronto para copiar e postar, com alto nível de clareza visual.',
+          'Você é um estrategista e roteirista sênior de conteúdo para redes sociais. Gere roteiros com qualidade e ritmo de vídeo: cada seção desenvolvida de verdade (argumentos, exemplos, emoção), criando conexão e desejo, sem ser raso e sem enrolar — é vídeo, não aula. Conteúdo pronto para copiar e postar, com alto nível de clareza visual.',
       },
       {
         role: 'user' as const,
@@ -534,23 +582,26 @@ export async function POST(request: Request) {
           `Perfil de conteúdo do cliente:\n${profileSummary || '(sem detalhes adicionais)'}\n\n` +
           `${platformInfo}\n${dateInfo}\n\n` +
           `${userInstruction}\n\n` +
-          `TEMAS JÁ UTILIZADOS (NÃO REPETIR): ${existingTopics.length ? existingTopics.join(' | ') : '(nenhum)'}\n\n` +
+          `TEMAS JÁ UTILIZADOS (prefira abordagens diferentes; pode reutilizar a mesma vertente se desenvolver de forma distinta): ${existingTopics.length ? existingTopics.join(' | ') : '(nenhum)'}\n\n` +
           `Objetivo principal detectado: ${primaryGoal || 'não informado'}.\n` +
           `Diretriz de CTA obrigatória: ${ctaInstruction}\n\n` +
           'REGRAS OBRIGATÓRIAS:\n' +
-          '- Nunca repita um tema já utilizado anteriormente pelo cliente.\n' +
-          '- O roteiro precisa ter profundidade: suficiente para 1:20 a 1:30 de vídeo (entre 230 e 320 palavras). Desenvolva cada bloco com conteúdo de verdade, mas de forma equilibrada — evite blocos curtos demais e também blocos gigantes ou repetitivos.\n' +
+          (fixedScript || fixedCaption || fixedAdCopy
+            ? '- Use os elementos fixos do perfil em TODOS os vídeos: o bloco de roteiro no FINAL do script; o bloco de legenda no FINAL da legenda (e use APENAS as hashtags que estão no bloco fixo da legenda, não adicione outras); o bloco de anúncio no FINAL do texto do anúncio. Mantenha formato, emojis e texto exatamente como no perfil.\n'
+            : '') +
+          '- Prefira temas ou abordagens diferentes dos já utilizados; a mesma vertente pode ser reutilizada se desenvolvida de forma distinta (outro ângulo, exemplos ou roteiro). Evite só duplicar o mesmo tema com o mesmo enfoque.\n' +
+          '- QUALIDADE DO ROTEIRO (obrigatório): Desenvolva cada bloco com conteúdo de verdade — argumentos, exemplos ou emoção que criem conexão e desejo. Evite texto raso e blocos de uma ou duas frases genéricas. É um vídeo, não uma aula: transmita o que precisa e gere impacto sem enrolar; o espectador não pode achar o vídeo longo demais nem ter preguiça de assistir. Priorize desenvolvimento com qualidade e ritmo, não quantidade de texto. Não repita ideias.\n' +
           scriptStrategy.promptInstruction +
           '- Use emoji APENAS no início do título de cada bloco. Não use emoji no final de frases e nem no corpo do texto.\n' +
           '- A legenda deve vir sem hashtags no corpo, com 2 a 3 parágrafos curtos e espaçamento entre parágrafos.\n' +
           '- Na legenda, inclua pelo menos 1 emoji em ponto estratégico (ex.: destaque para CTA, benefício ou frase-chave), de acordo com o tema; pode usar mais um ou dois se fizer sentido, mas de forma estratégica, sem poluir.\n' +
-          '- Hashtags devem vir em uma única linha, entre 10 e 15, relevantes e sem duplicação.\n' +
+          (fixedCaption ? '- Hashtags: use SOMENTE as hashtags do bloco fixo da legenda indicado no perfil; não invente nem adicione outras.\n' : '- Hashtags devem vir em uma única linha, entre 10 e 15, relevantes e sem duplicação.\n') +
           '- No texto para anúncio (body): pode incluir 1 emoji estratégico para destaque em ponto importante (benefício, diferencial ou CTA), de forma que some à frase.\n' +
           '- Para recommended_time: estude o nicho, o público-alvo (idade e objetivos) e o dia da semana da data planejada; recomende o melhor horário de postagem (HH:MM) para esse público naquele dia, com justificativa breve. Varie os horários entre os itens quando fizer sentido para o contexto.\n\n' +
           'Retorne SOMENTE um JSON válido, sem explicações extras, no formato:' +
           '\n{\n' +
           '  "topic": "título/tema do vídeo",\n' +
-          `  "script": "roteiro desenvolvido (230–320 palavras) com quebras de linha entre os blocos na sequência: ${scriptStrategy.steps.join(' -> ')}; cada bloco com 2 a 4 frases de desenvolvimento, sem exagerar",\n` +
+          `  "script": "roteiro bem desenvolvido: cada bloco na sequência ${scriptStrategy.steps.join(' -> ')} com qualidade e ritmo de vídeo (não aula — transmitir e gerar desejo sem enrolar); evite blocos curtos ou genéricos e evite enrolação",\n` +
           '  "caption": "legenda pronta para postar, com pelo menos 1 emoji em ponto estratégico (destaque que faça sentido com o tema) e parágrafos separados por linha em branco (SEM hashtags no texto)",\n' +
           '  "hashtags": "#tag1 #tag2 #tag3 ... (entre 10 e 15 hashtags em UMA linha)",\n' +
           '  "recommended_time": "HH:MM",\n' +
@@ -594,13 +645,28 @@ export async function POST(request: Request) {
     }
 
     const generatedTopic = (parsed.topic ?? '').toString().trim()
-    const generatedTopicKey = normalizeTopicKey(generatedTopic)
-    const scriptRaw = (parsed.script ?? '').toString().trim()
-    const captionRaw = (parsed.caption ?? '').toString().trim()
-    const hashtagsRaw = (parsed.hashtags ?? '').toString().trim()
+    let scriptRaw = (parsed.script ?? '').toString().trim()
+    let captionRaw = (parsed.caption ?? '').toString().trim()
+    let hashtagsRaw = (parsed.hashtags ?? '').toString().trim()
+    let adBody = (parsed?.ad_copy?.body ?? '').toString().trim() || null
+    let adCta = (parsed?.ad_copy?.cta ?? '').toString().trim() || null
+
+    // Aplicar estruturas fixas em pós-processamento (garantir que estejam em todos os vídeos)
+    if (fixedScript) scriptRaw = applyFixedScript(scriptRaw, fixedScript)
+    if (fixedCaption) {
+      const applied = applyFixedCaption(captionRaw, hashtagsRaw, fixedCaption)
+      captionRaw = applied.caption
+      hashtagsRaw = applied.hashtags
+    }
+    if (fixedAdCopy) {
+      const applied = applyFixedAdCopy(adBody, adCta, fixedAdCopy)
+      adBody = applied.body
+      adCta = applied.cta
+    }
+
     const script = formatScriptForReadability(scriptRaw)
     const caption = formatCaptionForReadability(captionRaw)
-    const hashtags = normalizeHashtags(`${hashtagsRaw} ${captionRaw}`)
+    const hashtags = normalizeHashtags(hashtagsRaw)
     const recommendedTime = (parsed.recommended_time ?? '').toString().trim()
     const recommendedTimeReason = (parsed.recommended_time_reason ?? '').toString().trim() || null
     const coverTextOptions = Array.isArray(parsed.cover_text_options)
@@ -608,17 +674,14 @@ export async function POST(request: Request) {
       : []
     const adCopy = {
       headline: (parsed?.ad_copy?.headline ?? '').toString().trim() || null,
-      body: (parsed?.ad_copy?.body ?? '').toString().trim() || null,
-      cta: (parsed?.ad_copy?.cta ?? '').toString().trim() || null,
+      body: adBody,
+      cta: adCta,
     }
 
     // Atualizar item no calendário
     const updates: any = {
       status: 'generated',
-      topic:
-        generatedTopic && (!generatedTopicKey || !existingTopicKeys.has(generatedTopicKey))
-          ? generatedTopic
-          : topic || item.topic,
+      topic: generatedTopic || topic || item.topic,
       script,
       caption,
       hashtags,
