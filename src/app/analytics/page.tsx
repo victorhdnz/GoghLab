@@ -153,10 +153,11 @@ function dateToKey(d: Date): string {
 // Intervalo entre dias de revisão após o dia 18 (longo prazo)
 const INTERVALO_REVISAO_DIAS = 7
 
-// Dias que exigem ação (preenchimento/análise): verde + "Marcar preenchido". Dia 1 (Aprendizado) não é ação, só orientação.
+// Dias que exigem ação: verde + "Marcar preenchido". Dia 1 = criar criativos iniciais; depois preenchimento/análise.
 // Inclui revisões recorrentes (18+7, 18+14, ...) para planos longos.
 function isActionDay(dayNum: number, totalDays?: number, tier?: 'baixo' | 'medio' | 'alto'): boolean {
   const total = totalDays ?? 30
+  if (dayNum === 1 && total >= 1) return true // Início: criar X–Y criativos conforme estratégia (só na 1ª fase / dia 1)
   if (tier === 'alto' && dayNum === 5 && total >= 5) return true // 1ª análise antecipada para orçamento alto
   if (dayNum === 7 && total >= 7 && tier !== 'alto') return true // 1ª análise para medio/baixo
   if (dayNum === 10 && total >= 10) return true
@@ -2310,7 +2311,15 @@ export default function AnalyticsPage() {
                                 if (dayNum === totalDias) return 'Fim do plano — Tempo insuficiente para lucro e decisões. Se for continuar, adicione uma fase com mais dias para o algoritmo entregar e para recomendações de pausar/trocar criativo.'
                                 return ''
                               }
-                              if (dayNum === 1) return 'Aprendizado — Não mexer no orçamento nem nos criativos.'
+                              // Dia 1 (início da 1ª fase): recomendar quantos criativos criar para começar
+                              if (dayNum === 1) {
+                                const minC = strategyTier.minCreatives
+                                const maxC = strategyTier.maxCreatives
+                                const meta = minC === maxC ? `${minC} criativos` : `${minC} a ${maxC} criativos`
+                                return isPastOrToday
+                                  ? `Crie hoje ${meta} para começar a campanha (conforme sua estratégia e investimento). Depois não altere orçamento nem criativos — fase de aprendizado.`
+                                  : `Nesse dia você vai criar ${meta} para começar a campanha (conforme sua estratégia e investimento).`
+                              }
                               // 1ª análise
                               if (strategyTier.tier === 'alto' && dayNum === 5 && totalDias >= 5) return `${prefix}fazer a 1ª análise e ver exatamente quais criativos pausar (mantendo pelo menos ${strategyTier.minCreatives} ativos).`
                               if (dayNum === 7 && totalDias >= 7 && strategyTier.tier !== 'alto') return `${prefix}fazer a 1ª análise e ver exatamente quais criativos pausar (mantendo pelo menos ${strategyTier.minCreatives} ativos).`
@@ -2447,7 +2456,11 @@ export default function AnalyticsPage() {
                                             </div>
                                           )}
                                           {isSelectedDayPastOrToday && !hasDataForDiagnosis && isActionDay(getDayNum(campaignCalendarSelectedDate)!, totalDias, strategyTier.tier) && (
-                                            <p className="text-[10px] text-gogh-grayDark border-t border-gogh-grayLight/60 pt-1.5 mt-1">Preencha os dados na aba Campanhas para que as <strong>recomendações exatas</strong> apareçam aqui (qual criativo pausar ou trocar; em ABO, qual conjunto ajustar).</p>
+                                            <p className="text-[10px] text-gogh-grayDark border-t border-gogh-grayLight/60 pt-1.5 mt-1">
+                                              {getDayNum(campaignCalendarSelectedDate) === 1
+                                                ? 'Crie os criativos na aba Campanhas conforme a meta acima; nos próximos dias de ação, preencha os dados para ver as análises e recomendações exatas.'
+                                                : <>Preencha os dados na aba Campanhas para que as <strong>recomendações exatas</strong> apareçam aqui (qual criativo pausar ou trocar; em ABO, qual conjunto ajustar).</>}
+                                            </p>
                                           )}
                                         </div>
                                         {isActionDay(getDayNum(campaignCalendarSelectedDate)!, totalDias, strategyTier.tier) && (
