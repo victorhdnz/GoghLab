@@ -2311,7 +2311,12 @@ export default function AnalyticsPage() {
                               const prefix = isPastOrToday ? preencherAgora : preencherDepois
                               const planoMuitoCurto = totalDias <= MIN_DIAS_PLANO_PARA_ESTRATEGIA
                               if (planoMuitoCurto) {
-                                if (dayNum === 1) return 'Plano curto — Poucos dias não dão tempo para o Meta entregar nem para decisões (pausar/trocar criativo). Use para teste; depois planeje uma fase com mais dias (7+ ideal) para análise e resultado.'
+                                if (dayNum === 1) {
+                                  const minC = strategyTier.minCreatives
+                                  const maxC = strategyTier.maxCreatives
+                                  const meta = minC === maxC ? `${minC} criativos` : `${minC} a ${maxC} criativos`
+                                  return `Crie ${meta} conforme a meta (Estratégia, abaixo). Plano curto — poucos dias não dão tempo para o Meta entregar nem para decisões (pausar/trocar criativo). Use para teste; depois planeje uma fase com mais dias (7+ ideal) para análise e resultado.`
+                                }
                                 if (dayNum === totalDias) return 'Fim do plano — Tempo insuficiente para lucro e decisões. Se for continuar, adicione uma fase com mais dias para o algoritmo entregar e para recomendações de pausar/trocar criativo.'
                                 return ''
                               }
