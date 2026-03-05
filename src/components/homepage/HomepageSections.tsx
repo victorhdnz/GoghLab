@@ -23,7 +23,7 @@ import { AuroraText } from '@/components/ui/aurora-text'
 import { FeaturesSectionWithHoverEffects } from '@/components/ui/feature-section-with-hover-effects'
 import GalleryHoverCarousel from '@/components/ui/gallery-hover-carousel'
 import type { GalleryHoverCarouselItem } from '@/components/ui/gallery-hover-carousel'
-import { getYouTubeId } from '@/lib/utils/youtube'
+import { getYouTubeId, getYouTubeEmbedUrl, getYouTubeContainerClasses } from '@/lib/utils/youtube'
 import { TypewriterEffectSmooth } from '@/components/ui/typewriter-effect'
 import { Hero } from '@/components/ui/hero-1'
 import { ButtonOne } from '@/components/ui/button-1'
@@ -594,40 +594,45 @@ export function HomepageSections({
         }
       })}
 
-      {installTutorialModal && (
-        <div
-          className="fixed inset-0 z-[80] bg-black/70 p-4 flex items-center justify-center"
-          onClick={() => setInstallTutorialModal(null)}
-          role="dialog"
-          aria-modal="true"
-          aria-label={`Tutorial ${installTutorialModal.platform}`}
-        >
+      {installTutorialModal && (() => {
+        const isYouTube = !!getYouTubeId(installTutorialModal.url)
+        const containerClasses = isYouTube ? getYouTubeContainerClasses(installTutorialModal.url) : null
+        const embedUrl = isYouTube ? getYouTubeEmbedUrl(installTutorialModal.url, true, true) : null
+        return (
           <div
-            className="relative w-full max-w-3xl aspect-video bg-black rounded-xl overflow-hidden shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
+            className="fixed inset-0 z-[80] bg-black/70 p-4 flex items-center justify-center"
+            onClick={() => setInstallTutorialModal(null)}
+            role="dialog"
+            aria-modal="true"
+            aria-label={`Tutorial ${installTutorialModal.platform}`}
           >
-            <button
-              type="button"
-              onClick={() => setInstallTutorialModal(null)}
-              className="absolute top-2 right-2 z-10 bg-black/60 hover:bg-black/80 text-white rounded-full p-2"
-              aria-label="Fechar tutorial"
+            <div
+              className={`relative w-full bg-black rounded-2xl overflow-hidden shadow-2xl ${containerClasses ? `${containerClasses.maxWidth} mx-auto ${containerClasses.aspectRatio}` : 'max-w-3xl aspect-video'}`}
+              onClick={(e) => e.stopPropagation()}
             >
-              <X className="w-5 h-5" />
-            </button>
-            {getYouTubeId(installTutorialModal.url) ? (
-              <iframe
-                src={installTutorialModal.url.includes('embed') ? installTutorialModal.url : `https://www.youtube.com/embed/${getYouTubeId(installTutorialModal.url)}?autoplay=1`}
-                className="absolute inset-0 w-full h-full"
-                title={`Tutorial ${installTutorialModal.platform}`}
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-              />
-            ) : (
-              <video src={installTutorialModal.url} controls autoPlay playsInline className="absolute inset-0 w-full h-full object-contain" />
-            )}
+              <button
+                type="button"
+                onClick={() => setInstallTutorialModal(null)}
+                className="absolute top-2 right-2 z-10 bg-black/60 hover:bg-black/80 text-white rounded-full p-2"
+                aria-label="Fechar tutorial"
+              >
+                <X className="w-5 h-5" />
+              </button>
+              {isYouTube && embedUrl ? (
+                <iframe
+                  src={embedUrl}
+                  className="absolute inset-0 w-full h-full"
+                  title={`Tutorial ${installTutorialModal.platform}`}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
+              ) : (
+                <video src={installTutorialModal.url} controls autoPlay playsInline className="absolute inset-0 w-full h-full object-contain" />
+              )}
+            </div>
           </div>
-        </div>
-      )}
+        )
+      })()}
     </>
   )
 }

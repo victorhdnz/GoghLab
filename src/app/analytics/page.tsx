@@ -1387,6 +1387,10 @@ export default function AnalyticsPage() {
   }, [accordionOpen])
 
   const handleCreateCampaign = async () => {
+    if (hasExistingAds === null) {
+      toast.error('Defina seu perfil na seção Análise, estratégia e planejamento (já tem anúncio ou estratégia e análise) para criar campanhas.')
+      return
+    }
     const name = newCampaignName.trim()
     if (!name) {
       toast.error('Digite o nome da campanha')
@@ -2496,6 +2500,12 @@ export default function AnalyticsPage() {
                   selectedCampaign ? `${selectedCampaign.name} · Início ${selectedCampaign.start_date}` : 'Crie, ative ou pause campanhas',
                   <Megaphone className="w-4 h-4 text-gogh-grayDark" />,
                   <div className="pt-2 space-y-3 overflow-hidden">
+                    {hasExistingAds === null && (
+                      <div className="rounded-xl border-2 border-amber-200 bg-amber-50/80 p-4 text-amber-900">
+                        <p className="text-sm font-medium mb-1">Defina seu perfil para criar campanhas</p>
+                        <p className="text-xs text-amber-800/90 leading-snug">Na seção <strong>Análise, estratégia e planejamento</strong> (acima), escolha se você <strong>já tem anúncios</strong> (foco em análise e status) ou se quer <strong>estratégia e análise</strong> (planejamento, agenda e status). Só assim as abas e o Status funcionam corretamente e você pode criar campanhas aqui.</p>
+                      </div>
+                    )}
                     <div className="space-y-3">
                       <div className="flex flex-wrap gap-3 items-end min-w-0">
                         <div className="flex-1 min-w-0 sm:min-w-[160px]">
@@ -2505,7 +2515,8 @@ export default function AnalyticsPage() {
                             value={newCampaignName}
                             onChange={(e) => setNewCampaignName(e.target.value)}
                             placeholder="Nome da campanha"
-                            className="w-full min-w-0 border border-gogh-grayLight rounded-lg px-3 py-2 text-sm"
+                            disabled={hasExistingAds === null}
+                            className="w-full min-w-0 border border-gogh-grayLight rounded-lg px-3 py-2 text-sm disabled:opacity-60 disabled:bg-gogh-grayLight/30"
                           />
                         </div>
                         <div className="min-w-0 max-w-full overflow-hidden basis-32 shrink sm:basis-auto sm:min-w-[140px]">
@@ -2514,27 +2525,29 @@ export default function AnalyticsPage() {
                             type="date"
                             value={newCampaignStartDate}
                             onChange={(e) => setNewCampaignStartDate(e.target.value)}
-                            className="w-full min-w-0 max-w-full border border-gogh-grayLight rounded-lg px-2.5 py-1.5 text-xs box-border"
+                            disabled={hasExistingAds === null}
+                            className="w-full min-w-0 max-w-full border border-gogh-grayLight rounded-lg px-2.5 py-1.5 text-xs box-border disabled:opacity-60 disabled:bg-gogh-grayLight/30"
                           />
                         </div>
                         <button
                         type="button"
                         onClick={handleCreateCampaign}
-                        disabled={campaignsLoading}
-                        className="inline-flex items-center gap-2 px-3 py-1.5 bg-gogh-yellow text-gogh-black rounded-xl hover:bg-gogh-yellow/90 font-medium text-xs transition-colors shrink-0"
+                        disabled={campaignsLoading || hasExistingAds === null}
+                        title={hasExistingAds === null ? 'Defina seu perfil na seção acima (já tem anúncio ou estratégia e análise) para criar campanhas' : undefined}
+                        className="inline-flex items-center gap-2 px-3 py-1.5 bg-gogh-yellow text-gogh-black rounded-xl hover:bg-gogh-yellow/90 font-medium text-xs transition-colors shrink-0 disabled:opacity-60 disabled:cursor-not-allowed"
                       >
                         <Plus className="w-4 h-4" />
                           Criar
                         </button>
                       </div>
-                      <div className="flex flex-wrap gap-2 items-center">
+                      <div className={`flex flex-wrap gap-2 items-center ${hasExistingAds === null ? 'opacity-60 pointer-events-none' : ''}`}>
                         <span className="text-[11px] font-medium text-gogh-grayDark">Estratégia:</span>
                         <label className="flex items-center gap-1.5 cursor-pointer">
-                          <input type="radio" name="newCampaignBudgetType" checked={newCampaignBudgetType === 'cbo'} onChange={() => setNewCampaignBudgetType('cbo')} className="border-gogh-grayLight" />
+                          <input type="radio" name="newCampaignBudgetType" checked={newCampaignBudgetType === 'cbo'} onChange={() => setNewCampaignBudgetType('cbo')} className="border-gogh-grayLight" disabled={hasExistingAds === null} />
                           <span className="text-xs text-gogh-black">CBO</span>
                         </label>
                         <label className="flex items-center gap-1.5 cursor-pointer">
-                          <input type="radio" name="newCampaignBudgetType" checked={newCampaignBudgetType === 'abo'} onChange={() => setNewCampaignBudgetType('abo')} className="border-gogh-grayLight" />
+                          <input type="radio" name="newCampaignBudgetType" checked={newCampaignBudgetType === 'abo'} onChange={() => setNewCampaignBudgetType('abo')} className="border-gogh-grayLight" disabled={hasExistingAds === null} />
                           <span className="text-xs text-gogh-black">ABO</span>
                         </label>
                         <span className="text-[10px] text-gogh-grayDark">(CBO: criativos na campanha; ABO: conjuntos + criativos)</span>
