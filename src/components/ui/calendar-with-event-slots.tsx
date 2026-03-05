@@ -166,7 +166,7 @@ export function CalendarWithEventSlots({
               ) : null}
             </div>
           ) : (
-            itemsForSelectedDate.map((item) => {
+            itemsForSelectedDate.filter((item) => item?.id).map((item) => {
               const regenerateCount = Number(item.meta?.regenerate_count ?? 0)
               const isRegenerating = regeneratingId === item.id
               const hasGeneratedContent = Boolean(item.script || item.caption || item.hashtags || item.status === "generated")

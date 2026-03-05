@@ -685,7 +685,9 @@ export default function ContentPlanningPage() {
 
   const selectedDateItems = useMemo(() => {
     const selectedDateString = formatDate(selectedDate)
-    return items.filter((item) => normalizeDateKey(item.date) === selectedDateString)
+    return items.filter(
+      (item) => item?.id && normalizeDateKey(item.date) === selectedDateString
+    )
   }, [items, selectedDate])
 
   const currentProfileSignature = useMemo(
@@ -903,12 +905,12 @@ export default function ContentPlanningPage() {
         return
       }
       setConfirmAutoPlanModalOpen(false)
-      const createdItems: CalendarItem[] = Array.isArray(data.items) ? data.items : []
-      setItems((prev) => {
-        const map = new Map(prev.map((it) => [it.id, it]))
-        for (const item of createdItems) map.set(item.id, item)
-        return Array.from(map.values())
-      })
+      const createdItems: CalendarItem[] = (Array.isArray(data.items) ? data.items : []).filter(
+        (it: any) => it?.id
+      ) as CalendarItem[]
+      // Acumulador local para não perder itens quando vários vídeos personalizados são do mesmo dia (evita estado dessincronizado)
+      let currentItems: CalendarItem[] = [...createdItems]
+      setItems(currentItems)
       setProfile((prev) =>
         prev
           ? {
@@ -934,8 +936,13 @@ export default function ContentPlanningPage() {
             toast.error(createData?.error || 'Erro ao criar vídeo personalizado')
             continue
           }
-          const newItem: CalendarItem = createData.item
-          setItems((prev) => [...prev, newItem])
+          const newItem = createData?.item as CalendarItem | undefined
+          if (!newItem?.id) {
+            toast.error('Resposta inválida ao criar vídeo personalizado. Tente novamente.')
+            continue
+          }
+          currentItems = [...currentItems, newItem]
+          setItems(currentItems)
           const genRes = await fetch('/api/content/generate', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -948,7 +955,10 @@ export default function ContentPlanningPage() {
           })
           const genData = await genRes.json()
           if (genRes.ok && genData?.item) {
-            setItems((prev) => prev.map((it) => (it.id === newItem.id ? genData.item : it)))
+            currentItems = currentItems.map((it) => (it.id === newItem.id ? genData.item : it))
+            setItems(currentItems)
+          } else if (!genRes.ok && genData?.error) {
+            toast.error(genData.error || 'Erro ao gerar conteúdo do vídeo personalizado.')
           }
           totalCreated += 1
         } catch (e) {
@@ -1547,7 +1557,7 @@ export default function ContentPlanningPage() {
                   return (
                     <>
                       <p className="text-[11px] text-gogh-grayDark">
-                        Apenas dias do mês atual (<strong>{currentMonthName}</strong>) podem ser selecionados.
+                        Apenas dias do mês atual (<strong>{currentMonthName}</strong>). Um vídeo personalizado por dia — cada dia só pode ser escolhido uma vez.
                       </p>
                       {hasAutoPlanUsedThisMonth ? (
                         <div className="rounded-lg border border-gogh-grayLight bg-gogh-grayLight/30 px-3 py-2.5 text-sm text-gogh-grayDark">
@@ -1559,7 +1569,18 @@ export default function ContentPlanningPage() {
                       ) : (
                         <HoverButton
                           type="button"
-                          onClick={() => setPersonalizedVideoEntries((prev) => [...prev, { date: defaultDateForNew, instruction: '' }])}
+                          onClick={() => setPersonalizedVideoEntries((prev) => {
+                            const used = new Set(prev.map((e) => e.date))
+                            let firstFree = minDate
+                            for (let d = 1; d <= lastDay; d++) {
+                              const dateStr = `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
+                              if (!used.has(dateStr)) {
+                                firstFree = dateStr
+                                break
+                              }
+                            }
+                            return [...prev, { date: firstFree, instruction: '' }]
+                          })}
                           className="h-9 px-3 text-sm border border-gogh-grayLight rounded-lg"
                         >
                           <Plus className="w-4 h-4 mr-1" />
@@ -1586,6 +1607,13 @@ export default function ContentPlanningPage() {
                                         next[idx] = { ...next[idx], date: defaultDateForNew }
                                         return next
                                       })
+                                      return
+                                    }
+                                    const alreadyUsedByOther = personalizedVideoEntries.some(
+                                      (e, i) => i !== idx && e.date === val
+                                    )
+                                    if (alreadyUsedByOther) {
+                                      toast.error('Este dia já tem um vídeo personalizado. Escolha outro dia — apenas um vídeo por dia.')
                                       return
                                     }
                                     setPersonalizedVideoEntries((prev) => {
