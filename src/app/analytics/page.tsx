@@ -2459,11 +2459,9 @@ export default function AnalyticsPage() {
                                               </ul>
                                             </div>
                                           )}
-                                          {isSelectedDayPastOrToday && !hasDataForDiagnosis && isActionDay(getDayNum(campaignCalendarSelectedDate)!, totalDias, strategyTier.tier) && (
-                                            <p className="text-[10px] text-gogh-grayDark border-t border-gogh-grayLight/60 pt-1.5 mt-1">
-                                              {getDayNum(campaignCalendarSelectedDate) === 1
-                                                ? 'Crie os criativos na aba Campanhas conforme a meta acima; nos próximos dias de ação, preencha os dados para ver as análises e recomendações exatas.'
-                                                : <>Preencha os dados na aba Campanhas para que as <strong>recomendações exatas</strong> apareçam aqui (qual criativo pausar ou trocar; em ABO, qual conjunto ajustar).</>}
+                                          {isSelectedDayPastOrToday && !hasDataForDiagnosis && isActionDay(getDayNum(campaignCalendarSelectedDate)!, totalDias, strategyTier.tier) && getDayNum(campaignCalendarSelectedDate) !== 1 && (
+                                            <p className="text-[10px] text-gogh-grayDark border-t border-gogh-grayLight/60 pt-1 mt-1 leading-snug">
+                                              Preencha os dados na aba Campanhas para que as <strong>recomendações exatas</strong> apareçam aqui (qual criativo pausar ou trocar; em ABO, qual conjunto ajustar).
                                             </p>
                                           )}
                                         </div>
