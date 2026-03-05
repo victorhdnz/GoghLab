@@ -1470,48 +1470,48 @@ export default function ContentPlanningPage() {
             {profileAccordionOpen === 'estrutura-fixa' && (
               <div className="px-3 pb-3 pt-0 border-t border-gogh-grayLight/50 pt-2 space-y-4">
                 <p className="text-xs text-gogh-grayDark">
-                  Cole aqui <strong>somente o texto que deve aparecer</strong> em cada tipo de conteúdo — será copiado literalmente. Não escreva instruções (ex.: &quot;use no final&quot;); coloque só o que quer que se repita em todos os vídeos. Cada campo é opcional.
+                  Cole aqui <strong>somente o texto que deve aparecer</strong> em cada tipo de conteúdo. Tudo que você escrever será copiado literalmente — não use instruções, só o texto fixo. Cada campo é opcional.
                 </p>
                 <div>
                   <label className="block text-sm font-medium text-gogh-grayDark mb-1">Roteiro (script)</label>
-                  <p className="text-[11px] text-gogh-grayDark mb-1">Texto exato que deve aparecer no final de todo roteiro (será colado literalmente).</p>
+                  <p className="text-[11px] text-gogh-grayDark mb-1">Texto exato que aparecerá no final de todo roteiro (copiado literalmente; sem instruções).</p>
                   <textarea
                     value={fixedStructures.script}
                     onChange={(e) => { markSectionModified('estrutura-fixa'); setFixedStructures((s) => ({ ...s, script: e.target.value })) }}
-                    placeholder="Ex.: Não esqueça: clique abaixo e saiba mais. Ou: Clique abaixo e saiba mais para aproveitar tudo isso."
+                    placeholder="Ex.: Clique abaixo e saiba mais."
                     rows={3}
                     className={`w-full px-3 py-2 border rounded-lg text-sm resize-none min-h-[80px] max-h-[180px] overflow-y-auto ${getFieldBorderClass('estrutura-fixa')}`}
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gogh-grayDark mb-1">Legenda do vídeo</label>
-                  <p className="text-[11px] text-gogh-grayDark mb-1">Texto exato que deve aparecer no final de toda legenda (será colado literalmente; uma linha por item se quiser lista). Inclua aqui as hashtags fixas se quiser.</p>
+                  <p className="text-[11px] text-gogh-grayDark mb-1">Texto exato no final da legenda (copiado literalmente; uma linha por item se quiser lista). Se você incluir hashtags aqui, serão as únicas usadas — a IA não criará outras por tema.</p>
                   <textarea
                     value={fixedStructures.caption}
                     onChange={(e) => { markSectionModified('estrutura-fixa'); setFixedStructures((s) => ({ ...s, caption: e.target.value })) }}
-                    placeholder={'Ex.:\n🏆 Ferramentas premium (Canva Pro e CapCut Pro)\n🏆 Gogh Agenda IA\n🔗 Acesse o link da bio e conheça o Gogh Lab.\n#criacaodeconteudo #digital'}
+                    placeholder="Ex.: Seu texto. Uma linha por item.\n#tag1 #tag2"
                     rows={3}
                     className={`w-full px-3 py-2 border rounded-lg text-sm resize-none min-h-[80px] max-h-[180px] overflow-y-auto ${getFieldBorderClass('estrutura-fixa')}`}
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gogh-grayDark mb-1">Texto do anúncio (ad copy)</label>
-                  <p className="text-[11px] text-gogh-grayDark mb-1">Texto exato que deve aparecer no final do texto do anúncio (será colado literalmente).</p>
+                  <p className="text-[11px] text-gogh-grayDark mb-1">Texto exato no final do anúncio (copiado literalmente; uma linha por item se quiser).</p>
                   <textarea
                     value={fixedStructures.ad_copy}
                     onChange={(e) => { markSectionModified('estrutura-fixa'); setFixedStructures((s) => ({ ...s, ad_copy: e.target.value })) }}
-                    placeholder={'Ex.:\n🏆 Ferramentas premium · 🏆 Cursos\n🔗 Acesse o site do Saiba mais e conheça o Gogh Lab.'}
+                    placeholder="Ex.: Seu texto fixo. Uma linha por item."
                     rows={2}
                     className={`w-full px-3 py-2 border rounded-lg text-sm resize-none min-h-[60px] max-h-[140px] overflow-y-auto ${getFieldBorderClass('estrutura-fixa')}`}
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gogh-grayDark mb-1">Texto de capa do vídeo</label>
-                  <p className="text-[11px] text-gogh-grayDark mb-1">Texto exato para opções de capa/thumbnail (será colado literalmente). Opcional.</p>
+                  <p className="text-[11px] text-gogh-grayDark mb-1">Texto exato para capa/thumbnail (copiado literalmente). Opcional.</p>
                   <textarea
                     value={fixedStructures.cover}
                     onChange={(e) => { markSectionModified('estrutura-fixa'); setFixedStructures((s) => ({ ...s, cover: e.target.value })) }}
-                    placeholder="Ex.: Frase curta para capa"
+                    placeholder="Ex.: Sua frase para capa"
                     rows={2}
                     className={`w-full px-3 py-2 border rounded-lg text-sm resize-none min-h-[60px] max-h-[140px] overflow-y-auto ${getFieldBorderClass('estrutura-fixa')}`}
                   />
