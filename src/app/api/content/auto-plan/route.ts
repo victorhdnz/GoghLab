@@ -447,14 +447,13 @@ export async function POST(request: Request) {
     const fixedCaption = (bodyFixedCaption || (prefs.fixed_structure_caption ?? '')).trim()
     const fixedAdCopy = (bodyFixedAdCopy || (prefs.fixed_structure_ad_copy ?? '')).trim()
     const fixedCover = (bodyFixedCover || (prefs.fixed_structure_cover ?? '')).trim()
-    // Estrutura fixa: aplicada a todos os conteúdos gerados pela IA (roteiro, legenda, ad_copy, capa). Na geração sob demanda (/api/content/generate) também é aplicada a itens personalizados.
     const hasFixedStructures = fixedScript || fixedCaption || fixedAdCopy || fixedCover
     const fixedStructuresBlock = hasFixedStructures
       ? [
-          'ESTRUTURAS FIXAS OBRIGATORIAS (em TODOS os videos, EXATAMENTE como escrito):',
-          fixedScript ? `- Roteiro (script): terminar SEMPRE com este bloco no final:\n${fixedScript}` : null,
-          fixedCaption ? `- Legenda do video: apos o texto do tema, colocar este bloco EXATAMENTE no final; usar APENAS as hashtags deste bloco, nao adicionar outras:\n${fixedCaption}` : null,
-          fixedAdCopy ? `- Legenda do anuncio (ad copy): terminar SEMPRE com este bloco no final:\n${fixedAdCopy}` : null,
+          'ESTRUTURAS FIXAS (incluir exatamente como está abaixo):',
+          fixedScript ? `- Roteiro (script) — colocar este bloco no final:\n${fixedScript}` : null,
+          fixedCaption ? `- Legenda do video — colocar este bloco no final (manter quebras de linha):\n${fixedCaption}` : null,
+          fixedAdCopy ? `- Legenda do anuncio — colocar este bloco no final (manter quebras de linha):\n${fixedAdCopy}` : null,
           fixedCover ? `- Texto de capa:\n${fixedCover}` : null,
         ]
           .filter(Boolean)
@@ -497,8 +496,9 @@ export async function POST(request: Request) {
             `Diretriz de CTA obrigatória: ${ctaInstruction}\n\n` +
             'REGRAS OBRIGATORIAS:\n' +
             (hasFixedStructures
-              ? '- OBRIGATORIO: em TODOS os itens use os elementos fixos EXATAMENTE como escritos no perfil: no script termine SEMPRE com o bloco fixo de roteiro; na caption coloque o bloco fixo da legenda no final e use SOMENTE as hashtags do bloco fixo (nao invente outras); no ad_copy termine com o bloco fixo. Mantenha formato, emojis e texto iguais. Cada video deve ter tema proprio; so os blocos fixos se repetem.\n'
+              ? '- Inclua os blocos fixos do perfil exatamente como escritos. Mantenha quebras de linha e formato.\n'
               : '') +
+            '- O roteiro (script) DEVE ter estrutura visual: cada secao em linha separada, com emoji e nome (ex.: 🎣 Gancho:, 📣 CTA final:). Nao entregue um unico paragrafo.\n' +
             '- QUALIDADE DO ROTEIRO (obrigatorio): Desenvolva cada bloco com conteudo de verdade — argumentos, exemplos ou emocao que criem conexao e desejo. Evite texto raso e blocos de uma ou duas frases genericas. E um video, nao uma aula: transmita o que precisa e gere impacto sem enrolar; o espectador nao pode achar o video longo demais nem ter preguica de assistir. Priorize desenvolvimento com qualidade e ritmo, nao quantidade de texto. Nao repita ideias.\n' +
             scriptStrategy.promptInstruction +
             '- Use emoji APENAS no inicio do titulo de cada bloco. Nao use emoji no final de frases e nem no corpo do texto.\n' +
@@ -509,7 +509,7 @@ export async function POST(request: Request) {
             '- Para cada item: recommended_time e recommended_time_reason devem ser resultado de analise real: considere o nicho, o publico-alvo (idade e objetivos) e o dia da semana da data daquele item; recomende o melhor horario de postagem (HH:MM) para esse publico naquele dia, com justificativa breve, e varie os horarios entre os itens quando fizer sentido.\n\n' +
             'Retorne SOMENTE JSON valido no formato:\n' +
             '{ "items": [\n' +
-            `  { "date": "YYYY-MM-DD", "topic": "...", "script": "roteiro bem desenvolvido: cada bloco na ordem ${scriptStrategy.steps.join(' -> ')} com qualidade e ritmo de video (nao aula — transmitir e gerar desejo sem enrolar); evite blocos curtos ou genericos e evite enrolacao", "caption": "legenda com pelo menos 1 emoji em ponto estrategico (destaque que faca sentido com o tema) e paragrafos separados (sem hashtags no texto)", "hashtags": "...", "recommended_time": "HH:MM", "recommended_time_reason": "...", "cover_text_options": ["...", "...", "..."], "ad_copy": { "headline": "...", "body": "texto persuasivo; pode 1 emoji estrategico para destaque", "cta": "..." } }\n` +
+            `  { "date": "YYYY-MM-DD", "topic": "...", "script": "roteiro COM ESTRUTURA: cada bloco em linha separada com emoji e nome (ex.: 🎣 Gancho:, 📣 CTA final:). Sequencia: ${scriptStrategy.steps.join(' -> ')}. Nao entregue paragrafo unico; use quebras de linha. Nao inclua frases de instrução no texto.", "caption": "legenda com pelo menos 1 emoji em ponto estrategico (destaque que faca sentido com o tema) e paragrafos separados (sem hashtags no texto)", "hashtags": "...", "recommended_time": "HH:MM", "recommended_time_reason": "...", "cover_text_options": ["...", "...", "..."], "ad_copy": { "headline": "...", "body": "texto persuasivo; pode 1 emoji estrategico para destaque", "cta": "..." } }\n` +
             ']}\n' +
             `A lista deve conter EXATAMENTE ${selectedDates.length} itens, com uma data unica para cada item. Evite duplicar o mesmo tema com o mesmo enfoque; a mesma vertente pode ser reaproveitada com outro angulo ou desenvolvimento.`,
         },

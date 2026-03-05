@@ -535,12 +535,12 @@ export async function POST(request: Request) {
     const fixedAdCopy = String(prefs.fixed_structure_ad_copy ?? '').trim()
     const fixedCover = String(prefs.fixed_structure_cover ?? '').trim()
     const fixedParts: string[] = []
-    if (fixedScript) fixedParts.push(`Roteiro (script):\n${fixedScript}`)
-    if (fixedCaption) fixedParts.push(`Legenda do vídeo:\n${fixedCaption}`)
-    if (fixedAdCopy) fixedParts.push(`Legenda do anúncio:\n${fixedAdCopy}`)
+    if (fixedScript) fixedParts.push(`Roteiro (script) — colocar este bloco no final:\n${fixedScript}`)
+    if (fixedCaption) fixedParts.push(`Legenda do vídeo — colocar este bloco no final (manter quebras de linha):\n${fixedCaption}`)
+    if (fixedAdCopy) fixedParts.push(`Legenda do anúncio — colocar este bloco no final (manter quebras de linha):\n${fixedAdCopy}`)
     if (fixedCover) fixedParts.push(`Texto de capa:\n${fixedCover}`)
     const fixedStructuresBlock = fixedParts.length
-      ? `ESTRUTURAS FIXAS OBRIGATÓRIAS (em TODOS os vídeos, EXATAMENTE como escrito abaixo):\n\n${fixedParts.join('\n\n')}\n\nRegra: no roteiro, termine SEMPRE com o bloco fixo de CTA. Na legenda, após seu texto sobre o tema, coloque o bloco fixo da legenda EXATAMENTE (incluindo emojis e quebras de linha); use APENAS as hashtags do bloco fixo, não adicione outras. No texto do anúncio, termine com o bloco fixo exatamente como escrito.`
+      ? `ESTRUTURAS FIXAS (incluir exatamente como está abaixo):\n\n${fixedParts.join('\n\n')}\n\nNo roteiro, terminar com o bloco do script. Na legenda, após seu texto, o bloco da legenda (manter quebras de linha). No anúncio, terminar com o bloco do anúncio. Usar APENAS as hashtags do bloco da legenda.`
       : null
     const profileSummary = [
       profile.business_name && `Nome do projeto/empresa: ${profile.business_name}`,
@@ -587,8 +587,9 @@ export async function POST(request: Request) {
           `Diretriz de CTA obrigatória: ${ctaInstruction}\n\n` +
           'REGRAS OBRIGATÓRIAS:\n' +
           (fixedScript || fixedCaption || fixedAdCopy
-            ? '- Use os elementos fixos do perfil em TODOS os vídeos: o bloco de roteiro no FINAL do script; o bloco de legenda no FINAL da legenda (e use APENAS as hashtags que estão no bloco fixo da legenda, não adicione outras); o bloco de anúncio no FINAL do texto do anúncio. Mantenha formato, emojis e texto exatamente como no perfil.\n'
+            ? '- Inclua os blocos fixos do perfil exatamente como escritos (roteiro no final do script; legenda no final da legenda; anúncio no final do texto do anúncio). Mantenha quebras de linha e formato.\n'
             : '') +
+          '- O roteiro (script) DEVE ter estrutura visual: cada seção em linha separada, começando com emoji e nome da seção (ex.: 🎣 Gancho:, 📣 CTA final:). Não entregue um único parágrafo contínuo; use quebras de linha entre cada bloco.\n' +
           '- Prefira temas ou abordagens diferentes dos já utilizados; a mesma vertente pode ser reutilizada se desenvolvida de forma distinta (outro ângulo, exemplos ou roteiro). Evite só duplicar o mesmo tema com o mesmo enfoque.\n' +
           '- QUALIDADE DO ROTEIRO (obrigatório): Desenvolva cada bloco com conteúdo de verdade — argumentos, exemplos ou emoção que criem conexão e desejo. Evite texto raso e blocos de uma ou duas frases genéricas. É um vídeo, não uma aula: transmita o que precisa e gere impacto sem enrolar; o espectador não pode achar o vídeo longo demais nem ter preguiça de assistir. Priorize desenvolvimento com qualidade e ritmo, não quantidade de texto. Não repita ideias.\n' +
           scriptStrategy.promptInstruction +
@@ -601,7 +602,7 @@ export async function POST(request: Request) {
           'Retorne SOMENTE um JSON válido, sem explicações extras, no formato:' +
           '\n{\n' +
           '  "topic": "título/tema do vídeo",\n' +
-          `  "script": "roteiro bem desenvolvido: cada bloco na sequência ${scriptStrategy.steps.join(' -> ')} com qualidade e ritmo de vídeo (não aula — transmitir e gerar desejo sem enrolar); evite blocos curtos ou genéricos e evite enrolação",\n` +
+          `  "script": "roteiro COM ESTRUTURA: cada bloco em linha separada começando com emoji e nome (ex.: 🎣 Gancho:, depois o texto; 📣 CTA final:, depois o texto). Sequência: ${scriptStrategy.steps.join(' -> ')}. Não entregue parágrafo único; use quebras de linha. Não inclua frases de instrução no texto.",\n` +
           '  "caption": "legenda pronta para postar, com pelo menos 1 emoji em ponto estratégico (destaque que faça sentido com o tema) e parágrafos separados por linha em branco (SEM hashtags no texto)",\n' +
           '  "hashtags": "#tag1 #tag2 #tag3 ... (entre 10 e 15 hashtags em UMA linha)",\n' +
           '  "recommended_time": "HH:MM",\n' +

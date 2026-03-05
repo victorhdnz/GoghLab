@@ -699,7 +699,6 @@ export default function ContentPlanningPage() {
   const formatCaptionWithHashtags = (item: CalendarItem) => {
     const captionRaw = (item.caption || '').toString().trim()
     const hashtagsFromCaption = captionRaw.match(/#[^\s#]+/g) ?? []
-    const caption = captionRaw.replace(/#[^\s#]+/g, '').replace(/\s{2,}/g, ' ').trim()
     const hashtagsFromField = (item.hashtags || '')
       .toString()
       .replace(/\n+/g, ' ')
@@ -707,14 +706,11 @@ export default function ContentPlanningPage() {
       .filter((token) => token.startsWith('#'))
     const uniqueHashtags = Array.from(new Set([...hashtagsFromCaption, ...hashtagsFromField]))
     const hashtagsLine = uniqueHashtags.join(' ')
-    const captionParagraphs = caption
-      .split(/\n+/)
-      .map((line) => line.trim())
-      .filter(Boolean)
-    const captionBlock = captionParagraphs
-      .map((paragraph) => splitSentencesForReadability(paragraph))
-      .filter(Boolean)
-      .join('\n\n')
+    const captionWithoutHashtags = captionRaw.replace(/#[^\s#]+/g, '').replace(/\r/g, '')
+    const captionLines = captionWithoutHashtags
+      .split('\n')
+      .map((line) => line.replace(/[ \t]{2,}/g, ' ').trim())
+    const captionBlock = captionLines.join('\n').trim()
     if (captionBlock && hashtagsLine) return `${captionBlock}\n\n${hashtagsLine}`
     return `${captionBlock}${hashtagsLine}`.trim()
   }
@@ -737,13 +733,13 @@ export default function ContentPlanningPage() {
     const cta = (ad?.cta || '').toString().trim()
     const parts: string[] = []
     if (headline) {
-      parts.push('📢 Headline:\n\n' + splitSentencesForReadability(headline))
+      parts.push('📢 Headline:\n\n' + headline)
     }
     if (body) {
-      parts.push('📝 Texto:\n\n' + splitSentencesForReadability(body))
+      parts.push('📝 Texto:\n\n' + body)
     }
     if (cta) {
-      parts.push('📣 CTA:\n\n' + splitSentencesForReadability(cta))
+      parts.push('📣 CTA:\n\n' + cta)
     }
     return parts.length ? parts.join('\n\n') : 'Ainda não há texto para anúncio.'
   }
@@ -941,8 +937,6 @@ export default function ContentPlanningPage() {
             toast.error('Resposta inválida ao criar vídeo personalizado. Tente novamente.')
             continue
           }
-          currentItems = [...currentItems, newItem]
-          setItems(currentItems)
           const genRes = await fetch('/api/content/generate', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -954,10 +948,10 @@ export default function ContentPlanningPage() {
             }),
           })
           const genData = await genRes.json()
-          if (genRes.ok && genData?.item) {
-            currentItems = currentItems.map((it) => (it.id === newItem.id ? genData.item : it))
-            setItems(currentItems)
-          } else if (!genRes.ok && genData?.error) {
+          const itemToAdd = genRes.ok && genData?.item ? genData.item : newItem
+          currentItems = [...currentItems, itemToAdd]
+          setItems(currentItems)
+          if (!genRes.ok && genData?.error) {
             toast.error(genData.error || 'Erro ao gerar conteúdo do vídeo personalizado.')
           }
           totalCreated += 1
@@ -1472,48 +1466,48 @@ export default function ContentPlanningPage() {
             {profileAccordionOpen === 'estrutura-fixa' && (
               <div className="px-3 pb-3 pt-0 border-t border-gogh-grayLight/50 pt-2 space-y-4">
                 <p className="text-xs text-gogh-grayDark">
-                  Especifique o que deve ser repetido ou incluído em cada tipo de conteúdo gerado. Cada campo é opcional — preencha só o que fizer sentido para sua marca; a IA usará exatamente o que você descrever. Deixe em branco o que não for usar.
+                  Cole aqui <strong>somente o texto que deve aparecer</strong> em cada tipo de conteúdo — será copiado literalmente. Não escreva instruções (ex.: &quot;use no final&quot;); coloque só o que quer que se repita em todos os vídeos. Cada campo é opcional.
                 </p>
                 <div>
                   <label className="block text-sm font-medium text-gogh-grayDark mb-1">Roteiro (script)</label>
-                  <p className="text-[11px] text-gogh-grayDark mb-1">Trecho ou instrução fixa que deve aparecer em todo roteiro (falado/escrito, sem emojis).</p>
+                  <p className="text-[11px] text-gogh-grayDark mb-1">Texto exato que deve aparecer no final de todo roteiro (será colado literalmente).</p>
                   <textarea
                     value={fixedStructures.script}
                     onChange={(e) => { markSectionModified('estrutura-fixa'); setFixedStructures((s) => ({ ...s, script: e.target.value })) }}
-                    placeholder="Ex.: Sempre terminar pedindo para o espectador clicar abaixo e saber mais. Ou: incluir um CTA para comprar no site / acessar o link. Escreva o texto exato ou descreva o que quer; a IA insere em todos os vídeos."
+                    placeholder="Ex.: Não esqueça: clique abaixo e saiba mais. Ou: Clique abaixo e saiba mais para aproveitar tudo isso."
                     rows={3}
                     className={`w-full px-3 py-2 border rounded-lg text-sm resize-none min-h-[80px] max-h-[180px] overflow-y-auto ${getFieldBorderClass('estrutura-fixa')}`}
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gogh-grayDark mb-1">Legenda do vídeo</label>
-                  <p className="text-[11px] text-gogh-grayDark mb-1">Bloco fixo que deve aparecer em todas as legendas (ex.: tópicos com emoji do que você oferece). Se quiser hashtags fixas em toda legenda, inclua-as aqui no final.</p>
+                  <p className="text-[11px] text-gogh-grayDark mb-1">Texto exato que deve aparecer no final de toda legenda (será colado literalmente; uma linha por item se quiser lista). Inclua aqui as hashtags fixas se quiser.</p>
                   <textarea
                     value={fixedStructures.caption}
                     onChange={(e) => { markSectionModified('estrutura-fixa'); setFixedStructures((s) => ({ ...s, caption: e.target.value })) }}
-                    placeholder="Ex.: Texto e emojis que devem aparecer em toda legenda (ex.: 🏆 Item 1, 🏆 Item 2, 🔗 CTA para link da bio ou Saiba mais). No final, se quiser, as hashtags fixas (ex.: #seunicho #digital). A IA mantém esse bloco e completa o resto conforme o tema de cada vídeo."
+                    placeholder={'Ex.:\n🏆 Ferramentas premium (Canva Pro e CapCut Pro)\n🏆 Gogh Agenda IA\n🔗 Acesse o link da bio e conheça o Gogh Lab.\n#criacaodeconteudo #digital'}
                     rows={3}
                     className={`w-full px-3 py-2 border rounded-lg text-sm resize-none min-h-[80px] max-h-[180px] overflow-y-auto ${getFieldBorderClass('estrutura-fixa')}`}
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gogh-grayDark mb-1">Texto do anúncio (ad copy)</label>
-                  <p className="text-[11px] text-gogh-grayDark mb-1">Texto ou bloco fixo para o campo de texto do anúncio (headline, body ou CTA).</p>
+                  <p className="text-[11px] text-gogh-grayDark mb-1">Texto exato que deve aparecer no final do texto do anúncio (será colado literalmente).</p>
                   <textarea
                     value={fixedStructures.ad_copy}
                     onChange={(e) => { markSectionModified('estrutura-fixa'); setFixedStructures((s) => ({ ...s, ad_copy: e.target.value })) }}
-                    placeholder="Ex.: Resumo do que sua empresa oferece (em tópicos ou frase), CTA fixo para o anúncio, ou instrução (ex.: sempre incluir 🏆 Ferramentas · 🏆 Cursos). Descreva o que quer; a IA usa em todos os anúncios gerados."
+                    placeholder={'Ex.:\n🏆 Ferramentas premium · 🏆 Cursos\n🔗 Acesse o site do Saiba mais e conheça o Gogh Lab.'}
                     rows={2}
                     className={`w-full px-3 py-2 border rounded-lg text-sm resize-none min-h-[60px] max-h-[140px] overflow-y-auto ${getFieldBorderClass('estrutura-fixa')}`}
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gogh-grayDark mb-1">Texto de capa do vídeo</label>
-                  <p className="text-[11px] text-gogh-grayDark mb-1">Estilo ou conteúdo fixo para as opções de texto que aparecem na capa/thumbnail.</p>
+                  <p className="text-[11px] text-gogh-grayDark mb-1">Texto exato para opções de capa/thumbnail (será colado literalmente). Opcional.</p>
                   <textarea
                     value={fixedStructures.cover}
                     onChange={(e) => { markSectionModified('estrutura-fixa'); setFixedStructures((s) => ({ ...s, cover: e.target.value })) }}
-                    placeholder="Ex.: Frase que deve sempre aparecer, palavras-chave obrigatórias, ou tom (ex.: sempre direto e curto). Opcional; deixe em branco se não quiser definir."
+                    placeholder="Ex.: Frase curta para capa"
                     rows={2}
                     className={`w-full px-3 py-2 border rounded-lg text-sm resize-none min-h-[60px] max-h-[140px] overflow-y-auto ${getFieldBorderClass('estrutura-fixa')}`}
                   />
