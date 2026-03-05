@@ -265,9 +265,9 @@ export default function AnalyticsPage() {
   const [newCampaignName, setNewCampaignName] = useState('')
   const [newCampaignStartDate, setNewCampaignStartDate] = useState(() => new Date().toISOString().split('T')[0])
   const [newCampaignBudgetType, setNewCampaignBudgetType] = useState<BudgetTypeMeta>('cbo')
+  // Planejamento de valores = índice geral (como perfil de análise): sempre do localStorage, vale para todas as campanhas
   const [roiEnabled, setRoiEnabled] = useState(() => {
     if (typeof window === 'undefined') return false
-    if (localStorage.getItem('analytics_selected_campaign_id')) return false
     try {
       const raw = localStorage.getItem(PLANEJAMENTO_VALORES_DRAFT_KEY)
       if (!raw) return false
@@ -277,7 +277,6 @@ export default function AnalyticsPage() {
   })
   const [valorVenda, setValorVenda] = useState<string>(() => {
     if (typeof window === 'undefined') return ''
-    if (localStorage.getItem('analytics_selected_campaign_id')) return ''
     try {
       const raw = localStorage.getItem(PLANEJAMENTO_VALORES_DRAFT_KEY)
       if (!raw) return ''
@@ -287,7 +286,6 @@ export default function AnalyticsPage() {
   })
   const [custoVenda, setCustoVenda] = useState<string>(() => {
     if (typeof window === 'undefined') return ''
-    if (localStorage.getItem('analytics_selected_campaign_id')) return ''
     try {
       const raw = localStorage.getItem(PLANEJAMENTO_VALORES_DRAFT_KEY)
       if (!raw) return ''
@@ -297,7 +295,6 @@ export default function AnalyticsPage() {
   })
   const [metaLucroPorVenda, setMetaLucroPorVenda] = useState<string>(() => {
     if (typeof window === 'undefined') return ''
-    if (localStorage.getItem('analytics_selected_campaign_id')) return ''
     try {
       const raw = localStorage.getItem(PLANEJAMENTO_VALORES_DRAFT_KEY)
       if (!raw) return ''
@@ -477,13 +474,12 @@ export default function AnalyticsPage() {
     if (selectedCampaignId && campaigns.length > 0) {
       const c = campaigns.find((x) => x.id === selectedCampaignId)
       if (c) {
-        // Se a campanha não tem planejamento salvo, usar rascunho do localStorage para não desmarcar/limpar o que o usuário preencheu
-        const campaignHasPlanejamento = c.roi_enabled === true || c.valor_venda != null || (c.custo_venda != null && String(c.custo_venda).trim() !== '')
-        let roiEnabledVal = c.roi_enabled
-        let valorVendaVal = c.valor_venda != null ? String(c.valor_venda) : ''
-        let custoVendaVal = c.custo_venda != null ? String(c.custo_venda) : ''
-        let metaLucroVal = c.meta_lucro_por_venda != null ? String(c.meta_lucro_por_venda) : ''
-        if (!campaignHasPlanejamento && typeof window !== 'undefined') {
+        // Planejamento de valores é índice geral: sempre preferir localStorage (nunca desmarcar ao trocar/criar/excluir campanha)
+        let roiEnabledVal = false
+        let valorVendaVal = ''
+        let custoVendaVal = ''
+        let metaLucroVal = ''
+        if (typeof window !== 'undefined') {
           try {
             const raw = localStorage.getItem(PLANEJAMENTO_VALORES_DRAFT_KEY)
             if (raw) {
@@ -494,6 +490,14 @@ export default function AnalyticsPage() {
               metaLucroVal = d.metaLucroPorVenda ?? ''
             }
           } catch {}
+        }
+        // Se não tiver nada no draft, usar dados da campanha (fallback)
+        const campaignHasPlanejamento = c.roi_enabled === true || c.valor_venda != null || (c.custo_venda != null && String(c.custo_venda).trim() !== '')
+        if (campaignHasPlanejamento && valorVendaVal === '' && custoVendaVal === '') {
+          roiEnabledVal = c.roi_enabled
+          valorVendaVal = c.valor_venda != null ? String(c.valor_venda) : ''
+          custoVendaVal = c.custo_venda != null ? String(c.custo_venda) : ''
+          metaLucroVal = c.meta_lucro_por_venda != null ? String(c.meta_lucro_por_venda) : ''
         }
         setRoiEnabled(roiEnabledVal)
         setValorVenda(valorVendaVal)
@@ -564,16 +568,16 @@ export default function AnalyticsPage() {
     }
   }, [mounted, selectedCampaignId, campaigns])
 
-  // Persistir Planejamento de valores quando não há campanha selecionada (para manter ao excluir e ao editar sem campanha)
+  // Persistir Planejamento de valores sempre (índice geral): mantém marcado ao criar/excluir/trocar campanha e ao recarregar
   useEffect(() => {
-    if (typeof window === 'undefined' || selectedCampaignId) return
+    if (typeof window === 'undefined') return
     try {
       localStorage.setItem(
         PLANEJAMENTO_VALORES_DRAFT_KEY,
         JSON.stringify({ roiEnabled, valorVenda, custoVenda, metaLucroPorVenda })
       )
     } catch {}
-  }, [selectedCampaignId, roiEnabled, valorVenda, custoVenda, metaLucroPorVenda])
+  }, [roiEnabled, valorVenda, custoVenda, metaLucroPorVenda])
 
   useEffect(() => {
     if (!selectedCampaignId || !hasAccess) {
