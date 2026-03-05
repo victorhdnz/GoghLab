@@ -44,6 +44,26 @@ export function HomepageSections({
   sectionOrder,
 }: HomepageSectionsProps) {
   const [installTutorialModal, setInstallTutorialModal] = useState<null | { platform: 'ios' | 'android'; url: string }>(null)
+  const [installModalClosing, setInstallModalClosing] = useState(false)
+  const [installModalIframeReady, setInstallModalIframeReady] = useState(false)
+
+  // Fechar modal com transição rápida
+  const closeInstallTutorialModal = () => {
+    setInstallModalClosing(true)
+    window.setTimeout(() => {
+      setInstallTutorialModal(null)
+      setInstallModalClosing(false)
+      setInstallModalIframeReady(false)
+    }, 150)
+  }
+
+  // Mostrar overlay na hora; iframe no próximo frame para abertura parecer instantânea
+  useEffect(() => {
+    if (!installTutorialModal) return
+    setInstallModalIframeReady(false)
+    const id = requestAnimationFrame(() => setInstallModalIframeReady(true))
+    return () => cancelAnimationFrame(id)
+  }, [installTutorialModal])
   // Função para dividir texto para aplicar diferentes efeitos
   const splitTextForHighlights = (text: string) => {
     // Tenta dividir por vírgula primeiro
@@ -600,25 +620,26 @@ export function HomepageSections({
         const embedUrl = isYouTube ? getYouTubeEmbedUrl(installTutorialModal.url, true, true) : null
         return (
           <div
-            className="fixed inset-0 z-[80] bg-black/70 p-4 flex items-center justify-center"
-            onClick={() => setInstallTutorialModal(null)}
+            className={`fixed inset-0 z-[9999] bg-black/70 flex items-center justify-center px-4 pt-20 pb-24 sm:pt-24 sm:pb-28 transition-opacity duration-150 ${installModalClosing ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+            style={{ paddingLeft: 'max(1rem, env(safe-area-inset-left))', paddingRight: 'max(1rem, env(safe-area-inset-right))', paddingBottom: 'max(5.5rem, calc(env(safe-area-inset-bottom) + 1rem))' }}
+            onClick={closeInstallTutorialModal}
             role="dialog"
             aria-modal="true"
             aria-label={`Tutorial ${installTutorialModal.platform}`}
           >
             <div
-              className={`relative w-full bg-black rounded-2xl overflow-hidden shadow-2xl ${containerClasses ? `${containerClasses.maxWidth} mx-auto ${containerClasses.aspectRatio}` : 'max-w-3xl aspect-video'}`}
+              className={`relative w-full bg-black rounded-2xl overflow-hidden shadow-2xl flex items-center justify-center ${containerClasses ? `${containerClasses.maxWidth} mx-auto ${containerClasses.aspectRatio} max-h-[80vh]` : 'max-w-3xl aspect-video max-h-[80vh]'}`}
               onClick={(e) => e.stopPropagation()}
             >
               <button
                 type="button"
-                onClick={() => setInstallTutorialModal(null)}
+                onClick={closeInstallTutorialModal}
                 className="absolute top-2 right-2 z-10 bg-black/60 hover:bg-black/80 text-white rounded-full p-2"
                 aria-label="Fechar tutorial"
               >
                 <X className="w-5 h-5" />
               </button>
-              {isYouTube && embedUrl ? (
+              {installModalIframeReady && isYouTube && embedUrl ? (
                 <iframe
                   src={embedUrl}
                   className="absolute inset-0 w-full h-full"
@@ -626,8 +647,12 @@ export function HomepageSections({
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                   allowFullScreen
                 />
-              ) : (
+              ) : !isYouTube ? (
                 <video src={installTutorialModal.url} controls autoPlay playsInline className="absolute inset-0 w-full h-full object-contain" />
+              ) : (
+                <div className="absolute inset-0 flex items-center justify-center bg-black">
+                  <div className="w-8 h-8 border-2 border-white/30 border-t-white rounded-full animate-spin" aria-hidden />
+                </div>
               )}
             </div>
           </div>
