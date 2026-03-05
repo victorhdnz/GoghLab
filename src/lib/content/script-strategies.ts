@@ -61,7 +61,7 @@ export function buildScriptStructureInstruction(key?: string | null) {
     steps: selected.steps,
     promptInstruction:
       `- Estruture o roteiro seguindo EXATAMENTE esta sequência de blocos: ${selected.steps.join(' -> ')}.\n` +
-      '- Cada bloco deve ter desenvolvimento de verdade: não uma ou duas frases genéricas, e sim argumentos, exemplos concretos ou emoção que gerem conexão e desejo. Evite texto raso ou superficial.\n' +
+      '- Cada bloco (exceto CTA final) deve ter no MÍNIMO 3 a 5 frases desenvolvidas: argumentos, exemplos concretos, perguntas ou emoção que gerem conexão e desejo. Blocos com uma ou duas frases são inaceitáveis — deixam o vídeo raso. Roteiro sólido e completo em toda a estrutura.\n' +
       '- Use emoji APENAS no início do título de cada bloco.\n' +
       '- Não repita blocos com o mesmo nome e não duplique títulos de seção.\n',
   }

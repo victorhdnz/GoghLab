@@ -67,17 +67,21 @@ function applyFixedScript(script: string, fixedScript: string): string {
   return s ? `${s}\n\n${f}` : f
 }
 
-/** Garante que a legenda termine com o bloco fixo e que as hashtags sejam só as do bloco fixo. */
+/** Garante que a legenda termine com o bloco fixo (com quebras de linha preservadas) e que as hashtags sejam só as do bloco fixo. Evita duplicar se a IA já tiver colado o bloco. */
 function applyFixedCaption(
   caption: string,
   hashtagsFromAi: string,
   fixedCaption: string
 ): { caption: string; hashtags: string } {
-  const intro = stripHashtags((caption || '').trim())
+  let intro = stripHashtags((caption || '').trim())
   const fixed = (fixedCaption || '').trim()
   if (!fixed) return { caption: intro, hashtags: hashtagsFromAi }
   const fixedHashtags = extractHashtagsFromText(fixed)
-  // Sempre anexar o bloco fixo ao final para garantir que apareça exatamente como configurado
+  const fixedNorm = fixed.replace(/\s+/g, ' ').trim()
+  const introNorm = intro.replace(/\s+/g, ' ').trim()
+  if (fixedNorm && introNorm.endsWith(fixedNorm)) {
+    intro = introNorm.slice(0, -fixedNorm.length).trim()
+  }
   const finalCaption = intro ? `${intro}\n\n${fixed}` : fixed
   return { caption: finalCaption, hashtags: fixedHashtags || hashtagsFromAi }
 }
@@ -574,7 +578,7 @@ export async function POST(request: Request) {
       {
         role: 'system' as const,
         content:
-          'Você é um estrategista e roteirista sênior de conteúdo para redes sociais. Gere roteiros com qualidade e ritmo de vídeo: cada seção desenvolvida de verdade (argumentos, exemplos, emoção), criando conexão e desejo, sem ser raso e sem enrolar — é vídeo, não aula. Conteúdo pronto para copiar e postar, com alto nível de clareza visual.',
+          'Você é um estrategista e roteirista sênior de conteúdo para redes sociais. Gere roteiros SÓLIDOS e completos: cada seção (Atenção, Interesse, Desejo, Gancho, etc.) deve ter desenvolvimento de verdade — no mínimo 3 a 5 frases por bloco (o CTA final pode ser mais curto). Nunca entregue blocos de uma ou duas frases; inclua argumentos, exemplos concretos, perguntas ou emoção que criem conexão e desejo. O roteiro deve ter a mesma densidade de um vídeo bem escrito. É vídeo, não aula: impacto e clareza sem enrolar. Conteúdo pronto para copiar e postar, com alto nível de clareza visual.',
       },
       {
         role: 'user' as const,
@@ -591,7 +595,7 @@ export async function POST(request: Request) {
             : '') +
           '- O roteiro (script) DEVE ter estrutura visual: cada seção em linha separada, começando com emoji e nome da seção (ex.: 🎣 Gancho:, 📣 CTA final:). Não entregue um único parágrafo contínuo; use quebras de linha entre cada bloco.\n' +
           '- Prefira temas ou abordagens diferentes dos já utilizados; a mesma vertente pode ser reutilizada se desenvolvida de forma distinta (outro ângulo, exemplos ou roteiro). Evite só duplicar o mesmo tema com o mesmo enfoque.\n' +
-          '- QUALIDADE DO ROTEIRO (obrigatório): Desenvolva cada bloco com conteúdo de verdade — argumentos, exemplos ou emoção que criem conexão e desejo. Evite texto raso e blocos de uma ou duas frases genéricas. É um vídeo, não uma aula: transmita o que precisa e gere impacto sem enrolar; o espectador não pode achar o vídeo longo demais nem ter preguiça de assistir. Priorize desenvolvimento com qualidade e ritmo, não quantidade de texto. Não repita ideias.\n' +
+          '- QUALIDADE DO ROTEIRO (obrigatório): Cada bloco (Atenção, Interesse, Desejo, Gancho, Problema, Solução, etc.) deve ter no MÍNIMO 3 a 5 frases desenvolvidas — o CTA final pode ser 1–2 frases. Blocos com uma ou duas frases são PROIBIDOS: deixam o vídeo raso. Inclua argumentos, exemplos concretos, perguntas ao espectador ou emoção que criem conexão e desejo. O roteiro deve ter densidade e completude iguais a um vídeo personalizado bem feito. Evite texto genérico; transmita com impacto sem enrolar. Não repita ideias.\n' +
           scriptStrategy.promptInstruction +
           '- Use emoji APENAS no início do título de cada bloco. Não use emoji no final de frases e nem no corpo do texto.\n' +
           '- A legenda deve vir sem hashtags no corpo, com 2 a 3 parágrafos curtos e espaçamento entre parágrafos.\n' +
@@ -602,7 +606,7 @@ export async function POST(request: Request) {
           'Retorne SOMENTE um JSON válido, sem explicações extras, no formato:' +
           '\n{\n' +
           '  "topic": "título/tema do vídeo",\n' +
-          `  "script": "roteiro COM ESTRUTURA: cada bloco em linha separada começando com emoji e nome (ex.: 🎣 Gancho:, depois o texto; 📣 CTA final:, depois o texto). Sequência: ${scriptStrategy.steps.join(' -> ')}. Não entregue parágrafo único; use quebras de linha. Não inclua frases de instrução no texto.",\n` +
+          `  "script": "roteiro COM ESTRUTURA: cada bloco em linha separada com emoji e nome (ex.: 🎣 Gancho:, depois o texto; 📣 CTA final:, depois o texto). Cada bloco com MÍNIMO 3 a 5 frases desenvolvidas (CTA pode ser mais curto). Sequência: ${scriptStrategy.steps.join(' -> ')}. Não entregue parágrafo único nem blocos curtos; use quebras de linha. Não inclua frases de instrução no texto.",\n` +
           '  "caption": "legenda pronta para postar, com pelo menos 1 emoji em ponto estratégico (destaque que faça sentido com o tema) e parágrafos separados por linha em branco (SEM hashtags no texto)",\n' +
           '  "hashtags": "#tag1 #tag2 #tag3 ... (entre 10 e 15 hashtags em UMA linha)",\n' +
           '  "recommended_time": "HH:MM",\n' +

@@ -55,10 +55,15 @@ function applyFixedCaption(
   hashtagsFromAi: string,
   fixedCaption: string
 ): { caption: string; hashtags: string } {
-  const intro = stripHashtags((caption || '').trim())
+  let intro = stripHashtags((caption || '').trim())
   const fixed = (fixedCaption || '').trim()
   if (!fixed) return { caption: intro, hashtags: hashtagsFromAi }
   const fixedHashtags = extractHashtagsFromText(fixed)
+  const fixedNorm = fixed.replace(/\s+/g, ' ').trim()
+  const introNorm = intro.replace(/\s+/g, ' ').trim()
+  if (fixedNorm && introNorm.endsWith(fixedNorm)) {
+    intro = introNorm.slice(0, -fixedNorm.length).trim()
+  }
   const finalCaption = intro ? `${intro}\n\n${fixed}` : fixed
   return { caption: finalCaption, hashtags: fixedHashtags || hashtagsFromAi }
 }
@@ -484,7 +489,7 @@ export async function POST(request: Request) {
         {
           role: 'system',
           content:
-            'Voce e estrategista senior de conteudo e roteirista. Gere roteiros com qualidade e ritmo de video: cada secao desenvolvida de verdade (argumentos, exemplos, emocao), criando conexao e desejo, sem ser raso e sem enrolar — e video, nao aula. Planos completos, com alta legibilidade visual. Prefira temas ou abordagens diferentes; a mesma vertente pode ser reutilizada se desenvolvida de forma distinta (outro angulo, exemplos ou roteiro).',
+            'Voce e estrategista senior de conteudo e roteirista. Gere roteiros SOLIDOS e completos: cada secao (Atencao, Interesse, Desejo, Gancho, etc.) deve ter no minimo 3 a 5 frases desenvolvidas por bloco (o CTA final pode ser mais curto). Nunca entregue blocos de uma ou duas frases; inclua argumentos, exemplos concretos, perguntas ou emocao que criem conexao e desejo. O roteiro deve ter a mesma densidade de um video bem escrito. E video, nao aula: impacto e clareza sem enrolar. Planos completos, com alta legibilidade visual. Prefira temas ou abordagens diferentes; a mesma vertente pode ser reutilizada se desenvolvida de forma distinta.',
         },
         {
           role: 'user',
@@ -499,7 +504,7 @@ export async function POST(request: Request) {
               ? '- Inclua os blocos fixos do perfil exatamente como escritos. Mantenha quebras de linha e formato.\n'
               : '') +
             '- O roteiro (script) DEVE ter estrutura visual: cada secao em linha separada, com emoji e nome (ex.: 🎣 Gancho:, 📣 CTA final:). Nao entregue um unico paragrafo.\n' +
-            '- QUALIDADE DO ROTEIRO (obrigatorio): Desenvolva cada bloco com conteudo de verdade — argumentos, exemplos ou emocao que criem conexao e desejo. Evite texto raso e blocos de uma ou duas frases genericas. E um video, nao uma aula: transmita o que precisa e gere impacto sem enrolar; o espectador nao pode achar o video longo demais nem ter preguica de assistir. Priorize desenvolvimento com qualidade e ritmo, nao quantidade de texto. Nao repita ideias.\n' +
+            '- QUALIDADE DO ROTEIRO (obrigatorio): Cada bloco (Atencao, Interesse, Desejo, Gancho, Problema, Solucao, etc.) deve ter no MINIMO 3 a 5 frases desenvolvidas — o CTA final pode ser 1–2 frases. Blocos de uma ou duas frases sao PROIBIDOS: deixam o video raso. Inclua argumentos, exemplos concretos, perguntas ao espectador ou emocao que criem conexao e desejo. O roteiro deve ter densidade e completude iguais a um video personalizado bem feito. Evite texto generico; transmita com impacto sem enrolar. Nao repita ideias.\n' +
             scriptStrategy.promptInstruction +
             '- Use emoji APENAS no inicio do titulo de cada bloco. Nao use emoji no final de frases e nem no corpo do texto.\n' +
             '- A legenda deve vir sem hashtags no corpo, com 2 a 3 paragrafos curtos e espaco entre paragrafos.\n' +
@@ -509,7 +514,7 @@ export async function POST(request: Request) {
             '- Para cada item: recommended_time e recommended_time_reason devem ser resultado de analise real: considere o nicho, o publico-alvo (idade e objetivos) e o dia da semana da data daquele item; recomende o melhor horario de postagem (HH:MM) para esse publico naquele dia, com justificativa breve, e varie os horarios entre os itens quando fizer sentido.\n\n' +
             'Retorne SOMENTE JSON valido no formato:\n' +
             '{ "items": [\n' +
-            `  { "date": "YYYY-MM-DD", "topic": "...", "script": "roteiro COM ESTRUTURA: cada bloco em linha separada com emoji e nome (ex.: 🎣 Gancho:, 📣 CTA final:). Sequencia: ${scriptStrategy.steps.join(' -> ')}. Nao entregue paragrafo unico; use quebras de linha. Nao inclua frases de instrução no texto.", "caption": "legenda com pelo menos 1 emoji em ponto estrategico (destaque que faca sentido com o tema) e paragrafos separados (sem hashtags no texto)", "hashtags": "...", "recommended_time": "HH:MM", "recommended_time_reason": "...", "cover_text_options": ["...", "...", "..."], "ad_copy": { "headline": "...", "body": "texto persuasivo; pode 1 emoji estrategico para destaque", "cta": "..." } }\n` +
+            `  { "date": "YYYY-MM-DD", "topic": "...", "script": "roteiro COM ESTRUTURA: cada bloco em linha separada com emoji e nome (ex.: 🎣 Gancho:, 📣 CTA final:). Cada bloco com MINIMO 3 a 5 frases desenvolvidas (CTA pode ser mais curto). Sequencia: ${scriptStrategy.steps.join(' -> ')}. Nao entregue paragrafo unico nem blocos curtos; use quebras de linha. Nao inclua frases de instrução no texto.", "caption": "legenda com pelo menos 1 emoji em ponto estrategico (destaque que faca sentido com o tema) e paragrafos separados (sem hashtags no texto)", "hashtags": "...", "recommended_time": "HH:MM", "recommended_time_reason": "...", "cover_text_options": ["...", "...", "..."], "ad_copy": { "headline": "...", "body": "texto persuasivo; pode 1 emoji estrategico para destaque", "cta": "..." } }\n` +
             ']}\n' +
             `A lista deve conter EXATAMENTE ${selectedDates.length} itens, com uma data unica para cada item. Evite duplicar o mesmo tema com o mesmo enfoque; a mesma vertente pode ser reaproveitada com outro angulo ou desenvolvimento.`,
         },

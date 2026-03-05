@@ -904,9 +904,11 @@ export default function ContentPlanningPage() {
       const createdItems: CalendarItem[] = (Array.isArray(data.items) ? data.items : []).filter(
         (it: any) => it?.id
       ) as CalendarItem[]
-      // Acumulador local para não perder itens quando vários vídeos personalizados são do mesmo dia (evita estado dessincronizado)
       let currentItems: CalendarItem[] = [...createdItems]
-      setItems(currentItems)
+      const hasPersonalized = personalizedForMonth.length > 0
+      if (!hasPersonalized) {
+        setItems(currentItems)
+      }
       setProfile((prev) =>
         prev
           ? {
@@ -950,7 +952,6 @@ export default function ContentPlanningPage() {
           const genData = await genRes.json()
           const itemToAdd = genRes.ok && genData?.item ? genData.item : newItem
           currentItems = [...currentItems, itemToAdd]
-          setItems(currentItems)
           if (!genRes.ok && genData?.error) {
             toast.error(genData.error || 'Erro ao gerar conteúdo do vídeo personalizado.')
           }
@@ -959,6 +960,9 @@ export default function ContentPlanningPage() {
           console.error('Erro ao processar vídeo personalizado', e)
           toast.error('Erro ao processar um vídeo personalizado.')
         }
+      }
+      if (hasPersonalized) {
+        setItems(currentItems)
       }
       setPersonalizedVideoEntries([])
       toast.success(`Agenda criada com ${totalCreated} vídeo(s).`)
