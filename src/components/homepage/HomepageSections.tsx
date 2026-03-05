@@ -620,15 +620,15 @@ export function HomepageSections({
         const embedUrl = isYouTube ? getYouTubeEmbedUrl(installTutorialModal.url, true, false) : null
         return (
           <div
-            className={`fixed inset-0 z-[9999] bg-black/70 flex items-center justify-center px-4 pt-20 pb-24 sm:pt-24 sm:pb-28 transition-opacity duration-150 ${installModalClosing ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
-            style={{ paddingLeft: 'max(1rem, env(safe-area-inset-left))', paddingRight: 'max(1rem, env(safe-area-inset-right))', paddingBottom: 'max(5.5rem, calc(env(safe-area-inset-bottom) + 1rem))' }}
+            className={`fixed inset-0 z-[9999] bg-black/70 flex items-center justify-center px-4 pt-20 sm:pt-24 transition-opacity duration-150 ${installModalClosing ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+            style={{ paddingLeft: 'max(1rem, env(safe-area-inset-left))', paddingRight: 'max(1rem, env(safe-area-inset-right))', paddingBottom: 'max(7rem, calc(env(safe-area-inset-bottom) + 5rem))' }}
             onClick={closeInstallTutorialModal}
             role="dialog"
             aria-modal="true"
             aria-label={`Tutorial ${installTutorialModal.platform}`}
           >
             <div
-              className={`relative w-full bg-black rounded-2xl overflow-hidden shadow-2xl flex items-center justify-center ${containerClasses ? `${containerClasses.maxWidth} mx-auto ${containerClasses.aspectRatio} max-h-[80vh]` : 'max-w-3xl aspect-video max-h-[80vh]'}`}
+              className={`relative w-full bg-black rounded-2xl overflow-hidden shadow-2xl flex items-center justify-center ${containerClasses ? `${containerClasses.maxWidth} mx-auto ${containerClasses.aspectRatio} max-h-[72vh] sm:max-h-[80vh]` : 'max-w-3xl aspect-video max-h-[72vh] sm:max-h-[80vh]'}`}
               onClick={(e) => e.stopPropagation()}
             >
               <button
