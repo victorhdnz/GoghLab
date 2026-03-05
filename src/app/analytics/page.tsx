@@ -2315,9 +2315,9 @@ export default function AnalyticsPage() {
                                   const minC = strategyTier.minCreatives
                                   const maxC = strategyTier.maxCreatives
                                   const meta = minC === maxC ? `${minC} criativos` : `${minC} a ${maxC} criativos`
-                                  return `Crie ${meta} conforme a meta (Estratégia, abaixo). Plano curto — poucos dias não dão tempo para o Meta entregar nem para decisões (pausar/trocar criativo). Use para teste; depois planeje uma fase com mais dias (7+ ideal) para análise e resultado.`
+                                  return `Crie ${meta} conforme a meta (Estratégia, abaixo).\n\nPlano curto — poucos dias não dão tempo para o Meta entregar nem para decisões (pausar/trocar criativo). Use para teste; depois planeje uma fase com mais dias (7+ ideal) para análise e resultado.`
                                 }
-                                if (dayNum === totalDias) return 'Fim do plano — Tempo insuficiente para lucro e decisões. Se for continuar, adicione uma fase com mais dias para o algoritmo entregar e para recomendações de pausar/trocar criativo.'
+                                if (dayNum === totalDias) return 'Fim do plano — Tempo insuficiente para lucro e decisões.\n\nSe for continuar, adicione uma fase com mais dias para o algoritmo entregar e para recomendações de pausar/trocar criativo.'
                                 return ''
                               }
                               // Dia 1 (início da 1ª fase): recomendar quantos criativos criar para começar
@@ -2326,7 +2326,7 @@ export default function AnalyticsPage() {
                                 const maxC = strategyTier.maxCreatives
                                 const meta = minC === maxC ? `${minC} criativos` : `${minC} a ${maxC} criativos`
                                 return isPastOrToday
-                                  ? `Crie hoje ${meta} para começar a campanha (conforme sua estratégia e investimento). Depois não altere orçamento nem criativos — fase de aprendizado.`
+                                  ? `Crie hoje ${meta} para começar a campanha (conforme sua estratégia e investimento).\n\nDepois não altere orçamento nem criativos — fase de aprendizado.`
                                   : `Nesse dia você vai criar ${meta} para começar a campanha (conforme sua estratégia e investimento).`
                               }
                               // 1ª análise
@@ -2434,7 +2434,7 @@ export default function AnalyticsPage() {
                                         <div className="rounded-md bg-gogh-beige/30 border border-gogh-grayLight/80 p-1.5 text-[11px] text-gogh-grayDark w-full space-y-1.5">
                                           <p className="font-medium text-gogh-black text-[11px]">Dia {getDayNum(campaignCalendarSelectedDate)} da campanha · Fase {getPhaseForDay(getDayNum(campaignCalendarSelectedDate)!) + 1}</p>
                                           {getMilestoneShort(getDayNum(campaignCalendarSelectedDate)!, !!isSelectedDayPastOrToday) && (
-                                            <p className="mt-0.5 leading-tight text-[11px]">{getMilestoneShort(getDayNum(campaignCalendarSelectedDate)!, !!isSelectedDayPastOrToday)}</p>
+                                            <p className="mt-0.5 leading-tight text-[11px] whitespace-pre-line">{getMilestoneShort(getDayNum(campaignCalendarSelectedDate)!, !!isSelectedDayPastOrToday)}</p>
                                           )}
                                           {isSelectedDayPastOrToday && hasDataForDiagnosis && selectedCampaign?.is_active !== false && statusAlerts.length > 0 && isActionDay(getDayNum(campaignCalendarSelectedDate)!, totalDias, strategyTier.tier) && (
                                             <div className="border-t border-gogh-grayLight/60 pt-1.5 mt-1">
