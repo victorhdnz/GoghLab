@@ -710,7 +710,10 @@ export default function ContentPlanningPage() {
     const captionLines = captionWithoutHashtags
       .split('\n')
       .map((line) => line.replace(/[ \t]{2,}/g, ' ').trim())
-    const captionBlock = captionLines.join('\n').trim()
+    let captionBlock = captionLines.join('\n').trim()
+    // Garantir espaçamento visual: mesmo que a legenda tenha sido salva sem quebras (conteúdo antigo),
+    // quebrar linha antes de 🏆 e 🔗 para exibir lista e bloco fixo de forma legível
+    captionBlock = captionBlock.replace(/\s+([🏆🔗])/g, '\n\n$1')
     if (captionBlock && hashtagsLine) return `${captionBlock}\n\n${hashtagsLine}`
     return `${captionBlock}${hashtagsLine}`.trim()
   }
