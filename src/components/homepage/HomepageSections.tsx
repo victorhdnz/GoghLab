@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { ServiceCard } from '@/components/portfolio/ServiceCard'
 import { CustomServiceCard } from '@/components/portfolio/CustomServiceCard'
 import { ServiceCard as CustomServiceCardType } from '@/components/ui/ServiceCardsManager'
