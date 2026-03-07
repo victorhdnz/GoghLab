@@ -195,10 +195,10 @@ export const PricingComponent: React.FC<PricingComponentProps> = ({
         type="button"
         onClick={() => handleCycleSelect('monthly')}
         className={cn(
-          'px-6 py-3 text-sm font-semibold rounded-l-xl border transition-all',
+          'px-5 py-2.5 text-sm font-semibold tracking-tight rounded-l-3xl border-[2px] transition-all',
           billingCycle === 'monthly'
             ? 'bg-[#0A0A0A] text-white border-[#0A0A0A] shadow-sm'
-            : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50 hover:border-gray-300'
+            : 'bg-gradient-to-tr from-[#F7C948]/10 via-gray-400/5 to-transparent text-[#0A0A0A] border-[#0A0A0A]/10 hover:from-[#F7C948]/15 hover:via-gray-400/10 hover:to-transparent hover:border-[#0A0A0A]/20'
         )}
       >
         Mensal
@@ -207,13 +207,16 @@ export const PricingComponent: React.FC<PricingComponentProps> = ({
         type="button"
         onClick={() => handleCycleSelect('annually')}
         className={cn(
-          'px-6 py-3 text-sm font-semibold rounded-r-xl border transition-all',
+          'relative px-5 py-2.5 text-sm font-semibold tracking-tight rounded-r-3xl border-[2px] transition-all',
           billingCycle === 'annually'
             ? 'bg-[#0A0A0A] text-white border-[#0A0A0A] shadow-sm'
-            : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50 hover:border-gray-300'
+            : 'bg-gradient-to-tr from-[#F7C948]/10 via-gray-400/5 to-transparent text-[#0A0A0A] border-[#0A0A0A]/10 hover:from-[#F7C948]/15 hover:via-gray-400/10 hover:to-transparent hover:border-[#0A0A0A]/20'
         )}
       >
-        Anual <span className="text-[#E5A800]">(Economize {annualDiscountPercent}%)</span>
+        <span className="absolute -top-1.5 -right-1.5 min-w-[2.25rem] h-5 px-1.5 flex items-center justify-center text-[10px] font-bold bg-[#E5A800] text-[#0A0A0A] rounded-full border-2 border-white shadow-sm">
+          -{annualDiscountPercent}%
+        </span>
+        Anual
       </button>
     </div>
   )
