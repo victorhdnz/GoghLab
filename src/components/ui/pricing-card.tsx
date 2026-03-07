@@ -6,7 +6,6 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Modal } from "@/components/ui/Modal"
-import { Switch } from "@/components/ui/Switch"
 import { Check, X, Star } from "lucide-react"
 import { motion } from "framer-motion"
 import confetti from "canvas-confetti"
@@ -170,9 +169,10 @@ export const PricingComponent: React.FC<PricingComponentProps> = ({
   }
 
   // --- 3.1. Billing Toggle (Switch + confetti ao ativar anual) ---
-  const handleBillingToggle = (checked: boolean) => {
-    onCycleChange(checked ? 'annually' : 'monthly')
-    if (checked && switchRef.current) {
+  const handleCycleSelect = (cycle: BillingCycle) => {
+    if (billingCycle === cycle) return
+    onCycleChange(cycle)
+    if (cycle === 'annually' && switchRef.current) {
       const rect = switchRef.current.getBoundingClientRect()
       const x = rect.left + rect.width / 2
       const y = rect.top + rect.height / 2
@@ -190,28 +190,31 @@ export const PricingComponent: React.FC<PricingComponentProps> = ({
     }
   }
   const CycleToggle = (
-    <div ref={switchRef} className="relative z-20 flex justify-center items-center gap-4 mb-14 mt-2 px-2">
-      <span
+    <div ref={switchRef} className="relative z-20 flex justify-center items-center gap-0 mb-14 mt-2 px-2">
+      <button
+        type="button"
+        onClick={() => handleCycleSelect('monthly')}
         className={cn(
-          'text-sm font-semibold transition-colors',
-          billingCycle === 'monthly' ? 'text-[#0A0A0A]' : 'text-gray-400'
+          'px-6 py-3 text-sm font-semibold rounded-l-xl border transition-all',
+          billingCycle === 'monthly'
+            ? 'bg-[#0A0A0A] text-white border-[#0A0A0A] shadow-sm'
+            : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50 hover:border-gray-300'
         )}
       >
         Mensal
-      </span>
-      <Switch
-        checked={billingCycle === 'annually'}
-        onCheckedChange={handleBillingToggle}
-        className="[&>div]:!flex [&>div]:!items-center [&>div]:!gap-0 flex-shrink-0"
-      />
-      <span
+      </button>
+      <button
+        type="button"
+        onClick={() => handleCycleSelect('annually')}
         className={cn(
-          'text-sm font-semibold transition-colors',
-          billingCycle === 'annually' ? 'text-[#0A0A0A]' : 'text-gray-400'
+          'px-6 py-3 text-sm font-semibold rounded-r-xl border transition-all',
+          billingCycle === 'annually'
+            ? 'bg-[#0A0A0A] text-white border-[#0A0A0A] shadow-sm'
+            : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50 hover:border-gray-300'
         )}
       >
         Anual <span className="text-[#E5A800]">(Economize {annualDiscountPercent}%)</span>
-      </span>
+      </button>
     </div>
   )
 
